@@ -1,6 +1,6 @@
 # Security Benchmarking Tool
 
-This is a simple, currently in development, desktop application, made with Python programming language. The goal that has to be reached by the end of the project is to develop a Security Benchmarking Tool (SBT) which allows a security officer to assess a system’s vulnerability to different attacks and enforce certain security configurations based on community best practices.
+This is a simple, currently in development, desktop application made with Python programming language. The goal that has to be reached by the end of the project is to develop a Security Benchmarking Tool (SBT) which allows a security officer to assess a system’s vulnerability to different attacks and enforce certain security configurations based on community best practices.
 
 ## Technologies
 1. Python3 and Tkinter
