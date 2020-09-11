@@ -1,0 +1,229 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/07/14 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Docker Benchmark v1.2.0
+#
+#<ui_metadata>
+#<display_name>CIS Docker v1.2.0 L1 Docker Engine Enterprise</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS Docker L1 Docker Engine Enterprise</name>
+#  <version>1.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/2433</link>
+#</spec>
+#<labels>unix,cis,docker,agent</labels>
+#<benchmark_refs>LEVEL,CSCv6,CSCv7</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SWARM_MANAGERS</name>
+#    <default>[3-7]</default>
+#    <description>Swarm Manager Nodes</description>
+#    <info>The number of swarm manager nodes configured.</info>
+#  </variable>
+#  <variable>
+#    <name>UCP_FQDN</name>
+#    <default>https://127.0.0.1</default>
+#    <description>Universal Control Plane URL</description>
+#    <info>The URL of the Universal Control Plance.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Check if this is a Docker Vessel/Host"
+      cmd         : "/usr/bin/docker info"
+      expect      : "Containers"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_Docker_v1.2.0_L1_Docker_Engine_Enterprise.audit from CIS Docker Benchmark v1.2.0"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7.2 Ensure that the minimum number of manager nodes have been created in a swarm"
+      info        : "You should ensure that the minimum number of required manager nodes is created in a swarm.
+
+Rationale:
+
+Manager nodes within a swarm have control over the swarm and can change its configuration, including modifying security parameters. Having excessive manager nodes could render the swarm more susceptible to compromise.
+
+If fault tolerance is not required in the manager nodes, a single node should be elected as a manger. If fault tolerance is required then the smallest odd number to achieve the appropriate level of tolerance should be configured. This should always be an odd number in order to ensure that a quorum is reached."
+      solution    : "If an excessive number of managers is configured, the excess nodes can be demoted to workers using the following command:
+
+docker node demote <ID>
+
+Where is the node ID value of the manager to be demoted.
+
+Impact:
+
+None
+
+Default Value:
+
+Only a single manager is required to start a given cluster."
+      reference   : "800-171|3.8.9,800-53|CP-9,CSCv6|5,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,LEVEL|1S,NESA|M5.2.3,NESA|T2.2.4"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+      cmd         : "docker info --format '{{ .Swarm.Managers }}'"
+# Note: Variable @SWARM_MANAGERS@ replaced with "[3-7]" in field "expect".
+      expect      : "^[3-7]$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7.3 Ensure that swarm services are bound to a specific host interface"
+      info        : "By default, Docker swarm services will listen on all interfaces on the host. This may not be necessary for the operation of the swarm where the host has multiple network interfaces.
+
+Rationale:
+
+When a swarm is initialized the default value for the --listen-addr flag is 0.0.0.0:2377 which means that swarm services will listen on all interfaces on the host. If a host has multiple network interfaces this may be undesirable as it could expose swarm services to networks which are not involved with the operation of the swarm.
+
+By passing a specific IP address to the --listen-addr, a specific network interface can be specified, limiting this exposure."
+      solution    : "Resolving this issues requires re-initialization of the swarm, specifying a specific interface for the --listen-addr parameter.
+
+Impact:
+
+None
+
+Default Value:
+
+By default, Docker swarm services listen on all available host interfaces."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|9,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+      cmd         : "netstat -lt | grep -i 2377"
+      expect      : "^((?!0.0.0.0:2377*).)*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7.4 Ensure that all Docker swarm overlay networks are encrypted"
+      info        : "Ensure that all Docker swarm overlay networks are encrypted.
+
+Rationale:
+
+By default, data exchanged between containers on nodes on the overlay network is not encrypted. This could potentially expose traffic between containers."
+      solution    : "You should create overlay networks the with --opt encrypted flag.
+
+Impact:
+
+None
+
+Default Value:
+
+By default, data exchanged in overlay networks in Docker swarm mode is not encrypted."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSCv7|14.4,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+      cmd         : "docker network ls --filter driver=overlay --quiet | xargs docker network inspect --format '{{.Name}} {{ .Options }}' | grep -v 'encrypted:true' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "8.1.1 Configure the LDAP authentication service"
+      info        : "By default, the Universal Control Plane is configured to use the managed user authentication service. UCP should instead be configured to use one or more external LDAP endpoints for authenticating users as this can enable more granular control over authentication and authorization.
+
+Rationale:
+
+UCP's built-in managed user authentication system only supports user creation, deletion and disablement. By using an external LDAP endpoint, you can have more control over the users, groups and other hierarchical organizations that can access and manipulate resources via UCP.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "You can configure LDAP integration via the UCP 'Admin Settings' UI by following the instructions here. LDAP integration can also be enabled via a configuration file by following the instructions here.
+
+Impact:
+
+None.
+
+Default Value:
+
+By default, the built-in managed user database is enabled."
+      reference   : "LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "8.1.2 Use external certificates"
+      info        : "When you install the Universal Control Plane without providing your own TLS certificates, it will, by default, configure self-signed certificates. You should instead use certificates signed by an external, trusted certified authority as these mitigate the overhead of having to distribute certificate authority certificates to all of the nodes in a Universal Control Plane cluster and additionally are in line with good security practice.
+
+Rationale:
+
+By default, UCP is configured to use untrusted, self-signed certificates. Using UCP with externally trusted certificate authorities is a more streamlined and secure option."
+      solution    : "You can configure your own certificates for UCP either during installation or after installation via the UCP 'Admin Settings' user interface.
+Customize certificates during installation:
+
+Create a volume named ucp-controller-server-certs on your primary UCP Manager installation node:
+
+docker volume create ucp-controller-server-certs
+
+Copy your external certificate authority's public certificate file (ca.pem) and your signed certificate (cert.pem) and key (key.pem) files to the root directory of the volume
+
+cp ca.pem cert.pem key.pem $(docker volume inspect --format '{{ .Mountpoint }}' ucp-controller-server-certs)/
+
+Run the UCP installation command with the --external-server-cert flag
+
+Customize certificates post-installation via the 'Admin Settings' UI:
+Refer to the instructions at https://docs.docker.com/datacenter/ucp/2.2/guides/admin/configure/use-your-own-tls-certificates/#configure-ucp-to-use-your-own-tls-certificates-and-keys for configuring your own certificates via the UCP UI.
+
+Impact:
+
+None.
+
+Default Value:
+
+Self-signed certificates are configured by default."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+# Note: Variable @UCP_FQDN@ replaced with "https://127.0.0.1" in field "cmd".
+      cmd         : "curl https://127.0.0.1 2>&1"
+      expect      : "^((?!SSL certificate problem*).)*$"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "8.1.4 Configure applicable cluster role-based access control policies"
+      info        : "The Universal Control Plane provides robust role-based access control (RBAC) capabilities that can be used to further harden a deployment. Building off of the default set of RBAC components which includes subjects, roles, resource collections, and grants, an appropriate RBAC model should be developed that aligns with your organization's IT Security policies. This involves creating custom roles and collections.
+
+Rationale:
+
+The RBAC functionality provided by UCP includes a set of defaults that should be customized to satisfy your organization's security requirements. The following roles are included by default: None, View Only, Restricted Control, Scheduler, and Full Control. While by default, these roles are applicable to a number of simple management and application deployment scenarios, they are too broad in regards to the permissions allocated by each.
+
+As such, custom roles should be created to extend these defaults.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "UCP RBAC components can be configured as required via the UCP 'User Management' UI.
+
+Impact:
+
+None"
+      reference   : "LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+    </report>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_Docker_v1.2.0_L1_Docker_Engine_Enterprise.audit from CIS Docker Benchmark v1.2.0"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

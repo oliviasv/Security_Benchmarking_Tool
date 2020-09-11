@@ -1,0 +1,443 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.7 $
+# $Date: 2020/07/14 $
+#
+# Description   : This .audit is designed against the CIS Docker 1.13.0 Benchmark v1.0.0 - 01-19-2017.
+#
+# 	https://workbench.cisecurity.org/files/1476
+#
+# Many commands use unqualified paths to be flexible in executing on different docker vessel linux distributions
+#
+#<ui_metadata>
+#<display_name>CIS Docker 1.13.0 v1.0.0 L2 Docker</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Docker 1.13.0 L2 Docker</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/1476</link>
+#</spec>
+#<labels>unix,cis,docker,agent</labels>
+#<variables>
+#  <variable>
+#    <name>AUTH_PLUGIN_ID</name>
+#    <default>1234</default>
+#    <description>AUTH Plugin ID</description>
+#    <info>2.11 - value of --authorization-plugin=</info>
+#  </variable>
+#  <variable>
+#    <name>CGROUP_PARENT</name>
+#    <default>/foobar</default>
+#    <description>CGROUP Parent</description>
+#    <info>2.9 - value of --cgroup-parent=/foobar</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DRIVER</name>
+#    <default>syslog</default>
+#    <description>Logging Driver</description>
+#    <info>2.12 - value of --log-driver=</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Check if this is a Docker Vessel/Host"
+      cmd         : "/usr/bin/docker info"
+      expect      : "Containers"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_Docker_1.13.0_L2_v1.0.0.audit Level 2"
+    </report>
+
+    <report type:"WARNING">
+      description : "2.8 Enable user namespace support"
+      info        : "Enable user namespace support in Docker daemon to utilize container user to host user re-mapping. This recommendation is beneficial where containers you are using do not have an explicit container user definedin the container image. If container images that you are using have a pre-defined non-root user, this recommendation may be skipped since this feature is still in its infancy and might give you unpredictable issues and complexities.
+
+Rationale:
+
+The Linux kernel user namespace support in Docker daemon provides additional security for the Docker host system. It allows a container to have a unique range of user and group IDs which are outside the traditional user and group range utilized by the host system.
+
+For example, the root user will have expected administrative privilege inside the container but can effectively be mapped to an unprivileged UID on the host system.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Please consult Docker documentation for various ways in which this can be configured depending upon your requirements. Your steps might also vary based on platform - For example, on Red Hat, sub-UIDs and sub-GIDs mapping creation does not work automatically. You might have to create your own mapping.
+
+
+
+However, the high-level steps are as below:
+
+Step 1: Ensure that the files/etc/subuidand /etc/subgid exist.
+
+touch /etc/subuid /etc/subgid
+
+Step 2: Start the docker daemon with --userns-remap flag
+
+dockerd --userns-remap=default
+
+Impact:
+
+User namespace remapping makes quite a few Docker features incompatible and also currently breaks a few functionalities. Check out the Docker documentation and referenced links for details.
+
+Default Value:
+
+By default, user namespace is not remapped."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.9 Confirm default cgroup usage"
+      info        : "The --cgroup-parent option allows you to set the default cgroup parent to use for all the containers. If there is no specific use case, this setting should be left at its default.
+
+Rationale:
+
+System administrators typically define cgroups under which containers are supposed to run. Even if cgroups are not explicitly defined by the system administrators, containers run under docker cgroup by default.
+
+It is possible to attach to a different cgroup other than that is the default. This usage should be monitored and confirmed. By attaching to a different cgroup than the one that is a default, it is possible to share resources unevenly and thus might starve the host for resources."
+      solution    : "The default setting is good enough and can be left as-is. If you want to specifically set a non-default cgroup, pass --cgroup-parent parameter to the docker daemon when starting it.
+
+For Example,
+
+dockerd --cgroup-parent=/foobar
+
+Impact:
+
+None.
+
+Default Value:
+
+By default, docker daemon uses /docker for fs cgroup driver and system.slice for systemd cgroup driver."
+      reference   : "800-53|SC-39,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "ps -ef | grep docker | grep [\-][\-]cgroup-parent | /usr/bin/awk \'{print} END {if (NR == 0) print \"none\"}\'"
+# Note: Variable @CGROUP_PARENT@ replaced with "/foobar" in field "expect".
+      expect      : "(--cgroup-parent=/foobar|none)"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "2.10 Do not change base device size until needed"
+      info        : "In certain circumstances, you might need containers bigger than 10G in size. In these cases, carefully choose the base device size.
+
+Rationale:
+
+The base device size can be increased at daemon restart. Increasing the base device size allows all future images and containers to be of the new base device size.A user can use this option to expand the base device size however shrinking is not permitted. This value affects the system-wide base empty filesystem that may already be initialized and inherited by pulled images.
+
+Though the file system does not allot the increased size if it is empty, it will use more space for the empty case depending upon the device size. This may cause a denial of service by ending up in file system being over-allocated or full.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Do not set--storage-opt dm.basesize until needed.
+
+Impact:
+
+None.
+
+Default Value:
+
+The default base device size is 10G."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.11 Use authorization plugin"
+      info        : "Use authorization plugin to manage access to Docker daemon.
+
+Rationale:
+
+Dockers out-of-the-box authorization model is all or nothing. Any user with permission to access the Docker daemon can run any Docker client command. The same is true for callers using Dockers remote API to contact the daemon. If you require greater access control, you can create authorization plugins and add them to your Docker daemon configuration. Using an authorization plugin, a Docker administrator can configure granular access policies for managing access to Docker daemon."
+      solution    : "Step 1: Install/Create an authorization plugin.
+
+Step 2: Configure the authorization policy as desired.
+
+Step 3: Start the docker daemon as below:
+
+dockerd --authorization-plugin=<PLUGIN_ID>
+
+Impact:
+
+Each docker command specifically passes through authorization plugin mechanism. This might introduce a slight performance drop.
+
+Default Value:
+
+By default, authorization plugins are not set up."
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|2S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "ps -ef | grep docker | grep [\-][\-]authorization-plugin"
+# Note: Variable @AUTH_PLUGIN_ID@ replaced with "1234" in field "expect".
+      expect      : "authorization-plugin=1234"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.12 Configure centralized and remote logging"
+      info        : "Docker now supports various log drivers. A preferable way to store logs is the one that supports centralized and remote logging.
+
+Rationale:
+
+Centralized and remote logging ensures that all important log records are safe despite catastrophic events. Docker now supports various such logging drivers. Use the one that suits your environment the best."
+      solution    : "Step 1: Setup the desired log driver by following its documentation.
+
+Step 2: Start the docker daemon with that logging driver.
+
+For example,
+
+dockerd --log-driver=syslog --log-opt syslog-address=tcp://192.xxx.xxx.xxx
+
+Impact:
+
+None.
+
+Default Value:
+
+By default, container logs are maintained as json files"
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "ps -ef | grep docker | grep [\-][\-]log-driver"
+# Note: Variable @LOG_DRIVER@ replaced with "syslog" in field "expect".
+      expect      : "log-driver=syslog"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.22 Use Docker's secret management commands for managing secrets in a Swarm cluster"
+      info        : "Use Docker's in-built secret management command.
+
+Rationale:
+
+Docker has variouscommands for managing secrets in a Swarm cluster. This is the foundation for future secret support in Docker with potential improvements such as Windows support, different backing stores, etc.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Follow docker secret documentation and use it to manage secrets effectively.
+
+Impact:
+
+None
+
+Default Value:
+
+Not Applicable"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "docker secret ls"
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "4.5 Enable Content trust for Docker"
+      info        : "Content trust is disabled by default. You should enable it.
+
+Rationale:
+
+Content trust provides the ability to use digital signatures for data sent to and received from remote Docker registries. These signatures allow client-side verification of the integrity and publisher of specific image tags. This ensures provenance of container images."
+      solution    : "To enable content trust in a bash shell, enter the following command:
+
+export DOCKER_CONTENT_TRUST=1
+
+Alternatively, set this environment variable in your profile file so that content trust in enabled on every login.
+
+Impact:
+
+In an environment where DOCKER_CONTENT_TRUST is set, you are required to follow trust procedures while working with images - build, create, pull, push and run. You can use the --disable-content-trust flag to run individual operations on tagged images without content trust on an as-needed basis but that defeats the purpose of enabling content trust and hence, should be avoided wherever possible.
+
+Note: Content trust is currently only available for users of the public Docker Hub. It is currently not available for the Docker Trusted Registry or for private registries.
+
+Default Value:
+
+By default, content trust is disabled."
+      reference   : "800-53|SI-7(6),CSF|PR.DS-6,LEVEL|2S,SWIFT-CSCv1|6.2"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "echo $DOCKER_CONTENT_TRUST"
+      expect      : "1"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "4.8 Remove setuid and setgid permissions in the images"
+      info        : "Removing setuidandsetgid permissions in the images would prevent privilege escalation attacks in the containers.
+
+Rationale:
+
+setuidandsetgid permissions could be used for elevating privileges. While these permissions are at times legitimately needed, these could potentially be used in privilege escalation attacks. Thus, you should consider dropping these permissions for the packages which do not need them within the images.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Allowsetuid and setgid permissions only on executables which needthem. You could remove these permissions during build time by adding the following command in your Dockerfile, preferablytowards the end of the Dockerfile:
+
+RUN find / -perm +6000 -type f -exec chmod a-s {} \; || true
+
+Impact:
+
+Above command breaks all the executables that depend on setuid or setgidpermissions including the legitimate ones. Hence, be careful to modify the command to suit your requirements so that it does not drop the permissions of legitimate programs. This requires acareful examination of each executable and fine tuning the permissions.
+
+Default Value:
+
+Not Applicable"
+      reference   : "800-171|3.1.7,800-53|AC-6,CSF|PR.AC-4,LEVEL|2NS"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "4.11 Install verified packages only"
+      info        : "Verify authenticity of the packages before installing them in the image.
+
+Rationale:
+
+Verifying authenticity of the packages is essential for building a secure container image. Tampered packages could potentially be malicious or have some known vulnerabilities that could be exploited.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Use GPG keys for downloading and verifying packages or any other secure package distribution mechanism of your choice.
+
+Impact:
+
+None
+
+Default Value:
+
+Not Applicable"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "for image in $(docker images|awk {\'print $3\'}); do docker history $image;done"
+      expect      : ""
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "5.2 Verify SELinux security options, if applicable"
+      info        : "SELinux is an effective and easy-to-use Linux application security system. It is available on quite a few Linux distributions by default such asRed Hat and Fedora.
+
+Rationale:
+
+SELinux provides a Mandatory Access Control (MAC) system that greatly augments the default Discretionary Access Control (DAC) model.You can thus add an extra layer of safety by enabling SELinux on your Linux host, if applicable.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "If SELinuxis applicable for your Linux OS, use it. You may have to follow below set of steps:
+
+1. Set the SELinux State.
+
+2. Set the SELinux Policy.
+
+3. Create or import a SELinux policy template for Docker containers.
+
+4. Start Docker in daemon mode with SELinux enabled. For example,
+
+docker daemon --selinux-enabled
+
+5. Start your Docker container using the security options. For example,
+
+docker run --interactive --tty --security-opt label=level:TopSecret centos /bin/bash
+
+Impact:
+
+The container (process) would have set of restrictions as defined in SELinux policy. If your SELinux policy is mis-configured, then the container may not entirely work as expected.
+
+
+Default Value:
+
+By default, no SELinux security options are applied on containers."
+      reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-3(3),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(3),LEVEL|2S,NESA|T5.5.4,NESA|T7.5.3"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "/usr/bin/docker ps -q | xargs /usr/bin/docker inspect --format \'{{ .Id }}: SecurityOpt={{json .HostConfig.SecurityOpt }}\'"
+      expect      : ""
+      severity    : MEDIUM
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "5.22 Do not docker exec commands with privileged option"
+      info        : "Do not docker exec with --privileged option.
+
+Rationale:
+
+Using --privileged option in docker exec gives extended Linux capabilities to the command. This could potentially be insecure and unsafe to do especially when you are running containers with dropped capabilities or with enhanced restrictions.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Do not use --privileged option in docker exec command.
+
+Impact:
+
+None. If you need enhanced capabilities within the container, then run the container with the needed capabilities.
+
+Default Value:
+
+By default, docker exec command runs without --privileged option."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+    </report>
+
+    <report type:"WARNING">
+      description : "5.23 Do not docker exec commands with user option"
+      info        : "Do not docker exec with --user option.
+
+Rationale:
+
+Using --user option in docker exec executes the command within the container as that user. This could potentially be insecure and unsafe to do especially when you are running containers with dropped capabilities or with enhanced restrictions.
+
+For example, suppose your container is running as tomcat user (or any other non-root user), it would be possible to run a command through docker exec as root with --user=root option. This could potentially be dangerous.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Do not use --useroption in docker exec command.
+
+Impact:
+
+None.
+
+Default Value:
+
+By default, docker exec command runs without --useroption."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "5.29 Do not use Docker's default bridge docker0"
+      info        : "Do not use Docker's default bridge docker0. Use docker's user-defined networks for container networking.
+
+Rationale:
+
+Docker connects virtual interfaces created in the bridge mode to a common bridge called docker0. This default networking model is vulnerable to ARP spoofing and MAC flooding attacks since there is no filtering applied.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Follow Docker documentation and setup a user-defined network. Run all the containers in the defined network.
+
+Impact:
+
+You have to manage the user-defined networks.
+
+Default Value:
+
+By default, docker runs containers on its docker0 bridge."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+      cmd         : "for net_id in $(docker network ls|awk {\'print $1\'}); do docker network inspect $net_id;done"
+      expect      : ""
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_Docker_1.13.0_L2_v1.0.0.audit Level 2"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1476"
+    </report>
+  </else>
+</if>
+
+</check_type>

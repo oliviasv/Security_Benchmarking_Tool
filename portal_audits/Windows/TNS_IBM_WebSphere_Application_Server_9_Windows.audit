@@ -1,0 +1,517 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.4 $
+# $Date: 2020/04/22 $
+#
+#<ui_metadata>
+#<display_name>TNS IBM WebSphere Application Server 9 Windows Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>IBM WebSphere Application Server 9</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>windows,tenable,ibm,websphere,websphere_9</labels>
+#<variables>
+#  <variable>
+#    <name>WEBSPHERE_INSTALL_PATH</name>
+#    <default>C:\\Program Files\\IBM\\WebSphere\\AppServer</default>
+#    <description>WebSphere Installation Path</description>
+#    <info>The full path to the WebSphere installation with no trailing slash.</info>
+#  </variable>
+#  <variable>
+#    <name>WEBSPHERE_FILE_PERMS_USER</name>
+#    <default>was</default>
+#    <description>WebSphere File Owner Username</description>
+#    <info>The Windows OS user that has permissions for the WebSphere installation.</info>
+#  </variable>
+#  <variable>
+#    <name>WEBSPHERE_LOG_PATH</name>
+#    <default>C:\Program Files\IBM\WebSphere\AppServer\profiles\*\logs</default>
+#    <description>WebSphere Log Path</description>
+#    <info>The full path to the WebSphere Logs directory with no trailing slash.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"MS Windows">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CHECK
+      description : "Check for WebSphere installation"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "value_data".
+      value_data  : "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer"
+      file_option : MUST_EXIST
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "TNS_IBM_WebSphere_Application_Server_9_Windows.audit for IBM WebSphere Application Server 9"
+    </report>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Administrative Security is Enabled"
+      info            : "Specifies whether to enable administrative security for this application server domain. Administrative security requires users to authenticate before obtaining administrative control of the application server."
+      solution        : "1. Expand Security
+2. Click Global security
+3. Check Enable administrative security
+4. Click Apply
+5. Click Save
+6. Restart the WebSphere Application Server"
+      reference       : "800-171|3.1.5,800-53|AC-6,CSF|PR.AC-4,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=ls 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\security.xml'; foreach ($file in $files) { $value = select-xml -path $file -namespace @{security='http://www.ibm.com/websphere/appserver/schemas/5.0/security.xmi'} -xpath '//security:Security/@enabled' | foreach { $_.node.'#text' }; ''; $file.Fullname + ' : ' + $value; if ($value -ne 'true') { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure External Authorization Provider is Enabled"
+      info            : "The application server provides a default authorization engine that performs all of the authorization decisions. In addition, the application server also supports an external authorization provider using the JACC specification to replace the default authorization engine for Java Platform, Enterprise Edition (Java EE) applications.
+
+JACC is part of the Java EE specification, which enables third-party security providers such as Tivoli Access Manager to plug into the application server and make authorization decisions.
+
+Important: Unless you have an external JACC provider or want to use a JACC provider for Tivoli Access Manager that can handle Java EE authorizations based on JACC, and it is configured and set up to use with the application server, do not enable External authorization using a JACC provider."
+      solution        : "1. Expand Security
+2. Click Global security
+3. Click External authorization providers
+4. From Authorization provider select External JACC provider
+5. Configure the JACC provider based on your environment settings
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.1.1,800-53|AC-3,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|AC-3,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=ls 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\security.xml'; foreach ($file in $files) { $value = select-xml -path $file -namespace @{security='http://www.ibm.com/websphere/appserver/schemas/5.0/security.xmi'} -xpath '//security:Security/authConfig/@useJACCProvider' | foreach { $_.node.'#text' }; ''; $file.Fullname + ' : ' + $value; if ($value -ne 'true') { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Standalone LDAP Registry SSL is Enabled"
+      info            : "Specify this setting to use stand-alone LDAP registry settings when users and groups reside in an external LDAP directory."
+      solution        : "1. Expand Security
+2. Click Global security
+3. From Available realm definitions select Standalone LDAP Registry
+4. Click Configure
+5. Check SSL enabled
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.1.1,800-53|AC-3,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|AC-3,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\security.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<userRegistries[\s].*security:LDAPUserRegistry'; ''; $value; if (!($value | Select-String -Pattern '[\s]sslEnabled=.true.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure CSIv2 inbound communications transport is SSL-required"
+      info            : "Specifies whether client processes connect to the server using one of its connected transports."
+      solution        : "1. Expand Security
+2. Click Global security
+3. Click RMI/IIOP security
+4. Click CSIv2 inbound communications
+5. Set Transport to SSL-required
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.4.2,800-53|CM-6,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\security.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<requiredQOP[\s].*orb.securityprotocol:TransportQOP'; ''; $value; if (!($value | Select-String -Pattern '[\s]enableProtection=.true.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure HTTPOnly attribute on LTPA cookies"
+      info            : "When the com.ibm.ws.security.addHttpOnlyAttributeToCookies custom property is set to true, the HttpOnly attribute is added to those security cookies (LTPA and WASReqURL cookies) that are created by the server. The HttpOnly attribute is a browser attribute created to prevent client side applications (such as Java scripts) from accessing cookies to prevent some cross-site scripting vulnerabilities."
+      solution        : "1. Expand Security
+2. Click Global security
+3. Click Custom Properties
+4. Click New
+5. Set Name as com.ibm.ws.security.addHttpOnlyAttributeToCookies and Value as true
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.4.2,800-53|CM-6,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\security.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<properties[\s].*name=.com.ibm.ws.security.addHttpOnlyAttributeToCookies'; ''; $value; if (!($value | Select-String -Pattern '[\s]value=.true.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Persisting Credentials is Enabled"
+      info            : "Credential persistence allows login information to be available to unprotected web clients to enable more access to user information."
+      solution        : "1. Expand Security
+2. Click Global security
+3. Click Web and SIP security
+4. Click General settings
+5. Check Use available authentication data when an unprotected URI is accessed
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.4.2,800-53|CM-6,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\security.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<webAuthAttrs[\s].*name=.com.ibm.wsspi.security.web.webAuthReq'; ''; $value; if (!($value | Select-String -Pattern '[\s]value=.persisting.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Trust Association is Enabled"
+      info            : "Trust association is used to connect reversed proxy servers to the application server."
+      solution        : "1. Expand Security
+2. Click Global security
+3. Expand Web and SIP security
+4. Click Trust association
+3. Check Enable trust association
+4. Click Apply
+5. Click Save
+6. Restart the WebSphere Application Server"
+      reference       : "800-53|IA-5,CSF|PR.AC-1,ITSG-33|IA-5"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\security.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<trustAssociation[\s]'; ''; $value; if (!($value | Select-String -Pattern '[\s]enabled=.true.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Review Users with 'Administrator' Administrative User Role"
+      info            : "Assigning administrative roles to users enables them to administer application servers through the administrative console or through wsadmin scripting.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution        : "Review the Users listed, and remove any users that do not require the Administrator role:
+1. Expand User and Groups
+2. Click Administrative user roles
+3. Select the check box beside the user to be removed
+5. Click Remove
+6. Click Save"
+      reference       : "800-171|3.1.5,800-53|AC-6,CSF|PR.AC-4,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'MANUAL REVIEW'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\admin-authz.xml'; foreach ($file in $files) { $file.FullName + ':'; Get-Content -Raw -Path $file | Select-String -Pattern '(?s)<authorizations.*role=.SecurityRoleExt_1.>.*?</authorizations>' -AllMatches | % { $_.Matches.Value } | Select-String -Pattern '<users.*/>' -AllMatches | % { $_.Matches.Value }; '' }"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Review Groups with 'Administrator' Administrative Group Role"
+      info            : "Assigning administrative roles to groups enables them to administer application servers through the administrative console or through wsadmin scripting.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution        : "Review the Groups listed, and remove any groups that do not require the Administrator role:
+1. Expand User and Groups
+2. Click Administrative group roles
+3. Select the check box beside the group to be removed
+5. Click Remove
+6. Click Save"
+      reference       : "800-171|3.1.5,800-53|AC-6,CSF|PR.AC-4,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'MANUAL REVIEW'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\admin-authz.xml'; foreach ($file in $files) { $file.FullName + ':'; Get-Content -Raw -Path $file | Select-String -Pattern '(?s)<authorizations.*role=.SecurityRoleExt_1.>.*?</authorizations>' -AllMatches | % { $_.Matches.Value } | Select-String -Pattern '<groups.*/>' -AllMatches | % { $_.Matches.Value }; '' }"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Security Auditing is Enabled"
+      info            : "Security auditing provides a means to gather and store auditable event records to help assure the integrity of the business computing environment."
+      solution        : "1. Expand Security
+2. Click Security auditing
+3. Check Enable Security Auditing
+4. Click Apply
+5. Click Save
+6. Restart the WebSphere Application Server"
+      reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,SWIFT-CSCv1|6.4"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=ls 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\audit.xml'; foreach ($file in $files) { $value = select-xml -path $file -namespace @{security='http://www.ibm.com/websphere/appserver/schemas/5.0/security.xmi'} -xpath '//security:Audit/auditPolicy/@auditEnabled' | foreach { $_.node.'#text' }; ''; $file.Fullname + ' : ' + $value; if ($value -ne 'true') { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Session Timeout is 30 minutes or less"
+      info            : "Specifies how long a session can go unused before it is no longer valid."
+      solution        : "1. Expand Servers
+2. Click WebSphere application servers
+3. Click the name of the server
+4. Click Session management
+5. Set Session timeout to 30 minutes or less
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.5.2,800-53|IA-5,CSF|PR.AC-1,ITSG-33|IA-5,NESA|T5.2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\nodes\*\servers\*\server.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<tuningParams[\s].*'; ''; $value; if (!($value | Select-String -Pattern '[\s]invalidationTimeout=.(30|[1-2][0-9]|[0-9]).[^0-9]')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Session Security Integration is Enabled"
+      info            : "Only authenticated users can access sessions that are created in secure pages. The session management facility uses the security infrastructure to determine the authenticated identity that is associated with a client HTTP request, and either retrieves or creates a session."
+      solution        : "1. Expand Servers
+2. Click WebSphere application servers
+3. Click the name of the server
+3. Click Session management
+4. Check Security integration
+5. Click Apply
+6. Click Save
+7. Restart the WebSphere Application Server"
+      reference       : "800-171|3.1.1,800-53|AC-3,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|AC-3,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\nodes\*\servers\*\server.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<services[\s].*applicationserver.webcontainer:SessionManager'; ''; $value; if (!($value | Select-String -Pattern '[\s]enableSecurityIntegration=.false.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Diagnostic Trace Output is Disabled"
+      info            : "Diagnostic trace provides detailed information about how the application server components run within this managed process, and can contain sensitive information."
+      solution        : "1. Expand Troubleshooting
+2. Click Logs and trace
+3. Click the name of the server
+4. Click Diagnostic Trace
+5. Set the Trace Output to None.
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.4.2,800-53|CM-6,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\nodes\*\servers\*\server.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<services[\s].*traceservice:TraceService'; ''; $value; if (!($value | Select-String -Pattern '[\s]enable=.false.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure HTTP Access Logging Service is Enabled"
+      info            : "This service is required if you want any of the following logging to start when the server starts:
+NCSA access logging
+HTTP error logging"
+      solution        : "1. Expand Troubleshooting
+2. Click Logs and trace
+3. Click the name of the server
+4. Click NCSA access and HTTP error logging
+5. Check Enable logging service at server start-up
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,SWIFT-CSCv1|6.4"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\nodes\*\servers\*\server.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<services[\s].*loggingservice.http:HTTPAccessLoggingService'; ''; $value; if (!($value | Select-String -Pattern '[\s]enable=.true.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure HTTP Access Logging is Enabled"
+      info            : "When enabled, a record of inbound client requests that the HTTP transport channel handles is kept in the NCSA access log."
+      solution        : "1. Expand Troubleshooting
+2. Click Logs and trace
+3. Click the name of the server
+4. Click NCSA access and HTTP error logging
+5. Check Enable access logging
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,SWIFT-CSCv1|6.4"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\nodes\*\servers\*\server.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<services[\s].*loggingservice.http:HTTPAccessLoggingService'; ''; $value; if (!($value | Select-String -Pattern '[\s]enableAccessLogging=.true.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure HTTP Error Logging is Enabled"
+      info            : "When enabled, HTTP errors that occur while the HTTP channel processes client requests are recorded in the HTTP error log."
+      solution        : "1. Expand Troubleshooting
+2. Click Logs and trace
+3. Click the name of the server
+4. Click NCSA access and HTTP error logging
+5. Check Enable error logging
+6. Click Apply
+7. Click Save
+8. Restart the WebSphere Application Server"
+      reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,SWIFT-CSCv1|6.4"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "$status = 'PASSED'; $files=Get-Item 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\nodes\*\servers\*\server.xml'; foreach ($file in $files) { $value = Select-String -Path $file -Pattern '^[\s]*<services[\s].*loggingservice.http:HTTPAccessLoggingService'; ''; $value; if (!($value | Select-String -Pattern '[\s]enableErrorLogging=.true.')) { $status = 'FAILED' } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure appropriate permissions on WebSphere Installation Directory"
+      info            : "Ensure the permissions of the WebSphere Installation directory are set to prevent users other than administrators, system account, and the WebSphere Application Server account from read/write access..  If the directory is not set with the proper permissions, malicious users may gain sensitive information about the system."
+      solution        : "Review the permission warnings from the check output, and remediate as necessary"
+      reference       : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+# Note: Variable @WEBSPHERE_FILE_PERMS_USER@ replaced with "was" in field "powershell_args".
+      powershell_args : "$files = ls 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer'; $status = 'PASSED'; foreach ($file in $files) { $f = $file; $acls = (icacls $f); ''; foreach ($acl in $acls) { if (!$acl) { continue } elseif ($acl -like '*NT SERVICE\TrustedInstaller:*') { $acl; continue } elseif ($acl -like '*NT SERVICE\TrustedInstaller:*') { $acl; continue } elseif ($acl -like '*NT AUTHORITY\SYSTEM:*') { $acl; continue } elseif ($acl -like '*BUILTIN\Administrators:*') { $acl; continue } elseif ($acl -like '*CREATOR OWNER:*') { $acl; continue } elseif ($acl -like '*APPLICATION PACKAGE AUTHORITY\ALL APPLICATION PACKAGES:*') { $acl; continue } elseif ($acl -like '*APPLICATION PACKAGE AUTHORITY\ALL RESTRICTED APPLICATION PACKAGES:*') { $acl; continue } elseif ($acl -like '*NT SERVICE\WinRM:*') { $acl; continue } elseif ($acl -like '*was*') { $acl; continue } elseif ($acl -like 'Successfully processed *') { continue } else { $acl + '- WARNING - extra permissions'; $status = 'FAILED' } } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure appropriate permissions on fileRegistry.xml"
+      info            : "Ensure the permissions of the file registry are set to prevent users other than administrators, system account, and the WebSphere Application Server account from read/write access.  If the file is not set with the proper permissions, malicious users may gain sensitive information about the system."
+      solution        : "Review the permission warnings from the check output, and remediate as necessary"
+      reference       : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+# Note: Variable @WEBSPHERE_FILE_PERMS_USER@ replaced with "was" in field "powershell_args".
+      powershell_args : "$files = ls 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\config\cells\*\fileRegistry.xml'; $status = 'PASSED'; foreach ($file in $files) { $f = $file; $acls = (icacls $f); ''; foreach ($acl in $acls) { if (!$acl) { continue } elseif ($acl -like '*NT SERVICE\TrustedInstaller:*') { $acl; continue } elseif ($acl -like '*NT AUTHORITY\SYSTEM:*') { $acl; continue } elseif ($acl -like '*BUILTIN\Administrators:*') { $acl; continue } elseif ($acl -like '*APPLICATION PACKAGE AUTHORITY\ALL APPLICATION PACKAGES:*') { $acl; continue } elseif ($acl -like '*APPLICATION PACKAGE AUTHORITY\ALL RESTRICTED APPLICATION PACKAGES:*') { $acl; continue } elseif ($acl -like '*was*') { $acl; continue } elseif ($acl -like 'Successfully processed *') { continue } else { $acl + '- WARNING - extra permissions'; $status = 'FAILED' } } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure appropriate permissions on WebSphere Log Directory"
+      info            : "Ensure the permissions of the WebSphere Log directory are set to prevent users other than administrators, system account, and the WebSphere Application Server account from read/write access.  If the directory is not set with the proper permissions, malicious users may gain sensitive information about the system."
+      solution        : "Review the permission warnings from the check output, and remediate as necessary"
+      reference       : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : 'STATUS: PASSED'
+# Note: Variable @WEBSPHERE_LOG_PATH@ replaced with "C:\\Program Files\\IBM\\WebSphere\\AppServer\\profiles\\*\\logs" in field "powershell_args".
+# Note: Variable @WEBSPHERE_FILE_PERMS_USER@ replaced with "was" in field "powershell_args".
+      powershell_args : "$files = ls 'C:\\Program Files\\IBM\\WebSphere\\AppServer\\profiles\\*\\logs'; $status = 'PASSED'; foreach ($file in $files) { $f = $file; $acls = (icacls $f); ''; foreach ($acl in $acls) { if (!$acl) { continue } elseif ($acl -like '*NT SERVICE\TrustedInstaller:*') { $acl; continue } elseif ($acl -like '*NT SERVICE\TrustedInstaller:*') { $acl; continue } elseif ($acl -like '*NT AUTHORITY\SYSTEM:*') { $acl; continue } elseif ($acl -like '*BUILTIN\Administrators:*') { $acl; continue } elseif ($acl -like '*CREATOR OWNER:*') { $acl; continue } elseif ($acl -like '*APPLICATION PACKAGE AUTHORITY\ALL APPLICATION PACKAGES:*') { $acl; continue } elseif ($acl -like '*APPLICATION PACKAGE AUTHORITY\ALL RESTRICTED APPLICATION PACKAGES:*') { $acl; continue } elseif ($acl -like '*was*') { $acl; continue } elseif ($acl -like 'Successfully processed *') { continue } else { $acl + '- WARNING - extra permissions'; $status = 'FAILED' } } } ''; 'STATUS: '+$status"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Ensure Sample Applications are removed"
+      info            : "Ensure sample applications are removed from the WebSphere Application Server as they may pose a security threat, and are not required on a production server."
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "solution".
+      solution        : "Remove all files and directories from the C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\samples directory."
+      reference       : "800-171|3.4.2,800-53|CM-6,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : "None"
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "if( Test-Path -Path 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\samples' ) { $files=ls 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\samples\*'; if ($files -eq $Null) { 'None' } else { $files } } else { 'None' }"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Review Installed Applications"
+      info            : "Validate the list of applications running on the WebSphere Application Server, and remove any applications that are not required to reduce the attack surface of the server.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution        : "Review the applications listed, and uninstall any applications that are not required:
+1. Expand Applications
+2. Expand Application Types
+3. Click WebSphere enterprise applications
+4. Select the check box beside the application to be removed
+5. Click Uninstall
+6. Click OK"
+      reference       : "800-171|3.4.8,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,SWIFT-CSCv1|2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : "None"
+# Note: Variable @WEBSPHERE_INSTALL_PATH@ replaced with "C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer" in field "powershell_args".
+      powershell_args : "ls 'C:\\\\Program Files\\\\IBM\\\\WebSphere\\\\AppServer\profiles\*\installedApps\*\*'"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Deploy WebSphere Application Server on a Dedicated System"
+      info            : "Ensure WebSphere Application Server is deployed on a dedicated system or container to reduce the attack surface, and limit the damage if an application is compromised.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution        : "Deploy WebSphere Application Server to a dedicated system or container."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+      value_type      : POLICY_TEXT
+      value_data      : "ServiceCheck"
+      powershell_args : "Get-Service"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "TNS_IBM_WebSphere_Application_Server_9_Windows.audit for IBM WebSphere Application Server 9"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://www.ibm.com/developerworks/websphere/zones/was/security/"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

@@ -1,0 +1,2526 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/04/22 $
+#
+# Description	: This .audit is designed to query VMware 6.5
+# 	  as defined by CIS in the CIS VMware ESXi 6.5 v1.0.0 benchmark
+#                 https://workbench.cisecurity.org/files/2168
+#
+#<ui_metadata>
+#<display_name>CIS VMware ESXi 6.5 v1.0.0 Level 1</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>VMware ESXi 6.5 Level 1</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/2168</link>
+#</spec>
+#<labels>vmware,cis,esxi,esxi_6,esxi_6.5</labels>
+#<benchmark_refs>LEVEL,CSCv7</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>NTP_SERVER</name>
+#    <default>0\.us\.pool\.ntp\.org</default>
+#    <description>NTP server address</description>
+#    <info>The name or IP address of the NTP server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_HOST</name>
+#    <default>192\.168\.0\.1</default>
+#    <description>Remote syslog IP</description>
+#    <info>The IP address of the centralized syslog server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>DCUI_ACCESS</name>
+#    <default>root</default>
+#    <description>DCUI Access Users</description>
+#    <info>List of trusted users that can override lockdown mode</info>
+#  </variable>
+#  <variable>
+#    <name>AGENT_ADDRESS</name>
+#    <default>192\.168\.0\.1</default>
+#    <description>VMSafe agent addr</description>
+#    <info>The VMsafe CPU/memory API allows a security virtual machine to inspect and modify the contents of the memory and CPU registers on other VMs, for the purpose of detecting and preventing malware attacks.</info>
+#  </variable>
+#  <variable>
+#    <name>AGENT_PORT</name>
+#    <default>10000</default>
+#    <description>Agent Port Num</description>
+#    <info>The VMsafe CPU/memory API allows a security virtual machine to inspect and modify the contents of the memory and CPU registers on other VMs, for the purpose of detecting and preventing malware attacks.</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DIR</name>
+#    <default>\\[\\] \/scratch\/log1</default>
+#    <description>System log dir</description>
+#    <info>The path to the system log directory.</info>
+#  </variable>
+#  <variable>
+#    <name>PASSWORD_POLICY</name>
+#    <default>retry=5 min=disabled,disabled,disabled,disabled,14</default>
+#    <description>Password Quality Control</description>
+#    <info>Value of the Security.PasswordQualityControl parameter</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"VMware">
+
+<report type:"PASSED">
+  description : "CIS VMware ESXi 6.5 v1.0.0 Level 1"
+  info        : "CIS VMware ESXi 6.5 v1.0.0 Level 1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<report type:"WARNING">
+  description : "1.1 Ensure ESXi is properly patched"
+  info        : "VMware Update Manager is a tool used to automate patch management for vSphere
+  hosts and virtual machines. Creating a baseline for patches is a good way to ensure all hosts
+  are at the same patch level. VMware also publishes advisories on security patches and offers
+  a way to subscribe to email alerts for them.
+
+*Rationale*
+
+By staying up to date on ESXi patches, vulnerabilities in the hypervisor can be mitigated. An
+educated attacker can exploit known vulnerabilities when attempting to attain access or
+elevate privileges on an ESXi host.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Employ a process to keep ESXi hosts up to date with patches in accordance with industry
+  standards and internal guidelines. Leverage the VMware Update Manager to test and apply patches as they become available."
+  reference   : "800-125A|HY-SR-18,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "2.1 Ensure NTP time synchronization is configured properly"
+  info        : "Network Time Protocol (NTP) synchronization should be configured correctly and enabled on each
+  VMware ESXi host to ensure accurate time for system event logs. The time sources used by the ESXi hosts should
+  be in sync with an agreed-upon time standard such as Coordinated Universal Time (UTC). There should be at minimum
+  two NTP sources in place, and they should sync whenever possible.
+
+*Rationale*
+
+By ensuring that all systems use the same relative time source (including the relevant
+localization offset), and that the relative time source can be correlated to an agreed-upon
+time standard, you can make it simpler to track and correlate an intruder's actions when
+reviewing the relevant log files. Incorrect time settings can make it difficult to inspect and
+correlate log files to detect attacks, and can make auditing inaccurate."
+  solution    : "Perform the following From the vSphere web client-
+
+1. Select the host.
+2. Click 'Manage' -> 'Settings' -> 'System' -> 'Time Configuration'.
+3. Click the 'Edit...' button.
+4. Click on 'Use Network Time Protocol'.
+5. Provide the name and / or IP of your NTP servers. Separate servers with commas.
+6. If the NTP Service Status is 'Stopped', click on 'Start'.
+7. Change the startup policy to 'Start and stop with host'.
+8. Click 'OK'.To implement the recommended configuration state, run the following PowerCLI
+command-# Set the NTP Settings for all hosts
+# If an internal NTP server is used replace pool.ntp.org with
+# the IP address of the internal NTP server
+$NTPServers = 'pool.ntp.org', 'pool2.ntp.org' Get-VMHost | Add-VmHostNtpServer
+$NTPServers
+
+Default Value-The prescribed state is not the default state."
+  reference   : "800-125A|HY-SR-17,800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSCv7|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),LEVEL|1S,NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:dateTimeInfo/audit:ntpConfig/audit:server\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - NTP Server : <xsl:value-of select=\"audit:propSet/audit:val/audit:dateTimeInfo/audit:ntpConfig/audit:server\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>NTP Server : NOT found</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "NTP Server : "
+# Note: Variable @NTP_SERVER@ replaced with "0\\.us\\.pool\\.ntp\\.org" in field "expect".
+  expect      : "NTP Server : 0\\.us\\.pool\\.ntp\\.org$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "2.3 Ensure Managed Object Browser (MOB) is disabled"
+  info        : "The Managed Object Browser (MOB) is a web-based server application that lets you
+examine objects that exist on the server side. This is installed and started automatically
+when vCenter is installed.
+
+*Rationale*
+
+The MOB is meant to be used primarily for debugging the vSphere SDK. Because there are no access controls,
+the MOB could also be used as a method to obtain information about a host being targeted for unauthorized access."
+  solution    : "To disable the MOB, run the following ESXi shell command:
+
+vim-cmd proxysvc/remove_service '/mob' 'httpsWithRedirect'
+
+Additionally, the following PowerCLI command may be used:
+
+Get-VMHost | Get-AdvancedSetting -Name
+Config.HostAgent.plugins.solo.enableMob |Set-AdvancedSetting -value \"false\"
+
+Note: You cannot disable the MOB while a host is in lockdown mode."
+  reference   : "800-125A|HY-SR-17,800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Config.HostAgent.plugins.solo.enableMob']\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Config.HostAgent.plugins.solo.enableMob']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Config.HostAgent.plugins.solo.enableMob']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Config.HostAgent.plugins.solo.enableMob : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Config.HostAgent.plugins.solo.enableMob : "
+  expect      : "Config.HostAgent.plugins.solo.enableMob : false"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : AUDIT_VCENTER
+      description : "Ensure proper SNMP configuration"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:OptionValue[contains (audit:key,'snmp.receiver') and contains (audit:key,'.enabled') and contains (audit:value,'true')]\">"
+      xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val/audit:OptionValue[contains (audit:key,'snmp.receiver') and contains (audit:key,'.enabled') and contains (audit:value,'true')]\">"
+      xsl_stmt    : "<xsl:value-of select=\"../../../audit:propSet/audit:val/audit:OptionValue[audit:key='VirtualCenter.InstanceName']/audit:value\"/> - <xsl:value-of select=\"audit:key\"/> : <xsl:value-of select=\"audit:value\"/><xsl:text>&#10;</xsl:text>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "snmp\.receiver\.([Xx]|[0-9]+)\.enabled : "
+      expect      : "snmp\.receiver\.([Xx]|[0-9]+)\.enabled : TRUE$"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : AUDIT_VCENTER
+      description : "2.5 Ensure SNMP is configured properly - 'community name public does not exist'"
+      info        : "Simple Network Management Protocol (SNMP) can be used to help manage hosts. Many organizations have other means in
+      place of managing hosts and do not need SNMP enabled. If SNMP is needed, it should be configured properly to reduce the risk of misuse or
+      compromise. For example, ESXi supports SNMPv3, which provides stronger security than SNMPv1 or SNMPv2, including key authentication and encryption.
+      It is also important to configure the destination for SNMP traps.
+
+
+*Rationale*
+
+
+If SNMP is not properly configured, monitoring data containing sensitive information can be sent to a malicious host and used to help exploit the host."
+      solution    : "To correct the SNMP configuration, perform the following from the ESXi Shell or vCLI:
+1. If SNMP is not needed, disable it by running:
+
+esxcli system snmp set --enable false
+
+2. If SNMP is needed, refer to the vSphere Monitoring and Performance guide, chapter 8 for steps to configure it.
+Additionally, the following PowerCLI command may be used to implement the configuration:
+
+# Update the host SNMP Configuration (single host connection required)
+Get-VmHostSNMP | Set-VMHostSNMP -Enabled:$true -ReadOnlyCommunity '<secret>'"
+      reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSCv7|9.2,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,LEVEL|1NS,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+      see_also    : "https://workbench.cisecurity.org/files/2168"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:OptionValue[contains (audit:key,'snmp.receiver') and contains (audit:key,'.community') and contains (audit:value,'public')]\">"
+      xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val/audit:OptionValue[contains (audit:key,'snmp.receiver') and contains (audit:key,'.community') and contains (audit:value,'public')]\">"
+      xsl_stmt    : "<xsl:value-of select=\"../../../audit:propSet/audit:val/audit:OptionValue[audit:key='VirtualCenter.InstanceName']/audit:value\"/> - <xsl:value-of select=\"audit:key\"/> : <xsl:value-of select=\"audit:value\"/><xsl:text>&#10;</xsl:text>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "snmp\.receiver\.[0-9]+\.community : "
+      not_expect  : "snmp\.receiver\.[0-9]+\.community : [Pp][Uu][Bb][Ll][Ii][Cc]"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_VCENTER
+      description : "2.5 Ensure SNMP is configured properly  - 'community name private does not exist'"
+      info        : "Simple Network Management Protocol (SNMP) can be used to help manage hosts. Many organizations have other means in
+      place of managing hosts and do not need SNMP enabled. If SNMP is needed, it should be configured properly to reduce the risk of misuse or
+      compromise. For example, ESXi supports SNMPv3, which provides stronger security than SNMPv1 or SNMPv2, including key authentication and encryption.
+      It is also important to configure the destination for SNMP traps.
+
+
+*Rationale*
+
+
+If SNMP is not properly configured, monitoring data containing sensitive information can be sent to a malicious host and used to help exploit the host."
+      solution    : "To correct the SNMP configuration, perform the following from the ESXi Shell or vCLI:
+
+1. If SNMP is not needed, disable it by running:
+
+esxcli system snmp set --enable false
+
+2. If SNMP is needed, refer to the vSphere Monitoring and Performance guide, chapter 8 for steps to configure it.
+Additionally, the following PowerCLI command may be used to implement the configuration:
+
+# Update the host SNMP Configuration (single host connection required)
+Get-VmHostSNMP | Set-VMHostSNMP -Enabled:$true -ReadOnlyCommunity '<secret>'"
+      reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSCv7|9.2,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,LEVEL|1NS,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+      see_also    : "https://workbench.cisecurity.org/files/2168"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:OptionValue[contains (audit:key,'snmp.receiver') and contains (audit:key,'.community') and contains (audit:value,'public')]\">"
+      xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val/audit:OptionValue[contains (audit:key,'snmp.receiver') and contains (audit:key,'.community') and contains (audit:value,'public')]\">"
+      xsl_stmt    : "<xsl:value-of select=\"../../../audit:propSet/audit:val/audit:OptionValue[audit:key='VirtualCenter.InstanceName']/audit:value\"/> - <xsl:value-of select=\"audit:key\"/> : <xsl:value-of select=\"audit:value\"/><xsl:text>&#10;</xsl:text>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "snmp\.receiver\.[0-9]+\.community : "
+      not_expect  : "snmp\.receiver\.[0-9]+\.community : [Pp][Rr][Ii][Vv][Aa][Tt][Ee]"
+    </custom_item>
+  </then>
+</if>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "2.6 Ensure dvfilter API is not configured if not used"
+  info        : "The dvfilter network API is used by some products (e.g., VMSafe). If it is not in use, it
+  should not be configured to send network information to a VM.
+
+
+*Rationale*
+
+If the dvfilter network API is enabled in the future and it is already configured, an attacker might attempt to connect
+a VM to it, thereby potentially providing access to the network of other VMs on the host."
+  solution    : "To remove the configuration for the dvfilter network API, perform the following from the vSphere web client:
+
+1. Select the host and click \"Configure\" -> \"System\" -> \"Advanced System Settings\".
+2. Enter Net.DVFilterBindIpAddress in the filter.
+3. Set Net.DVFilterBindIpAddress to an empty value.
+4. If an appliance is being used, make sure the value of this parameter is set to the
+proper IP address.
+5. Make sure the attribute is highlighted, then click the pencil icon.
+6. Enter the proper IP address.
+7. Click \"OK\"."
+  reference   : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSCv7|9.2,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|1S,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Net.DVFilterBindIpAddress']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Net.DVFilterBindIpAddress']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Net.DVFilterBindIpAddress']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Net.DVFilterBindIpAddress : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Net\.DVFilterBindIpAddress : "
+  expect      : "Net\.DVFilterBindIpAddress : NOT configured"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "3.2 Ensure persistent logging is configured for all ESXi hosts"
+  info        : "ESXi can be configured to store log files on an in-memory file system. This occurs when the
+  host's Syslog.global.LogDir property is set to a non-persistent location, such as
+  /scratch. When this is done, only a single day's worth of logs are stored at any time.
+  Additionally, log files will be reinitialized upon each reboot.
+
+
+*Rationale*
+
+Non-persistent logging presents a security risk because user activity logged on the host is
+only stored temporarily and will not be preserved across reboots. This can also complicate
+auditing and make it harder to monitor events and diagnose issues. ESXi host logging should
+always be configured to a persistent datastore."
+  solution    : "To configure persistent logging properly, perform the following from the vSphere web client:
+
+1. Select the host and go to \"Configure\" -> \"System\" -> \"Advanced System Settings\".
+2. Enter Syslog.global.LogDir in the filter.
+3. Set the Syslog.global.LogDirto the desired datastore path. Note: additional disk
+space may be required to store the log files.
+4. Make sure the attribute is highlighted, then click the pencil icon.
+
+Alternatively, run the following PowerCLI command:
+
+# Set Syslog.global.logDir for each host
+Get-VMHost | Foreach { Set-AdvancedConfiguration -VMHost $_ -Name
+Syslog.global.logDir -Value \"<NewLocation>\" }"
+  reference   : "800-125A|HY-SR-20,800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSCv7|6.2,CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Syslog.global.logDir']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Syslog.global.logDir']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Syslog.global.logDir']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Syslog.global.logDir : NOT found</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Syslog\.global\.logDir : "
+# Note: Variable @LOG_DIR@ replaced with "\\\\[\\\\] \\/scratch\\/log1" in field "expect".
+  expect      : "Syslog\.global\.logDir : \\\\[\\\\] \\/scratch\\/log1$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "3.3 Ensure remote logging is configured for ESXi hosts"
+  info        : "By default ESXI logs are stored on a local scratch volume or ramdisk. To preserve logs
+further configure centralized logging for the ESXI hosts.
+
+*Rationale*
+
+Remote logging to a central log host provides a secure, centralized store for ESXi logs. You
+can more easily monitor all hosts with a single tool. You can also do aggregate analysis and
+searching to look for such things as coordinated attacks on multiple hosts. Logging to a
+secure, centralized log server helps prevent log tampering and provides a long-term audit
+record."
+  solution    : "To configure remote logging properly, perform the following from the vSphere web client:
+
+1. Select the host and click \"Configure\" -> \"System\" -> \"Advanced System Settings\".
+2. Enter Syslog.global.logHost in the filter.
+3. Make sure Syslog.global.logHost is highlighted, then click the pencil icon.
+4. Set Syslog.global.logHost to the hostname or IP address of the central log server.
+5. Click \"OK\".
+
+Alternately, run the following PowerCLI command:
+
+# Set Syslog.global.logHost for each host
+Get-VMHost | Foreach { Set-<span>AdvancedSetting </span><span>-VMHost $_ - Name
+Syslog.global.logHost -Value \"<NewLocation>\" }</span>
+
+Note: When setting a remote log host, it is also recommended to set the
+\"Syslog.global.logDirUnique\" to true. You must configure the syslog settings for each host."
+  reference   : "800-125A|HY-SR-20,800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSCv7|6.2,CSCv7|6.3,CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|1S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Syslog.global.logHost']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Syslog.global.logHost']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Syslog.global.logHost']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Syslog.global.logHost : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Syslog\.global\.logHost : "
+# Note: Variable @LOG_HOST@ replaced with "192\\.168\\.0\\.1" in field "expect".
+  expect      : "Syslog\.global\.logHost : 192\\.168\\.0\\.1$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "4.2 Ensure passwords are required to be complex"
+  info        : "ESXi uses the pam_passwdqc.so plug-in to set password strength and complexity. Options
+  include setting minimum password length, requiring password characters to come from
+  particular character sets, and restricting the number of consecutive failed logon
+  attempts permitted. The settings should enforce the organization's password policies.
+
+  Note that an uppercase character that begins a password does not count toward the
+  number of character classes used, and neither does a number that ends a password.
+
+
+*Rationale*
+
+All passwords for ESXi hosts should be hard to guess to reduce the risk of unauthorized access.
+
+Note: ESXi imposes no restrictions on the root password. Password strength and complexity rules only apply to non-root users."
+  solution    : "To set the password complexity requirements, perform the following:
+
+1. Login to the ESXi shell as a user with administrator privileges.
+2. Open /etc./pam.d/passwd
+3. Locate the following line: password requisite /lib/security/$ISA/pam_passwdqc.so retry=N min=N0,N1,N2,N3,N44.
+Set N is less than or equal to 5
+5. Set N0 to disabled
+6. Set N1 to disabled
+7. Set N2 to disabled
+8. Set N3 to disabled
+9. Set N4 to 14 or greater
+
+The above requires all passwords to be 14 or more characters long and comprised of at
+least one character from four distinct character sets. Additionally, a maximum of 5 login
+attempts are permitted."
+  reference   : "800-53|IA-5(1),CSCv7|4.4,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,SWIFT-CSCv1|4.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Security.PasswordQualityControl']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Security.PasswordQualityControl']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Security.PasswordQualityControl']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Security.PasswordQualityControl : NOT found</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Security\.PasswordQualityControl : "
+# Note: Variable @PASSWORD_POLICY@ replaced with "retry=5 min=disabled,disabled,disabled,disabled,14" in field "expect".
+  expect      : "Security\.PasswordQualityControl : retry=5 min=disabled,disabled,disabled,disabled,14"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "4.3 Ensure Active Directory is used for local user authentication - Review Domain"
+  info        : "ESXi can be configured to use a directory service such as Active Directory to manage users
+  and groups. It is recommended that a directory service be used.
+
+Note: If the AD group \"ESX Admins\" (default) is created, all users and groups that are
+members of this group will have full administrative access to all ESXi hosts in the domain.
+
+*Rationale*
+
+Join ESXi hosts to an Active Directory (AD) domain to eliminate the need to create and
+maintain multiple local user accounts. Using AD for user authentication simplifies the ESXi
+host configuration, ensures password complexity and reuse policies are enforced and
+reduces the risk of security breaches and unauthorized access.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To use AD for local user authentication, perform the following from the vSphere Web Client:
+
+1. Select the host and go to 'Manage' -> 'Settings' -> 'System' -> 'Authentication
+Services'.
+2. Click the 'Join Domain' button.
+3. Provide the domain name along with the user credentials for an AD user that has the
+rights to join computers to the domain.
+4. Click 'OK'.
+
+Alternately, run the following PowerCLI command:
+
+# Join the ESXI Host to the Domain
+Get-VMHost HOST1 | Get-VMHostAuthentication | Set-VMHostAuthentication -
+Domain domain.local -User Administrator -Password Passw0rd -JoinDomain
+
+Notes:
+1. Host Profiles can be used to automate adding hosts to an AD domain.
+2. Consider using the vSphere Authentication proxy to avoid transmitting AD
+credentials over the network."
+  reference   : "800-125A|HY-SR-13,800-125A|HY-SR-14,800-125A|HY-SR-15,800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CSCv7|16.2,CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|1S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:text>\nDomain : </xsl:text><xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:authenticationManagerInfo/audit:authConfig[@xsi:type='HostActiveDirectoryInfo']/audit:joinedDomain\"/>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "4.3 Ensure Active Directory is used for local user authentication - Enabled = 'true'"
+  info        : "ESXi can be configured to use a directory service such as Active Directory to manage users
+  and groups. It is recommended that a directory service be used.
+
+Note: If the AD group \"ESX Admins\" (default) is created, all users and groups that are
+members of this group will have full administrative access to all ESXi hosts in the domain.
+
+*Rationale*
+
+Join ESXi hosts to an Active Directory (AD) domain to eliminate the need to create and
+maintain multiple local user accounts. Using AD for user authentication simplifies the ESXi
+host configuration, ensures password complexity and reuse policies are enforced and
+reduces the risk of security breaches and unauthorized access."
+  solution    : "To use AD for local user authentication, perform the following from the vSphere Web Client:
+
+1. Select the host and go to 'Manage' -> 'Settings' -> 'System' -> 'Authentication
+Services'.
+2. Click the 'Join Domain' button.
+3. Provide the domain name along with the user credentials for an AD user that has the
+rights to join computers to the domain.
+4. Click 'OK'.
+
+Alternately, run the following PowerCLI command:
+
+# Join the ESXI Host to the Domain
+Get-VMHost HOST1 | Get-VMHostAuthentication | Set-VMHostAuthentication -
+Domain domain.local -User Administrator -Password Passw0rd -JoinDomain
+
+Notes:
+1. Host Profiles can be used to automate adding hosts to an AD domain.
+2. Consider using the vSphere Authentication proxy to avoid transmitting AD
+credentials over the network."
+  reference   : "800-125A|HY-SR-13,800-125A|HY-SR-14,800-125A|HY-SR-15,800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSCv7|16.2,CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|1S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:text>\nEnabled : </xsl:text><xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:authenticationManagerInfo/audit:authConfig[@xsi:type='HostActiveDirectoryInfo']/audit:enabled\"/>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Enabled"
+  expect      : "Enabled : true"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "4.4 Ensure only authorized users and groups belong to the esxAdminsGroup group"
+  info        : "The AD group used by vSphere is defined by the esxAdminsGroup attribute. By default, this
+attribute is set to 'ESX Admins'. All members of the 'ESX Admins' group are granted full
+administrative access to all ESXi hosts in the domain. Monitor AD for the creation of this
+group and limit membership to highly trusted users and groups.
+
+*Rationale*
+
+An unauthorized user having membership in the group set by the esxAdminsGroup
+attribute will have full administrative access to all ESXi hosts. Given this, such users may
+compromise the confidentiality, availability, and integrity of the all ESXi hosts and the
+respective data and processes they influence."
+  solution    : "To remove unauthorized users and groups belonging to esxAdminsGroup, perform the following steps after coordination between vSphere admins and Active Directory admins:
+1. Verify the setting of the esxAdminsGroup attribute.
+2. View the list of members for that Microsoft Active Directory group.
+3. Remove all unauthorized users and groups from that group.
+If full admin access for the AD ESX admins group is not desired, you can disable this behavior using the advanced host setting: \"Config.HostAgent.plugins.hostsvc.esxAdminsGroupAutoAdd\"."
+  reference   : "800-125A|HY-SR-13,800-125A|HY-SR-14,800-125A|HY-SR-15,800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|5.1,CSCv7|4.1,CSCv7|5.1,CSF|PR.AC-4,CSF|PR.DS-5,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6,LEVEL|1NS,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Config.HostAgent.plugins.hostsvc.esxAdminsGroup']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Config.HostAgent.plugins.hostsvc.esxAdminsGroup']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Config.HostAgent.plugins.hostsvc.esxAdminsGroup']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Config.HostAgent.plugins.hostsvc.esxAdminsGroup : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Config\.HostAgent\.plugins\.hostsvc\.esxAdminsGroup : "
+  not_expect  : "ESX Admins$"
+</custom_item>
+
+<report type:"WARNING">
+  description : "4.5 Ensure the Exception Users list is properly configured"
+  info        : "Users who are added to the \"Exception Users\" list do not lose their permissions when the
+  host enters lockdown mode. Usually you may want to add some service accounts, such as a
+  backup agent, to the Exception Users list.
+
+*Rationale*
+
+Users who do not require special permissions should not be exempted from
+lockdown mode because this increases the risk of unauthorized actions being performed, especially if
+a user account is compromised.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To correct the membership of the \"Exception Users\" list, perform the following:
+1. From the vSphere web client, select host.
+2. Click on \"Configure\" -> \"Settings\" -> \"System\" -> \"Security Profile\".
+3. Scroll down to \"Lockdown Mode\".
+4. Click \"Edit\", then click on \"Exception Users\".
+5. Add or delete users as per your organization's requirements."
+  reference   : "800-125A|HY-SR-13,800-125A|HY-SR-14,800-125A|HY-SR-15,800-171|3.1.5,800-53|AC-6,CSCv7|16,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "4.6 Ensure the maximum failed login attempts is set to 3"
+  info        : "Authentication should be configured so there is a maximum number of consecutive failed
+  login attempts for each account, at which point the account at risk will be locked out.
+
+*Rationale*
+
+Multiple account login failures for the same account could possibly be an attacker trying to brute force guess the password."
+  solution    : "To verify the maximum failed login attempts is set properly, perform the following steps:
+
+1. From the vSphere Web Client, select the host.
+2. Click \"Configure\" -> \"Settings\" -> \"System\" -> \"Advanced System Settings\".
+3. Enter \"Security.AccountLockFailures\" in the filter.
+4. Verify that the value for this parameter is 3.
+Alternately, the following PowerCLI command may be used:
+
+Get-VMHost | Get-AdvancedSetting -Name Security.AccountLockFailures"
+  reference   : "800-125A|HY-SR-13,800-125A|HY-SR-14,800-125A|HY-SR-15,800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),CSCv7|16,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-7,LEVEL|1NS,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Security.AccountLockFailures']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Security.AccountLockFailures']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Security.AccountLockFailures']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Security.AccountLockFailures : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Security\.AccountLockFailures : "
+  expect      : "Security\.AccountLockFailures : \b[1-3]\b"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "4.7 Ensure account lockout is set to 15 minutes"
+  info        : "An account is automatically locked after the maximum number of failed consecutive login attempts is reached.
+  The account should be automatically unlocked after 15 minutes, otherwise administrators will need to manually unlock accounts
+  on request by authorized users.
+
+*Rationale*
+
+This setting reduces the inconvenience for benign users and the overhead on administrators, while also severely slowing down any brute force password guessing attacks."
+  solution    : "To verify the account lockout is set to 15 minutes, perform the following:
+
+1. From the vSphere Web Client, select the host.
+2. Click \"Configure\" -> \"Settings\" -> \"System\" -> \"Advanced System Settings\".
+3. Enter \"Security.AccountUnlockTime\" in the filter.
+4. Verify that the value for this parameter is set to 900.
+
+Alternately, the following PowerCLI command may be used:
+
+
+Get-VMHost | Get-AdvancedSetting -Name Security.AccountUnlockTime"
+  reference   : "800-125A|HY-SR-13,800-125A|HY-SR-14,800-125A|HY-SR-15,800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),CSCv7|16,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-7,LEVEL|1NS,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='Security.AccountUnlockTime']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Security.AccountUnlockTime']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='Security.AccountUnlockTime']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Security.AccountUnlockTime : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Security.AccountUnlockTime : "
+  expect      : "Security.AccountUnlockTime : \b(9[0-9][0-9]|[12][0-9]{3}|3[0-5][0-9]{2}|3600)\b"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "5.1 Ensure the DCUI timeout is set to 600 seconds or less"
+  info        : "The Direct Console User Interface (DCUI) is used for directly logging into an
+  ESXi host and carrying out host management tasks. This setting terminates an idle DCUI session
+  after the specified number of seconds has elapsed.
+
+*Rationale*
+
+Terminating idle DCUI sessions helps avoid unauthorized usage of the DCUI originating from leftover login sessions."
+  solution    : "To correct the DCUI timeout setting, perform the following steps:
+
+1. From the vSphere Web Client, select the host.
+2. Click \"Configure\" -> \"Settings\" -> \"System\" -> \"Advanced System Settings\".
+3. Enter \"UserVars\.DcuiTimeOut\" in the filter.
+4. Click \"Edit\".
+5. Set the value for this parameter to 600 seconds or less.
+
+Alternately, use the following PowerCLI command:
+
+Get-VMHost | Get-AdvancedSetting -Name UserVars.DcuiTimeOut | Set- AdvancedSetting -Value 600"
+  reference   : "800-125A|HY-SR-16,800-125A|HY-SR-17,800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv7|16.11,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|AC-12,LEVEL|2S,NIAv2|NS49,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.DcuiTimeOut']/audit:value/text()\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.DcuiTimeOut']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.DcuiTimeOut']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>UserVars.DcuiTimeOut : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "UserVars\.DcuiTimeOut : "
+  expect      : "UserVars\.DcuiTimeOut : \b([1-9]|[1-9][0-9]|[1-5][0-9]{2}|600)\b"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "5.3 Ensure the ESXi shell is disabled"
+  info        : "The ESXi shell is an interactive command line environment available from the
+  Direct Console User Interface (DCUI) or remotely via SSH. The ESXi shell should only be enabled
+  on a host when running diagnostics or troubleshooting.
+
+*Rationale*
+
+Activities performed from the ESXi shell bypass vCenter RBAC and audit controls, so the ESXi shell
+should only be enabled when needed to troubleshoot/resolve problems that cannot be fixed through the
+vSphere web client or vCLI/PowerCLI."
+  solution    : "To disable the ESXi shell, perform the following:
+
+1. From the vSphere web client, select the host.
+2. Select \"Configure\" -> \"System\" -> \"Security Profile\".
+3. Scroll down to \"Services\".
+4. Click \"Edit...\".
+5. Select \"ESXi Shell\".
+6. Click \"Stop\".
+7. Change the Startup Policy to \"Start and Stop Manually\". 8. Click \"OK\".
+
+Alternately, use the following PowerCLI command:
+
+# Set the ESXi shell to start manually rather than automatically for all hosts
+Get-VMHost | Get-VMHostService | Where { $_.key -eq \"TSM\" } | Set- VMHostService -Policy Off"
+  reference   : "800-125A|HY-SR-16,800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='TSM']\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='TSM']/audit:label\"/> : running = <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='TSM']/audit:running\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>ESXi Shell : running = NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "ESXi Shell : running ="
+  expect      : "ESXi Shell : running = FALSE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "5.4 Ensure SSH is disabled"
+  info        : "The ESXi shell, when enabled, can be accessed directly from the host console
+  through the DCUI or remotely using SSH. Disable Secure Shell (SSH) for each ESXi host to prevent
+  remote access to the ESXi shell, and only enable SSH when needed for troubleshooting or diagnostics.
+
+*Rationale*
+
+Remote access to the host should be limited to the vSphere Client, remote command-line tools (vCLI/PowerCLI),
+and through the published APIs. Under normal circumstances, remote access to the host using SSH should be disabled."
+  solution    : "To verify SSH is disabled, perform the following:
+
+1. From the vSphere web client, select the host.
+2. Select \"Configure\" -> \"System\" -> \"Security Profile\".
+3. Scroll down to \"Services\".
+4. Click \"Edit...\".
+5. Select \"SSH\".
+6. Verify the Startup Policy is set to \"Start and Stop Manually\".
+
+Alternately, the following PowerCLI command may be used:
+
+# Check if SSH is running and set to start
+Get-VMHost | Get-VMHostService | Where { $_.key -eq \"TSM-SSH\" } | Select VMHost, Key, Label, Policy, Running, Required"
+  reference   : "800-125A|HY-SR-16,800-125A|HY-SR-17,800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='TSM-SSH']\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='TSM-SSH']/audit:label\"/> : running = <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='TSM-SSH']/audit:running\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>SSH : running = NOT found</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "SSH : running = "
+  expect      : "SSH : running = FALSE$"
+</custom_item>
+
+<report type:"WARNING">
+  description : "5.5 Ensure CIM access is limited"
+  info        : "The Common Information Model (CIM) system provides an interface that enables
+  hardware-level management from remote applications using a set of standard APIs.
+  Provide only the minimum access necessary to applications. Do not provision CIM-based
+  hardware monitoring tools and other third-party applications to run as root or as another
+  administrator account. Instead, create a dedicated service account specific to each CIM
+  application with the minimal access and privileges needed for that application.
+
+*Rationale*
+
+If CIM-based hardware monitoring tools or other third-party applications are granted
+unneeded administrator level access, they could potentially be used to compromise the
+security of the host.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To limit CIM access, perform the following:
+
+1. Create a limited-privileged service account for CIM and other third-party applications.
+2. This account should access the system via vCenter.
+3. Give the account the \"CIM Interaction\" privilege only. This will enable the account to
+obtain a CIM ticket, which can then be used to perform both read and write CIM operations on the target host.
+If an account must connect to the host directly, this account must be granted the full \"Administrator\" role on the host.
+This is not recommended unless required by the monitoring software being used.
+
+Alternately, run the following PowerCLI command:
+
+# Create a new host user account -Host Local connection required- New-VMHostAccount -ID ServiceUser -Password <password> -UserAccount"
+  reference   : "CSCv7|4.3,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<report type:"WARNING">
+  description : "5.6 Ensure Lockdown mode is enabled"
+  info        : "Enabling lockdown mode disables direct local access to an ESXi host, requiring the host be
+  managed remotely from vCenter Server.
+
+There are some operations, such as backup and troubleshooting, that require direct access
+to the host. In these cases, lockdown mode can be disabled on a temporary basis for specific
+hosts as needed, and then re-enabled when the task is completed.
+
+Note: Lockdown mode does not apply to users who log in using authorized keys. Also, users
+in the DCUI.Access list for each host are allowed to override lockdown mode and log in to
+the DCUI. By default, the \"root\" user is the only user listed in the DCUI.Access list.
+
+
+*Rationale*
+
+Lockdown mode limits ESXi host access to the vCenter server to ensure the roles and
+access controls implemented in vCenter are always enforced and users cannot bypass them
+by logging into a host directly. By forcing all interaction to occur through vCenter Server,
+the risk of someone inadvertently attaining elevated privileges or performing tasks that are
+not properly audited is greatly reduced.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To enable lockdown mode, perform the following from the vSphere web client:
+
+1. Select the host.
+2. Select \"Configure\" -> \"System\" -> \"Security Profile\".
+3. Scroll down to \"Lockdown Mode\".
+4. Click \"Edit...\".
+5. Select the \"Enable Lockdown Mode\" checkbox.
+6. Click \"OK\".
+
+Alternately, run the following PowerCLI command:
+
+# Enable lockdown mode for each host
+Get-VMHost | Foreach { $_.EnterLockdownMode() }"
+  reference   : "800-125A|HY-SR-16,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "5.8 Ensure idle ESXi shell and SSH sessions time out after 300 seconds or less"
+  info        : "The ESXiShellInteractiveTimeOut allows you to automatically terminate idle ESXi shell and SSH sessions.
+  The permitted idle time should be 300 seconds or less.
+
+*Rationale*
+
+If a user forgets to log out of an ESXi shell or SSH session, the idle session will exist
+indefinitely, increasing the potential for someone to gain unauthorized privileged access to
+the host, unless a timeout is set."
+  solution    : "To set the timeout to the desired value, perform the following from the vSphere web client:
+
+1. Select the host.
+2. Click \"Configure\" -> \"System\" -> \"Advanced System Settings\".
+3. Type ESXiShellInteractiveTimeOut in the filter.
+4. Click on the attribute to highlight it.
+5. Click the pencil icon to edit.
+6. Set the attribute to the desired value (300 seconds or less).
+7. Click \"OK\".
+
+Note: A value of 0 disables the ESXi ShellInteractiveTimeOut. Alternately, use the following PowerCLI command:
+
+# Set Remove UserVars.ESXiShellInteractiveTimeOut to 300 on all hosts
+Get-VMHost | Get-AdvancedSetting -Name 'UserVars.ESXiShellInteractiveTimeOut'
+| Set-AdvancedSetting -Value \"300\""
+  reference   : "800-125A|HY-SR-16,800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv7|16.11,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,LEVEL|1S,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.ESXiShellInteractiveTimeOut']\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.ESXiShellInteractiveTimeOut']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.ESXiShellInteractiveTimeOut']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>UserVars.ESXiShellInteractiveTimeOut : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "UserVars\.ESXiShellInteractiveTimeOut : "
+  expect      : "UserVars\.ESXiShellInteractiveTimeOut : \b([1-9]|[1-9][0-9]|[12][0-9]{2}|300)\b"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "5.9 Ensure the shell services timeout is set to 1 hour or less"
+  info        : "When the ESXi shell or SSH services are enabled on a host, they will run indefinitely. To
+  avoid this, set the ESXiShellTimeOut, which defines a window of time after which the ESXi
+  shell and SSH services will automatically be terminated.
+
+It is recommended to set the ESXiShellInteractiveTimeOut together with
+ESXiShellTimeOut.
+
+*Rationale*
+
+This reduces the risk of an inactive ESXi shell or SSH service being misused by an
+unauthorized party to compromise a host."
+  solution    : "To set the timeout to the desired value, perform the following from the vSphere web client:
+
+1. Select the host and click \"Configure\" -> \"System\" -> \"Advanced System Settings\".
+2. Type ESXiShellTimeOut in the filter.
+3. Click on the attribute to highlight it.
+4. Click the pencil icon to edit.
+5. Set the attribute to 3600 seconds (1 hour) or less.
+6. Click \"OK\".
+
+Note: A value of 0 disables the ESXiShellTimeOut.
+Alternately, run the following PowerCLI command:
+
+# Set UserVars.ESXiShellTimeOut to 3600 on all hosts
+Get-VMHost | Get-AdvancedSetting -Name 'UserVars.ESXiShellTimeOut' | Set- AdvancedSetting -Value \"3600\""
+  reference   : "800-125A|HY-SR-16,800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,CSCv7|16.11,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,LEVEL|1S,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.ESXiShellTimeOut']\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.ESXiShellTimeOut']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='UserVars.ESXiShellTimeOut']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>UserVars.ESXiShellTimeout : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "UserVars\.ESXiShellTimeout : "
+  expect      : "UserVars\.ESXiShellTimeout : (([1-9]$)|([1-9][0-9]$)|([1-9][0-9][0-9]$)|([1-2][0-9][0-9][0-9]$)|(3[0-5][0-9][0-9]$)|(3600$))"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "5.10 Set DCUI.Access to allow trusted users to override lockdown mode"
+  info        : "Lockdown mode disables direct host access, requiring admins to manage hosts from
+  vCenter. Set DCUI.Access to a list of highly trusted users who would be able to override
+  lockdown mode and access the DCUI in the event an ESXi host became isolated from vCenter.
+
+  NOTE: If you disable lockdown mode using the DCUI, all users with the DCUI.Access
+  privilege will be granted the Administrator role on the host.
+
+*Rationale*
+
+The list prevents all admins from becoming locked out and no longer being able to manage the host."
+  solution    : "To set a trusted users list for DCUI, perform the following from the vSphere web client:
+
+1. Select the host.
+2. Select \"Configure\" -> \"System\" -> \"Advanced System Settings\".
+3. Type DCUI.Access in the filter.
+4. Click on the attribute to highlight it.
+5. Click edit.
+6. Set the DCUI.Access attribute to a comma-separated list of the users who are
+allowed to override lockdown mode.
+7. Click \"OK\"."
+  reference   : "800-125A|HY-SR-16,800-125A|HY-SR-17,800-171|3.1.15,800-171|3.1.2,800-53|AC-17(4),CSCv6|5.1,CSCv7|16.6,CSF|PR.AC-3,CSF|PR.PT-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-17(4),LEVEL|1NS,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|5.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val/audit:option[audit:key='DCUI\.Access']\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='DCUI\.Access']/audit:key\"/> : <xsl:value-of select=\"audit:propSet/audit:val/audit:option[audit:key='DCUI\.Access']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>DCUI\.Access : NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "DCUI\.Access : "
+# Note: Variable @DCUI_ACCESS@ replaced with "root" in field "expect".
+  expect      : "DCUI\.Access : root$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "6.1 Ensure bidirectional CHAP authentication for iSCSI traffic is enabled"
+  info        : "vSphere allows for the use of bidirectional authentication of both the iSCSI target and host.
+  Bidirectional Challenge-Handshake Authentication Protocol (CHAP), also known as Mutual
+  CHAP, should be enabled to provide bidirectional authentication.
+
+*Rationale*
+
+By not authenticating both the iSCSI target and host, there is a potential for a man-in-the-
+middle attack in which an attacker might impersonate either side of the connection to steal
+data. Bidirectional authentication can mitigate this risk.
+
+Note: Choosing not to enforce bidirectional authentication can make sense if you create a
+dedicated network or VLAN to service all your iSCSI devices. If the iSCSI facility is isolated
+from general network traffic, it is less vulnerable to exploitation."
+  solution    : "To enable bidirectional CHAP authentication for iSCSI traffic, perform the following:
+
+1. From the vSphere Web Client, navigate to \"Hosts and Clusters\".
+2. Click on a host.
+3. Click on \"Configure\" -> \"Storage\" -> \"Storage Adapters\".
+4. Select the iSCSI adapter to configure OR click the green plus symbol to create a new
+adapter.
+5. Under Adapter Details, click the Properties tab and click \"Edit\" in the Authentication
+panel.
+6. Specify authentication method: \"Use bidirectional CHAP\".
+7. Specify the outgoing CHAP name.
+- Make sure that the name you specify matches the name configured on the storage side.
+- To set the CHAP name to the iSCSI adapter name, select \"Use initiator name\". o To set the CHAP name to anything other than the iSCSI initiator name,
+deselect \"Use initiator name\" and type a name in the Name text box.
+8. Enter an outgoing CHAP secret to be used as part of authentication. Use the same secret as your storage side secret.
+9. Specify incoming CHAP credentials. Make sure your outgoing and incoming secrets do not match.
+10. Click OK.
+11. Click the second to last symbol to rescan the iSCSI adapter.
+
+Alternately, run the following PowerCLI command:
+
+# Set the Chap settings for the Iscsi Adapter
+Get-VMHost | Get-VMHostHba | Where {$_.Type -eq \"Iscsi\"} | Set-VMHostHba #
+Use desired parameters here"
+  reference   : "800-53|IA-3(1),CSF|PR.AC-1,ITSG-33|IA-3(1),LEVEL|1S,NESA|T5.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:storageDevice/audit:hostBusAdapter[contains (@xsi:type,'HostInternetScsi')]\">"
+  xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:storageDevice/audit:hostBusAdapter[contains (@xsi:type,'HostInternetScsi')]\">"
+  xsl_stmt    : "<xsl:value-of select=\"../../../../audit:propSet[audit:name='name']/audit:val\"/> (<xsl:value-of select=\"audit:device\"/>) - chapAuthEnabled : <xsl:value-of select=\"audit:authenticationProperties/audit:chapAuthEnabled\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"//audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>chapAuthEnabled : No iSCSI devices found</xsl:text><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "chapAuthEnabled : "
+  not_expect  : "chapAuthEnabled : FALSE$"
+</custom_item>
+
+<report type:"WARNING">
+  description : "6.2 Ensure uniqueness of CHAP authentication secrets for iSCSI traffic"
+  info        : "Challenge-Handshake Authentication Protocol (CHAP) requires both client and host to
+  know the secret (password) to establish a connection. Each mutual authentication secret should be unique.
+
+*Rationale*
+
+If all mutual authentication secrets are unique, compromise of one secret does not allow an
+attacker to authenticate to other hosts or clients using that same secret.
+
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Perform the following-
+
+1. From the vSphere Web Client, navigate to 'Hosts'.
+2. Click on a host.
+3. Click on 'Configure' -> 'Storage' -> 'Storage Adapters'.
+4. Select the iSCSI adapter to configure OR click the green plus symbol to create a new
+adapter.
+5. Under Adapter Details, click the Properties tab and click 'Edit' in the Authentication
+panel.
+6. Specify authentication method.
+1.
+. None
+. Use unidirectional CHAP if required by target
+. Use unidirectional CHAP unless prohibited by target
+. Use unidirectional CHAP
+. Use bidirectional CHAP.7. Specify the outgoing CHAP name.
+o Make sure that the name you specify matches the name configured on the
+storage side.
+. To set the CHAP name to the iSCSI adapter name, select Use initiator
+name.
+. To set the CHAP name to anything other than the iSCSI initiator name,
+deselect Use initiator name and type a name in the Name text box.8. Enter an outgoing CHAP secret to be used as part of authentication. Use the same
+secret as your storage side secret.
+9. If configuring with bidirectional CHAP, specify incoming CHAP credentials.
+o Make sure your outgoing and incoming secrets do not match.10. Click OK.
+11. Click the second to last symbol to rescan the iSCSI adapter.
+
+Default Value-The prescribed state is not the default state."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<report type:"WARNING">
+  description : "6.3 Ensure storage area network (SAN) resources are segregated properl"
+  info        : "Use zoning and LUN masking to segregate SAN activity. For example, zones defined for testing
+should be managed independently within the SAN so they do not interfere with activity in the
+production zones. Similarly, you can set up different zones for different departments. Zoning
+must take into account any host groups that have been set up on the SAN device. LUN masking
+is a process that makes a LUN available to some hosts and unavailable to other hosts.
+
+*Rationale*
+
+Segregating SAN activity can reduce the attack surface for the SAN, prevent non-ESXi
+systems from accessing SANs, and separate environments, for example, test and production environments.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "The remediation procedures to properly segregate SAN activity are SAN vendor or product- specific.
+In general, with ESXi hosts, use a single-initiator zoning or a single-initiator-single-target
+zoning. The latter is a preferred zoning practice. Using the more restrictive zoning prevents
+problems and misconfigurations that can occur on the SAN."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "7.1 Ensure the vSwitch Forged Transmits policy is set to reject"
+  info        : "Set the vSwitch Forged Transmits policy to reject for each vSwitch. Reject Forged Transmit
+  can be set at the vSwitch and/or the Portgroup level. You can override switch-level settings
+  at the Portgroup level.
+
+*Rationale*
+
+If the virtual machine operating system changes the MAC address, the operating system can
+send frames with an impersonated source MAC address at any time. This allows an
+operating system to stage malicious attacks on the devices in a network by impersonating a
+network adaptor authorized by the receiving network. Setting forged transmissions to
+accept means the virtual switch does not compare the source and effective MAC addresses.
+To protect against MAC address impersonation, all virtual switches should have
+forged transmissions set to reject."
+  solution    : "1. In the vSphere Web Client, navigate to the host.
+2. 'Hosts and Clusters' -> 'vCenter' -> host.
+3. On the Manage tab, click Networking, and select Virtual switches.
+4. Select a standard switch from the list and click the pencil icon to edit settings.
+5. Select Security.
+6. Set Forged transmits to 'Reject'.
+7. Click 'OK'.
+
+Additionally, the following ESXi shell command may be used-
+
+# esxcli network vswitch standard policy security set -v vSwitch2 -f false"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,CSCv7|12.4,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:vswitch\">"
+  xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:vswitch\">"
+  xsl_stmt    : "<xsl:value-of select=\"../../../../audit:propSet[audit:name='name']/audit:val\"/> (<xsl:value-of select=\"audit:name\"/>) - forgedTransmits = <xsl:value-of select=\"audit:spec/audit:policy/audit:security/audit:forgedTransmits\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/><xsl:text> - forgedTransmits = NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "forgedTransmits ="
+  expect      : "forgedTransmits = FALSE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "7.2 Ensure the vSwitch MAC Address Change policy is set to reject"
+  info        : "Ensure the MAC Address Change policy within the vSwitch is set to reject. Reject MAC
+  Changes can be set at the vSwitch and/or the Portgroup level. You can override switch- l
+  evel settings at the Portgroup level.
+
+
+*Rationale*
+
+
+If the virtual machine operating system changes the MAC address, it can send frames with
+an impersonated source MAC address at any time. This allows it to stage malicious attacks
+on the devices in a network by impersonating a network adaptor authorized by the receiving network."
+  solution    : "1. In the vSphere Web Client, navigate to the host.
+2. 'Hosts and Clusters' -> 'vCenter' -> host.
+3. On the Manage tab, click Networking, and select Virtual switches.
+4. Select a standard switch from the list and click the pencil icon to edit settings.
+5. Select Security.
+6. Set MAC Address Changes to 'Reject'.
+7. Click 'OK'.
+
+Additionally, perform the following to implement the recommended configuration state
+using the ESXi shell-
+
+# esxcli network vswitch standard policy security set -v vSwitch2 -m false"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,CSCv7|12.4,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:vswitch\">"
+  xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:vswitch\">"
+  xsl_stmt    : "<xsl:value-of select=\"../../../../audit:propSet[audit:name='name']/audit:val\"/> (<xsl:value-of select=\"audit:name\"/>) - macChanges = <xsl:value-of select=\"audit:spec/audit:policy/audit:security/audit:macChanges\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/><xsl:text> - macChanges = NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "macChanges ="
+  expect      : "macChanges = FALSE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "7.3 Ensure the vSwitch Promiscuous Mode policy is set to reject"
+  info        : "Ensure the Promiscuous Mode Policy within the vSwitch is set to reject. Promiscuous mode
+  can be set at the vSwitch and/or the Portgroup level. You can override switch-level settings
+  at the Portgroup level.
+
+*Rationale*
+
+When promiscuous mode is enabled for a virtual switch all virtual machines connected to
+the dvPortgroup have the potential of reading all packets crossing that network.
+This could enable unauthorized access to the contents of those packets."
+  solution    : "1. In the vSphere Web Client, navigate to the host.
+2. 'Hosts and Clusters' -> 'vCenter' -> host.
+3. On the Manage tab, click Networking, and select Virtual switches.
+4. Select a standard switch from the list and click the pencil icon to edit settings.
+5. Select Security.
+6. Set Promiscuous Mode to 'Reject'.
+7. Click 'OK'.
+
+Additionally, perform the following to implement the recommended configuration state via
+the ESXi shell-
+
+# esxcli network vswitch standard policy security set -v vSwitch2 -p false"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,CSCv7|12.4,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:vswitch\">"
+  xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:vswitch\">"
+  xsl_stmt    : "<xsl:value-of select=\"../../../../audit:propSet[audit:name='name']/audit:val\"/> (<xsl:value-of select=\"audit:name\"/>) - allowPromiscuous = <xsl:value-of select=\"audit:spec/audit:policy/audit:security/audit:allowPromiscuous\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/><xsl:text> - allowPromiscuous = NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "allowPromiscuous ="
+  expect      : "allowPromiscuous = FALSE$"
+</custom_item>
+
+<report type:"WARNING">
+  description : "7.4 Ensure port groups are not configured to the value of the native VLAN"
+  info        : "ESXi does not use the concept of native VLAN, so do not configure port groups to use the
+  native VLAN ID. If the default value of 1 for the native VLAN is being used, the ESXi Server
+  virtual switch port groups should be configured with any value between 2 and 4094.
+  Otherwise, ensure that the port group is not configured to use whatever value is set for the native VLAN.
+
+*Rationale*
+
+Frames with VLAN specified in the port group will have a tag, but frames without a VLAN
+specified in the port group are not tagged and therefore will end up as belonging to the
+native VLAN of the physical switch. For example, frames on VLAN 1 from a Cisco physical
+switch will be untagged, because this is considered as the native VLAN. However, frames
+from ESXi specified as VLAN 1 will be tagged with a \"1\"; therefore, traffic from ESXi that is
+destined for the native VLAN will not be correctly routed (because it is tagged with a \"1\"
+instead of being untagged), and traffic from the physical switch coming from the native
+VLAN will not be visible (because it is not tagged). If the ESXi virtual switch port group uses
+the native VLAN ID, traffic from those VMs will not be visible to the native VLAN on the
+switch, because the switch is expecting untagged traffic.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "If the default value of 1 for the native VLAN is being used, the ESXi Server virtual switch
+port groups should be configured with any value between 2 and 4094. Otherwise, ensure
+that the port group is not configured to use whatever value is set for the native VLAN.
+
+1. From the vSphere web client select the host.
+2. On the Manage tab, click Networking, and select Virtual switches.
+3. Select a standard switch from the list.
+4. The topology diagram of the switch appears showing the various port groups
+associated with that switch.
+5. For each port group on the vSwitch, verify and record the VLAN IDs used.
+6. If a VLAN ID change is needed click the name of the port group in the topology
+diagram of the virtual switch.
+7. Click the 'Edit settings' pencil icon under the topology diagram title.
+8. In the Properties section, name the port group in the Network Label text field.
+9. Choose an existing VLAN ID drop-down menu or type in a new one."
+  reference   : "CSCv7|9.2,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<report type:"WARNING">
+  description : "7.5 Ensure that port groups are not configured to VLAN values reserved by upstream physical switches"
+  info        : "Ensure that port groups are not configured to VLAN values reserved by upstream physical
+  switches. Certain physical switches reserve certain VLAN IDs for internal purposes and
+  often disallow traffic configured to these values. For example, Cisco Catalyst switches
+  typically reserve VLANs 1001 through 1024 and 4094, while Nexus switches typically
+  reserve 3968 through 4047 and 4094. Check the documentation for your specific switch.
+
+*Rationale*
+
+Using a reserved VLAN might result in a denial of service on the network.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "VLAN ID setting on all port groups should not be set to reserved values of the physical
+switch.
+
+1. From the vSphere web client select the host.
+2. On the Configure tab, click Networking, and select Virtual switches.
+3. Select a standard switch from the list.
+4. The topology diagram of the switch appears showing the various port groups
+associated with that switch.
+5. For each port group on the vSwitch, verify and record the VLAN IDs used.
+6. If a VLAN ID change is needed click the name of the port group in the topology
+diagram of the virtual switch.
+7. Click the 'Edit settings' pencil icon under the topology diagram title.
+8. In the Properties section, name the port group in the Network Label text field.
+9. Choose an existing VLAN ID drop-down menu or type in a new one."
+  reference   : "CSCv7|9.2,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "7.6 Ensure port groups are not configured to VLAN 4095 except for Virtual Guest Tagging (VGT)"
+  info        : "Port groups should not be configured to VLAN 4095 except for Virtual Guest Tagging (VGT).
+  When a port group is set to VLAN 4095, this activates VGT mode. In this mode, the vSwitch
+  passes all network frames to the guest virtual machine without modifying the VLAN tags,
+  leaving it up to the guest to deal with them. VLAN 4095 should be used only if the guest has
+  been specifically configured to manage VLAN tags itself.
+
+*Rationale*
+
+If VGT is enabled inappropriately, it might cause a denial of service or allow a guest virtual
+machine to interact with traffic on an unauthorized VLAN."
+  solution    : "VLAN ID setting on all port groups should not be set to 4095 unless VGT is required.
+
+1. From the vSphere web client select the host.
+2. On the Configure tab, click Networking, and select Virtual switches.
+3. Select a standard switch from the list.
+4. The topology diagram of the switch appears showing the various port groups
+associated with that switch.
+5. For each port group on the vSwitch, verify and record the VLAN IDs used.
+6. If a VLAN ID change is needed click the name of the port group in the topology
+diagram of the virtual switch.
+7. Click the 'Edit settings' pencil icon under the topology diagram title.
+8. In the Properties section, name the port group in the Network Label text field.
+9. Choose an existing VLAN ID drop-down menu or type in a new one."
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv7|9.2,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:portgroup\">"
+  xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:network/audit:portgroup\">"
+  xsl_stmt    : "<xsl:value-of select=\"../../../../audit:propSet[audit:name='name']/audit:val\"/> (<xsl:value-of select=\"audit:spec/audit:name\"/>) - vlanId = <xsl:value-of select=\"audit:spec/audit:vlanId\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/><xsl:text> - vlanId = NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "vlanId ="
+  not_expect  : "vlanId = 4095$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.1.1 Ensure informational messages from the VM to the VMX file are limited"
+  info        : "Limit informational messages from the virtual machine (VM) to the virtual machine
+  extensions (VMX) file to avoid filling the datastore. The configuration file containing these
+  name-value pairs is limited to a size of 1 MB by default. This should be sufficient for most
+  cases, but you can change this value if necessary, such as if large amounts of custom
+  information are being stored in the configuration file.
+
+*Rationale*
+
+Filling the datastore with informational messages from the VM to the VMX file could cause a denial of service."
+  reference   : "800-53|AU-4,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,LEVEL|1S,NESA|T3.3.1,NESA|T3.6.2,SWIFT-CSCv1|6.4"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='tools.setInfo.sizeLimit']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - tools.setInfo.sizeLimit : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='tools.setInfo.sizeLimit']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - tools.setInfo.sizeLimit : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='tools.setInfo.sizeLimit']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - tools.setInfo.sizeLimit : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - tools.setInfo.sizeLimit : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "tools\.setInfo\.sizeLimit : "
+  expect      : "tools\.setInfo\.sizeLimit : 1048576$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.1 Ensure unnecessary floppy devices are disconnected"
+  info        : "Ensure that no floppy device is connected to a virtual machine unless required. For a floppy
+  device to be disconnected, the floppyX.present parameter should either not be present or
+  have a value of FALSE.
+
+*Rationale*
+
+Removing unnecessary hardware devices can reduce the number of potential attack channels and help prevent attacks.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+
+# Remove all Floppy drives attached to VMs
+Get-VM | Get-FloppyDrive | Remove-FloppyDrive."
+  reference   : "800-171|3.8.7,800-53|MP-7,CSCv7|9.2,CSF|PR.PT-2,LEVEL|2S,NESA|T1.4.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualFloppy']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Floppies : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualFloppy']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Floppies : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualFloppy']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Floppies : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Floppies : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.3 Ensure unnecessary parallel ports are disconnected"
+  info        : "Ensure that no parallel port is connected to a virtual machine unless required. For a
+  parallel port to be disconnected, the parallelX.present parameter should either not be present or have a value of FALSE.
+
+*Rationale*
+
+Removing unnecessary hardware devices can reduce the number of potential attack
+channels and help prevent attacks.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+
+# In this Example you will need to add the functions from this post-
+http-//blogs.vmware.com/vipowershell/2012/05/working-with-vm-devices-in-powercli.html
+# Remove all Parallel Ports attached to VMs
+Get-VM | Get-ParallelPort | Remove-ParallelPort"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualParallelPort']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Parallel Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualParallelPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Parallel Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualParallelPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Parallel Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Parallel Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.4 Ensure unnecessary serial ports are disconnected"
+  info        : "Ensure that no serial port is connected to a virtual machine unless required. For a serial
+  port to be disconnected, the serialX.present parameter should either not be present or have a value of FALSE.
+
+*Rationale*
+
+Removing unnecessary hardware devices can reduce the number of potential attack
+channels and help prevent attacks.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+
+# In this Example you will need to add the functions from this post-
+http-//blogs.vmware.com/vipowershell/2012/05/working-with-vm-devices-in-powercli.html
+# Remove all Serial Ports attached to VMs
+Get-VM | Get-SerialPort | Remove-SerialPort"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualSerialPort']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Serial Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualSerialPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Serial Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualSerialPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Serial Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Serial Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.5 Ensure unnecessary USB devices are disconnected"
+  info        : "Ensure that no USB device is connected to a virtual machine unless required. For a USB
+  device to be disconnected, the usb.present parameter should either not be present or have a value of FALSE.
+
+*Rationale*
+
+Removing unnecessary hardware devices can reduce the number of potential attack channels and help prevent attacks.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+
+# Remove all USB Devices attached to VMs
+Get-VM | Get-USBDevice | Remove-USBDevice"
+  reference   : "800-171|3.8.7,800-53|MP-7,CSCv7|9.2,CSF|PR.PT-2,LEVEL|2S,NESA|T1.4.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualUSBController']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual USB Controller : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualUSBController']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual USB Controller : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualUSBController']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual USB Controller : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual USB Controller : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.6 Ensure unauthorized modification and disconnection of devices is disabled"
+  info        : "In a virtual machine, users and processes without root or administrator privileges can
+  disconnect devices, such as network adapters and CD-ROM drives, and modify device
+  settings within the guest operating system. These actions should be prevented.
+
+*Rationale*
+
+Disabling unauthorized modification and disconnection of devices helps prevents
+unauthorized changes within the guest operating system, which could be used to gain
+unauthorized access, cause denial of service conditions, and otherwise negatively affect the security
+of the guest operating system."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+
+# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.device.edit.disable' -value $true"
+  reference   : "800-171|3.1.7,800-53|AC-6(10),CSCv7|9.2,CSF|PR.AC-4,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.device.edit.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.device.edit.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.device.edit.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.device.edit.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.device.edit.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.device.edit.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.device.edit.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.device\.edit\.disable : "
+  expect      : "isolation\.device\.edit\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.7 Ensure unauthorized connection of devices is disabled"
+  info        : "In a virtual machine, users and processes without root or administrator privileges can
+  connect devices, such as network adapters and CD-ROM drives. This should be prevented.
+
+*Rationale*
+
+Disabling unauthorized connection of devices helps prevents unauthorized changes within
+the guest operating system, which could be used to gain unauthorized access, cause denial
+of service conditions, and otherwise negatively affect the security of the guest operating system."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.device.connectable.disable' -value $true"
+  reference   : "800-171|3.1.7,800-53|AC-6(10),CSCv7|9.2,CSF|PR.AC-4,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.device.connectable.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.device.connectable.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.device.connectable.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.device.connectable.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.device.connectable.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.device.connectable.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.device.connectable.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.device\.connectable\.disable : "
+  expect      : "isolation\.device\.connectable\.disable : True$"
+</custom_item>
+
+<report type:"WARNING">
+  description : "8.3.1 Ensure unnecessary or superfluous functions inside VMs are disabled"
+  info        : "Disable all system components that are not needed to support the application or service
+  running on the VM. VMs often don't require as many functions as ordinary physical servers,
+  so when virtualizing, you should evaluate whether a particular function is truly needed.
+
+*Rationale*
+
+By disabling unnecessary system components, you reduce the number of potential attack
+vectors, which reduces the likelihood of compromise.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To disable unneeded functions, perform whichever of the following steps are applicable:
+
+1. Disable unused services in the operating system. For example, if the system runs a
+file server, make sure to turn off any Web services.
+2. Disconnect unused physical devices, such as CD/DVD drives, floppy drives, and USB
+adaptors. This is described in the Removing Unnecessary Hardware Devices section
+in the ESXI Configuration Guide.
+3. Turn off any screen savers.
+4. If using a Linux, BSD, or Solaris guest operating system,
+do not run the X Window system unless it is necessary."
+  reference   : "800-125A|HY-SR-17,CSCv7|9.2,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<report type:"WARNING">
+  description : "8.3.2 Ensure use of the VM console is limited"
+  info        : "The VM console enables you to connect to the console of a VM, in effect seeing what a
+  monitor on a physical server would show. The VM console also provides power
+  management and removable device connectivity controls. Instead of the VM console, use
+  native remote management services, such as terminal services and ssh, to interact with
+  VMs. Grant access to the VM console only when needed, and use custom roles
+  to provide fine-grained permissions for those people who do need access. By default, the vCenter roles \"Virtual
+  Machine Power User\" and \"Virtual Machine Administrator\" have the \"Virtual Machine.Interaction.Console Interaction\" privilege.
+
+
+*Rationale*
+
+The VM console enables you to connect to the console of a virtual machine, in effect seeing
+what a monitor on a physical server would show. The VM console also provides power
+management and removable device connectivity controls, which might potentially allow a
+malicious user to bring down a virtual machine. In addition, it also has a performance
+impact on the service console, especially if many VM console sessions are open
+simultaneously.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To properly limit use of the VM console, perform the following steps:
+
+1. From the vSphere Client, navigate to Administration\Roles section of vCenter.
+2. Create a custom role and choose edit to enable only the minimum needed effective
+privileges.
+3. Next, select an object in the inventory.
+4. Click the Permissions tab to view the user and role pair assignments for that object.
+5. Remove any default 'Admin' or 'Power User' roles and assign the new custom role
+as needed.
+
+Default Value-The prescribed state is not the default state."
+  reference   : "CSCv7|16.1,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<report type:"WARNING">
+  description : "8.3.3 Ensure secure protocols are used for virtual serial port access"
+  info        : "Serial ports are interfaces for connecting peripherals to the VM. They are often used on
+  physical systems to provide a direct, low-level connection to the console of a server. Virtual
+  serial ports allow VMs to communicate with serial ports over networks. If virtual serial
+  ports are needed, they should be configured to use secure protocols.
+
+*Rationale*
+
+If virtual serial ports do not use secure protocols, the communications with those ports
+could be eavesdropped on, manipulated, or otherwise compromised, giving attackers
+sensitive information or control to unauthorized parties.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To configure all virtual serial ports to use secure protocols, change any protocols that are
+  not secure to one of the following:
+
+. tcp+ssl - SSL over TCP over IPv4 or IPv6
+. tcp4+ssl - SSL over TCP over IPv4
+. tcp6+ssl - SSL over TCP over IPv6
+. telnet over TCP with SSL"
+  reference   : "CSCv7|12.4,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<report type:"WARNING">
+  description : "8.3.4 Ensure templates are used whenever possible to deploy VMs"
+  info        : "Use a hardened base operating system template image to create other, application-specific
+templates and use the application-specific templates to deploy virtual machines.
+
+*Rationale*
+
+By capturing a hardened base operating system image (with no applications installed) in a
+template, you can ensure that all your virtual machines are created with a known baseline
+level of security. You can then use this template to create other, application-specific
+templates, or you can use the application template to deploy virtual machines. Manual
+installation of the OS and applications into a VM introduces the risk of misconfiguration
+due to human or process error.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To change current practices so templates are used whenever possible to deploy VMs, perform whichever of the following steps is appropriate:
+
+- Create templates and configure them properly
+- Alter standard procedures and processes to use the templates
+
+Also, ensure that the applications do not depend on information specific to the VM to be deployed."
+  reference   : "800-125A|HY-SR-10,CSCv7|5.1,CSCv7|5.2,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+</report>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.1 Ensure access to VMs through the dvfilter network APIs is configured correctly"
+  info        : "A VM must be configured explicitly to accept access by the dvfilter network API. Only VMs
+  that need to be accessed by that API should be configured to accept such access.
+
+*Rationale*
+
+An attacker might compromise a VM by making use of the dvfilter API."
+  solution    : "To configure a VM to allow dvfilter access, perform the following steps:
+
+1. Configure the following in the VMX file: ethernet0.filter1.name = dv-filter1
+where ethernet0 is the network adapter interface of the virtual machine that is to
+be protected, filter1 is the number of the filter that is being used, and dv-filter1 is
+the name of the particular data path kernel module that is protecting the VM.
+2. Set the name of the data path kernel correctly.
+
+To configure a VM to not allow dvfilter access, perform the following steps:
+
+1. Remove the following from its VMX file: ethernet0.filter1.name = dv-filter1."
+  reference   : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSCv7|12.4,CSCv7|9.2,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|1NS,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[contains (audit:key,'ethernet') and contains (audit:key,'.filter') and contains (audit:key,'.name')]\">"
+  xsl_stmt    : "<xsl:for-each select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[contains (audit:key,'ethernet') and contains (audit:key,'.filter') and contains (audit:key,'.name')]\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"../../../audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"../../../audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"../../../audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - <xsl:value-of select=\"audit:key\"/> : <xsl:value-of select=\"audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"../../../audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"../../../audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - <xsl:value-of select=\"audit:key\"/> : <xsl:value-of select=\"audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - ethernetn.filtern.name : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - ethernetn.filtern.name : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "ethernet[0-9]+\\.filter[0-9]+\\.name :"
+  expect      : "ethernet[0-9]+\\.filter[0-9]+\\.name : NOT configured"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.2 Ensure VMsafe Agent Address is configured correctly"
+  info        : "The VMsafe CPU/memory API allows a security virtual machine to inspect and modify the
+  contents of the memory and CPU registers on other VMs, for the purpose of detecting and
+  preventing malware attacks. A VM must be configured explicitly to accept access by the
+  VMsafe CPU/memory API. This involves three parameters to perform the following:
+
+1. Enable the API.
+2. Set the IP address used by the security virtual appliance on the introspection
+vSwitch.
+3. Set the port number for that IP address.
+
+The second parameter must be set correctly in the vmsafe.agentAddress option in the
+virtual machine configuration file for any VMs that should be protected by the API.
+
+*Rationale*
+
+An attacker might compromise the VMs by making unauthorized use of the introspection
+channel provided by the API."
+  solution    : "To configure the VMsafe Agent Address correctly, perform the following steps:
+
+1. If the VM is not being protected by a VMsafe CPU/memory product, remove vmsafe.agentAddress from the virtual machine configuration file.
+2. If the VM is being protected by a VMsafe CPU/Memory product, set vmsafe.agentAddress to the correct value."
+  reference   : "800-125A|HY-SR-1,800-171|3.14.5,800-53|SI-3(10),CSCv7|8.3,CSF|DE.CM-4,LEVEL|1NS,NIAv2|GS17,SWIFT-CSCv1|6.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.agentAddress']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - vmsafe.agentAddress : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.agentAddress']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - vmsafe.agentAddress : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.agentAddress']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - vmsafe.agentAddress : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - vmsafe.agentAddress : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "vmsafe\.agentAddress : "
+# Note: Variable @AGENT_ADDRESS@ replaced with "192\\.168\\.0\\.1" in field "expect".
+  expect      : "vmsafe\.agentAddress : 192\\.168\\.0\\.1$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.3 Ensure VMsafe Agent Port is configured correctly"
+  info        : "The VMsafe CPU/memory API allows a security virtual machine to inspect and modify the
+  contents of the memory and CPU registers on other VMs, for the purpose of detecting and
+  preventing malware attacks. A VM must be configured explicitly to accept access by the
+  VMsafe CPU/memory API. This involves three parameters to perform the following:
+
+1. Enable the API.
+2. Set the IP address used by the security virtual appliance on the introspection
+vSwitch.
+3. Set the port number for that IP address.
+
+The third parameter must be set correctly in the vmsafe.agentPort option in the virtual
+machine configuration file for any VMs that should be protected by the API.
+
+*Rationale*
+
+An attacker might compromise the VMs by making unauthorized use of the introspection
+channel provided by the API."
+  solution    : "To configure the VMsafe Agent Port correctly, perform the following steps:
+
+  1. If the VM is not being protected by a VMsafe CPU/memory product, remove
+  vmsafe.agentPort from the virtual machine configuration file.
+2. If the VM is being protected by a VMsafe CPU/Memory product, set
+vmsafe.agentPort to the correct value."
+  reference   : "800-125A|HY-SR-1,800-171|3.14.5,800-53|SI-3(10),CSCv7|9.2,CSF|DE.CM-4,LEVEL|1NS,NIAv2|GS17,SWIFT-CSCv1|6.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.agentPort']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - vmsafe.agentPort : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.agentPort']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - vmsafe.agentPort : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.agentPort']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - vmsafe.agentPort : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - vmsafe.agentPort : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "vmsafe\.agentPort : "
+# Note: Variable @AGENT_PORT@ replaced with "10000" in field "expect".
+  expect      : "vmsafe\.agentPort : 10000$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.4 Ensure VMsafe Agent is configured correctly"
+  info        : "The VMsafe CPU/memory API allows a security virtual machine to inspect and modify the
+  contents of the memory and CPU registers on other VMs, for the purpose of detecting and
+  preventing malware attacks. A VM must be configured explicitly to accept access by the
+  VMsafe CPU/memory API. This involves three parameters to perform the following:
+
+1. Enable the API.
+2. Set the IP address used by the security virtual appliance on the introspection
+vSwitch.
+3. Set the port number for that IP address.
+
+The first parameter must be set correctly in the vmsafe.enable option in the virtual
+machine configuration file for any VMs that should be protected by the API. For any VMs
+that should not be protected by the API, this option should not exist in the configuration file.
+
+*Rationale*
+
+An attacker might compromise the VMs by making unauthorized use of the introspection channel provided by the API."
+  solution    : "To configure the VMsafe Agent correctly, perform the following steps:
+
+1. If the VM is not being protected by a VMsafe CPU/memory product, remove vmsafe.enable from the virtual machine configuration file or set it to a value of FALSE.
+2. If the VM is being protected by a VMsafe CPU/Memory product, set vmsafe.enable to the correct value."
+  reference   : "800-125A|HY-SR-1,800-171|3.14.5,800-53|SI-3(10),CSCv7|9.2,CSF|DE.CM-4,LEVEL|1NS,NIAv2|GS17,SWIFT-CSCv1|6.1"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.enable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - vmsafe.enable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.enable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - vmsafe.enable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='vmsafe.enable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - vmsafe.enable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - vmsafe.enable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "vmsafe\.enable : "
+  expect      : "vmsafe\.enable : FALSE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.24 Ensure VM Console Copy operations are disabled"
+  info        : "VM console copy operations should be disabled.
+
+*Rationale*
+
+VM console copy operations are disabled by default (not explicitly specified); however,
+explicitly disabling this feature enables audit controls to check that this setting is correct."
+  solution    : "To explicitly disable VM console copy operations, run the following PowerCLI command:
+
+  # Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.copy.disable' -value $true"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.copy.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.copy.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.copy.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.copy.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.copy.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.copy.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.copy.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.copy\.disable : "
+  expect      : "isolation\.tools\.copy\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.25 Ensure VM Console Drag and Drop operations is disabled"
+  info        : "VM console drag and drop operations should be disabled.
+
+*Rationale*
+
+VM console drag and drop operations are disabled by default (not explicitly specified);
+however, explicitly disabling this feature enables audit controls to check that this setting is correct."
+  solution    : "To explicitly disable VM console drag and drop operations, run the following PowerCLI command:
+
+  # Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.dnd.disable' -value $true"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.dnd.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.dnd.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.dnd.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.dnd.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.dnd.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.dnd.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.dnd.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.dnd\.disable : "
+  expect      : "isolation\.tools\.dnd\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.26 Ensure VM Console GUI Options is disabled"
+  info        : "VM console and paste GUI options should be disabled.
+
+*Rationale*
+
+VM console and paste GUI options are disabled by default (not explicitly specified);
+however, explicitly disabling this feature enables audit controls to check that this setting is correct."
+  solution    : "To explicitly disable VM console and paste GUI options, run the following PowerCLI command:
+
+  # Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.setGUIOptions.enable' -value
+$false"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.setGUIOptions.enable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.setGUIOptions.enable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.setGUIOptions.enable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.setGUIOptions.enable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.setGUIOptions.enable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.setGUIOptions.enable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.setGUIOptions.enable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.setGUIOptions\.enable : "
+  expect      : "isolation\.tools\.setGUIOptions\.enable : FALSE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.27 Ensure VM Console Paste operations are disabled"
+  info        : "VM console paste operations should be disabled.
+
+*Rationale*
+
+VM console paste operations are disabled by default (not explicitly specified);
+however, explicitly disabling this feature enables audit controls to check that this setting is correct."
+  solution    : "To explicitly disable VM console paste operations, run the following PowerCLI command:
+
+  # Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.paste.disable' -value $true"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.paste.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.paste.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.paste.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.paste.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.paste.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.paste.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.paste.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.paste\.disable : "
+  expect      : "isolation\.tools\.paste\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.28 Ensure access to VM console via VNC protocol is limited"
+  info        : "Minimize access to the Virtual Machine via VNC protocol.
+
+*Rationale*
+
+The VM console enables you to connect to the console of a virtual machine, in effect seeing
+what a monitor on a physical server would show. This console is also available via the VNC
+protocol. Setting up this access also involves setting up firewall rules on each ESXi server
+the virtual machine will run on."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+
+Get-VM | New-AdvancedSetting -Name 'RemoteDisplay.vnc.enabled' -value $false"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='RemoteDisplay.vnc.enabled']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - RemoteDisplay.vnc.enabled : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='RemoteDisplay.vnc.enabled']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - RemoteDisplay.vnc.enabled : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='RemoteDisplay.vnc.enabled']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - RemoteDisplay.vnc.enabled : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - RemoteDisplay.vnc.enabled : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "RemoteDisplay\.vnc\.enabled : "
+  expect      : "RemoteDisplay\.vnc\.enabled : FALSE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.6.2 Ensure virtual disk shrinking is disabled"
+  info        : "If Virtual disk shrinking is done repeatedly it will cause the virtual disk to become
+  unavailable resulting in a denial of service. You can prevent virtual disk shrinking by disabling it.
+
+*Rationale*
+
+Shrinking a virtual disk reclaims unused space in it. If there is empty space in the disk, this
+process reduces the amount of space the virtual disk occupies on the host drive. Normal
+users and processes that is, users and processes without root or administrator
+privileges within virtual machines have the capability to invoke this procedure. However,
+if this is done repeatedly, the virtual disk can become unavailable while this shrinking is
+being performed, effectively causing a denial of service. In most datacenter environments,
+disk shrinking is not done, so you should disable this feature. Repeated disk shrinking can
+make a virtual disk unavailable. This capability is available to nonadministrative users in
+the guest."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command:
+
+# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.diskShrink.disable' -value $true"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.diskShrink.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.diskShrink.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.diskShrink.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.diskShrink.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.diskShrink.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.diskShrink.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.diskShrink.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.diskShrink\.disable : "
+  expect      : "isolation\.tools\.diskShrink\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.6.3 Ensure virtual disk wiping is disabled"
+  info        : "Wiping a virtual disk reclaims all unused space in it. If there is empty space in the disk, this
+  process reduces the amount of space the virtual disk occupies on the host drive. If virtual
+  disk wiping is done repeatedly, it can cause the virtual disk to become unavailable while
+  wiping occurs. In most datacenter environments, disk wiping is not needed, but normal
+  users and processes--without administrative privileges--can issue disk wipes unless the
+  feature is disabled.
+
+*Rationale*
+
+Virtual disk wiping can effectively cause a denial of service."
+  solution    : "To disable virtual disk wiping, run the following PowerCLI command:
+
+# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.diskWiper.disable' -value $true"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.diskWiper.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.diskWiper.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.diskWiper.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.diskWiper.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.diskWiper.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.diskWiper.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.diskWiper.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.diskWiper\.disable : "
+  expect      : "isolation\.tools\.diskWiper\.disable : True$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.7.2 Ensure the number of VM log files is configured properly"
+  info        : "Normally a new log file is created only when a host is rebooted, so the file can grow to
+  be quite large. You can ensure that new log files are created more frequently by limiting the
+  maximum size of the log files. If you want to restrict the total size of logging data, VMware
+  recommends saving 10 log files, each one limited to 1 MB. Each time an entry is written to
+  the log, the size of the log is checked; if it is over the limit, the next entry is written to a new
+  log. If the maximum number of log files already exists, when a new one is created, the
+  oldest log file is deleted.
+
+*Rationale*
+
+Log files should be rotated to preserve log data in case of corruption or destruction of the
+current log file, and to avoid the likelihood of logging issues caused by an overly large log file."
+  solution    : "To set the number of log files to be used to 10, run the following PowerCLI command:
+
+  # Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'log.keepOld' -value '10'"
+  reference   : "800-125A|HY-SR-20,800-53|AU-4,CSCv6|6.3,CSCv7|6.3,CSCv7|6.4,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,LEVEL|1S,NESA|T3.3.1,NESA|T3.6.2"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='log.keepOld']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - log.keepOld : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='log.keepOld']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - log.keepOld : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='log.keepOld']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - log.keepOld : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - log.keepOld : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "log\.keepOld : "
+  expect      : "log\.keepOld : 10$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.7.4 Ensure VM log file size is limited"
+  info        : "Normally a new log file is created only when a host is rebooted, so the file can grow to be
+  quite large. You can ensure that new log files are created more frequently by limiting the
+  maximum size of the log files. If you want to restrict the total size of logging data, VMware
+  recommends saving 10 log files, each one limited to 1 MB. If the maximum number of log
+  files already exists, when a new one is created, the oldest log file is deleted.
+
+
+*Rationale*
+
+Virtual machine users and processes can abuse logging either on purpose or inadvertently
+so that large amounts of data flood the log file. Without restrictions on maximum log file
+size, over time a log file can consume enough file system space to cause a denial of service."
+  solution    : "To properly limit the maximum log file size, run the following PowerCLI command:
+
+# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'log.rotateSize' -value '1024000'"
+  reference   : "800-125A|HY-SR-20,800-53|AU-4,CSCv6|6.3,CSCv7|6.4,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,LEVEL|1S,NESA|T3.3.1,NESA|T3.6.2"
+  see_also    : "https://workbench.cisecurity.org/files/2168"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='log.rotateSize']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - log.rotateSize : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='log.rotateSize']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - log.rotateSize : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='log.rotateSize']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - log.rotateSize : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - log.rotateSize : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "log\.rotateSize : "
+  expect      : "log\.rotateSize : 1024000$"
+</custom_item>
+
+</check_type>

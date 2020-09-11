@@ -1,0 +1,203 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.3 $
+# $Date: 2020/07/14 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Microsoft Exchange Server 2016 v1.0.0 Benchmark
+#
+#<ui_metadata>
+#<display_name>CIS Microsoft Exchange Server 2016 UM v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS Microsoft Exchange Server 2016 UM</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/1514</link>
+#</spec>
+#<labels>microsoft,exchange,exchange_2016,um,windows</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SECURE_STRING</name>
+#    <default>none</default>
+#    <description>Secure String for Authentication</description>
+#    <info>Comma separated secure string(s) which will be used to authenticate against the target servers.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"Microsoft Exchange Server 2016">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "Test secure string"
+      value_type      : POLICY_TEXT
+      value_data      : ".*"
+      powershell_args : "hostname"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "CIS_Microsoft_Exchange_Server_2016_Level_1_UM_v1.0.0.audit from CIS Microsoft Exchange Server 2016 v1.0.0 Benchmark"
+      info            : "NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      value_type      : POLICY_TEXT
+      value_data      : "[\s]+15\.1[\s]+.*[\s]+True"
+      powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsUnifiedMessagingServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+      reference       : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "Platform check"
+          value_type      : POLICY_TEXT
+          value_data      : "[\s]+15\.1[\s]+.*[\s]+True"
+          powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsUnifiedMessagingServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.10 Set 'Configure startup mode' to 'TLS'"
+          info            : "Use this setting to start the UM Server in secure mode. This forces all dial plans to use TLS.
+
+Rationale:
+
+Communications between other VOIP systems and Exchange that are not protected by TLS are vulnerable to being captured by a malicious third party."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-UMService -Identity Exchange1 -UMStartUpMode TLS"
+          reference       : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-UMService ; $settings | Format-List Identity, UMStartUpMode; If ($settings | Where {$_.UMStartUpMode -ne 'TLS'}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.12 Set 'Configure dial plan security' to 'Secured'"
+          info            : "Use this setting to protect individual dial plans if the UM Server cannot be started in TLS Mode. To use this setting, the UM Server must be started in DUAL Mode.
+
+Rationale:
+
+If the UM role is not started in secure mode, each dial plan is individually vulnerable to traffic being captured by a malicious third party."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-UMDialPlan -identity MySecureDialPlan -VoIPSecurity Secured"
+          reference       : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-UMDialPlan ; $settings | Format-List Identity, VoIPSecurity; If ($settings | Where {$_.VoIPSecurity -ne 'Secured'}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.13 Set 'Allow access to voicemail without requiring a PIN' to 'False'"
+          info            : "Use this setting to ensure PIN access to mailbox data via voice is required.
+
+Rationale:
+
+If PINLess access is enabled, the mailbox data is unsecured and vulnerable to capture when being accessed via the phone"
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-UMMailboxPolicy -id MyUMMailboxPolicy -AllowPinlessVoiceMailAccess $false"
+          reference       : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|1S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-UMMailboxPolicy ; $settings | Format-List Identity, AllowPinlessVoiceMailAccess; If ($settings | Where {$_.AllowPinlessVoiceMailAccess -ne $false}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.1 Set cmdlets 'Turn on Administrator Audit Logging' to 'True'"
+          info            : "Administrator audit logging is used to provide a log of the settings that are changed by administrators anywhere in the system. By default this setting is turned on to ensure discovery of configuration related security breaches.
+
+Rationale:
+
+Administrators may be able to reconfigure the system to expose a vulnerability with no record of the changes made."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-AdminAuditLogConfig -AdminAuditLogCmdlets *"
+          reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "AdminAuditLogCmdlets[\s]+:[\s]+\{\*\}"
+          powershell_args : "Get-AdminAuditLogConfig | Format-List -property AdminAuditLogCmdlets"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.11 Set mailbox 'Turn on Administrator Audit Logging' to 'True'"
+          info            : "Administrator audit logging is used to provide a log of the settings that are changed by administrators anywhere in the system. By default this setting is turned on to ensure discovery of configuration related security breaches.
+
+Rationale:
+
+Administrators may be able to reconfigure the system to expose a vulnerability with no record of the changes made."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-AdminAuditLogConfig -AdminAuditLogEnabled $true"
+          reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-AdminAuditLogConfig ; $settings | Format-List Identity, AdminAuditLogEnabled; If ($settings | Where {$_.AdminAuditLogEnabled -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Authentication Failure"
+      info        : "Secure string passed to powershell was invalid or empty."
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

@@ -1,0 +1,702 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.21 $
+# $Date: 2020/04/22 $
+#
+# Description	: This .audit is designed against the CIS Security Configuration
+# 	 		  Benchmark For DB2 8,9 & 9.5 for Linux, UNIX, and Windows
+#         		  Version 1.2.0 December 31, 2011.
+#
+# NOTE			: The audits contained in this document audit are for Level 2 items
+# 			  of the CIS DB2 8, 9 & 9.5 for Linux.
+#
+#<ui_metadata>
+#<display_name>CIS IBM DB2 OS L2 v1.2.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>IBM DB2 OS L2</name>
+#  <version>1.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/155</link>
+#</spec>
+#<labels>unix,cis,ibm,db2,linux</labels>
+#<variables>
+#  <variable>
+#    <name>DB2_VERSION</name>
+#    <default>V9.5</default>
+#    <description>DB2 Version</description>
+#    <info>This is your IBM DB2 version.</info>
+#  </variable>
+#  <variable>
+#    <name>DEFAULT_DB_PATH</name>
+#    <default>/home/db2inst1</default>
+#    <description>Default DB Path</description>
+#    <info>This is the default DB path.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_USER</name>
+#    <default>db2inst1</default>
+#    <description>DB2 User</description>
+#    <info>This is the DB2 user account.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_GROUP</name>
+#    <default>db2iadm1</default>
+#    <description>DB2 Group</description>
+#    <info>This is the DB2 group name.</info>
+#  </variable>
+#  <variable>
+#    <name>DB</name>
+#    <default>DB Name</default>
+#    <description>Database Name</description>
+#    <info>This is the name of the database being audited.</info>
+#  </variable>
+#  <variable>
+#    <name>INSTANCE_HOME</name>
+#    <default>/home/db2inst1</default>
+#    <description>Instance Home</description>
+#    <info>This is the path to the instance directory.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+#
+## 1. Installation and Patches
+#
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "1.0.1 Install the latest Fixpak"
+  info          : "Periodically, IBM releases 'Fixpak' to enhance features and resolve defects, including security defects.
+
+  It is recommended that the DB2 instance remain current with all fix packs.
+
+  NOTE : Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2level"
+  expect        : ""
+  severity      : MEDIUM
+  dont_echo_cmd : YES
+  reference     : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,LEVEL|2S,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+  see_also      : "https://workbench.cisecurity.org/files/155"
+</custom_item>
+
+#
+## 3. DB2 Configurations
+#
+#
+## 3.1 DB2 Instance Parameter Settings
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.1 Enable audit buffer - 'audit_buf_sz <= 1000'"
+  info          : "DB2 can be configured to use an audit buffer."
+  info          : "It is recommended that the audit buffer size be set to at least 1000."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(audit_buf_sz\\)'"
+  expect        : "^ *[Aa][Uu][Dd][Ii][Tt] [Bb][Uu][Ff][Ff][Ee][Rr] [Ss][Ii][Zz][Ee] \(4[Kk][Bb]\)(([\s\t])*)\([Aa][Uu][Dd][Ii][Tt]_[Bb][Uu][Ff]_[Ss][Zz]\) *= *([1-9][0-9]{3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-53|AU-4,CSCv6|6.3,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,LEVEL|2S,NESA|T3.3.1,NESA|T3.6.2"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.2 Encrypt user data across the network - 'authentication = Data_Encrypt'"
+  info          : "DB2 supports a number of authentication mechanisms."
+  info          : "It is recommended that the DATA_ENCRYPT authentication mechanism be used."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(authentication\\)'"
+  expect        : "^ *[Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] [Mm][Aa][Nn][Aa][Gg][Ee][Rr] [Aa][Uu][Tt][Hh][Ee][Nn][Tt][Ii][Cc][Aa][Tt][Ii][Oo][Nn](([\s\t])*)\([Aa][Uu][Tt][Hh][Ee][Nn][Tt][Ii][Cc][Aa][Tt][Ii][Oo][Nn]\) *= *[Dd][Aa][Tt][Aa]_[Ee][Nn][Cc][Rr][Yy][Pp][Tt] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.3 Require explicit authorization for cataloging - 'catalog_noauth = no'"
+  info          : "DB2 can be configured to allow users that do not possess the SYSADM authority to catalog and uncatalog databases and nodes."
+  info          : "It is recommended that the SYSADM authority be required to catalog and uncatalog databases and nodes."
+  info          : "It is recommended that the catalog_noauth parameter be set to NO."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(catalog_noauth\\)'"
+  expect        : "^ *[Cc][Aa][Tt][Aa][Ll][Oo][Gg][Ii][Nn][Gg] [Aa][Ll][Ll][Oo][Ww][Ee][Dd] [Ww][Ii][Tt][Hh][Oo][Uu][Tt] [Aa][Uu][Tt][Hh][Oo][Rr][Ii][Tt][Yy](([\s\t])*)\([Cc][Aa][Tt][Aa][Ll][Oo][Gg]_[Nn][Oo][Aa][Uu][Tt][Hh]\) *= *[Nn][Oo] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+</custom_item>
+
+#Datalinks does not show up in the database manager configuration. According to forum post,
+#http://www.dbforums.com/db2/1664652-datalinks-information-db2-9-5-9-7-not-found-dbm-cfg.html,
+#this setting is not supported in DB2 starting from version 9.1.
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.4 Disable data links support - 'datalinks = no'"
+  info          : "Datalinks enables the database to support the Data Links Manager to manage unstructured data, such as images, large files and"
+  info          : "other unstructured files on the host."
+  info          : "It is recommended that data links support be disabled."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(datalinks\\)'"
+  expect        : "^ *[Dd][Aa][Tt][Aa] [Ll][Ii][Nn][Kk][Ss] [Ss][Uu][Pp][Pp][Oo][Rr][Tt]([\s\t])*\([Dd][Aa][Tt][Aa][Ll][Ii][Nn][Kk][Ss]\) *= *[Nn][Oo] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.5 Secure default database location - 'DFTDBPATH value'"
+  info          : "The dftdbpath parameter contains the default file path used to create DB2 databases."
+  info          : "It is recommended that this parameter is set to a directory that is owned by the DB2 Administrator."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE: Ensure the dftdbpath path is owned by the DB2 Administrator"
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/bin/ls -ld `/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(dftdbpath\\)' | /bin/awk -F= '{print $2}' | /bin/sed 's/^ //g'`"
+  expect        : ""
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|2S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "3.1.5 Secure default database location - 'DFTDBPATH directory ownership'"
+  info        : "The dftdbpath parameter contains the default file path used to create DB2 databases."
+  info        : "It is recommended that this parameter is set to a directory that is owned by the DB2 Administrator."
+  info        : "NOTE : Update DEFAULT_DB_PATH to the appropriate value for your local environment."
+  info        : "NOTE : Update DB2_USER to the appropriate value for your local environment."
+  info        : "NOTE : Update DB2_GROUP to the appropriate value for your local environment."
+# Note: Variable @DEFAULT_DB_PATH@ replaced with "/home/db2inst1" in field "file".
+  file        : "/home/db2inst1"
+# Note: Variable @DB2_USER@ replaced with "db2inst1" in field "owner".
+  owner       : "db2inst1"
+# Note: Variable @DB2_GROUP@ replaced with "db2iadm1" in field "group".
+  group       : "db2iadm1"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.7 Set diagnostic logging to capture errors and warnings - 'diaglevel = 3 or 4'"
+  info          : "The diaglevel parameter specifies the type of diagnostic errors that will be recorded in the db2diag.log file."
+  info          : "It is recommended that the diaglevel parameter be set to at least 3."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(diaglevel\\)'"
+  expect        : "^ *[Dd][Ii][Aa][Gg][Nn][Oo][Ss][Tt][Ii][Cc] [Ee][Rr][Rr][Oo][Rr] [Cc][Aa][Pp][Tt][Uu][Rr][Ee] [Ll][Ee][Vv][Ee][Ll](([\s\t])*)\([Dd][Ii][Aa][Gg][Ll][Ee][Vv][Ee][Ll]\) *= *(3|4) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.9 Require instance name for discovery requests - 'discover = known'"
+  info          : "The discover parameter determines what kind of discovery requests, if any, the DB2 server will fulfill."
+  info          : "It is recommended that the DB2 server only fulfill requests from clients that know the given instance name."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(discover\\)'"
+  expect        : "^ *[Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr][Yy] [Mm][Oo][Dd][Ee](([\s\t])*)\([Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr]\) *= *[Kk][Nn][Oo][Ww][Nn] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.10 Disable instance discoverability - 'discover_inst = disable'"
+  info          : "The discover_inst parameter specifies whether the instance can be discovered in the network."
+  info          : "It is recommended that instances be undiscoverable."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(discover_inst\\)'"
+  expect        : "^ *[Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr] [Ss][Ee][Rr][Vv][Ee][Rr] [Ii][Nn][Ss][Tt][Aa][Nn][Cc][Ee](([\s\t])*)\([Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr]_[Ii][Nn][Ss][Tt]\) *= *[Dd][Ii][Ss][Aa][Bb][Ll][Ee] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-53|SC-30(5),CSF|PR.IP-1,CSF|PR.PT-3,LEVEL|2S,NIAv2|GS8f,NIAv2|NS1,NIAv2|NS28"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.11 Authenticate federated users at the instance level - 'fed_noauth = no'"
+  info          : "The fed_noauth parameter determines whether federated authentication will be bypassed at the instance."
+  info          : "It is recommended that this parameter be set to no."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(fed_noauth\\)'"
+  expect        : "^ *[Bb][Yy][Pp][Aa][Ss][Ss] [Ff][Ee][Dd][Ee][Rr][Aa][Tt][Ee][Dd] [Aa][Uu][Tt][Hh][Ee][Nn][Tt][Ii][Cc][Aa][Tt][Ii][Oo][Nn](([\s\t])*)\([Ff][Ee][Dd]_[Nn][Oo][Aa][Uu][Tt][Hh]\) *= *[Nn][Oo] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|2S,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.12 Enable instance health monitoring - 'health_mon = on'"
+  info          : "The health_mon parameter allows you to specify whether you want to monitor the instance, the databases, and"
+  info          : " the corresponding database objects."
+  info          : "It is recommended that health_mon be set to on."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(health_mon\\)'"
+  expect        : "^ *[Mm][Oo][Nn][Ii][Tt][Oo][Rr] [Hh][Ee][Aa][Ll][Tt][Hh] [Oo][Ff] [Ii][Nn][Ss][Tt][Aa][Nn][Cc][Ee] [Aa][Nn][Dd] [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee][Ss](([\s\t])*)\([Hh][Ee][Aa][Ll][Tt][Hh]_[Mm][Oo][Nn]\) *= *[Oo][Nn] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.13 Retain fenced model processes - 'keepfenced = no'"
+  info          : "The keepfenced parameter indicates whether or not an external user-defined functions or stored procedures will reuse"
+  info          : "DB2 process after each subsequent call."
+  info          : "It is recommended that this parameter be set to NO."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(keepfenced\\)'"
+  expect        : "^ *[Kk][Ee][Ee][Pp] [Ff][Ee][Nn][Cc][Ee][Dd] [Pp][Rr][Oo][Cc][Ee][Ss][Ss](([\s\t])*)\([Kk][Ee][Ee][Pp][Ff][Ee][Nn][Cc][Ee][Dd]\) *= *[Nn][Oo] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.14 Set maximum connection limits - 'max_connections <= 100'"
+  info          : "The max_connections parameter indicates the maximum number of client connections allowed per database partition."
+  info          : "It is recommended that this parameter be set equal to the max_coordagents parameter;"
+  info          : "the max_coordagents parameter should be set to 100."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(max_connections\\)'"
+  expect        : "^ *[Mm][Aa][Xx] [Nn][Uu][Mm][Bb][Ee][Rr] [Oo][Ff] [Cc][Ll][Ii][Ee][Nn][Tt] [Cc][Oo][Nn][Nn][Ee][Cc][Tt][Ii][Oo][Nn][Ss](([\s\t])*)\([Mm][Aa][Xx]_[Cc][Oo][Nn][Nn][Ee][Cc][Tt][Ii][Oo][Nn][Ss]\) *= *([1-9][0-9]?|100) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-53|AC-10,ITSG-33|AC-10,LEVEL|2S,NESA|T5.5.1"
+</custom_item>
+
+#According to http://publib.boulder.ibm.com/infocenter/db2luw/v9r5/index.jsp?topic=/com.ibm.db2.luw.qb.migration.doc/doc/r0022380.html
+#the MAXAGENTS parameter has been deprecated.
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.14 Set maximum connection limits - 'max_coordagents <= 100'"
+  info          : "The max_connections parameter indicates the maximum number of client connections allowed per database partition."
+  info          : "It is recommended that this parameter be set equal to the max_coordagents parameter;"
+  info          : "the max_coordagents parameter should be set to 100."
+  info          : "Ensure that dependent parameter, such as maxappls, be set less than the max_coordagents parameter as well."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(maxagents\\)'"
+  expect        : "^ *[Mm][Aa][Xx] [Nn][Uu][Mm][Bb][Ee][Rr] [Oo][Ff] [Ee][Xx][Ii][Ss][Tt][Ii][Nn][Gg] [Aa][Gg][Ee][Nn][Tt][Ss](([\s\t])*)\([Mm][Aa][Xx][Aa][Gg][Ee][Nn][Tt][Ss]\) *= *([1-9][0-9]?|100) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-53|AC-10,ITSG-33|AC-10,LEVEL|2S,NESA|T5.5.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.14 Set maximum connection limits - 'maxappls <= 99'"
+  info          : "The max_connections parameter indicates the maximum number of client connections allowed per database partition."
+  info          : "It is recommended that this parameter be set equal to the max_coordagents parameter;"
+  info          : "the max_coordagents parameter should be set to 100."
+  info          : "Ensure that dependent parameter, such as maxappls, be set less than the max_coordagents parameter as well."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE : Update DB to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name | /bin/egrep -i '\\(maxappls\\)'"
+  expect        : "^ *[Mm][Aa][Xx] [Nn][Uu][Mm][Bb][Ee][Rr] [Oo][Ff] [Aa][Cc][Tt][Ii][Vv][Ee] [Aa][Pp][Pp][Ll][Ii][Cc][Aa][Tt][Ii][Oo][Nn][Ss](([\s\t])*)\([Mm][Aa][Xx][Aa][Pp][Pp][Ll][Ss]\) *= *([1-9][0-9]?) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-53|AC-10,ITSG-33|AC-10,LEVEL|2S,NESA|T5.5.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.15 Set administrative notification level - 'notifylevel = 3 or 4'"
+  info          : "The notifylevel parameter specifies the type of administration notification messages that are written to the"
+  info          : "administration notification log."
+  info          : "It is recommended this parameter be set to 3."
+  info          : "A setting of 3 will log all fatal errors, failing services, system integrity, as well as system health."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(notifylevel\\)'"
+  expect        : "^ *[Nn][Oo][Tt][Ii][Ff][Yy] [Ll][Ee][Vv][Ee][Ll](([\s\t])*)\([Nn][Oo][Tt][Ii][Ff][Yy][Ll][Ee][Vv][Ee][Ll]\) *= *(3|4) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.16 Enable server-based authentication - 'srvcon_auth = server'"
+  info          : "The srvcon_auth parameter specifies how and where authentication is to take for incoming connections to the server."
+  info          : "It is recommended that this parameter is not set to CLIENT."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE: If the authentication setting at the database configuration level is set to DATA_ENCRYPT (in benchmark 3.1.2), this setting will be NULL."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(srvcon_auth\\)'"
+  expect        : "^ *[Ss][Ee][Rr][Vv][Ee][Rr] [Cc][Oo][Nn][Nn][Ee][Cc][Tt][Ii][Oo][Nn] [Aa][Uu][Tt][Hh][Ee][Nn][Tt][Ii][Cc][Aa][Tt][Ii][Oo][Nn](([\s\t])*)\([Ss][Rr][Vv][Cc][Oo][Nn]_[Aa][Uu][Tt][Hh]\) *= *[Ss][Ee][Rr][Vv][Ee][Rr] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|2S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.1 Set failed archive retry delay - 'archretrydelay <= 20'"
+  info          : "The archretrydelay parameter specifies the wait time (in seconds) to retry to archive the log file after a failure."
+  info          : "It is recommended that this parameter be set to 20."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE : Update DB to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name | /bin/egrep -i '\\(archretrydelay\\)'"
+  expect        : "^ *[Ll][Oo][Gg] [Aa][Rr][Cc][Hh][Ii][Vv][Ee] [Rr][Ee][Tt][Rr][Yy] [Dd][Ee][Ll][Aa][Yy] \([Ss][Ee][Cc][Ss]\)(([\s\t])*)\([Aa][Rr][Cc][Hh][Rr][Ee][Tt][Rr][Yy][Dd][Ee][Ll][Aa][Yy]\) *= *([1-9]|1[0-9]|20) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.2 Auto-restart after abnormal termination - 'autorestart = on'"
+  info          : "The autorestart parameter specifies if the database instance should restart after an abnormal termination."
+  info          : "It is recommended that this parameter be set to ON."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE : Update DB to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name | /bin/egrep -i '\\(autorestart\\)'"
+  expect        : "^ *[Aa][Uu][Tt][Oo] [Rr][Ee][Ss][Tt][Aa][Rr][Tt] [Ee][Nn][Aa][Bb][Ll][Ee][Dd](([\s\t])*)\([Aa][Uu][Tt][Oo][Rr][Ee][Ss][Tt][Aa][Rr][Tt]\) *= *[Oo][Nn] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.3 Disable database discover - 'discover_db = disable'"
+  info          : "The discover_db parameter specifies if the database will respond to a discovery request from a client."
+  info          : "It is recommended that this parameter be set to DISABLE"
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE : Update DB to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name | /bin/egrep -i '\\(discover_db\\)'"
+  expect        : "^ *[Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr][Yy] [Ss][Uu][Pp][Pp][Oo][Rr][Tt] [Ff][Oo][Rr] [Tt][Hh][Ii][Ss] [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee](([\s\t])*)\([Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr]_[Dd][Bb]\) *= *[Dd][Ii][Ss][Aa][Bb][Ll][Ee] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-53|SC-30(5),CSF|PR.IP-1,LEVEL|2S,NIAv2|GS8f,NIAv2|NS1,NIAv2|NS28"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.11 Establish retention set size for backups - 'num_db_backups <= 100'"
+  info          : "The num_db_backups parameter specifies the number of backups to retain for a database before the old backups is marked deleted."
+  info          : "It is recommended that this parameter be set to at least 12"
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE : Update DB to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name | /bin/egrep -i '\\(num_db_backups\\)'"
+  expect        : "^ *[Nn][Uu][Mm][Bb][Ee][Rr] [Oo][Ff] [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] [Bb][Aa][Cc][Kk][Uu][Pp][Ss] [Tt][Oo] [Rr][Ee][Tt][Aa][Ii][Nn](([\s\t])*)([Nn][Uu][Mm]_[Dd][Bb]_[Bb][Aa][Cc][Kk][Uu][Pp][Ss]) *= *(1[2-9]|[2-9][0-9]|100) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.8.9,800-53|CP-9,800-53|SI-12,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,ITSG-33|SI-12,LEVEL|2S,NESA|M5.2.3,NESA|M5.2.4,NESA|M5.3.1,NESA|T2.2.4,NIAv2|DR1,NIAv2|DR1a,NIAv2|DR1b,NIAv2|DR1c,NIAv2|DR2,NIAv2|DR3,NIAv2|DR4,NIAv2|DR5,NIAv2|DR6"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.12 Set archive log failover retry limit - 'numarchretry <= 5'"
+  info          : "The numarchretry parameter determines how many times a database will try to archive the log file to the primary or the secondary"
+  info          : "archive destination before trying the failover directory."
+  info          : "It is recommended that this parameter be set to 5."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE : Update DB to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name | /bin/egrep -i '\\(numarchretry\\)'"
+  expect        : "^ *[Nn][Uu][Mm][Bb][Ee][Rr] [Oo][Ff] [Ll][Oo][Gg] [Aa][Rr][Cc][Hh][Ii][Vv][Ee] [Rr][Ee][Tt][Rr][Ii][Ee][Ss] [Oo][Nn] [Ee][Rr][Rr][Oo][Rr](([\s\t])*)\([Nn][Uu][Mm][Aa][Rr][Cc][Hh][Rr][Ee][Tt][Rr][Yy]\) *= *([1-5]) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+#
+## 3.3 Database Administration Server Settings
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.3.2 Set a generic system name - 'db2system value'"
+  info          : "The db2system parameter specifies the DB2 system name that is used by users and database administrators to identify the DB2 server.
+
+  It is recommended that this parameter be set to a value that does not represent sensitive aspects of the system.
+
+  NOTE : Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Review the DB2 system name to ensure it does not contain sensitive aspects of the system.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(db2system\\)'"
+  expect        : ""
+  dont_echo_cmd : YES
+  severity      : MEDIUM
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.3.3 Disable DAS discoverability - 'discover = disable'"
+  info          : "The discover parameter specifies the discovery mode for the DB2 Administration Server."
+  info          : "It is recommended that this parameter be set to DISABLE."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(discover\\)'"
+  expect        : "^ *[Dd][Aa][Ss] [Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr][Yy] [Mm][Oo][Dd][Ee](([\s\t])*)\([Dd][Ii][Ss][Cc][Oo][Vv][Ee][Rr]\) *= *[Dd][Ii][Ss][Aa][Bb][Ll][Ee] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.3.4 Do not execute expired tasks - 'exec_exp_task = no'"
+  info          : "The exec_exp_task parameter controls whether the DB2 Scheduler will initialize past taks that were scheduled but not yet executed."
+  info          : "It is recommended that this parameter be set to NO."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(exec_exp_task\\)'"
+  expect        : "^ *[Ee][Xx][Ee][Cc][Uu][Tt][Ee] [Ee][Xx][Pp][Ii][Rr][Ee][Dd] [Tt][Aa][Ss][Kk][Ss](([\s\t])*)\([Ee][Xx][Ee][Cc]_[Ee][Xx][Pp]_[Tt][Aa][Ss][Kk]\) *= *[Nn][Oo] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.3.5 Secure the JDK runtime library - 'jdk_path value'"
+  info          : "The jdk_path parameter specifies the Software Developer's Kit (JDK) for Java directory for the DB2 administration server."
+  info          : "It is recommended that the location pointed to by this parameter contain a current version of the JDK and be secure."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE: Verify the found jdk_path location is a current version and is in a secure location on the system."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(jdk_path\\)'"
+  expect        : ""
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.8,800-53|CM-7(5),CSCv6|2.2,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.3.6 Secure the JDK 64-bit runtime library - 'jdk_64_path value'"
+  info          : "The jdk_64_path parameter specifies the 64-Bit Software Developer's Kit (JDK) for Java directory for the DB2 administration server."
+  info          : "It is recommended that the location pointed to by this parameter contain a current version of the JDK and be secure."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE: Verify the found jdk_64_path location is a current version and is in a secure location on the system."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(jdk_64_path\\)'"
+  expect        : ""
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.8,800-53|CM-7(5),CSCv6|2.2,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.3.7 Disable unused task scheduler - 'sched_enable = off'"
+  info          : "The sched_enable parameter specifies whether the DB2 Task Center utility is allowed to schedule and execute tasks"
+  info          : "at the administration server."
+  info          : "It is recommended that this parameter be set to OFF when the Task Scheduler is not in use."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(sched_enable\\)'"
+  expect        : "^ *[Ss][Cc][Hh][Ee][Dd][Uu][Ll][Ee][Rr] [Mm][Oo][Dd][Ee](([\s\t])*)([Ss][Cc][Hh][Ee][Dd]_[Ee][Nn][Aa][Bb][Ll][Ee]) *= *[Oo][Ff][Ff] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+#
+## 4. Label-Based Access Controls (LBAC)
+
+<report type:"WARNING">
+  description : "4.0.1 Enforce Label-Based Access Controls Implementation"
+  info        : "Ensure that the database has label-based access controls (LBAC) component implemented to protect senstive data.
+
+  It is recommended that the policies and the components are properly enforced at the column and/or row level.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the LBAC component is implemented."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|2NS"
+</report>
+
+#
+## 5. Database Maintenance
+
+<report type:"WARNING">
+  description : "5.0.1 Enable Backup Redundancy"
+  info        : "Backup redundancy is the process of ensuring that multiple instances of database backups exist.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that your backup replication policy is reviewed."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|2NS"
+</report>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "5.0.3 Enable Database Maintenance - 'auto_maint = on'"
+  info          : "Enable automatic database maintenance on your DB2 instance."
+  info          : "It is recommended that DB2 Automatic Maintenance tool be used to ensure that the instance is performing optimally."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE : Update DB to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name | /bin/egrep -i '\\(auto_maint\\)'"
+  expect        : "^ *[Aa][Uu][Tt][Oo][Mm][Aa][Tt][Ii][Cc] [Mm][Aa][Ii][Nn][Tt][Ee][Nn][Aa][Nn][Cc][Ee](([\s\t])*)\([Aa][Uu][Tt][Oo]_[Mm][Aa][Ii][Nn][Tt]\) *= *[Oo][Nn] *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+#
+## 6. Securing Database Objects
+#
+## 7. Entitlements
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "7.0.1 Establish an administrator group - 'sysadm_group value'"
+  info          : "The sysadm_group parameter defines the system administrator group with SYSADM authority for the DB2 instance.
+
+  It is recommended that sysadm_group group contains authorized users only.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Review the found SYSADM group name to ensure it is a valid group name for your organization.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(sysadm_group\\)'"
+  expect        : "^ *[Ss][Yy][Ss][Aa][Dd][Mm] [Gg][Rr][Oo][Uu][Pp] [Nn][Aa][Mm][Ee](([\s\t])*)\([Ss][Yy][Ss][Aa][Dd][Mm]_[Gg][Rr][Oo][Uu][Pp]\) *= *([A-Za-z0-9]+) *$"
+  dont_echo_cmd : YES
+  severity      : MEDIUM
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "7.0.2 Establish system control group - 'sysctrl_group value'"
+  info          : "The sysctrl_group parameter defines the system administrator group with system control (SYSCTRL) authority."
+  info          : "It is recommended that sysctrl_group group contains authorized users only."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+  info          : "NOTE: Review the found SYSCTRL group name to ensure it is a valid group name for your organization."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(sysctrl_group\\)'"
+  expect        : "^ *[Ss][Yy][Ss][Cc][Tt][Rr][Ll] [Gg][Rr][Oo][Uu][Pp] [Nn][Aa][Mm][Ee](([\s\t])*)\([Ss][Yy][Ss][Cc][Tt][Rr][Ll]_[Gg][Rr][Oo][Uu][Pp]\) *= *([A-Za-z0-9]+) *$"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+</custom_item>
+
+#
+## 8. General Policy and Procedures
+
+<report type:"WARNING">
+  description : "8.0.2 Start and Stop DB2 Administrator Server"
+  info        : "The DB2 administration server responds to remote requests from administration tools and client utilities.
+
+  It is recommended that administrators are allowed to start and stop the DB2 administration server.
+
+  On Unix: Identify the members of the local DB2 admin group that have access to stop and start the db2admin command.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|2NS"
+</report>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "8.0.5 Remove Default Databases - 'Database name != SAMPLE'"
+  info          : "A DB2 Instance may come installed with default databases."
+  info          : "It is recommended that the SAMPLE database be removed."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 list database directory | /bin/egrep -i 'Database name *= *SAMPLE'"
+  expect        : ""
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "8.0.6 Enable SSL communication with LDAP server"
+  info        : "The communication later between a DB2 instance and the LDAP server should be encrypted."
+  info        : "It is recommended that the ENABLE_SSL parameter in the IBMLDAPSecurity.ini file be set to TRUE."
+  info        : "NOTE : Update INSTANCE_HOME to the appropriate value for your local environment."
+# Note: Variable @INSTANCE_HOME@ replaced with "/home/db2inst1" in field "file".
+  file        : "/home/db2inst1/sqllib/cfg/IBMLDAPSecurity.ini"
+  regex       : "^ *[Ee][Nn][Aa][Bb][Ll][Ee]_[Ss][Ss][Ll] *= *[A-Za-z]+"
+  expect      : "^ *[Ee][Nn][Aa][Bb][Ll][Ee]_[Ss][Ss][Ll] *= *[Tt][Rr][Uu][Ee]"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "8.0.7 Secure the permission of the IBMLDAPSecurity.ini file"
+  info        : "The IBMLDAPSecurity.ini file contains the IBM LDAP security plug-in configurations."
+  info        : "Recommended value is ready-only (RO) to Everyone/Other/Users/Domain Users."
+  info        : "NOTE : Update INSTANCE_HOME to the appropriate value for your local environment."
+# Note: Variable @INSTANCE_HOME@ replaced with "/home/db2inst1" in field "file".
+  file        : "/home/db2inst1/sqllib/cfg/IBMLDAPSecurity.ini"
+  mask        : "037"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "8.0.8 Secure the permission of the SSLconfig.ini file"
+  info        : "The SSLconfig.ini file contains the SSL configuration parameters for the DB2 instance, including the password for KeyStore."
+  info        : "Recommended value is ready-only (RO) to Everyone/Other/Users/Domain Users."
+  info        : "NOTE : Update INSTANCE_HOME to the appropriate value for your local environment."
+# Note: Variable @INSTANCE_HOME@ replaced with "/home/db2inst1" in field "file".
+  file        : "/home/db2inst1/sqllib/cfg/SSLconfig.ini"
+  mask        : "037"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+#
+## 9. DB2 Utilities and Tools
+
+</check_type>

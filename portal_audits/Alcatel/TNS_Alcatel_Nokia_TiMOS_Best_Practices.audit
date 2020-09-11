@@ -1,0 +1,1384 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.4 $
+# $Date: 2020/04/14 $
+#
+# Description   : This .audit is designed to review the configuration of an Alcatel-Lucent TiMOS/Nokia SR-OS
+#               device and validate its settings against a comprehensive list of relevant best
+#               practice settings.
+#
+#               More information on best practices is available in the Alcatel-Lucent SR-OS
+#               Best Practices Guide, which can be obtained from Nokia/Alcatel-Lucent Customer
+#               Support.
+# Ref :         https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf
+#
+#<ui_metadata>
+#<display_name>TNS Alcatel-Lucent TiMOS/Nokia SR-OS Best Practice Audit</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Alcatel-Lucent TiMOS/Nokia SR-OS Best Practice Audit</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>alcatel,alcatel-lucent,nokia,tenable,timos,sros</labels>
+#<variables>
+#  <variable>
+#    <name>LOGIN_TEXT</name>
+#    <default>[Aa]uthorized users only</default>
+#    <description>Login prompt text</description>
+#    <info>This is the text displayed to users at the SSH login prompt.</info>
+#  </variable>
+#  <variable>
+#    <name>RSYSLOG_SERVER</name>
+#    <default>192.168.5.1</default>
+#    <description>Primary rsyslog server</description>
+#    <info>IPv4 address of the primary rsyslog server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>RSYSLOG_TARGET_INDEX</name>
+#    <default>1</default>
+#    <description>SROS Log Target Index</description>
+#    <info>The index value for the syslog target on the device.</info>
+#  </variable>
+#  <variable>
+#    <name>PRIMARY_AUTH_SERVER</name>
+#    <default>192.168.5.1</default>
+#    <description>Primary remote authentication server</description>
+#    <info>IPv4 address of the primary RADIUS or TACACS+ server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>SECONDARY_AUTH_SERVER</name>
+#    <default>192.168.5.2</default>
+#    <description>Secondary remote authentication server</description>
+#    <info>IPv4 address of the secondary RADIUS or TACACS+ server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>PRIMARY_TIME_SERVER</name>
+#    <default>192.168.1.20</default>
+#    <description>Primary NTP server</description>
+#    <info>IPv4 address of the primary NTP server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>SECONDARY_TIME_SERVER</name>
+#    <default>192.168.1.21</default>
+#    <description>Secondary NTP server</description>
+#    <info>IPv4 address of the secondary NTP server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>PRIMARY_DNS</name>
+#    <default>192.168.1.20</default>
+#    <description>Primary DNS server</description>
+#    <info>IPv4 address of the primary DNS server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>SECONDARY_DNS</name>
+#    <default>192.168.1.21</default>
+#    <description>Secondary DNS server</description>
+#    <info>IPv4 address of the secondary DNS server for your organization.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Alcatel">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      description : "TiMOS Platform Check"
+      cmd         : "show version"
+      expect      : "^TiMOS.*"
+    </custom_item>
+
+    <custom_item>
+      description : "SR-OS Platform Check"
+      cmd         : "show version"
+      expect      : "^SR-OS.*"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "TiMOS/SR-OS Installed"
+      info        : "Nessus has identified that TiMOS or SR-OS are installed."
+    </report>
+
+    <custom_item>
+      description : "TiMOS/SR-OS : OS Version is up to date"
+      info        : "Regular OS and firmware updates are an important tool in mitigating security vulnerabilities.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Make sure that your device is running the most recent version of TiMOS/SR-OS."
+      reference   : "800-171|3.4.1,800-53|CM-8,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show version"
+      regex       : ""
+      expect      : "Manual review required"
+      severity    : MEDIUM
+    </custom_item>
+
+## Control Plane
+####################################
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "check for BGP"
+          expect      : "^\s*bgp$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "BGP: Disable Capability Negotiation"
+          info        : "This command disables the exchange of capabilities. When command is enabled and after the peering is flapped, any new capabilities are not negotiated and will strictly support IPv4 routing exchanges with that peer. The no form of the command removes this command from the configuration and restores the normal behavior. This is beneficial in Internet peering environment when only address-family exchanged is IPv4."
+          solution    : "Run the following command on the device to disable capability negotiation: configure router bgp group <group-id> disable-capability-negotiation"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "disable-capability-negotiation"
+        </custom_item>
+
+        <custom_item>
+          description : "BGP: Authenticate peers"
+          info        : "This command ensures you are able communicate with known peering routers either within AS.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Run the following command on the device to configure BGP authentication keys: configure router bgp group <group-id> authentication-key <key-value>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          regex       : "auth-keychain.*$"
+          expect      : "authentication-key \"[0-9a-f]{32,64}\" hash2"
+          expect      : "auth-keychain\s+\".*\""
+          severity    : MEDIUM
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "BGP: Disable Capability Negotiation"
+          info        : "This command disables the exchange of capabilities. When command is enabled and after the peering is flapped, any new capabilities are not negotiated and will strictly support IPv4 routing exchanges with that peer. The no form of the command removes this command from the configuration and restores the normal behavior. This is beneficial in Internet peering environment when only address-family exchanged is IPv4.
+
+      NOTE: Nessus has determined that BGP is disabled."
+          solution    : "Run the following command on the device to disable capability negotiation: configure router bgp group <group-id> disable-capability-negotiation"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"PASSED">
+          description : "BGP: Authenticate peers"
+          info        : "This command ensures you are able communicate with known peering routers either within AS.
+
+      NOTE: Nessus has determined that BGP is disabled."
+          solution    : "Run the following command on the device to configure BGP authentication keys: configure router bgp group <group-id> authentication-key <key-value>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      description : "CPM Filtering: Filter for IGP"
+      info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|SC-7"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "match protocol ospf-igp"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "CPM Filtering: Filter for RSVP"
+      info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|SC-7"
+      expect      : "match protocol rsvp"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "CPM Filtering: Filter for VRRP"
+      info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+        NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|SC-7"
+      expect      : "match protocol vrrp"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "CPM Filtering: Filter for PIM"
+      info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|SC-7"
+      expect      : "match protocol pim"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "CPM Filtering: Filter for IGMP"
+      info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|SC-7"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "match protocol igmp"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "CPM Filtering: Filter for L2TP"
+      info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|SC-7"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "match protocol l2tp"
+      severity    : MEDIUM
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "Look for ICMP rules - ICMP enabled"
+          expect      : "match protocol icmp"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "CPM Filtering: Filter for ICMP - echo-reply"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "icmp-type echo-reply"
+          severity    : MEDIUM
+        </custom_item>
+
+        <custom_item>
+          description : "CPM Filtering: Filter for ICMP - dest-unreachable"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "icmp-type dest-unreachable"
+          severity    : MEDIUM
+        </custom_item>
+
+        <custom_item>
+          description : "CPM Filtering: Filter for ICMP - echo request"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "icmp-type echo-request"
+          severity    : MEDIUM
+        </custom_item>
+
+        <custom_item>
+          description : "CPM Filtering: Filter for ICMP - time exceeded"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "icmp-type time-exceeded"
+          severity    : MEDIUM
+        </custom_item>
+
+        <custom_item>
+          description : "CPM Filtering: Filter for ICMP - source quench"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "icmp-type source-quench"
+          severity    : MEDIUM
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "CPM Filtering: Filter for ICMP - echo-reply"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: This check reports as failed because no ICMP filters are configured."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "CPM Filtering: Filter for ICMP - dest-unreachable"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: This check reports as failed because no ICMP filters are configured."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "CPM Filtering: Filter for ICMP - echo request"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: This check reports as failed because no ICMP filters are configured."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "CPM Filtering: Filter for ICMP - time exceeded"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: This check reports as failed because no ICMP filters are configured."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "CPM Filtering: Filter for ICMP - source quench"
+          info        : "CPM-Filters are used to restrict (or in combination with cpm-queues, rate limit) traffic destined to the CPU on the SF/CPM including routing protocols. These filters are implemented in TiMOS/SR-OS such that packets exit on first match to perform the associated action. It is critical that filter entries be properly sequenced from most to least explicit. The CPM filters are dedicated ACL-like filters that act only on control traffic this is extracted from the data plane and sent to the CPM for processing.
+
+      NOTE: This check reports as failed because no ICMP filters are configured."
+          solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "check to see if ICMP is enabled"
+          expect      : "\s*icmp$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "ICMP: Do not return redirect messages"
+          info        : "Prevent routers from responding with unreachable notifications can be implemented at router and service interface. For interfaces such as IES or VPRN, the service interface is used to configure the ICMP parameters. ICMP mask replies are commonly used for network mapping and information gathering. These messages do not provide any legitimately required services so should be disabled. Redirects and unreachables can either be turned off or rate-limited."
+          solution    : "Run the following command on the device to disable ICMP options for interfaces that do not require it: configure router if <interface-id> icmp no <option>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "no redirects"
+        </custom_item>
+
+        <custom_item>
+          description : "ICMP: Do not return unreachable messages"
+          info        : "Prevent routers from responding with unreachable notifications can be implemented at router and service interface. For interfaces such as IES or VPRN, the service interface is used to configure the ICMP parameters. ICMP mask replies are commonly used for network mapping and information gathering. These messages do not provide any legitimately required services so should be disabled. Redirects and unreachables can either be turned off or rate-limited."
+          solution    : "Run the following command on the device to disable ICMP options for interfaces that do not require it: configure router if <interface-id> icmp no <option>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "no unreachables"
+        </custom_item>
+
+        <report type:"WARNING">
+          description : "ICMP: Do not return Proxy ARP requests"
+          info        : "Prevent routers from responding with unreachable notifications can be implemented at router and service interface. For interfaces such as IES or VPRN, the service interface is used to configure the ICMP parameters. ICMP mask replies are commonly used for network mapping and information gathering. These messages do not provide any legitimately required services so should be disabled. Redirects and unreachables can either be turned off or rate-limited.
+
+      NOTE: Alcatel-Lucent TiMOS/Nokia SR-OS devices only support Proxy ARP in network mode; Proxy ARP in access-uplink mode is not supported. You will need to manually confirm that Proxy ARP on this device is configured according to your organization's policies.
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Consult the SR-OS Security Best Practices Guide for more information on this topic. The SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+          solution    : "Disable Proxy ARP if not required by your organization."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "ICMP: Do not return redirect messages"
+          info        : "Prevent routers from responding with unreachable notifications can be implemented at router and service interface. For interfaces such as IES or VPRN, the service interface is used to configure the ICMP parameters. ICMP mask replies are commonly used for network mapping and information gathering. These messages do not provide any legitimately required services so should be disabled. Redirects and unreachables can either be turned off or rate-limited.
+
+      NOTE: This check reports as failed because no ICMP response settings are configured."
+          solution    : "Run the following command on the device to disable ICMP options for interfaces that do not require it: configure router if <interface-id> icmp no <option>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ICMP: Do not return unreachable messages"
+          info        : "Prevent routers from responding with unreachable notifications can be implemented at router and service interface. For interfaces such as IES or VPRN, the service interface is used to configure the ICMP parameters. ICMP mask replies are commonly used for network mapping and information gathering. These messages do not provide any legitimately required services so should be disabled. Redirects and unreachables can either be turned off or rate-limited.
+
+      NOTE: This check reports as failed because no ICMP response settings are configured."
+          solution    : "Run the following command on the device to disable ICMP options for interfaces that do not require it: configure router if <interface-id> icmp no <option>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"WARNING">
+          description : "ICMP: Do not return Proxy ARP requests"
+          info        : "Prevent routers from responding with unreachable notifications can be implemented at router and service interface. For interfaces such as IES or VPRN, the service interface is used to configure the ICMP parameters. ICMP mask replies are commonly used for network mapping and information gathering. These messages do not provide any legitimately required services so should be disabled. Redirects and unreachables can either be turned off or rate-limited.
+
+      NOTE: Alcatel-Lucent TiMOS/Nokia SR-OS devices only support Proxy ARP in network mode; Proxy ARP in access-uplink mode is not supported. You will need to manually confirm that Proxy ARP on this device is configured according to your organization's policies.
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Disable Proxy ARP if not required by your organization."
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      description : "DNS: A trusted primary DNS server is configured"
+      info        : "It is strongly recommended to set both a primary and secondary DNS server on TiMOS/SR-OS devices."
+      solution    : "Update the bof.cfg file on the CF media directly to set DNS servers."
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system information"
+      regex       : "Primary DNS Server.*$"
+# Note: Variable @PRIMARY_DNS@ replaced with "192.168.1.20" in field "expect".
+      expect      : "192.168.1.20"
+    </custom_item>
+
+    <custom_item>
+      description : "DNS: A trusted secondary DNS server is configured"
+      info        : "It is strongly recommended to set both a primary and secondary DNS server on TiMOS/SR-OS devices."
+      solution    : "Update the bof.cfg file on the CF media directly to set DNS servers."
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system information"
+      regex       : "Secondary DNS Server.*$"
+# Note: Variable @SECONDARY_DNS@ replaced with "192.168.1.21" in field "expect".
+      expect      : "192.168.1.21"
+    </custom_item>
+
+## Data Plane
+#########################################################
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "Check to see if IP filtering is in place"
+          expect      : "ip-filter"
+        </custom_item>
+
+        <custom_item>
+          description : "Check to see if IP filtering is in place"
+          not_expect  : "no ip-filter"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (0.0.0.0/8)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 0\.0\.0\.0\/8"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (255.255.255.255/32)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 255\.255\.255\.255\/32"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 1918 addresses (10.0.0.0/8)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 10\.0\.0\.0\/8"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (127.0.0.0/8)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 127\.0\.0\.0\/8"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (169.254.0.0/16)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 169\.254\.0\.0\/16"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 1918 addresses (172.16.0.0/12)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 172\.16\.0\.0\/12"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (192.0.2.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 192\.0\.2\.0\/24"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (192.42.172.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 192\.42\.172\.0\/24"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (192.0.0.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 192\.0\.0\.0\/24"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 1918 addresses (192.168.0.0/16)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 192\.168\.0\.0\/16"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (198.18.0.0/15)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 198\.18\.0\.0\/15"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (198.51.100.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 198\.51\.100\.0\/24"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (203.0.113.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 203\.0\.113\.0\/24"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (224.0.0.0/4)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 224\.0\.0\.0\/4"
+        </custom_item>
+
+        <custom_item>
+          description : "ACLs: Filter for RFC 3330 addresses (240.0.0.0/4)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "src-ip 240\.0\.0\.0\/4"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (0.0.0.0/8)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (255.255.255.255/32)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 1918 addresses (10.0.0.0/8)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (127.0.0.0/8)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (169.254.0.0/16)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 1918 addresses (172.16.0.0/12)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (192.0.2.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (192.42.172.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (192.0.0.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 1918 addresses (192.168.0.0/16)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (198.18.0.0/15)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (198.51.100.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (203.0.113.0/24)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (224.0.0.0/4)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "ACLs: Filter for RFC 3330 addresses (240.0.0.0/4)"
+          info        : "ACLs (filters) can be used is to mitigate attacks at the data plane. Based on RFC1918/3330 certain blocks of IPs were designated for private networks and as such should not be routed on the Internet."
+          solution    : "Run the following command on the device to configure these ACLs:
+                configure filter ip-filter <index> entry <number> create
+                description <description>
+                match src-ip <dotted-quad>/<block-size>
+                action drop
+                exit"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "Check for VRRP"
+          expect      : "^\s*vrrp\s*\d.*$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "uRPF: Unicast Reverse Path Forwarding (uRPF) is Enabled"
+          info        : "The Unicast RPF (uRPF) helps to mitigate problems that are caused by the introduction of malformed or spoofed IP source addresses into a network by discarding IP packets that lack a verifiable IP source address. For example, a number of common types of denial-of-service (DoS) attacks, including Smurf and Tribe Flood Network (TFN), can take advantage of forged or rapidly changing source IP addresses to allow attackers to thwart efforts to locate or filter the attacks. For Internet service providers (ISPs) that provide public access, Unicast RPF deflects such attacks by forwarding only packets that have source addresses that are valid and consistent with the IP routing table. This action protects the network of the ISP, its customer, and the rest of the Internet."
+          solution    : "Run the following command on the device to enable urpf-check: configure service ies <index> address <ip-address/mask> urpf-check <loose|strict>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "urpf-check"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "uRPF: Unicast Reverse Path Forwarding (uRPF) is Enabled"
+          info        : "The Unicast RPF (uRPF) helps to mitigate problems that are caused by the introduction of malformed or spoofed IP source addresses into a network by discarding IP packets that lack a verifiable IP source address. For example, a number of common types of denial-of-service (DoS) attacks, including Smurf and Tribe Flood Network (TFN), can take advantage of forged or rapidly changing source IP addresses to allow attackers to thwart efforts to locate or filter the attacks. For Internet service providers (ISPs) that provide public access, Unicast RPF deflects such attacks by forwarding only packets that have source addresses that are valid and consistent with the IP routing table. This action protects the network of the ISP, its customer, and the rest of the Internet.
+
+        NOTE: Nessus has determined that no VRRP services are enabled and thus uRPF is not in use."
+          solution    : "Run the following command on the device to enable urpf-check: configure service ies <index> address <ip-address/mask> urpf-check <loose|strict>"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </else>
+    </if>
+
+### Spanning Tree Protocol
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "Check for VPLS services"
+          expect      : "^\s*vpls$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "Spanning Tree: enable root-guard"
+          info        : "A feature that can be deployed to prevent an attacker from spoofing his or her system as the root bridge by sending announcements with a lower bridge priority and so becoming the root. The 'root-guard' feature allows an operator to block certain interfaces from becoming the root. This could be enabled, for example, on customer facing (untrusted) SAPs."
+          solution    : "Run the following command on the device to configure root-guard: configure service vpls sap stp root-guard"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          regex       : "root-guard"
+          not_expect  : "no root-guard"
+        </custom_item>
+
+        <custom_item>
+          description : "Spanning Tree: enable edge-port"
+          info        : "Spanning Tree Auto-Edge is a feature that can be used in conjunction with Root-Guard. Auto-Edge is used when connecting to a non-STP enabled device were a loop cant occur and the port is brought into operation as soon as there is link. If an xSTP/BPDU is received on a edge port it looses its edge port status and STP is enabled and converges and xSTP/TCN is sent. If the BPDU bridge-id has a better priority then the port will go into blocking state. Auto-edge is enabled by default. Edge-Port feature enables a port to never part-take in the spanning tree decision process."
+          solution    : "Run the following command on the device to configure edge-port: configure service vpls sap stp edge-port"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          regex       : "edge-port"
+          not_expect  : "no edge-port"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "Spanning Tree: enable root-guard"
+          info        : "A feature that can be deployed to prevent an attacker from spoofing his or her system as the root bridge by sending announcements with a lower bridge priority and so becoming the root. The 'root-guard' feature allows an operator to block certain interfaces from becoming the root. This could be enabled, for example, on customer facing (untrusted) SAPs.
+
+      NOTE: Nessus has determined that no VPLS interfaces are in use."
+          solution    : "Run the following command on the device to configure root-guard: configure service vpls sap stp root-guard"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"PASSED">
+          description : "Spanning Tree: enable edge-port"
+          info        : "Spanning Tree Auto-Edge is a feature that can be used in conjunction with Root-Guard. Auto-Edge is used when connecting to a non-STP enabled device were a loop cant occur and the port is brought into operation as soon as there is link. If an xSTP/BPDU is received on a edge port it looses its edge port status and STP is enabled and converges and xSTP/TCN is sent. If the BPDU bridge-id has a better priority then the port will go into blocking state. Auto-edge is enabled by default. Edge-Port feature enables a port to never part-take in the spanning tree decision process.
+
+      NOTE: Nessus has determined that no VPLS interfaces are in use."
+          solution    : "Run the following command on the device to configure edge-port: configure service vpls sap stp edge-port"
+          reference   : "800-53|SC-7"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </else>
+    </if>
+
+## Management Plane
+##########################################################
+
+    <custom_item>
+      description : "Login: SSH is enabled"
+      info        : "SSH uses well known cryptographic algorithms to encrypt all data transmitted between the router and a user. TiMOS/SR-OS Configuration 'preserve-key' ensures that the initial key is maintained after the router is restarted for any reason. 'version 2' ensures that only SSH version 2 connections are accepted. Several attacks against version one have been reported and version 2 is considered more secure."
+      solution    : "Run the following command on the device to enable SSH: configure system security ssh"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system security ssh"
+      regex       : "Administrative State"
+      expect      : "Enabled"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: ssh - v1 is disabled"
+      info        : "SSH uses well known cryptographic algorithms to encrypt all data transmitted between the router and a user. TiMOS/SR-OS Configuration 'preserve-key' ensures that the initial key is maintained after the router is restarted for any reason. 'version 2' ensures that only SSH version 2 connections are accepted. Several attacks against version one have been reported and version 2 is considered more secure."
+      solution    : "SSHv2 is configured by default in TiMOS/SR-OS. Run the following command on the device to enable SSHv2: configure system security version 2"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system security ssh"
+      regex       : "SSH Protocol Version 1"
+      expect      : "Disabled"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: ssh - v2 and later is enabled"
+      info        : "SSH uses well known cryptographic algorithms to encrypt all data transmitted between the router and a user. TiMOS/SR-OS Configuration 'preserve-key' ensures that the initial key is maintained after the router is restarted for any reason. 'version 2' ensures that only SSH version 2 connections are accepted. Several attacks against version one have been reported and version 2 is considered more secure."
+      solution    : "SSHv2 is configured by default in TiMOS/SR-OS. Run the following command on the device to enable SSHv2: configure system security version 2"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system security ssh"
+      regex       : "SSH Protocol Version 2"
+      expect      : "Enabled"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: Telnet is disabled (IPv4)"
+      info        : "It is strongly recommended to disable the telnet service on the device if it is not required."
+      solution    : "Run the following command on the device to disable telnet: configure system security no telnet-server"
+      reference   : "800-53|CM-7b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "no telnet-server"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: Telnet is disabled (IPv6)"
+      info        : "It is strongly recommended to disable the telnet6 service on the device if it is not required."
+      solution    : "Run the following command on the device to disable telnet6: configure system security no telnet6-server"
+      reference   : "800-53|CM-7b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "no telnet6-server"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: FTP is disabled"
+      info        : "It is strongly recommended to disable the FTP service on the device if it is not required."
+      solution    : "Run the following command on the device to disable ftp: configure system security no ftp-server"
+      reference   : "800-53|CM-7b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "no ftp-server"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: Idle connections time out after 5 minutes or less"
+      info        : "Timeouts should be setup for any idle CLI and/or management connections. Typically a good rule of thumb is determine the length your support staff will typically use a session and how frequent they might have to authenticate during a typical work day."
+      solution    : "Run the following command on the device to disable ftp: configure system login-control idle-timeout x (where x is your idle time limit)"
+      reference   : "800-53|SC-10"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      regex       : "idle-timeout"
+      expect      : "idle-timeout [1-5]$"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: ssh - limit consecutive logins to 16 or less"
+      info        : "SSH server has the functionality to control maximum allowed clients. Maximum spawned shells on the node can be controlled. From R10 onwards SSHv6 TTL security is also available to authenticate clients."
+      solution    : "Run the following command on the device to limit connections:  configure system login-control ssh inbound-max-sessions <max-number>"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      regex       : "inbound-max-sessions .*$"
+      expect      : "inbound-max-sessions ([1-9]|1[0-6])$"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: Configure Pre-login Banner"
+      info        : "Login banners and there usage has been a topic of debate with several schools of thought.
+    a. Don't use one, at all, as it gives up too much information about your organization and the device.
+    b. Use one but just a 'Keep Out' sign
+    c. Use a fully detailed sign that indicates organization and usage policy
+    We are not providing legal advice on this issue, this is something each organization has to discuss and determine if this is a requirement for their organization. Legal advice should be sought to determine the best wording to fit your organizations needs. A banner will not stop a user who is insistent on accessing a system. It is also advisable not to indicate your organization name, as attackers will typically hold these as trophies in their owned file."
+      solution    : "Run the following command on the device to implement a pre-login banner: configure system login-control pre-login-message <text>"
+      reference   : "800-53|AC-8a"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      regex       : "pre-login-message"
+# Note: Variable @LOGIN_TEXT@ replaced with "[Aa]uthorized users only" in field "expect".
+      expect      : "[Aa]uthorized users only"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: Exponential Backoff is set"
+      info        : "A malicious user may attempt to gain CLI access by means of a dictionary attack using a script to automatically attempt to login as an 'admin' user and using a dictionary list to test all possible passwords. Using the 'exponential-backoff' feature in the config>system>login-control context SR OS increases the delay between login attempts exponentially to mitigate attacks.
+
+    When trying to access the router, the user is only allowed three attempts per session, by default, to login to the system before the connectivity session is terminated. It is during that single connectivity session that the exponential backoff is utilized. Each time an invalid password is entered for a login account name, a delay is inserted before the next display of the login/password prompt. The first delay is 1 second, and each subsequent delay is 2 times the last delay (for example, 1 second, 2 seconds, 4 seconds). Once the connectivity session is terminated after the third failed login attempt, the exponential backoff timer is reset to 1 second."
+      solution    : "Run the following command on the device to enable exponential backoff: configure system login-control exponential-backoff"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "^\s*exponential-backoff$"
+    </custom_item>
+
+    <custom_item>
+      description : "Login: Accounts are locked after 3 failed password attempts"
+      info        : "When a user exceeds the maximum number of attempts allowed (the default is 3 attempts) during a certain period of time (the default is 5 minutes) the account used during those attempts will be locked out for a pre-configured lock-out period (the default is 10 minutes). This can be used to mitigated brute force dictionary attacks.
+
+    A security event log will be generated as soon as a user account has exceeded the number of allowed attempts and the show>system>security>user command can be used to display the total number of failed attempts per user.
+
+    The account will be automatically re-enabled as soon as the lock-out period has expired."
+      solution    : "Run the following command on the device to implement account lockout: configure system security password attempts <num> time <minutes> lockout <minutes>"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system security password-options"
+      regex       : "Number of invalid attempts permitted per login\s*:.*$"
+      expect      : "\s+3$"
+    </custom_item>
+
+    <custom_item>
+      description : "Password Complexity: Require at least one number"
+      info        : "Passwords should contain a mix of characters to make them harder to guess. Combinations of upper and lower case, numbers and special characters (such as #,$) should be used. Users should be encouraged to use Pass Phrases as they allow a user to remember a longer password."
+      solution    : "Run the following command on the device to require at least one number as part of password complexity requirements: configure system security password complexity numeric"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "complexity .*numeric.*$"
+    </custom_item>
+
+    <custom_item>
+      description : "Password Complexity: Require at least one uppercase and one lowercase letter"
+      info        : "Passwords should contain a mix of characters to make them harder to guess. Combinations of upper and lower case, numbers and special characters (such as #,$) should be used. Users should be encouraged to use Pass Phrases as they allow a user to remember a longer password."
+      solution    : "Run the following command on the device to require at least one uppercase and one lowercase letter as part of password complexity requirements: configure system security password complexity mixed-case"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "complexity .*mixed-case.*$"
+    </custom_item>
+
+    <custom_item>
+      description : "Password Complexity: Require at least one special character"
+      info        : "Passwords should contain a mix of characters to make them harder to guess. Combinations of upper and lower case, numbers and special characters (such as #,$) should be used. Users should be encouraged to use Pass Phrases as they allow a user to remember a longer password."
+      solution    : "Run the following command on the device to require at leas one special character as part of password complexity requirements: configure system security password complexity special-character"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "complexity .*special-character.*"
+    </custom_item>
+
+    <custom_item>
+      description : "Password Complexity: Require a minimum length of 8 characters"
+      info        : "Passwords should contain a mix of characters to make them harder to guess. Combinations of upper and lower case, numbers and special characters (such as #,$) should be used. Users should be encouraged to use Pass Phrases as they allow a user to remember a longer password."
+      solution    : "Run the following command on the device to require a minumum length as part of password complexity requirements: configure system security password minimum-length <num>"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "minimum-length (8|9|[\d]{2,})"
+    </custom_item>
+
+    <custom_item>
+      description : "Require Password Encryption"
+      info        : "Passwords should not be displayed in plain text format in configuration files or when viewed via the CLI. This prevents casual observers and unauthorized individuals gaining knowledge of other users passwords. The 'hash-control' command is used to enforce encryption of passwords in the configuration. Version 2 must be specified."
+      solution    : "Run the following command on the device to enable password encryption: configure system security hash-control read-version all write-version 2"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      regex       : "^.*hash-control.*$"
+      expect      : "hash-control read-version all write-version 2"
+    </custom_item>
+
+    <custom_item>
+      description : "Disable unused network ports"
+      info        : "It is accepted best practice to disable network ports that are not in use.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-53|SC-7"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show port detail"
+      regex       : ""
+      expect      : "Manual review required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "Authentication: enable remote authentication"
+      info        : "RADIUS or TACACS+ password management should be leveraged to ensure that a rogue node does not attempt a brute force logon attempt. This is a situation where a large number of logon attempts are made to a known user account."
+      solution    : "Run the following command on the device to configure a remote RADIUS server: configure system security <radius|tacplus> server <index-number> address <ip-address> secret <key>"
+      reference   : "800-53|IA-2"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system security authentication"
+      regex       : "^(radius|tacplus)"
+      expect      : "^(radius|tacplus) admin status *: *up$"
+    </custom_item>
+
+    <custom_item>
+      description : "Authentication: use a remote authentication server"
+      info        : "RADIUS or TACACS+ password management should be leveraged to ensure that a rogue node does not attempt a brute force logon attempt. This is a situation where a large number of logon attempts are made to a known user account."
+      solution    : "Run the following command on the device to configure a remote RADIUS server: configure system security <radius|tacplus> server <index-number> address <ip-address> secret <key>"
+      reference   : "800-53|IA-2"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      regex       : "server 1 address.*hash2"
+# Note: Variable @PRIMARY_AUTH_SERVER@ replaced with "192.168.5.1" in field "expect".
+      expect      : "server 1 address 192.168.5.1 secret \".*\" hash2$"
+    </custom_item>
+
+    <custom_item>
+      description : "Authentication: a backup remote authentication server is available"
+      info        : "RADIUS or TACACS+ password management should be leveraged to ensure that a rogue node does not attempt a brute force logon attempt. This is a situation where a large number of logon attempts are made to a known user account."
+      solution    : "Run the following command on the device to configure a remote RADIUS server: configure system security <radius|tacplus> server <index-number> address <ip-address> secret <key>"
+      reference   : "800-53|IA-2"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      regex       : "server [^1] address.*hash2$"
+# Note: Variable @SECONDARY_AUTH_SERVER@ replaced with "192.168.5.2" in field "expect".
+      expect      : "server [\d] address 192.168.5.2 secret \".*\" hash2$"
+    </custom_item>
+
+    <custom_item>
+      description : "Authentication: local authentication is available as a last resort"
+      info        : "A local user account should be available in case RADIUS or TACACS+ servers are not reachable or available for authentication."
+      solution    : "Configure at least one user account locally on the TiMOS/SR-OS device."
+      reference   : "800-53|AC-6"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system security authentication"
+      regex       : "sequence :.*"
+      expect      : ".*local"
+    </custom_item>
+
+    <custom_item>
+      description : "Time: System has a primary NTP server set"
+      info        : "Using NTP ensures network events are synchronized across devices for troubleshooting and malicious activity analyses. You should consider building a NTP environment with dedicated NTP server with a feed sourced from a Stratum-1 capable clock. Under no circumstance should an TiMOS/SR-OS device be used as the primary clock. It is recommended that all network devices be set to the same time to determine event timelines. This will save value time when compared to correlating device logs across your infrastructure."
+      solution    : "Run the following command on the device to set a primary NTP server: configure system time ntp server <address> prefer"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system ntp servers"
+      regex       : "chosen.*"
+# Note: Variable @PRIMARY_TIME_SERVER@ replaced with "192.168.1.20" in field "expect".
+      expect      : "192.168.1.20"
+    </custom_item>
+
+    <custom_item>
+      description : "Time: System has a secondary NTP server set"
+      info        : "Using NTP ensures network events are synchronized across devices for troubleshooting and malicious activity analyses. You should consider building a NTP environment with dedicated NTP server with a feed sourced from a Stratum-1 capable clock. Under no circumstance should an TiMOS/SR-OS device be used as the primary clock. It is recommended that all network devices be set to the same time to determine event timelines. This will save value time when compared to correlating device logs across your infrastructure."
+      solution    : "Run the following command on the device to set a secondary NTP server: configure system time ntp server <address>"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system ntp servers"
+      regex       : "candidate.*"
+# Note: Variable @SECONDARY_TIME_SERVER@ replaced with "192.168.1.21" in field "expect".
+      expect      : "192.168.1.21"
+    </custom_item>
+
+    <custom_item>
+      description : "Time: Set system clock to UTC"
+      info        : "The system clock on the device should be set to use UTC as its timezone."
+      solution    : "Run the following command on the device to set the timezone to UTC: configure system time zone UTC"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      expect      : "zone UTC"
+    </custom_item>
+
+    <custom_item>
+      description : "Time: Disable Daylight Savings Time adjustment"
+      info        : "The system clock on the device should not be adjusted for Daylight Savings Time."
+      solution    : "Run the following command on the device to disable DST: configure system time no dst-zone"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      not_expect  : "dst-zone"
+    </custom_item>
+
+    <custom_item>
+      description : "Time: NTP servers use an authentication key"
+      info        : "Using NTP ensures network events are synchronized across devices for troubleshooting and malicious activity analyses. You should consider building a NTP environment with dedicated NTP server with a feed sourced from a Stratum-1 capable clock. Under no circumstance should an TiMOS/SR-OS device be used as the primary clock. It is recommended that all network devices be set to the same time to determine event timelines. This will save value time when compared to correlating device logs across your infrastructure.
+
+    TiMOS/SR-OS supports NTP messages with DES and MD5 authentication signatures to ensure that updates are not received from unauthorized source."
+      solution    : "Run the following command on the device to configure an authentication key for NTP servers: configure system time ntp authentication-key 1 key <hash> hash2 type <des|message-digest>"
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+      cmd         : "show system ntp"
+      regex       : "Auth\s*Check\s*:.*$"
+      expect      : "Yes"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "SNMP is enabled"
+          expect      : "^\s*snmp$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "SNMP: configure community strings"
+          info        : "SNMPv1 and SNMPv2c community strings are used to define the relationship between an SNMP manager and agent. The community string acts like a password to permit access to the agent. The access granted with a community string is restricted to the scope of the configured group."
+          solution    : "Run the following command on the device to configure SNMPv3 community strings: configure system security snmp community <community-string> <access-permissions> both"
+          reference   : "800-53|CM-6b"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "community \".*\" hash2 r version both"
+        </custom_item>
+
+        <custom_item>
+          description : "SNMP: configure access groups to use privacy"
+          info        : "The exclusive use of SNMPv3 will ensure that only valid nodes can communicate with TiMOS/SR-OS devices. Used in conjunction with user access controls covered previously will eliminate possible configuration changes from unauthorized sources. Further, it ensures the communication between a SAM and a TiMOS/SR-OS device will be secured from snooping. This feature will contribute to the integrity of the operating environment."
+          solution    : "Run the following command on the device to configure SNMPv3 for access groups: configure system security snmp access group <name> security-level privacy"
+          reference   : "800-53|CM-6b"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          not_expect  : "access group .* security-level (no-auth-no-privacy|auth-no-privacy)"
+        </custom_item>
+
+        <custom_item>
+          description : "SNMP: Use SNMPv3 only"
+          info        : "The exclusive use of SNMPv3 will ensure that only valid nodes can communicate with TiMOS/SR-OS devices. Used in conjunction with user access controls covered previously will eliminate possible configuration changes from unauthorized sources. Further, it ensures the communication between a SAM and a TiMOS/SR-OS device will be secured from snooping. This feature will contribute to the integrity of the operating environment."
+          solution    : "Run the following command on the device to configure SNMPv3 for access groups: configure system security snmp access group <name> security-model usm"
+          reference   : "800-53|CM-6b"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+          expect      : "access group .* security-model usm"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "SNMP: configure community strings"
+          info        : "SNMPv1 and SNMPv2c community strings are used to define the relationship between an SNMP manager and agent. The community string acts like a password to permit access to the agent. The access granted with a community string is restricted to the scope of the configured group.
+
+      NOTE: This check fails because SNMP is not configured."
+          solution    : "Run the following command on the device to configure SNMPv3 community strings: configure system security snmp community <community-string> <access-permissions> both"
+          reference   : "800-53|CM-6b"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "SNMP: configure access groups to use privacy"
+          info        : "The exclusive use of SNMPv3 will ensure that only valid nodes can communicate with TiMOS/SR-OS devices. Used in conjunction with user access controls covered previously will eliminate possible configuration changes from unauthorized sources. Further, it ensures the communication between a SAM and a TiMOS/SR-OS device will be secured from snooping. This feature will contribute to the integrity of the operating environment.
+
+      NOTE: This check fails because SNMP is not configured."
+          solution    : "Run the following command on the device to configure SNMPv3 for access groups: configure system security snmp access group <name> security-level privacy"
+          reference   : "800-53|CM-6b"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+
+        <report type:"FAILED">
+          description : "SNMP: Use SNMPv3 only"
+          info        : "The exclusive use of SNMPv3 will ensure that only valid nodes can communicate with TiMOS/SR-OS devices. Used in conjunction with user access controls covered previously will eliminate possible configuration changes from unauthorized sources. Further, it ensures the communication between a SAM and a TiMOS/SR-OS device will be secured from snooping. This feature will contribute to the integrity of the operating environment.
+
+      NOTE: This check fails because SNMP is not configured."
+          solution    : "Run the following command on the device to configure SNMPv3 for access groups: configure system security snmp access group <name> security-model usm"
+          reference   : "800-53|CM-6b"
+          see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      description : "Logging: Use an external syslog host"
+      info        : "Logging must be enabled to provide information for investigations of operational and security related events. This information should be logged to a remote syslog server to prevent tampering of the log files by an attacker (in an attempt to remove evidence of malicious activity) in the event that the router is compromised.
+
+    Remote syslog server is defined via the 'Syslog' command and that logging is directed to this syslog server via the 'log-id' command.
+
+    Log for main, security and change events to local file and syslog server. Detailed logging of all events should be enabled to provide as much information to operational and security groups as possible. Incidents are more easily investigated when detailed information is available. 'Info' is considered the preferable level of logging in most cases."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+# Note: Variable @RSYSLOG_TARGET_INDEX@ replaced with "1" in field "cmd".
+      cmd         : "show log syslog 1"
+      regex       : "IP\s*Address\s*:.*$"
+# Note: Variable @RSYSLOG_SERVER@ replaced with "192.168.5.1" in field "expect".
+      expect      : "192.168.5.1"
+    </custom_item>
+
+    <custom_item>
+      description : "Logging: capture level is set to at least info"
+      info        : "Logging must be enabled to provide information for investigations of operational and security related events. This information should be logged to a remote syslog server to prevent tampering of the log files by an attacker (in an attempt to remove evidence of malicious activity) in the event that the router is compromised.
+
+    Remote syslog server is defined via the 'Syslog' command and that logging is directed to this syslog server via the 'log-id' command.
+
+    Log for main, security and change events to local file and syslog server. Detailed logging of all events should be enabled to provide as much information to operational and security groups as possible. Incidents are more easily investigated when detailed information is available. 'Info' is considered the preferable level of logging in most cases."
+      solution    : "Consult the TiMOS/SR-OS Security Best Practices Guide for more information on this topic. The TiMOS/SR-OS Security Best Practices Guide is available from the Nokia/Alcatel-Lucent Customer Support Portal at https://support.alcatel-lucent.com/portal/web/support."
+      reference   : "800-53|CM-6b"
+      see_also    : "https://infoproducts.alcatel-lucent.com/aces/cgi-bin/dbaccessfilename.cgi/9305050101_V1_SR-OS Security Best Practices v2.0.pdf"
+# Note: Variable @RSYSLOG_TARGET_INDEX@ replaced with "1" in field "cmd".
+      cmd         : "show log syslog 1"
+      regex       : "Severity\s*Level\s*:.*$"
+      expect      : "info"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "TiMOS/SR-OS Installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

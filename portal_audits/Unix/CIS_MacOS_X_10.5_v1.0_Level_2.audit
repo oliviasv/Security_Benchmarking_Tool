@@ -1,0 +1,941 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.22 $
+# $Date: 2020/07/14 $
+#
+# description	: This  document consists of a list of best practice checks
+# 	  for a host running the Mac OS X 10.5 operating system	based on:
+# 	  https://workbench.cisecurity.org/files/268
+#
+# NOTE          : The audits contained in this document audit for Level 2 items of
+#                 the CIS Mac OS X 10.5 Level 1 & 2 Benchmark version 1.0.
+#
+# NOTE		: The following audit requires editing by adding the URL of your
+# 	  internal Apple Update Server.
+# 	  2.4.5.2 Use an Internal Software Update Server
+#
+# NOTE		: The following audits for benchmark item 2.4.14.9 Secure Remote Login
+# 	  have been commented out and may be enabled if you desire.
+#
+#<ui_metadata>
+#<display_name>CIS Apple OSX 10.5 Leopard L2 v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Apple OSX 10.5 Leopard L2</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/268</link>
+#</spec>
+#<labels>unix,cis,macosx,macosx_10,macosx_10.5,agent</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>APPLE_UPDATE_URL</name>
+#    <default>http://update\\.example\\.com</default>
+#    <description>Apple Software Update URL</description>
+#    <info>This is the specific Apple Software Update URL which should be in use by your organization</info>
+#  </variable>
+#  <variable>
+#    <name>BANNER_TEXT</name>
+#    <default>All activities performed on this system will be monitored.</default>
+#    <description>Banner Text</description>
+#    <info>This is the text for the warning a user receives when logging onto the system.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Mac OSX 10.5 Leopard is installed"
+      cmd         : "/usr/bin/sw_vers | /usr/bin/grep 'ProductVersion'"
+      expect      : "^ProductVersion[\\s]*:[\\s]*10\.5"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "Apple OSX 10.5 Leopard Level II, version 1.0.0"
+    </report>
+
+#
+## 2.1 Installation Action Items
+##
+#
+
+    <report type:"PASSED">
+      description : "2.1.1 Securely erase the Mac OS X partition before installation"
+      info        : "Ensure the system's hard drive is completely erased before installing the operating system."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.1.2 Do not connect to the Internet when setting up a Mac"
+      info        : "Ensure the system is not connected to the Internet when setting up the operating system."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.1.9 Update system software using verified packages"
+      info        : "Ensure only verified software packages are downloaded from Apple or other locations."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.2 Hardware and Core Mac OS X Action Items
+##
+#
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.2.1 Use an Open Firmware or EFI password"
+      info          : "Ensure a password is set to prevent access to the system's BIOS as changes should only be made by experienced users, such as an administrator."
+      reference     : "800-53|SI-7(9),CN-L3|8.1.2.3,CN-L3|8.1.4.6,CSF|PR.DS-6,LEVEL|2S"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/sbin/nvram -p | /usr/bin/grep security-mode"
+      expect        : "^security-mode\\s*command"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.2.2 Create an Access Warning for the Login Window (com.apple.loginwindow)"
+      info          : "Ensure a warning banner is displayed before a user logs into the system from an interactive session."
+      reference     : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,LEVEL|2S,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /Library/Preferences/com.apple.loginwindow LoginwindowText"
+      expect        : "[Aa]uthorized us(e|es) only"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.2.3 Create an Access Warning for the Command Line (/etc/motd for SSH)"
+      info        : "Ensure a warning banner is displayed before a user logs into the system from the command line, such as a SSH connection."
+      info        : "This check will need to be configured for your organization's warning banner location, e.g. /etc/motd."
+      reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,LEVEL|2S,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/sshd_config"
+      regex       : "^[^#]*Banner"
+      expect      : "^[^#]*Banner\\s*/etc/motd"
+    </custom_item>
+
+    <custom_item>
+      type        : BANNER_CHECK
+      description : "2.2.3 Create an Access Warning for the Command Line (FTP - 'Show welcome message')"
+      info        : "Ensure a warning banner is displayed before a user logs into the system from the command line, such as a FTP connection."
+      reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,LEVEL|2S,NESA|M1.3.6,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/Library/FTPServer/Messages/welcome.txt"
+# Note: Variable @BANNER_TEXT@ replaced with "All activities performed on this system will be monitored." in field "content".
+      content     : "All activities performed on this system will be monitored."
+    </custom_item>
+
+    <custom_item>
+      type        : BANNER_CHECK
+      description : "2.2.3 Create an Access Warning for the Command Line (FTP - 'Show banner message')"
+      info        : "Ensure a warning banner is displayed before a user logs into the system from the command line, such as a FTP connection."
+      reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,LEVEL|2S,NESA|M1.3.6,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/Library/FTPServer/Messages/banner.txt"
+# Note: Variable @BANNER_TEXT@ replaced with "All activities performed on this system will be monitored." in field "content".
+      content     : "All activities performed on this system will be monitored."
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.2.4 Disable the Bluetooth Extension Driver (OBluetoothFamily.kext)"
+      info        : "Ensure the Bluetooth kernel extension, OBluetoothFamily.kext, to include all sub-files and folders are removed from the operating system."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/Extensions/IOBluetoothFamily.kext"
+      file_type   : "d"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.2.4 Disable the Bluetooth Extension Driver (IOBluetoothHIDDriver.kext)"
+      info        : "Ensure the Bluetooth extension, IOBluetoothHIDDriver.kext, to include all sub-files and folders are removed from the operating system."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/Extensions/IOBluetoothHIDDriver.kext"
+      file_type   : "d"
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.2.4 Disable Bluetooth (launchctl check)"
+      info          : "Ensure Bluetooth is disabled from the Launch Daemons."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/bin/launchctl list | /usr/bin/grep 'com.apple.Blued'"
+      expect        : ""
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.2.5 Disable the iSight camera (Apple_iSight.kext)"
+      info        : "Ensure the iSight camera kernel extension, Apple_iSight.kext, to include all sub-files and folders are removed from the operating system."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/Extensions/Apple_iSight.kext"
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.2.5 Disable the iSight camera (system_profiler check for iSight)"
+      info          : "Ensure iSight is disabled or does not exist by checking the system_profile information."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/sbin/system_profiler SPUSBDataType | /usr/bin/grep 'iSight'"
+      expect        : ""
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.2.6 Reduce the Sudo Timeout Period"
+      info        : "Ensure a timeout is set for how long a user can maintain elevated privileges after completing a sudo command. During this time a user can perform multiple commands without re-authenticating."
+      reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/sudoers"
+      regex       : "^Defaults\\s*timestamp_timeout\\s*=\\s*[0-9]+"
+      expect      : "Defaults\\s*timestamp_timeout\\s*=\\s*0"
+    </custom_item>
+
+    <report type:"PASSED">
+      description : "2.2.7 Remove unneeded QuickTime components"
+      info        : "Ensure only required and approved QuickTime components are installed on the system."
+      info        : "Note: Nessus has not performed this check, since the check is not scorable. Please manually review the CIS reference, and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.2.8 Disable Core Dumps"
+      info        : "Ensure core dumps are disabled as they may contain sensitive information, such as user accounts, passwords, etc."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      cmd         : "/bin/launchctl limit core"
+      regex       : "core\\s*.*"
+      expect      : "core\\s*0\\s*0"
+    </custom_item>
+
+#
+## 2.3 Account Configuration Action Items
+##
+#
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "2.3.4 Restrict Sudo Users to being able to Access Only Required Commands"
+      info        : "Ensure sudo users only have access to the commands required to perform their given roles."
+      reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/sudoers"
+      regex       : "^[^#].*\\s*ALL=\\(ALL\\)\\s*ALL"
+      expect      : "^[^#].*\\s*ALL=\\(ALL\\)\\s*ALL"
+    </custom_item>
+
+    <report type:"PASSED">
+      description : "2.3.5 Securely configure LDAPv3 access"
+      info        : "Ensure only authenticated and encrypted LDAP connections are utilized."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.3.6 Securely configure Active Directory access"
+      info        : "Ensure Active Directory is configured correcly on the Mac client."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.3.8 Set a strong password policy"
+      info        : "Ensure a strong password policy is set up to enfore the use of strong passwords"
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.3.9 Secure the login keychain"
+      info        : "Ensure the keychain database is configured to not unlock when a user logs into the system."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.3.10 Secure individual keychain items"
+      info        : "Ensure all keychain databases require a password to unlock them."
+      info        : "Note: Nessus has not performed this check, since the check is not scorable. Please manually review the CIS reference, and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.3.11 Create specialized keychains for different purposes"
+      info        : "Ensure keychain entries are stored in the appropriate keychain."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.3.12 Use a portable drive to store keychains"
+      info        : "Ensure keychain databases saved on a portable drive protected and backed up."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.4 Securing System Software Action Items
+##
+#
+#
+## 2.4.1 .Mac Preferences Action Items
+#
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.1.2 Disable all Sync options"
+      info          : "Ensure the ability to sync files is disabled as it may lead to a vulnerability exposure."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults -currentHost read com.apple.DotMacSync ShouldSyncWithServer"
+      expect        : "0"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.1.3 Disable iDisk Syncing"
+      info          : "Ensure iDisk syncing is disabled. The iDisk storage space is similar to a network drive and may contain sensitive data."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/find /Users -maxdepth 1 \\! -name '.localized' \\! -name 'Shared' \\! -name 'Users' -exec bash -c '/usr/bin/defaults read {}/Library/Preferences/com.apple.idisk | /usr/bin/grep _MirrorEnabled;' \\; | /usr/bin/grep -v '=\\s*0'"
+      expect        : "(|.*does not exist)"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <report type:"PASSED">
+      description : "2.4.1.5 Do not register computers for synchronization"
+      info        : "Ensure the system is configured not to synchronize with .Mac."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.4.1.7 Disable the .Mac preference pane from System Preferences"
+      info        : "Ensure the .Mac preference pane is removed from the system's preferences menu."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.4.2 Accounts Preferences Action Items
+#
+
+    <report type:"PASSED">
+      description : "2.4.2.6 Disable 'Enable fast user switching'"
+      info        : "Ensure fast user switching is disabled on the system as it may cause a data loss risk."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.4.4 CDs & DVDs Preferences Action Items
+#
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.4.1 Disable Automatic Actions for Blank CDs for each User Account"
+      info          : "Ensure automatic actions for blank CDs is disabled as it may lead to malicious actions occurring when a CD is inserted into the system."
+      reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /Library/Preferences/com.apple.digihub com.apple.digihub.blank.cd.appeared"
+      expect        : "^.*action\\s*=\\s*1"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.4.2 Disable Automatic Actions for Blank DVDs for each User Account"
+      info          : "Ensure automatic actions for blank DVDs is disabled as it may lead to malicious actions occurring when a DVD is inserted into the system."
+      reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /Library/Preferences/com.apple.digihub com.apple.digihub.blank.dvd.appeared"
+      expect        : "^.*action\\s*=\\s*1"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.4.3 Disable Automatic Actions for Music CDs for each User Account"
+      info          : "Ensure automatic actions for music CDs is disabled as it may lead to malicious actions occurring when a CD is inserted into the system."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /Library/Preferences/com.apple.digihub com.apple.digihub.cd.music.appeared"
+      expect        : "^.*action\\s*=\\s*1"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.4.4 Disable automatic actions for picture CDs for each User Account"
+      info          : "Ensure automatic actions for picture CDs is disabled as it may lead to malicious actions occurring when a CD is inserted into the system."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /Library/Preferences/com.apple.digihub com.apple.digihub.cd.picture.appeared"
+      expect        : "^.*action\\s*=\\s*1"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.4.5 Disable automatic actions for video DVDs for each User Account"
+      info          : "Ensure automatic actions for video DVDs is disabled as it may lead to malicious actions occurring when a DVD is inserted into the system."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /Library/Preferences/com.apple.digihub com.apple.digihub.dvd.video.appeared"
+      expect        : "^.*action\\s*=\\s*1"
+      dont_echo_cmd : YES
+    </custom_item>
+
+#
+## 2.4.5 Date & Time Preferences Action Items
+#
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.5.2 Use an Internal Software Update Server"
+      info          : "Ensure you are utilizing an internal Software Update Server if you are running Mac OS X Server with Software Update Service running. By default the system uses Apple's Software Update servers."
+      info          : "NOTE : Update APPLE_UPDATE_URL to the appropriate value for the local environment."
+      reference     : "800-171|3.14.1,800-53|SI-2(5),CSF|ID.RA-1,CSF|PR.IP-12,LEVEL|2S,NIAv2|NS26b,SWIFT-CSCv1|2.2"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /Library/Preferences/com.apple.SoftwareUpdate CatalogURL"
+# Note: Variable @APPLE_UPDATE_URL@ replaced with "http://update\\\\.example\\\\.com" in field "expect".
+      expect        : "http://update\\\\.example\\\\.com"
+      dont_echo_cmd : YES
+    </custom_item>
+
+#
+## 2.4.7 Energy Saver Preferences Action Items
+#
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.7.1 Disable Sleeping the Computer when Connected to Power"
+      info          : "Ensure the system is not enabled to go to sleep when connected to power as some software requires the system to be awake."
+      reference     : "800-171|3.1.10,800-53|AC-11,CN-L3|8.1.4.1(b),ISO/IEC-27001|A.11.2.8,ITSG-33|AC-11,LEVEL|2S,NIAv2|AM23c,NIAv2|AM23d"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/pmset -g"
+      expect        : "^\\s*sleep\\s*0$"
+      dont_echo_cmd : YES
+    </custom_item>
+
+#
+## 2.4.10 Network Preferences Action Items
+#
+
+    <report type:"PASSED">
+      description : "2.4.10.1 Create network specific locations"
+      info        : "Ensure network locations are set up as they are very useful in managing network security."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.4.10.5 Disable IPv6"
+      info        : "Ensure IPv6 is disabled unless its use is necessary for the system"
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.4.12 QuickTime Preferences Action Items
+#
+
+    <report type:"PASSED">
+      description : "2.4.12.1 Disable 'Save movies in disk cache'"
+      info        : "Ensure the ability to save movies is disabled."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.4.13 Security Preferences Action Items
+#
+
+    <report type:"PASSED">
+      description : "2.4.13.8 Enable FileVault for every account"
+      info        : "Ensure FileVault is enabled for each account on the system as this provides protection to the data at rest."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.4.14 Sharing Preferences Action Items
+#
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.4.14.1 Change the Computer Name"
+      info          : "Ensure the system's host name has been assigned to correspond with your organization."
+      reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/sbin/systemsetup -getcomputername"
+      expect        : "^Computer Name:\\s*[A-Za-z0-9]+$"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.4.14.4 Secure SMB (Do not allow any anonymous connections)"
+      info        : "Ensure SMB is securely configured via /etc/smb.conf if the system requires its use."
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|2S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/smb.conf"
+      regex       : "^[^#]\\s+restrict\\sanonymous\\s+=\\s+.*$"
+      expect      : "^[^#]\\s+restrict\\sanonymous\\s+=\\s+2"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.4.14.4 Secure SMB (Do not allow guest)"
+      info        : "Ensure SMB is securely configured via /etc/smb.conf if the system requires its use."
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|2S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/smb.conf"
+      regex       : "^[^#]\\s+guest\\s+OK\\s+=\\s+.*$"
+      expect      : "^[^#]\\s+guest\\s+OK\\s+=\\s+[Nn][Oo]"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.4.14.4 Secure SMB (Only allow NTLMv2 and LMv2 response)"
+      info        : "Ensure SMB is securely configured via /etc/smb.conf if the system requires its use."
+      reference   : "800-53|IA-5(13),CSF|PR.AC-1,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/smb.conf"
+      regex       : "^[^#]\\s+client\\sntlmv2\\sauth\\s+=\\s+.*$"
+      expect      : "^[^#]\\s+client\\sntlmv2\\sauth\\s+=\\s+[Yy][Ee][Ss]"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.4.14.7 Secure Web Share (ServerTokens Prod)"
+      info        : "Ensure the Apache web service is securely configured if the system requires its use."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/apache2/httpd.conf"
+      regex       : ".*ServerTokens\\s+.*$"
+      expect      : ".*ServerTokens\\s+[Pp][Rr][Oo][Dd]"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.4.14.7 Secure Web Share (ServerSignature Off)"
+      info        : "Ensure the Apache web service is securely configured if the system requires its use."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/apache2/httpd.conf"
+      regex       : ".*ServerSignature\\s+.*$"
+      expect      : ".*ServerSignature\\s+[Oo][Ff][Ff]"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.4.14.7 Secure Web Share (UserDir Disabled)"
+      info        : "Ensure the Apache web service is securely configured if the system requires its use."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/apache2/httpd.conf"
+      regex       : ".*UserDir\\s+.*$"
+      expect      : ".*UserDir\\s+[Dd][Ii][Ss][Aa][Bb][Ll][Ee][Dd]"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.4.14.7 Secure Web Share (TraceEnable Off)"
+      info        : "Ensure the Apache web service is securely configured if the system requires its use."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/apache2/httpd.conf"
+      regex       : ".*TraceEnable\\s+.*$"
+      expect      : ".*TraceEnable\\s+[Oo][Ff][Ff]"
+    </custom_item>
+
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (PermitRootLogin)"
+# info		: "Ensure the SSH daemon is configured to prevent the 'root' account from accessing the system via a remote login session."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^PermitRootLogin\\s*.*"
+# expect		: "PermitRootLogin\\s*[Nn][Oo]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (PasswordAuthentication)"
+# info		: "Ensure the SSH Daemon is configured to prevent password authentication, which is susceptible to brute force attacks."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^PasswordAuthentication\\s*.*"
+# expect		: "PasswordAuthentication\\s*[Nn][Oo]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (PermitEmptyPasswords)"
+# info		: "Ensure the SSH Daemon is configured to prevent the use of empty passwords, which may lead to unauthorized access."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^PermitEmptyPasswords\\s*.*"
+# expect		: "PermitEmptyPasswords\\s*[Nn][Oo]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (PubKeyAuthentication)"
+# info		: "Ensure the SSH Daemon is configured to utilize public/private key authentication."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^PubKeyAuthentication\\s*.*"
+# expect		: "PubKeyAuthentication\\s*[Yy][Ee][Ss]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (RSAAuthentication)"
+# info		: "Ensure the SSH Daemon is configured to disable RSA authentication as it is not needed for key-based authentication."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^RSAAuthentication\\s*.*"
+# expect		: "RSAAuthentication\\s*[Nn][Oo]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (RhostsRSAAuthenctication)"
+# info		: "Ensure the SSH Daemon is configured to disable Rhost authentication as it is not needed for key-based authentication."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^RhostsRSAAuthentication\\s*.*"
+# expect		: "RhostsRSAAuthentication\\s*[Nn][Oo]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (ChallengeResponseAuthentication)"
+# info		: "Ensure the SSH Daemon is configured to disable ChallengeReponseAuthentication as it is not needed for key-based authentication."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^ChallengeResponseAuthentication\\s*.*"
+# expect		: "ChallengeResponseAuthentication\\s*[Nn][Oo]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (UsePAM)"
+# info		: "Ensure the SSH Daemon is configured to disable PAM authentication as it is not needed for key-based authentication."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^UsePAM\\s*.*"
+# expect		: "UsePAM\\s*[Nn][Oo]"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (LoginGraceTime)"
+# info		: "Ensure the SSH Daemon is configured with a login grace time to reduce the time allowed to authenticate to the system."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^LoginGraceTime\\s*[0-9]+"
+# expect		: "LoginGraceTime\\s*30"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (KeyRegenerationInterval)"
+# info		: "Ensure the SSH Daemon is configured with a key regeneration interval for when the server key is changed."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^KeyRegenerationInterval\\s*[0-9]+"
+# expect		: "KeyRegenerationInterval\\s*3600"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (ServerKeyBits)"
+# info		: "Ensure the SSH Daemon is configured to require the server key to be 1024 bits."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^ServerKeyBits\\s*[0-9]+"
+# expect		: ".*ServerKeyBits\\s*768"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+#<custom_item>
+# type		: FILE_CONTENT_CHECK
+# description	: "2.4.14.9 Secure Remote Login (Protocol)"
+# info		: "Ensure the SSH Daemon is configured to only allow SSH Version 2 Protocol and prevent SSH Version 1 Protocol's use."
+# reference	: "LEVEL|2S"
+# file		: "/etc/sshd_config"
+# regex		: "^Protocol\\s*.*"
+# expect		: "Protocol\\s*2"
+# see_also	: "https://workbench.cisecurity.org/files/268"
+#</custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (com.apple.AppleFileServer.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/com.apple.AppleFileServer.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (ftp.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/ftp.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (smbd.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/smbd.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (org.apache.httpd.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/org.apache.httpd.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (eppc.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/eppc.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (com.apple.mDNSResponder.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/com.apple.mDNSResponder.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (com.apple.mDNSResponderHelper.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/com.apple.mDNSResponderHelper.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (com.apple.xgridagentd.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/com.apple.xgridagentd.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (com.apple.xgridcontrollerd.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/com.apple.xgridcontrollerd.plist"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "2.4.14.14 Completely Disable Sharing Services (com.apple.InternetSharing.plist)"
+      info        : "Ensure all sharing services are disabled unless required as they may lead to sensitive data loss."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/System/Library/LaunchDaemons/com.apple.InternetSharing.plist"
+    </custom_item>
+
+#
+## 2.4.15 Software Update Preferences Action Items
+#
+
+    <report type:"PASSED">
+      description : "2.4.15.3 Transfer installer packages from a test-bed computer"
+      info        : "Ensure installation packages are tested before applying them to the production system."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.4.16 Sound Preferences Action items
+#
+
+    <report type:"PASSED">
+      description : "2.4.16.1 Change sound input device to Line In"
+      info        : "Ensure the internal microphone is configured to Line In as the input."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.4.16.2 Minimize input volume for all inputs"
+      info        : "Ensure the input volume for the internal microphone is set to the lowest setting possible."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.5 Data Maintenance and Encryption Action Items
+#
+
+    <item>
+      description : "2.5.2 Secure Home Folders"
+      info        : "Ensure each user account has the correct permissions on their home directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      name        : "accounts_bad_home_permissions"
+      mask        : "077"
+    </item>
+
+    <report type:"PASSED">
+      description : "2.5.3 Encrypt sensitive files"
+      info        : "Ensure sensitive files are encrypted whenever possible."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.5.5 Securely erase partitions"
+      info        : "Ensure all partitions are securely erased using a 7 pass wipe."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+    <report type:"PASSED">
+      description : "2.5.6 Securely erase free space"
+      info        : "Ensure available free space on the hard drive is securely erased utilizing the diskutil command line tool."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.6 Network Services Configuration Action Items
+#
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "2.6.1 Secure Bonjour"
+      info          : "Ensure Bonjour is disabled to prevent unauthorized access to files, print, chat, music sharing and other services."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/268"
+      cmd           : "/usr/bin/defaults read /System/Library/LaunchDaemons/com.apple.mDNSResponder"
+      expect        : "(Disabled\\s*=\\s*1;|.*does not exist)"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <report type:"PASSED">
+      description : "2.6.2 Use an outbound network detection system"
+      info        : "Ensure an outbound network firewall is utilized to block unwanted outbound traffic."
+      info        : "Note: Nessus has not performed this check since the check is not scorable. Please manually review the CIS reference and make sure the system is compliant."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+
+#
+## 2.7 System Integrity Validation Action Items
+#
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.7.1.1 Increase the Retention Time for system.log and secure.log (system.log check)"
+      info        : "Ensure the log retention time for the system.log is set to at least 30 days."
+      reference   : "800-53|AU-11,CIP|007-6-R4,CSF|PR.PT-1,ITSG-33|AU-11,LEVEL|2S,NESA|M5.2.3,NESA|T3.6.2,NIAv2|SM7,PCI-DSSv3.1|10.7,PCI-DSSv3.2|10.7"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/newsyslog.conf"
+      regex       : "/var/log/system.log\\s*.*"
+      expect      : "/var/log/system.log\\s*640\\s*30"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.7.1.1 Increase the Retention Time for system.log and secure.log (secure.log check)"
+      info        : "Ensure the log retention time for the system.log is set to at least 30 days."
+      reference   : "800-53|AU-11,CSF|PR.PT-1,ITSG-33|AU-11,LEVEL|2S,NESA|M5.2.3,NESA|T3.6.2,NIAv2|SM7"
+      see_also    : "https://workbench.cisecurity.org/files/268"
+      file        : "/etc/newsyslog.conf"
+      regex       : "/var/log/secure.log\\s*.*"
+      expect      : "/var/log/secure.log\\s*640\\s*30"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Apple OSX 10.5 Leopard Level II, version 1.0.0"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/268"
+    </report>
+  </else>
+</if>
+
+</check_type>

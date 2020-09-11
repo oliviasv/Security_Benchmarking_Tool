@@ -1,0 +1,121 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.4 $
+# $Date: 2020/04/22 $
+#
+# Description	: This .audit is designed against the CIS Security Configuration Benchmark For
+# 			Sybase ASE 15.0 Version 1.1.0 December 31, 2011
+#
+# Ref			: https://workbench.cisecurity.org/files/1612
+#
+#<ui_metadata>
+#<display_name>CIS Sybase 15.0 L1 OS Windows v1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Sybase 15.0 L1 OS Windows</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/1612</link>
+#</spec>
+#<labels>database,cis,sybase</labels>
+#<variables>
+#  <variable>
+#    <name>SYBASE_INSTALL_DIR</name>
+#    <default>C:\SAP\ASE-15_0</default>
+#    <description>Sybase Install Directory</description>
+#    <info>Sybase Install Directory</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"CIS Sybase">
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "1.2 Review the default login"
+  info            : "When the login mode is set to Integrated or Mixed Mode authentication, domain usernames
+are mapped to database usernames via the syslogins table. If a domain user attempts to
+login to the database but has no corresponding syslogins entry, the user is logged in as
+the account specified by the DefaultLogin registry key.
+
+
+This registry key is empty by default, indicating that only domain users with valid
+syslogins mappings may login. This setting should be reviewed to ensure that no default
+login has been set. If one has been set, its purpose should be fully established before it is
+modified in order to prevent disruption to applications and users that may be reliant upon
+it. If similar functionality is required it can be accomplished by setting up a group within
+the Windows domain and creating a mapping within the syslogins table.
+
+Rationale:
+
+Assigning a value to the DefaultLogin registry key means that all users with valid
+Windows domain credentials have some level of access to the database. This goes against
+the security best practice principle of least privilege."
+  solution        : "1. Set the value of the registry key
+HKEY_LOCAL_MACHINE\SOFTWARE\SYBASE\Server\<ServerName>\DefaultLogin to the empty string (where <ServerName> should be substituted for the name of the ASE instance)."
+  reference       : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also        : "https://workbench.cisecurity.org/files/1612"
+  value_type      : POLICY_TEXT
+  powershell_args : "$result='Pass';Get-ItemProperty -Path 'HKLM:\SOFTWARE\SYBASE\Server\*\' -name 'DefaultLogin' | ForEach-Object -Process {If($_.DefaultLogin -ne ''){$result='FAIL';$_.PSPath;'DefaultLogin : ' + $_.DefaultLogin}};$result;"
+  value_data      : "Pass"
+</custom_item>
+
+<custom_item>
+  type                 : AUDIT_POWERSHELL
+  description          : "6.10 Ensure restrictive permissions on the Sybase directory - Administrators"
+  info                 : "During installation, the Sybase ASE installer will prompt to create the designated install
+directory if it does not exist. On Windows systems the default installation path is
+c:\sybase. The newly created folder will inherit the NTFS permissions of the parent
+folder.
+
+Installing Sybase ASE to the default directory typically permits standard authenticated
+users to read all files in the directory, potentially exposing sensitive information if the
+databases themselves are located there. Furthermore, the default permissions also allow a
+standard authenticated user to write new files in the directory. Note that users would need
+sufficient privilege to logon to the system locally or remotely via Terminal Services.
+
+The NTFS permissions on the installation directory should be reviewed and modified if
+necessary ensure that only Administrators and the user that the Sybase ASE server is
+configured to run as (typically NT AUTHORITY\SYSTEM) have full control of the directory and
+that all others users have no permissions on the folder.
+
+
+Note that removing permissions for a particular user is likely to impact that users ability to
+run standard database connectivity tools such as isql.exe. It is recommended that
+modifications to permissions are extensively tested on non-production systems first.
+
+Rationale:
+
+Weak NTFS permissions may allow a standard domain user to access sensitive data or
+elevate privilege."
+  solution             : "1. Open a command prompt and execute the following command to remove standard
+user access to the Sybase directory. Repeat this command specifying appropriate
+usernames/groups until only Administrators and the user that the Sybase ASE
+server runs as have permissions on the directory.
+
+cacls %SYBASE% /E /R 'BUILTIN\Users'
+
+2. The above command should return processed dir: C:\sybase (or an appropriate
+path if Sybase is installed elsewhere). If an error is returned, consult the cacls
+documentation."
+  reference            : "800-53|AC-6(7),CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,LEVEL|1S,NESA|M1.1.3,NESA|T5.1.1"
+  see_also             : "https://workbench.cisecurity.org/files/1612"
+  value_type           : POLICY_TEXT
+# Note: Variable @SYBASE_INSTALL_DIR@ replaced with "C:\\SAP\\ASE-15_0" in field "powershell_args".
+  powershell_args      : "$f='C:\\SAP\\ASE-15_0';icacls $f;"
+  value_data           : ""
+  only_show_cmd_output : YES
+</custom_item>
+
+</group_policy>
+</check_type>

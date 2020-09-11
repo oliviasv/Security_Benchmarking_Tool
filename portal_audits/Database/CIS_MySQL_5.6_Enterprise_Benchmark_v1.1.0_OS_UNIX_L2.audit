@@ -1,0 +1,369 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.8 $
+# $Date: 2020/04/22 $
+#
+# Description : This audit is based on the Security Configuration Benchmark For MySQL 5.6 Enterprise Editions
+#             Version 1.1.0 - 08-15-2016
+#             https://workbench.cisecurity.org/files/1622
+#
+# NOTE		:
+#
+#<ui_metadata>
+#<display_name>CIS MySQL 5.6 Enterprise Linux OS L2 v1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MySQL 5.6 Enterprise Linux L2</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/1622</link>
+#</spec>
+#<labels>database,cis,mysql,mysql_5,mysql_5.6,mysql_5.6_enterprise</labels>
+#<benchmark_refs>LEVEL,CSCv6</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>MYSQL_USER</name>
+#    <default>mysql</default>
+#    <description>MySQL User Account</description>
+#    <info>This is your MySQL user account.</info>
+#  </variable>
+#  <variable>
+#    <name>SYSCONFDIR</name>
+#    <default>SYSCONFDIR/my.cnf</default>
+#    <description>sysconfdir Path</description>
+#    <info>This is the directory specified with the --sysconfdir option to configure when MySQL was built.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 5.6 Community Edition is installed"
+      rpm         : "mysql-server-5.6.0"
+      operator    : "gte"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "MySQL 5.6 Enterprise Edition is installed"
+    </report>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "~/.mysql_history Exists"
+          file        : "~/.mysql_history"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system        : "Linux"
+          type          : CMD_EXEC
+          description   : "1.3 Disable MySQL Command History - .mysql_history"
+          info          : "On Linux/UNIX, the MySQL client logs statements executed interactively to a history file. By default, this file is named .mysql_history in the user's home directory. Most interactive commands run in the MySQL client application are saved to a history file. The MySQL command history should be disabled."
+          solution      : "Perform the following steps to remediate this setting:
+1. Remove .mysql_history if it exists.
+2. Use either of the techniques below to prevent it from being created again:
+   1. Set the MYSQL_HISTFILE environment variable to /dev/null. This will need to be placed in the shell's startup script.
+   2. Create $HOME/.mysql_history as a symbolic to /dev/null.
+> ln -s /dev/null $HOME/.mysql_history"
+          reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+          see_also      : "https://workbench.cisecurity.org/files/1622"
+          cmd           : "for f in $(/bin/find / -name \".mysql_history\"); do /usr/bin/file $f | /bin/egrep -v \"symbolic link to '/dev/null'\" | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}' ; done"
+          expect        : "none"
+          dont_echo_cmd : YES
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "1.3 Disable MySQL Command History - ~/.mysql_history"
+          info        : "On Linux/UNIX, the MySQL client logs statements executed interactively to a history file. By default, this file is named .mysql_history in the user's home directory. Most interactive commands run in the MySQL client application are saved to a history file. The MySQL command history should be disabled."
+          solution    : "Perform the following steps to remediate this setting:
+1. Remove .mysql_history if it exists.
+2. Use either of the techniques below to prevent it from being created again:
+   1. Set the MYSQL_HISTFILE environment variable to /dev/null. This will need to be placed in the shell's startup script.
+   2. Create $HOME/.mysql_history as a symbolic to /dev/null.
+> ln -s /dev/null $HOME/.mysql_history"
+          reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1622"
+          file        : "~/.mysql_history"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      system          : "Linux"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.5 Disable Interactive Login"
+      info            : "When created, the MySQL user may have interactive access to the operating system, which means that the MySQL user could login to the host as any other user would."
+      solution        : "Perform the following steps to remediate this setting:
+   - Execute one of the following commands in a terminal
+usermod -s /bin/false mysql
+usermod -s /sbin/nologin mysql"
+      reference       : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also        : "https://workbench.cisecurity.org/files/1622"
+      file            : "/etc/passwd"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "regex".
+      regex           : "^[\\s]*mysql:"
+      expect          : ":(\\/sbin\\/nologin|\\/bin\\/false)\\s*$"
+      string_required : YES
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - mysqld start-up"
+      info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+      solution    : "Perform the following to establish the recommended state:
+   - Remove --allow-suspicious-udfs from the mysqld start up command line.
+   - Remove allow-suspicious-udfs from the MySQL option file."
+      reference   : "800-171|3.4.7,800-53|CM-7(2),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|1S,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1622"
+      cmd         : "/usr/bin/my_print_defaults | /bin/grep allow-suspicious-udfs | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/my.cnf"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/my.cnf"
+              info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+              solution    : "Perform the following to establish the recommended state:
+       - Remove --allow-suspicious-udfs from the mysqld start up command line.
+       - Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "800-171|3.4.7,800-53|CM-7(2),CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|1S,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1622"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/my.cnf"
+              info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+              solution    : "Perform the following to establish the recommended state:
+       - Remove --allow-suspicious-udfs from the mysqld start up command line.
+       - Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1622"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/mysql/my.cnf"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/mysql/my.cnf"
+              info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+              solution    : "Perform the following to establish the recommended state:
+       - Remove --allow-suspicious-udfs from the mysqld start up command line.
+       - Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "800-171|3.4.7,800-53|CM-7(2),CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|1S,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1622"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/mysql/my.cnf"
+              info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+              solution    : "Perform the following to establish the recommended state:
+       - Remove --allow-suspicious-udfs from the mysqld start up command line.
+       - Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1622"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - SYSCONFDIR/my.cnf/my.cnf"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - SYSCONFDIR/my.cnf/my.cnf"
+              info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+              solution    : "Perform the following to establish the recommended state:
+       - Remove --allow-suspicious-udfs from the mysqld start up command line.
+       - Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "800-171|3.4.7,800-53|CM-7(2),CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|1S,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1622"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - SYSCONFDIR/my.cnf/my.cnf passed"
+              info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+              solution    : "Perform the following to establish the recommended state:
+       - Remove --allow-suspicious-udfs from the mysqld start up command line.
+       - Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1622"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - config files not found"
+          info        : "This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+          info        : "No MySQL configuration files were found."
+          solution    : "Perform the following to establish the recommended state:
+     - Remove --allow-suspicious-udfs from the mysqld start up command line.
+     - Remove allow-suspicious-udfs from the MySQL option file."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1622"
+        </report>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "MySQL 5.6 Enterprise Edition is installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1622"
+    </report>
+  </else>
+</if>
+
+</check_type>

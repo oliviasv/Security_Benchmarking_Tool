@@ -1,0 +1,469 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.3 $
+# $Date: 2020/07/14 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Microsoft Exchange Server 2013 v1.1.0 Benchmark
+#
+#<ui_metadata>
+#<display_name>CIS Microsoft Exchange Server 2013 CAS v1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS Microsoft Exchange Server 2013 CAS</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/1512</link>
+#</spec>
+#<labels>microsoft,exchange,exchange_2013,cas,windows</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SECURE_STRING</name>
+#    <default>none</default>
+#    <description>Secure String for Authentication</description>
+#    <info>Comma separated secure string(s) which will be used to authenticate against the target servers.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"Microsoft Exchange Server 2013">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "Test secure string"
+      value_type      : POLICY_TEXT
+      value_data      : ".*"
+      powershell_args : "hostname"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "CIS_Microsoft_Exchange_Server_2013_Level_1_CAS_v1.1.0.audit from CIS Microsoft Exchange Server 2013 v1.1.0 Benchmark"
+      info            : "NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference       : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+      value_type      : POLICY_TEXT
+      value_data      : "[\s]+15\.0[\s]+.*[\s]+True"
+      powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsClientAccessServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "Platform check"
+          value_type      : POLICY_TEXT
+          value_data      : "[\s]+15\.0[\s]+.*[\s]+True"
+          powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsClientAccessServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.9 Set 'Configure login authentication for POP3' to 'SecureLogin'"
+          info            : "POP3 transmits all data, including user credentials and potentially sensitive messages, in plaintext. Using this setting to enable TLS ensures that POP3 network traffic is encrypted, and it allows the client to verify the server's address.
+
+Rationale:
+
+An attacker who can intercept or eavesdrop on the POP3 traffic could view sensitive information."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-PopSettings -LoginType SecureLogin"
+          reference       : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "LoginType[\s]+:[\s]+SecureLogin"
+          powershell_args : "Get-PopSettings | Format-List -property LoginType"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.15 Set 'Configure login authentication for IMAP4' to 'SecureLogin'"
+          info            : "IMAP4 transmits all data, including user credentials and potentially sensitive messages, in plaintext. Using this setting to enable SSL ensures that IMAP4 network traffic is encrypted, and it allows the client to verify the server's address.
+
+Rationale:
+
+An attacker who can intercept or eavesdrop on the IMAP4 traffic could view sensitive information."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-ImapSettings -LOGINTYPE SECURELOGIN"
+          reference       : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "LoginType[\s]+:[\s]+SecureLogin"
+          powershell_args : "Get-ImapSettings | Format-List -property LoginType"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.6 Set 'Allow simple passwords' to 'False'"
+          info            : "You can configure this setting to require strong passwords to unlock mobile devices before they can connect via ActiveSync to an Exchange server.
+
+Rationale:
+
+Allowing simple passwords can make it easier for an attacker to correctly guess them."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy  -AllowSimplePassword $false"
+          reference       : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, AllowSimplePassword; If ($settings | Where {$_.AllowSimplePassword -ne $false}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.7 Set 'Enforce Password History' to '4' or greater"
+          info            : "Retaining the password history ensures that old passwords will not be reused within a reasonable timeframe.
+
+Rationale:
+
+The longer a user uses the same password, the greater the chance that an attacker can determine the password through a brute force attack. Also, any accounts that may have been compromised will remain exploitable for as long as the password is left unchanged. If password changes are required but password reuse is not prevented, or if users continually reuse a small number of passwords, the effectiveness of a good password policy is greatly reduced. If you specify a low number for this setting, users will be able to use the same small number of passwords repeatedly."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy  -PasswordHistory 4"
+          reference       : "800-171|3.5.8,800-53|IA-5(1),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|AM22c,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.3"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, PasswordHistory; If ($settings | Where {$_.PasswordHistory -lt 4}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.8 Set 'Password Expiration' to '90' or less"
+          info            : "You can configure this setting to specify how long before passwords expire and users must change them.
+
+Rationale:
+
+The longer a password exists the higher the likelihood that it will be compromised by a brute force attack, by an attacker gaining general knowledge about the user, or by the user sharing the password. Configuring this setting to 0 so that users are never required to change their passwords is a major security risk because doing so allows a compromised password to be used by a malicious user for as long as the valid user has authorized access to the system."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy default -PasswordExpiration 90"
+          reference       : "800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$limit = New-TimeSpan -Days 90; $settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, PasswordExpiration; If ($settings | Where {$_.PasswordExpiration -gt $limit}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.9 Set 'Minimum password length' to '4' or greater"
+          info            : "You can configure this setting to specify a minimum password length for device passwords. Long passwords can provide increased security. However, long passwords can decrease device usability.
+
+Rationale:
+
+Types of password attacks include dictionary attacks that use common words and phrases, and brute force attacks that use character combinations. Attackers also sometimes try to obtain an account database so they can use tools to discover accounts and passwords."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy default -MinPasswordLength 4"
+          reference       : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, MinPasswordLength; If ($settings | Where {$_.MinPasswordLength -lt 4}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.11 Set 'Refresh interval' to '1'"
+          info            : "You can configure this setting to specify how often in hours that policy settings should be refreshed. Refreshing the policy settings sends a fresh copy of the policy down to devices.
+
+Rationale:
+
+Organizational requirements change, and new vulnerabilities may be discovered, so it is likely that ActiveSync policy settings will change. For these reasons, it is important to configure a refresh interval to ensure that the latest policy settings are applied to the devices in your organization."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy -Identity default -DevicePolicyRefreshInterval '1:00:00'"
+          reference       : "800-171|3.1.18,800-53|AC-19,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$limit = New-TimeSpan -Hours 1; $settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, DevicePolicyRefreshInterval; If ($settings | Where {$_.DevicePolicyRefreshInterval -gt $limit}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.15 Set 'Allow unmanaged devices' to 'False'"
+          info            : "This setting determines whether Exchange allow devices that do not accept security policy updates from the Exchange server to use ActiveSync.
+
+Rationale:
+
+Unmanaged devices are more likely to not comply with an organization's security policies and to be infected by malicious software."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy -Identity default -AllowNonProvisionableDevices $false"
+          reference       : "800-171|3.1.18,800-53|AC-19,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, AllowNonProvisionableDevices; If ($settings | Where {$_.AllowNonProvisionableDevices -ne $false}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.16 Set 'Require encryption on device' to 'True'"
+          info            : "You can use this setting to require device encryption. Configuring this setting to require device encryption increases security by encrypting all information on the storage cards for the device.
+
+Rationale:
+
+Unencrypted data on mobile devices is vulnerable to attack. Requiring ActiveSync encryption helps to minimize the risk of information being compromised in case a mobile device is lost."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	 Set-MobileDeviceMailboxPolicy -Identity default -RequireDeviceEncryption $true"
+          reference       : "800-171|3.1.18,800-53|AC-19,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, RequireDeviceEncryption; If ($settings | Where {$_.RequireDeviceEncryption -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.17 Set 'Time without user input before password must be re-entered' to '15'"
+          info            : "You can configure this setting to prompt the user for a password after the user's device has been inactive for a specified period of time. For example, if you configure the time period for this setting to 15 minutes, the user must enter the device password every time it has been idle for 15 minutes. If the device has been idle less than 15 minutes, the user is not required to re-enter the password.
+
+Rationale:
+
+Mobile devices are often left unattended or lost in public places. Requiring devices to lock after 15 minutes minimizes the window of opportunity for an attacker to tamper with a lost or stolen device."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy -Identity Default -MaxInactivityTimeLock 00:15:00"
+          reference       : "800-171|3.1.10,800-53|AC-11,CN-L3|8.1.4.1(b),ISO/IEC-27001|A.11.2.8,ITSG-33|AC-11,LEVEL|1S,NIAv2|AM23c,NIAv2|AM23d"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$limit = New-TimeSpan -Minutes 15; $settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, MaxInactivityTimeLock; If ($settings | Where {$_.MaxInactivityTimeLock -gt $limit}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.18 Set 'Require alphanumeric password' to 'True'"
+          info            : "Requiring users to include non-numeric characters in their passwords increases the strength of password security in your organization.
+
+Rationale:
+
+Not requiring alphanumeric passwords can make it easier for an attacker to correctly guess them."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy -Identity Default -AlphanumericPasswordRequired $true"
+          reference       : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, AlphanumericPasswordRequired; If ($settings | Where {$_.AlphanumericPasswordRequired -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.19 Set 'Require client MAPI encryption' to 'True'"
+          info            : "Certificates can reside in the certificate store on a mobile device or on a smart card. A certificate authentication method uses the Extensible Authentication Protocol (EAP) and the Transport Layer Security (TLS) protocol. During EAP-TLS certificate authentication, the client and the server prove their identities to each other. For example, an Exchange ActiveSync client presents its user certificate to the Client Access server, and the Client Access server presents its computer certificate to the mobile device to provide mutual authentication.
+
+Rationale:
+
+Communications between Outlook and Exchange that are sent unencrypted are vulnerable to being captured by a malicious third party."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-RpcClientAccess -Server CAS01 EncryptionRequired $true"
+          reference       : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-RpcClientAccess; $settings | Format-List Server, EncryptionRequired; If ($settings | Where {$_.EncryptionRequired -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.20 Set 'Number of attempts allowed' to '10'"
+          info            : "Use this setting to restrict the number of failed logon attempts a user can make.
+
+Rationale:
+
+There is a high risk that mobile devices will be lost or stolen. Enforcing this setting reduces the likelihood that an unauthorized user can guess the password of a device to access data stored on it."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy -Identity Default -MaxPasswordFailedAttempts 10"
+          reference       : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,LEVEL|1S,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, MaxPasswordFailedAttempts; If ($settings | Where {$_.MaxPasswordFailedAttempts -gt 10}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.21 Set 'Require password' to 'True'"
+          info            : "Passwords should be necessary to unlock mobile devices because they will help secure sensitive information stored on the devices in the event of loss or theft.
+
+Rationale:
+
+Allowing users to access devices without passwords means that anyone with physical access to them can view data on the devices."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MobileDeviceMailboxPolicy -Identity Default -PasswordEnabled $true"
+          reference       : "800-171|3.1.18,800-53|AC-19,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MobileDeviceMailboxPolicy; $settings | Format-List Identity, PasswordEnabled; If ($settings | Where {$_.PasswordEnabled -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <report type:"WARNING">
+          description : "3.2 Set 'Require Client Certificates' to 'Required'"
+          info        : "Certificates can reside in the certificate store on a mobile device or on a smart card. A certificate authentication method uses the Extensible Authentication Protocol (EAP) and the Transport Layer Security (TLS) protocol. During EAP-TLS certificate authentication, the client and the server prove their identities to each other. For example, an Exchange ActiveSync client presents its user certificate to the Client Access server, and the Client Access server presents its computer certificate to the mobile device to provide mutual authentication.
+
+Rationale:
+
+The default behavior of Exchange is to only require Basic Authentication. This type of authentication occurs in plaintext, which increases the possibility that an attacker could capture a user's credentials. In addition to configuring this setting to require client certificates, you can further mitigate the risk that the default behavior poses by configuring IIS to require SSL or TLS user connections to the Exchange servers in your organization.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Please refer to the URL in the 'References' section below."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1512"
+        </report>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.4 Set 'Turn on Administrator Audit Logging' to 'True'"
+          info            : "Administrator audit logging is used to provide a log of the settings that are changed by administrators anywhere in the system. By default this setting is turned on to ensure discovery of configuration related security breaches.
+
+Rationale:
+
+Administrators may be able to reconfigure the system to expose a vulnerability with no record of the changes made."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-AdminAuditLogConfig -AdminAuditLogEnabled $True"
+          reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "AdminAuditLogEnabled[\s]+:[\s]+True"
+          powershell_args : "Get-AdminAuditLogConfig | Format-List -Property AdminAuditLogEnabled"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.6 Set 'Allow basic authentication' to 'False'"
+          info            : "Use this setting to determine whether you want to allow clients to use basic authentication.
+
+Rationale:
+
+The default behavior of Exchange is to only require Basic Authentication. This type of authentication occurs in plaintext, which increases the possibility that an attacker could capture a user's credentials. In addition to configuring this setting to require client certificates, you can further mitigate the risk that the default behavior poses by configuring IIS to require SSL or TLS user connections to the Exchange servers in your organization."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-OwaVirtualDirectory -Identity 'owa (Default Web Site)' -BasicAuthentication $false"
+          reference       : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-OwaVirtualDirectory ; $settings | Format-List Identity, BasicAuthentication; If ($settings | Where {$_.BasicAuthentication -ne $false}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.10 Set 'Enable S/MIME for OWA 2010' to 'True'"
+          info            : "You can enable this setting to allow users to download the S/MIME control to read and create signed and encrypted messages.
+
+Rationale:
+
+S/MIME uses digital signatures and encryption to protect against several classes of attacks including eavesdropping, impersonation, and tampering."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-OWAVirtualDirectory -identity 'owa (Default Web Site)' -SMimeEnabled $true"
+          reference       : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-OwaVirtualDirectory ; $settings | Format-List Identity, SMimeEnabled; If ($settings | Where {$_.SMimeEnabled -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Authentication Failure"
+      info        : "Secure string passed to powershell was invalid or empty."
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

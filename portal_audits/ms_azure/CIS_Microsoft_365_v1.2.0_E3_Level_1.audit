@@ -1,0 +1,1715 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/08/19 $
+#
+# Description   : This document implements the security configuration as recommended by the
+#                  CIS Microsoft 365 Foundations Benchmark v1.2.0
+#
+#<ui_metadata>
+#<display_name>CIS Microsoft 365 Foundations E3 L1 v1.2.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Microsoft 365 Foundations E3 L1</name>
+#  <version>1.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/2860</link>
+#</spec>
+#<labels>microsoft_365</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SECURE_SCORE_AGE</name>
+#    <default>7</default>
+#    <description>Maximum Secure Score Age</description>
+#    <info>The maximum age (in days) of a secure score result.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"microsoft_azure">
+
+<custom_item>
+  description    : "1.1.1 Ensure multifactor authentication is enabled for all users in administrative roles"
+  info           : "Enable multifactor authentication for all users who are members of administrative roles in the Microsoft 365 tenant. These include roles such as:
+
+Global Administrator
+
+Billing Administrator
+
+Exchange Administrator
+
+SharePoint Administrator
+
+Password Administrator
+
+Skype for Business Administrator
+
+Service Administrator
+
+User Management Administrator
+
+Dynamics 365 Service Administrator
+
+Power BI Administrator
+
+Rationale:
+
+Multifactor authentication requires an individual to present a minimum of two separate forms of authentication before access is granted. Multifactor authentication provides additional assurance that the individual attempting to gain access is who they claim to be. With multifactor authentication, an attacker would need to compromise at least two different authentication mechanisms, increasing the difficulty of compromise and thus reducing the risk."
+  solution       : "To enable multifactor authentication for administrators, use the Microsoft 365 Admin Center:
+
+Log in to https://admin.microsoft.com as a Global Administrator.
+
+Go to Admin centers and click on Azure Active Directory.
+
+Select Enterprise applications then, under Security, select Conditional Access.
+
+Click New policy
+
+Go to Assignments > Users and groups > Include > Select users and groups > check Directory roles.
+
+At a minimum, select the following roles: Billing admin, Conditional Access admin, Exchange admin, Global admin, Helpdesk admin, Security admin, SharePoint admin, and User admin.
+
+Go to Cloud apps or actions > Cloud apps > Include > select All cloud apps (and don't exclude any apps).
+
+Under Access controls > Grant > select Grant access > check Require multi-factor authentication (and nothing else).
+
+Leave all other conditions blank.
+
+Make sure the policy is enabled.
+
+Create.
+
+Impact:
+
+Implementation of multifactor authentication for all users in administrative roles will necessitate a change to user routine. All users in administrative roles will be required to enroll in multifactor authentication using using phone, SMS, or an authentication application. After enrollment, use of multifactor authentication will be required for future access to the environment.
+
+References:
+
+https://docs.microsoft.com/en-us/graph/api/resources/security-api-overview?view=graph-rest-beta"
+  reference      : "800-171|3.5.3,800-53|IA-2(1),CN-L3|7.1.2.7(b),CSF|PR.AC-1,ITSG-33|IA-2(1),LEVEL|1S,NESA|T5.4.2,NIAv2|AM36,NIAv2|VL3c,SWIFT-CSCv1|1.2"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listSecureScores"
+# Note: Variable @SECURE_SCORE_AGE@ replaced with "7" in field "json_transform".
+  json_transform : '.[0] | select((.createdDateTime | iso_8601_days_ago) < 7) | .controlScores.[] | select(.controlName=="AdminMFAV2") | .description'
+  regex          : "You have [0-9]+ out of [0-9]+ users with administrative roles registered and protected with MFA"
+  expect         : "^MANUAL_REVIEW_REQUIRED$"
+</custom_item>
+
+<custom_item>
+  description    : "1.1.3 Ensure that between two and four global admins are designated"
+  info           : "More than one global administrator should be designated so a single admin can be monitored and to provide redundancy should a single admin leave an organization. Additionally, there should be no more than four global admins set for any tenant.
+
+Rationale:
+
+If there is only one global tenant administrator, he or she can perform malicious activity without the possibility of being discovered by another admin. If there are numerous global tenant administrators, the more likely it is that one of their accounts will be successfully breached by an external attacker."
+  solution       : "To correct the number of global tenant administrators, use the Microsoft 365 Admin Center:
+
+Log in to https://admin.microsoft.com as a Global Administrator.
+
+Select Users > Active Users.
+
+In the Searchfield enter the name of the user to be made a Global Administrator.
+
+To create a new Global Admin:
+
+Select the user's name.
+
+A window will appear to the right.
+
+Select Manage roles.
+
+Select Admin center access.
+
+Check Global Administrator.
+
+Click Save changes.
+
+To remove Global Admins:
+
+Select User.
+
+Under Roles select Manage roles
+
+De-Select the appropriate role.
+
+Click Save changes.
+
+To correct the number of global tenant administrators, you can also use the Office 365 PowerShell MSOL:
+
+Connect to Microsoft 365 using Connect-MSOLService
+
+Store the variables with the following Powershell
+
+$dispName='<The Display Name of the account>'
+$roleName='<The role name you want to assign to the account>'
+
+Run the following PowerShell command:
+
+Add-MsolRoleMember -RoleMemberEmailAddress (Get-MsolUser -All | Where DisplayName -eq $dispName).UserPrincipalName -RoleName $roleName
+
+Impact:
+
+The potential impact associated with ensuring compliance with this requirement is dependent upon the current number of global administrators configured in the tenant. If there is only one global administrator in a tenant, an additional global administrator will need to be identified and configured. If there are more than four global administrators, a review of role requirements for current global administrators will be required to identify which of the users require global administrator access.
+
+References:
+
+https://docs.microsoft.com/en-us/office365/enterprise/powershell/assign-roles-to-user-accounts-with-office-365-powershell"
+  reference      : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listSecureScores"
+# Note: Variable @SECURE_SCORE_AGE@ replaced with "7" in field "json_transform".
+  json_transform : '.[0] | select((.createdDateTime | iso_8601_days_ago) < 7) | .controlScores.[]select(.controlName=="ManyAdmins") | .description'
+  regex          : "You have [0-9]+ global admins"
+  expect         : "You have [2-4] global admins"
+</custom_item>
+
+<custom_item>
+  description    : "1.1.4 Ensure self-service password reset is enabled"
+  info           : "Enabling self-service password reset allows users to reset their own passwords in Azure AD. When your users sign in to Microsoft 365, they will be prompted to enter additional contact information that will help them reset their password in the future.
+
+Rationale:
+
+Users will no longer need to engage the helpdesk for password resets, and the password reset mechanism will automatically block common, easily guessable passwords."
+  solution       : "To enable self-service password reset, use the Microsoft 365 Admin Center:
+
+Under Admin centers choose Azure Active Directory.
+
+Choose Users from the left hand navigation.
+
+Choose Password reset.
+
+On the Properties page, select All under Self service password reset enabled.
+
+Select Save.
+
+Impact:
+
+The impact associated with this setting is that users will be required to provide additional contact information to enroll in self-service password reset. Additionally, minor user education may be required for users that are used to calling a help desk for assistance with password resets.
+
+References:
+
+https://support.office.com/en-us/article/let-users-reset-their-own-passwords-in-office-365-5bc3f460-13cc-48c0-abd6-b80bae72d04a
+
+https://gallery.technet.microsoft.com/office/Enable-Self-Service-59846d88
+
+https://docs.microsoft.com/en-us/azure/active-directory/authentication/quickstart-sspr"
+  reference      : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listSecureScores"
+# Note: Variable @SECURE_SCORE_AGE@ replaced with "7" in field "json_transform".
+  json_transform : '.[0] | select((.createdDateTime | iso_8601_days_ago) < 7) | .controlScores.[] | select(.controlName=="SelfServicePasswordReset") | .description'
+  regex          : "You have [0-9]+ of [0-9]+ users who don't have self-service password reset enabled"
+  expect         : "You have 0 of [0-9]+ users who don't have self-service password reset enabled"
+</custom_item>
+
+<report type:"WARNING">
+  description : "1.1.5 Ensure that password protection is enabled for Active Directory"
+  info        : "Enable Azure Active Directory Password Protection to Active Directory to protect against the use of common passwords.
+
+Rationale:
+
+Azure Active Directory protects an organization by prohibiting the use of weak or leaked passwords. In addition, organizations can create custom banned password lists to prevent their users from using easily guessed passwords that are specific to their industry. Deploying this feature to Active Directory will strengthen the passwords that are used in the environment.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To setup Azure Active Directory Password Protection, use the following steps:
+
+Download and install the Azure AD Password Proxies and DC Agents from the following location: https://www.microsoft.com/download/details.aspx?id=57071
+
+After the installation is complete, login to https://admin.microsoft.com as a Global Administrator.
+
+Go to Admin centers and click on Azure Active Directory.
+
+Select Azure Active Directory then Security on the left side navigation followed by Authentication methods.
+
+Select Password protection and toggle Enable password protection on Windows Server Active Directory to Yes and Mode to Enforced
+
+Click Save at the top of the right pane.
+
+Impact:
+
+The potential impact associated with implementation of this setting is dependent upon the existing password policies in place in the environment. For environments that have strong password policies in place, the impact will be minimal. For organizations that do not have strong password policies in place, implementation of Azure Active Directory Password Protection may require users to change passwords, and adhere to more stringent requirements than they have been accustomed to."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<custom_item>
+  description    : "1.1.6 Enable Conditional Access policies to block legacy authentication"
+  info           : "Use Conditional Access to block legacy authentication protocols in Office 365.
+
+Rationale:
+
+Legacy authentication protocols do not support multi-factor authentication. These protocols are often used by attackers because of this deficiency. Blocking legacy authentication makes it harder for attackers to gain access."
+  solution       : "To setup a conditional access policy to block legacy authentication, use the following steps:
+
+Log in to https://admin.microsoft.com as a Global Administrator.
+
+Go to Admin centers and click on Azure Active Directory.
+
+Select Azure Active Directory then Security.
+
+Select Conditional Access.
+
+Create a new policy by selecting New policy.
+
+Set the following conditions within the policy.
+
+Select Conditions then under Client apps (preview) enable the settings for Mobile apps and desktop clients and Other clients
+
+Under Access controls set the Grant section to Block access
+
+Under Assignments enable All users and All cloud apps
+
+Under Assignments and Users and groups set the Exclude to be at least one low risk account or directory role. This is required as a best practice.
+
+Impact:
+
+Enabling this setting will prevent users from connecting with older versions of Office, ActiveSync or using protocols like IMAP, POP or SMTP and may require upgrades to older versions of Office, and use of mobile mail clients that support modern authentication.
+
+Default Value:
+
+Legacy authentication is enabled by default."
+  reference      : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listSecureScores"
+# Note: Variable @SECURE_SCORE_AGE@ replaced with "7" in field "json_transform".
+  json_transform : '.[0] | select((.createdDateTime | iso_8601_days_ago) < 7) | .controlScores.[] | select(.controlName=="BlockLegacyAuthentication") | .description'
+  regex          : "You have [0-9]+ of [0-9]+ users that don't have legacy authentication blocked"
+  expect         : "You have 0 of [0-9]+ users that don't have legacy authentication blocked"
+</custom_item>
+
+<custom_item>
+  description    : "1.1.7 Ensure that password hash sync is enabled for resiliency and leaked credential detection"
+  info           : "Ensure that password hash sync is enabled for resiliency and leaked credential detection.
+
+Rationale:
+
+Password hash synchronization is one of the sign-in methods used to accomplish hybrid identity. Azure AD Connect synchronizes a hash, of the hash, of a user's password from an on-premises Active Directory instance to a cloud-based Azure AD instance. Password hash synchronization helps by reducing the number of passwords your users need to maintain to just one. Enabling password hash synchronization also allows for leaked credential reporting. It can also be used as a backup authentication method when federation is used, if the federation provider fails."
+  solution       : "To setup Password Hash Sync, use the following steps:
+
+Log in to the server that hosts the Azure AD Connect tool
+
+Double-click the Azure AD Connect icon that was created on the desktop
+
+Click Configure.
+
+On the Additional tasks page, select Customize synchronization options and click Next.
+
+Enter the username and password for your global administrator.
+
+On the Connect your directories screen, click Next.
+
+On the Domain and OU filtering screen, click Next.
+
+On the Optional features screen, check Password hash synchronization and click Next.
+
+On the Ready to configure screen click Configure.
+
+Once the configuration completes, click Exit.
+
+Impact:
+
+Enabling password hash sync should not impact end users."
+  reference      : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1NS,NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listSecureScores"
+# Note: Variable @SECURE_SCORE_AGE@ replaced with "7" in field "json_transform".
+  json_transform : '.[0] | select((.createdDateTime | iso_8601_days_ago) < 7) | .controlScores.[] | select(.controlName=="PasswordHashSync") | .description'
+  regex          : "Password Hash Sync is enabled:"
+  expect         : "Password Hash Sync is enabled: true"
+</custom_item>
+
+<custom_item>
+  description    : "1.1.12 Ensure Security Defaults is disabled on Azure Active Directory"
+  info           : "Security defaults in Azure Active Directory (Azure AD) make it easier to be secure and help protect your organization. Security defaults contain preconfigured security settings for common attacks.
+
+Microsoft is making security defaults available to everyone. The goal is to ensure that all organizations have a basic level of security-enabled at no extra cost. You turn on security defaults in the Azure portal.
+
+The use of Security Defaults however will prohibit custom settings which are being set with more advanced settings from this benchmark
+
+Rationale:
+
+Security defaults provide secure default settings that we manage on behalf of organizations to keep customers safe until they are ready to manage their own identity security story.
+
+For starters, we're doing the following:
+
+Requiring all users and admins to register for MFA.
+
+Challenging users with MFA - mostly when they show up on a new device or app, but more often for critical roles and tasks.
+
+Disabling authentication from legacy authentication clients, which can't do MFA."
+  solution       : "To disable security defaults in your directory:
+
+Sign in to the Azure portal as a security administrator, Conditional Access administrator, or global administrator.
+
+Browse to Azure Active Directory > Properties.
+
+Select Manage security defaults.
+
+Set the Enable security defaults toggle to No.
+
+Select Save.
+
+Impact:
+
+The potential impact associated with disabling of Security Defaults is dependent upon the security controls implemented in the environment. It is likely that most organizations disabling Security Defaults plan to implement equivalent controls to replace Security Defaults.
+
+References:
+
+https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/concept-fundamentals-security-defaults
+
+https://techcommunity.microsoft.com/t5/azure-active-directory-identity/introducing-security-defaults/ba-p/1061414"
+  reference      : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listIdentitySecurityDefaultsEnforcementPolicy"
+  json_transform : '.|.displayName as $name |.isEnabled as $enabled | "Name: \($name)   Enabled: \($enabled)"'
+  regex          : "Enabled:"
+  expect         : "Enabled: true"
+</custom_item>
+
+<report type:"WARNING">
+  description : "1.2 Ensure modern authentication for Exchange Online is enabled"
+  info        : "Modern authentication in Microsoft 365 enables authentication features like multifactor authentication (MFA) using smart cards, certificate-based authentication (CBA), and third-party SAML identity providers. When you enable modern authentication in Exchange Online, Outlook 2016 and Outlook 2013 use modern authentication to log in to Microsoft 365 mailboxes. When you disable modern authentication in Exchange Online, Outlook 2016 and Outlook 2013 use basic authentication to log in to Microsoft 365 mailboxes.
+
+When users initially configure certain email clients, like Outlook 2013 and Outlook 2016, they may be required to authenticate using enhanced authentication mechanisms, such as multifactor authentication. Other Outlook clients that are available in Microsoft 365 (for example, Outlook Mobile and Outlook for Mac 2016) always use modern authentication to log in to Microsoft 365 mailboxes.
+
+Rationale:
+
+Strong authentication controls, such as the use of multifactor authentication, may be circumvented if basic authentication is used by Exchange Online email clients such as Outlook 2016 and Outlook 2013. Enabling modern authentication for Exchange Online ensures strong authentication mechanisms are used when establishing sessions between email clients and Exchange Online.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To enable modern authentication, use the Exchange Online PowerShell Module:
+
+Run the Microsoft Exchange Online PowerShell Module.
+
+Connect to Exchange Online using Connect-EXOPSSession.
+
+Run the following PowerShell command:
+
+Set-OrganizationConfig -OAuth2ClientProfileEnabled $True
+
+Impact:
+
+Users of older email clients, such as Outlook 2013 and Outlook 2016, will no longer be able to authenticate to Exchange using Basic Authentication, which will necessitate migration to modern authentication practices.
+
+Default Value:
+
+True
+
+References:
+
+https://support.office.com/en-gb/article/enable-or-disable-modern-authentication-in-exchange-online-58018196-f918-49cd-8238-56f57f38d662"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "1.3 Ensure modern authentication for Skype for Business Online is enabled"
+  info        : "Modern authentication in Microsoft 365 enables authentication features like multifactor authentication (MFA) using smart cards, certificate-based authentication (CBA), and third-party SAML identity providers. When you enable modern authentication in Skype for Business, the Skype for Business client uses modern authentication to log in to Skype for Business Online.
+
+Rationale:
+
+Strong authentication controls, such as the use of multifactor authentication, may be circumvented if basic authentication is used by Skype for Business Online clients. Enabling modern authentication for Skype for Business Online ensures strong authentication mechanisms are used when establishing sessions between clients and Skype for Business Online.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To enable modern authentication, use the Skype for Business Online PowerShell Module:
+
+Connect to Skype for Business Online using the following Powershell commands:
+
+Import-Module SkypeOnlineConnector
+$sfbSession = New-CsOnlineSession
+Import-PSSession $sfbSession
+
+Run the following PowerShell command to verify that modern authentication is enabled:
+
+Set-CsOAuthConfiguration -ClientAdalAuthOverride Allowed
+
+Impact:
+
+Implementation of modern authentication for Skype of Business Online will require users to authenticate to Skype for Business Online using modern authentication. This may cause a minor impact to typical user behavior.
+
+References:
+
+https://social.technet.microsoft.com/wiki/contents/articles/34339.skype-for-business-online-enable-your-tenant-for-modern-authentication.aspx"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "1.4 Ensure modern authentication for SharePoint applications is required"
+  info        : "Modern authentication in Microsoft 365 enables authentication features like multifactor authentication (MFA) using smart cards, certificate-based authentication (CBA), and third-party SAML identity providers
+
+Rationale:
+
+Strong authentication controls, such as the use of multifactor authentication, may be circumvented if basic authentication is used by SharePoint applications. Requiring modern authentication for SharePoint applications ensures strong authentication mechanisms are used when establishing sessions between these applications, SharePoint, and connecting users.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To set SharePoint settings, use the Microsoft 365 Admin Center:
+
+Under Admin centers select SharePoint.
+
+Expand the Policies section then select Access Control.
+
+Select Apps that don't use modern authentication
+
+Select the radio button for Block.
+
+Click OK.
+
+To set Apps that don't use modern authentication is set to Block, use the SharePoint Online PowerShell Module:
+
+Connect to SharePoint Online using Connect-SPOService -Url https://tenant-admin.sharepoint.com replacing tenant with your value.
+
+Run the following Sharepoint Online PowerShell command:
+
+Set-SPOTenant -LegacyAuthProtocolsEnabled $false
+
+Impact:
+
+Implementation of modern authentication for SharePoint will require users to authenticate to SharePoint using modern authentication. This may cause a minor impact to typical user behavior."
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "1.5 Ensure that Office 365 Passwords Are Not Set to Expire"
+  info        : "Review the password expiration policy, to ensure that user passwords in Office 365 are not set to expire.
+
+Rationale:
+
+NIST has updated their password policy recommendations to not arbitrarily require users to change their passwords after a specific amount of time, unless there is evidence that the password is compromised or the user forgot it. They suggest this even for single factor (Password Only) use cases, with a reasoning that forcing arbitrary password changes on users actually make the passwords less secure. Other recommendations within this Benchmark suggest the use of MFA authentication for at critical accounts (at minimum), which makes password expiration even less useful as well as password protection for Azure AD.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To set Office 365 Passwords to Expire, use the Microsoft 365 Admin Center:
+
+Expand Settings then select the Settings subcategory.
+
+Click on Security & Privacy.
+
+Select Password expiration policy.
+
+If the Set user passwords to expire after a number of days box is checked, uncheck it.
+
+Click Save changes.
+
+To set Office 365 Passwords Are Not Set to Expire, use the Microsoft Online PowerShell Module:
+
+Connect to Microsoft Online service using Connect-MSOLService.
+
+Run the following Microsoft Online PowerShell command:
+
+Set-MsolPasswordPolicy -ValidityPeriod 2147483647 -DomainName <DomainName> -NotificationDays 30
+
+Impact:
+
+The primary impact associated with this change is ensuring that users understand the process for making or requesting a password change when required.
+
+References:
+
+https://pages.nist.gov/800-63-3/sp800-63b.html"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "2.9 - Ensure users installing Word, Excel, and PowerPoint add-ins is not allowed"
+  info        : "By default, users can install add-ins in their Microsoft Word, Excel, and PowerPoint applications, allowing data access within the application.
+
+Do not allow users to install add-ins in Word, Excel, or PowerPoint.
+
+Rationale:
+
+Attackers commonly use vulnerable and custom-built add-ins to access data in user applications.
+
+While allowing users to install add-ins by themselves does allow them to easily acquire useful add-ins that integrate with Microsoft applications, it can represent a risk if not used and monitored carefully.
+
+Disable future user's ability to install add-ins in Microsoft Word, Excel, or PowerPoint helps reduce your threat-surface and mitigate this risk.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To prohibit users installing Word, Excel, and PowerPoint add-ins, use the Microsoft 365 Admin Center:
+
+Select Settings from the navigation pane.
+
+Select Org Settings from the navigation pane.
+
+Under Services select User Owned apps and services.
+
+De-Select Let users access the Office Store and Let users install trial apps and services.
+
+Impact:
+
+Implementation of this change will impact both end users and administrators. End users will not be able to install add-ins that they may want to install.
+
+Default Value:
+
+Let users access the Office Store is Checked
+
+Let users install trial apps and services is Checked"
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<custom_item>
+  description    : "3.4 Ensure DLP policies are enabled"
+  info           : "Enabling Data Loss Prevention (DLP) policies allows Exchange Online and SharePoint Online content to be scanned for specific types of data like social security numbers, credit card numbers, or passwords.
+
+Rationale:
+
+Enabling DLP policies alerts users and administrators that specific types of data should not be exposed, helping to protect the data from accidental exposure."
+  solution       : "To enable DLP policies, use the Microsoft 365 Admin Center:
+
+Under Admin centers Select Compliance.
+
+From the Microsoft 365 compliance center expand Data loss prevention then choose Policy.
+
+Click Create a policy.
+
+Impact:
+
+Enabling a Teams DLP policy will allow sensitive data in Exchange Online and SharePoint Online to be detected or blocked."
+  reference      : "800-171|3.13.1,800-53|SC-7(10),CSF|DE.CM-1,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,ITSG-33|SC-7(10),LEVEL|1S,TBA-FIISB|33.1"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listSecureScores"
+# Note: Variable @SECURE_SCORE_AGE@ replaced with "7" in field "json_transform".
+  json_transform : '.[0] | select((.createdDateTime | iso_8601_days_ago) < 7) | .controlScores.[] | select(.controlName=="DLPEnabled") | .description'
+  regex          : "You have [0-9]+ Data Loss Prevention \(DLP\) policies applied"
+  expect         : "You have [1-9][0-9]* Data Loss Prevention \(DLP\) policies applied"
+</custom_item>
+
+<report type:"WARNING">
+  description : "4.1 Ensure the Common Attachment Types Filter is enabled"
+  info        : "You should set your Exchange Online Spam Policies to copy emails and notify someone when a sender in your tenant has been blocked for sending spam emails.
+
+Rationale:
+
+A blocked account is a good indication that the account in question has been breached and an attacker is using it to send spam emails to other people.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To set the Exchange Online Spam Policies correctly, use the Microsoft 365 Admin Center:
+
+Go to https://protection.office.com/antispam
+
+Expand Outbound spam filter policy (always ON).
+
+Select Edit policy then expand Notifications
+
+Check Send copies of suspicious messages to specific people then select +Add people, enter the desidred email addresses.
+
+Check Notify specific people if senders are blocked then select +Add people, enter the desidred email addresses.
+
+Click Save.
+
+To set the Exchange Online Spam Policies correctly, use the Exchange Online PowerShell Module:
+
+Connect to Exchange Online using Connect-EXOPSSession.
+
+Run the following PowerShell command:
+
+$BccEmailAddress = @('<INSERT-EMAIL>')
+
+$NotifyEmailAddress = @('<INSERT-EMAIL>')
+
+Set-HostedOutboundSpamFilterPolicy -Identity Default -BccSuspiciousOutboundAdditionalRecipients $BccEmailAddress -BccSuspiciousOutboundMail $true -NotifyOutboundSpam $true -NotifyOutboundSpamRecipients $NotifyEmailAddress
+
+Impact:
+
+Notification of users that have been blocked should not cause an impact to the user.
+
+Default Value:
+
+disabled"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "4.3 Ensure mail transport rules do not forward email to external domains"
+  info        : "You should set your Exchange Online mail transport rules to not forward email to domains outside of your organization.
+
+Rationale:
+
+Attackers often create these rules to exfiltrate data from your tenancy.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To alter the mail transport rules so they do not forward email to external domains, use the Microsoft 365 Admin Center:
+
+Select Exchange.
+
+Select Mail Flow and Rules.
+
+For each rule that forwards email to external domains, select the rule and click the 'Delete' icon.
+
+To perform remediation you may also use the Exchange Online PowerShell Module:
+
+Connect to Exchange Online user Connect-EXOPSSession
+
+Run the following Powershell command:
+
+Remove-TransportRule {RuleName}
+
+To verify this worked you may re-run the audit command as follows:
+
+Get-TransportRule | Where-Object {$_.RedirectMessageTo -ne $null} | ft Name,RedirectMessageTo
+
+Impact:
+
+Care should be taken before implementation to ensure there is no business need for case-by-case auto-forwarding. Disabling auto-forwarding to remote domains will affect all users and in an organization.
+
+References:
+
+https://docs.microsoft.com/en-us/exchange/policy-and-compliance/mail-flow-rules/mail-flow-rule-procedures?view=exchserver-2019"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "4.5 Ensure mail transport rules do not whitelist specific domains"
+  info        : "You should set your Exchange Online mail transport rules so they do not whitelist any specific domains.
+
+Rationale:
+
+Whitelisting domains in transport rules bypasses regular malware and phishing scanning, which can enable an attacker to launch attacks against your users from a safe haven domain.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To alter the mail transport rules so they do not whitelist any specific domains, use the Microsoft 365 Admin Center:
+
+Select Exchange.
+
+Select Mail Flow and Rules.
+
+For each rule that whitelists specific domains, select the rule and click the 'Delete' icon.
+
+To remove mail transport rules you may also use the Exchange Online PowerShell:
+
+Connect to Exchange online using Connect-EXOPSSession
+
+Run the following PowerShell command:
+
+Remove-TransportRule {RuleName}
+
+Verify the rules no longer exsist.
+
+Get-TransportRule | Where-Object {($_.setscl -eq -1 -and $_.SenderDomainIs -ne $null)}  | ft Name,SenderDomainIs
+
+Impact:
+
+Care should be taken before implementation to ensure there is no business need for case-by-case whitelisting. Removing all whitelisted domains could affect incoming mail flow to an organization although modern systems sending legitimate mail should have no issue with this."
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "4.11 Ensure that DKIM is enabled for all Exchange Online Domains"
+  info        : "You should use DKIM in addition to SPF and DMARC to help prevent spoofers from sending messages that look like they are coming from your domain.
+
+Rationale:
+
+By enabling DKIM with Office 365, messages that are sent from Exchange Online will by cryptographically signed. This will allow the receiving email system to validate that the messages were generated by a server that the organization authorized and not being spoofed.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To setup DKIM records, first add the following records to your DNS system, for each domain in Exchange Online that you plan to use to send email with:
+
+For each accepted domain in Exchange Online, two DNS entries are required.
+
+Host name:selector1._domainkey
+Points to address or value:selector1-<domainGUID>._domainkey.<initialDomain>
+TTL:3600
+Host name:selector2._domainkey
+Points to address or value:selector2-<domainGUID>._domainkey.<initialDomain>
+TTL:3600
+
+For Office 365, the selectors will always be selector1 or selector2.
+domainGUID is the same as the domainGUID in the customized MX record for your custom domain that appears before mail.protection.outlook.com. For example, in the following MX record for the domain contoso.com, the domainGUID is contoso-com:
+
+contoso.com.  3600  IN  MX   5 contoso-com.mail.protection.outlook.com
+
+initialDomain is the domain that you used when you signed up for Office 365. Initial domains always end in on microsoft.com.
+
+After the DNS records are created, enable DKIM signing in the Office 365 Admin Portal
+
+Launch the Security & Compliance Admin Center.
+
+Expand Threat Management then select Policy.
+
+Click DKIM.
+
+Click on each domain and click Enable next to Sign messages for this domain with DKIM signature.
+
+To set DKIM is enabled, use the Exchange Online PowerShell Module:
+
+Connect to Exchange Online service using Connect-EXOPSSession.
+
+Run the following Exchange Online PowerShell command:
+
+Set-DkimSigningConfig -Identity < domainName > -Enabled $True
+
+Impact:
+
+There should be no impact of setting up DKIM however, organizations should ensure appropriate setup to ensure continuous mail-flow.
+
+References:
+
+https://docs.microsoft.com/en-us/office365/SecurityCompliance/use-dkim-to-validate-outbound-email"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "4.12 Ensure that SPF records are published for all Exchange Domains"
+  info        : "For each domain that is configured in Exchange, a corresponding Sender Policy Framework (SPF) record should be created.
+
+Rationale:
+
+SPF records allow Exchange Online Protection and other mail systems know where messages from your domains are allowed to originate. This information can be used to by that system to determine how to treat the message based on if it is being spoofed or is valid.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To setup SPF records for Exchange Online accepted domains, perform the following steps:
+
+If all email in your domain is sent from and received by Exchange Online, add the following TXT record for each Accepted Domain:
+
+v=spf1 include:spf.protection.outlook.com -all
+
+If there are other systems that send email in the environment, refer to this article for the proper SPF configuration: https://docs.microsoft.com/en-us/office365/SecurityCompliance/set-up-spf-in-office-365-to-help-prevent-spoofing.
+
+Impact:
+
+There should be minimal impact of setting up SPF records however, organizations should ensure proper SPF record setup as email could be flagged as spam if SPF is not setup appropriately.
+
+References:
+
+https://docs.microsoft.com/en-us/office365/SecurityCompliance/set-up-spf-in-office-365-to-help-prevent-spoofing"
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "4.13 Ensure DMARC Records for all Exchange Online domains are published"
+  info        : "Publish Domain-Based Message Authentication, Reporting and Conformance (DMARC) records for each Exchange Online Accepted Domain.
+
+Rationale:
+
+Domain-based Message Authentication, Reporting and Conformance (DMARC) work with Sender Policy Framework (SPF) and DomainKeys Identified Mail (DKIM) to authenticate mail senders and ensure that destination email systems trust messages sent from your domain.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To add DMARC records, use the following steps:
+
+For each Exchange Online Accepted Domain, add the following record to DNS:
+
+Record:  _dmarc.domain1.com
+Type:  TXT
+Value:  v=DMARC1; p=none;
+
+This will create a basic DMARC policy that audits compliance
+
+Impact:
+
+There should be no impact of setting up DMARC however, organizations should ensure appropriate setup to ensure continuous mail-flow.
+
+References:
+
+https://docs.microsoft.com/en-us/office365/SecurityCompliance/use-dmarc-to-validate-email#CreateDMARCRecord"
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "4.14 Ensure notifications for internal users sending malware is Enabled"
+  info        : "Setup the EOP malware filter to notify administrators if internal senders are blocked for sending malware.
+
+Rationale:
+
+This setting alerts administrators that an internal user sent a message that contained malware. This may indicate an account or machine compromise, that would need to be investigated.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To enable notifications for internal users sending malware, use the Microsoft 365 Admin Center:
+
+Launch the Security & Compliance Admin Center.
+
+Expand Threat Management then select Policy.
+
+Select Anti-malware.
+
+Check the setting Notify administrator about undelivered messages from internal senders and enter the email address of the administrator who should be notified under Administrator email address.
+
+To check the setting from PowerShell, use the Exchange Online Module for PowerShell
+
+Connect to Exchange Online by using the connect-exopssession commandlet.
+
+Run the following command:
+
+set-MalwareFilterPolicy -Identity '{Identity Name}' -EnableInternalSenderAdminNotifications $True -InternalSenderAdminAddress {admin@domain1.com}
+
+Impact:
+
+Notification of account with potential issues should not cause an impact to the user."
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.1 Ensure Microsoft 365 audit log search is Enabled"
+  info        : "When audit log search in the Microsoft 365 Security & Compliance Center is enabled, user and admin activity from your organization is recorded in the audit log and retained for 90 days. However, your organization might be using a third-party security information and event management (SIEM) application to access your auditing data. In that case, a global admin can turn off audit log search in Microsoft 365.
+
+Rationale:
+
+Enabling Microsoft 365 audit log search helps Office 365 back office teams to investigate activities for regular security operational or forensic purposes.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To enable Microsoft 365 audit log search, use the Microsoft 365 Admin Center:
+
+Log in as an administrator.
+
+Navigate to the Office 365 security & compliance center by going to https://protection.office.com
+
+In the Security & Compliance Center, expand Search then select Audit log search.
+
+Click Start recording user and admin activities next to the information warning at the top.
+
+Click Yes on the dialog box to confirm.
+
+To enable Microsoft 365 audit log search, use the Exchange Online PowerShell Module:
+
+Run Microsoft Exchange Online PowerShell Module.
+
+Connect using Connect-EXOPSSession.
+
+Run the following PowerShell command:
+
+Set-AdminAuditLogConfig -AdminAutidLogEnabled $true -UnifiedAuditLogIngestionEnabled $true
+
+A message is displayed saying that it might take up to 60 minutes for the change to take effect. If an error appears, you may need to run Enable-OrganizationCustomization before disconnecting and trying the command again.
+
+Default Value:
+
+disabled
+
+References:
+
+https://docs.microsoft.com/en-us/office365/securitycompliance/turn-audit-log-search-on-or-off"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.2 Ensure mailbox auditing for all users is Enabled"
+  info        : "By turning on mailbox auditing, Microsoft 365 back office teams can track logons to a mailbox as well as what actions are taken while the user is logged on. After you turn on mailbox audit logging for a mailbox, you can search the audit log for mailbox activity. Additionally, when mailbox audit logging is turned on, some actions performed by administrators, delegates, and owners are logged by default.
+
+Rationale:
+
+Starting in January 2019, Microsoft is turning on mailbox audit logging by default for all organizations. This means that certain actions performed by mailbox owners, delegates, and admins are automatically logged, and the corresponding mailbox audit records will be available when you search for them in the mailbox audit log. When mailbox auditing on by default is turned on for the organization, the AuditEnabled property for affected mailboxes won't be changed from False to True. In other words, mailbox auditing on by default ignores the AuditEnabled property on mailboxes. However, only certain mailbox types support default auditing On
+
+User Mailboxes
+
+Shared Mailboxes
+
+Microsoft 365 Group Mailboxes
+
+The remaining mailbox types require auditing be turned on at the mailbox level:
+
+Resource Mailboxes
+
+Public Folder Mailboxes
+
+DiscoverySearch Mailbox
+
+Whether it is for regulatory compliance or for tracking unauthorized configuration changes in Microsoft 365, enabling mailbox auditing allows for Microsoft 365 back office teams to run security operations, forensics or general investigations on mailbox activities.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To enable mailbox auditing for all users, use the Exchange Online PowerShell Module:
+
+Run Microsoft Exchange Online PowerShell Module.
+
+Connect using Connect-EXOPSSession.
+
+Run the following PowerShell commands:
+
+$AuditAdmin = @('Copy', 'Create', 'FolderBind', 'HardDelete', 'MessageBind', 'Move', 'MoveToDeletedItems', 'SendAs', 'SendOnBehalf', 'SoftDelete', 'Update', 'UpdateCalendarDelegation', 'UpdateFolderPermissions', 'UpdateInboxRules')
+
+$AuditDelegate = @('Create', 'FolderBind', 'HardDelete', 'Move', 'MoveToDeletedItems', 'SendAs', 'SendOnBehalf', 'SoftDelete', 'Update', 'UpdateFolderPermissions', 'UpdateInboxRules')
+
+$AdminOwner = @('Create', 'HardDelete', 'MailboxLogin', 'Move', 'MoveToDeletedItems', 'SoftDelete', 'Update', 'UpdateCalendarDelegation', 'UpdateFolderPermissions', 'UpdateInboxRules')
+
+Get-Mailbox -ResultSize Unlimited | Set-Mailbox -AuditEnabled $true -AuditLogAgeLimit 180 -AuditAdmin $AuditAdmin -AuditDelegate $AuditDelegate -AuditOwner $AuditOwner
+
+Default Value:
+
+Only certain mailbox types support default auditing On:
+
+User Mailboxes
+
+Shared Mailboxes
+
+Microsoft 365 Group Mailboxes
+
+The remaining mailbox types require auditing be turned on at the mailbox level:
+
+Resource Mailboxes
+
+Public Folder Mailboxes
+
+DiscoverySearch Mailbox
+
+References:
+
+https://docs.microsoft.com/en-us/microsoft-365/compliance/enable-mailbox-auditing?view=o365-worldwide"
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.3 Ensure the Azure AD 'Risky sign-ins' report is reviewed at least weekly"
+  info        : "This report contains records of accounts that have had activity that could indicate they are compromised, such as accounts that have: -successfully signed in after multiple failures, which is an indication that the accounts have cracked passwords -signed in to your tenancy from a client IP address that has been recognized by Microsoft as an anonymous proxy IP address (such as a TOR network) -successful signins from users where two signins appeared to originate from different regions and the time between signins makes it impossible for the user to have traveled between those regions
+
+Rationale:
+
+Reviewing this report on a regular basis allows for identification and remediation of compromised accounts.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review the report, perform the following steps using the Azure Portal:
+
+Go to portal.azure.com.
+
+Click Azure Active Directory.
+
+Select Risk events.
+
+Review by Detection Type.
+
+To get risky sign-ins event report programatically, use following graph API:
+
+https://graph.microsoft.com/beta/identityRiskEvents?$filter=riskEventDateTime gt < 7 days older datetime > and riskEventStatus eq 'active'
+
+References:
+
+https://docs.microsoft.com/en-us/azure/active-directory/reports-monitoring/concept-user-at-risk
+
+https://docs.microsoft.com/en-us/azure/active-directory/reports-monitoring/howto-remediate-users-flagged-for-risk"
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.5 Ensure the self-service password reset activity report is reviewed at least weekly"
+  info        : "The Microsoft 365 platforms allow a user to reset their password in the event they forget it. The self-service password reset activity report logs each time a user successfully resets their password this way. You should review the self-service password reset activity report at least weekly.
+
+Rationale:
+
+An attacker will commonly compromise an account, then change the password to something they control and can manage.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review the report, perform the following steps using the Azure Portal:
+
+Go to portal.azure.com.
+
+Go to 'Azure Active Directory'.
+
+Click on 'Usage & insights' under 'Monitoring'.
+
+Select 'Authentication methods activity' and the 'Usage' tab.
+
+Review the list of users who have reset their passwords in the last seven days by clicking 'Self-service password resets and account unlocks by method'."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.6 Ensure user role group changes are reviewed at least weekly"
+  info        : "User role group changes should be reviewed on a weekly basis to ensure no one has been improperly added to an administrative role.
+
+Rationale:
+
+Illicit role group changes could give an attacker elevated privileges to perform more dangerous and impactful things in your tenancy.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review user role group changes, perform the following steps using the Microsoft 365 Admin Center:
+
+Go to Security and Compliance Center.
+
+Expand Search then select Audit Log Search.
+
+Set Activities to Added member to role.
+
+Set Start Date and End Date.
+
+Click Search.
+
+Review.
+
+To review user role group changes, perform the following steps using Exchange Online PowerShell Module:
+
+Connect to Exchange Online using Connect-EXOPSSession.
+
+Run the following Exchange Online PowerShell command:
+
+$startDate = ((Get-date).AddDays(-7)).ToShortDateString()
+$endDate = (Get-date).ToShortDateString()
+
+Search-UnifiedAuditLog -StartDate $startDate -EndDate $endDate | Where-Object { $_.Operations -eq 'Add member to role.' }
+
+Review the output"
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.7 Ensure mail forwarding rules are reviewed at least weekly"
+  info        : "You should review mail forwarding rules to external domains at least every week.
+
+Rationale:
+
+While there are lots of legitimate uses of mail forwarding rules, they are also a popular data exfiltration tactic for attackers. You should review them regularly to ensure your users' email is not being exfiltrated.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review mail forwarding rules, use the Microsoft 365 Admin Center:
+
+Go to Security and Compliance Center.
+
+Expand Mail Flow and then Dashboard.
+
+Review Auto Forwarded Messages on the dashboard.
+
+To review mail forwarding rules, use the following Powershell script:
+Uses the administrator user credential to export Mail forwarding rules, User Delegates and SMTP Forwarding policies to multiple csv files. First connect to Exchange Online by using connect-exopssession
+
+$allUsers = @()
+$AllUsers = Get-MsolUser -All -EnabledFilter EnabledOnly | select ObjectID, UserPrincipalName, FirstName, LastName, StrongAuthenticationRequirements, StsRefreshTokensValidFrom, StrongPasswordRequired, LastPasswordChangeTimestamp | Where-Object {($_.UserPrincipalName -notlike '*#EXT#*')}
+
+$UserInboxRules = @()
+$UserDelegates = @()
+
+foreach ($User in $allUsers)
+{
+    Write-Host 'Checking inbox rules and delegates for user: ' $User.UserPrincipalName;
+    $UserInboxRules += Get-InboxRule -Mailbox $User.UserPrincipalname | Select Name, Description, Enabled, Priority, ForwardTo, ForwardAsAttachmentTo, RedirectTo, DeleteMessage | Where-Object {($_.ForwardTo -ne $null) -or ($_.ForwardAsAttachmentTo -ne $null) -or ($_.RedirectsTo -ne $null)}
+    $UserDelegates += Get-MailboxPermission -Identity $User.UserPrincipalName | Where-Object {($_.IsInherited -ne 'True') -and ($_.User -notlike '*SELF*')}
+}
+
+$SMTPForwarding = Get-Mailbox -ResultSize Unlimited | select DisplayName,ForwardingAddress,ForwardingSMTPAddress,DeliverToMailboxandForward | where {$_.ForwardingSMTPAddress -ne $null}
+
+# Export list of inboxRules, Delegates and SMTP Forwards
+$UserInboxRules | Export-Csv MailForwardingRulesToExternalDomains.csv
+$UserDelegates | Export-Csv MailboxDelegatePermissions.csv
+$SMTPForwarding | Export-Csv Mailboxsmtpforwarding.csv"
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.8 Ensure the Mailbox Access by Non-Owners Report is reviewed at least biweekly"
+  info        : "You should review the Mailbox Access by Non-Owners report at least every other week. This report shows which mailboxes have been accessed by someone other than the mailbox owner.
+
+Rationale:
+
+While there are many legitimate uses of delegate permissions, regularly reviewing that access can help prevent an external attacker from maintaining access for a long time, and can help discover malicious insider activity sooner.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review the report, perform the following steps using the Microsoft 365 Admin Center:
+
+Click Exchange.
+
+Click Compliance Management and auditing.
+
+Select Run a non-owner mailbox access report.
+
+Enter Start Date and End Date.
+
+Change Search for access by field to all non-owners.
+
+Select Search."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.9 Ensure the Malware Detections report is reviewed at least weekly"
+  info        : "You should review the Malware Detections report at least weekly. This report shows specific instances of Microsoft blocking a malware attachment from reaching your users.
+
+Rationale:
+
+While this report isn't strictly actionable, reviewing it will give you a sense of the overall volume of malware being targeted at your users, which may prompt you to adopt more aggressive malware mitigations.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review the report, use the Microsoft 365 Admin Center:
+
+Select Security and Compliance.
+
+Expand Reports then select Dashboard.
+
+Review the Malware Detected in Email report."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.10 Ensure the Account Provisioning Activity report is reviewed at least weekly"
+  info        : "The Account Provisioning Activity report details any account provisioning that was attempted by an external application.
+
+Rationale:
+
+If you don't usually use a third party provider to manage accounts, any entry on the list is likely illicit. If you do, this is a great way to monitor transaction volumes and look for new or unusual third party applications that are managing users. If you see something unusual, contact the provider to determine if the action is legitimate.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review the report, use the Microsoft 365 Admin Center:
+
+Go to Security and Compliance Center.
+
+Expand Search then select Audit Log Search.
+
+Set Activities to Added user.
+
+Set Start Date and End Date.
+
+Click Search.
+
+Review.
+
+To review Account Provisioning Activity report, use the Exchange Online PowerShell Module:
+
+Connect to Exchange Online service using Connect-EXOPSSession.
+
+Run the following Exchange Online PowerShell command:
+
+$startDate = ((Get-date).AddDays(-7)).ToShortDateString()
+$endDate = (Get-date).ToShortDateString()
+
+Search-UnifiedAuditLog -StartDate $startDate -EndDate $endDate | Where-Object { $_.Operations -eq 'add user.' }
+
+Review the output"
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.11 Ensure non-global administrator role group assignments are reviewed at least weekly"
+  info        : "You should review non-global administrator role group assignments at least every week.
+
+Rationale:
+
+While these roles are less powerful than a global admin, they do grant special privileges that can be used illicitly. If you see something unusual, contact the user to confirm it is a legitimate need.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review non-global administrator role group assignments, use the Microsoft 365 Admin Center:
+
+Go to Security and Compliance Center.
+
+ExpandSearch then select Audit Log Search.
+
+Set Added member to Role and Removed a user from a directory role
+
+Set Start Date and End Date.
+
+Click Search.
+
+Review."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.12 Ensure the spoofed domains report is review weekly"
+  info        : "Enabling Microsoft 365 Cloud App Security gives you insight into suspicious activity in Microsoft 365 so you can investigate situations that are potentially problematic and, if needed, take action to address security issues.
+
+Rationale:
+
+You can receive notifications of triggered alerts for atypical or suspicious activities, see how your organization's data in Microsoft 365 is accessed and used, suspend user accounts exhibiting suspicious activity, and require users to log back in to Microsoft 365 apps after an alert has been triggered.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To enable Microsoft 365 Cloud App Security, use the Microsoft 365 Admin Center:
+
+Select Security and Compliance.
+
+Select Alerts.
+
+Select Manage advanced alerts.
+
+Check Turn on Microsoft 365 Cloud App Security.
+
+Click Go to Microsoft 365 Cloud App Security."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<report type:"WARNING">
+  description : "5.14 Ensure the report of users who have had their email privileges restricted due to spamming is reviewed"
+  info        : "Review and unblock users who have been blocked for sending too many messages marked as spam/bulk.
+
+Rationale:
+
+Users who are found on the restricted users list have a high probability of having been compromised. Review of this list will allow an organization to remediate these user accounts, and then unblock them.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To review the report, use the Microsoft 365 Admin Center:
+
+Select Security and Compliance.
+
+Select Threat Management and Review.
+
+Click Restricted Users.
+
+Review alerts and take appropriate action (unblocking) after account has been remediated."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<custom_item>
+  description    : "5.15 Ensure Guest Users are reviewed at least biweekly"
+  info           : "Guest users can be set up for those users not in your tenant to still be granted access to resources. It is important to maintain visibility for what guest users are established in the tenant.
+
+Rationale:
+
+Periodic review of guest users ensures proper access to resources in your tenant.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution       : "To view guest users, use the Microsoft 365 Admin Center:
+
+Log in as an administrator
+
+Navigate to the Users and Guest Users
+
+Review the list of users
+
+To verify Microsoft 365 audit log search is enabled, use the Microsoft Online PowerShell Module:
+
+Run Microsoft Online PowerShell Module
+
+Connect using Connect-MSOnline
+
+Run the following PowerShell command:
+
+Get-MsolUser -all |Where-Object {$_.UserType -ne 'Member'} |Select-Object UserPrincipalName, UserType, CreatedDate
+
+Review the list of users"
+  reference      : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|1NS,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "azuread"
+  json_transform : '.[]|.tenantId as $id|.users[]| "Tenant ID: \($id)" + "   DisplayName: \(.displayName)" + "   UserPrincipalName: \(.userPrincipalName)" + "   UserType: \(.userType)"'
+  regex          : 'UserType:'
+  not_expect     : 'UserType: Guest'
+  severity       : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "6.2 Block OneDrive for Business sync from unmanaged devices"
+  info        : "You should restrict the length of time that anonymous access links are valid.
+
+Rationale:
+
+An attacker can compromise a user account for a short period of time, send anonymous sharing links to an external account, then take their time accessing the data. They can also compromise external accounts and steal the anonymous sharing links sent to those external entities well after the data has been shared. Restricting how long the links are valid can reduce the window of opportunity for attackers.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To set expiration for anonymous access links, use the Microsoft 365 Admin Center
+
+Select Admin Centers and SharePoint.
+
+Expand Polices then click Sharing.
+
+Check These links must expire within this many days.
+
+Set to the desired number of days, such as 30.
+
+Click OK.
+
+To set expiration for anonymous access links, you can also use SharePoint Online PowerShell:
+
+Connect to SharePoint Online using Connect-SPOService
+
+Run the following PowerShell command:
+
+set-SPOTenant -RequireAnonymousLinksExpireInDays 30
+
+Impact:
+
+Enabling this feature will ensure that link expire within the defined number of days. This will have an affect on links that were previously not set with an expiration.
+
+Default Value:
+
+Anonymous Sharing - On
+
+Sharing Links Expiration - Off
+
+References:
+
+https://docs.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off
+
+Notes:
+
+Setting links to expire in X number of days only applies in the most permissive sharing mode which is the default setting. Organizations should decide on an organizational level whether to allow external sharing and to what level."
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<custom_item>
+  description    : "7.1 Ensure mobile device management polices are set to require advanced security configurations to protect from basic internet attacks"
+  info           : "You should configure your mobile device management policies to require advanced security configurations. If you do not require this, users will be able to connect from devices that are vulnerable to basic internet attacks, leading to potential breaches of accounts and data.
+
+Rationale:
+
+Managing mobile devices in your organization, helps provide a basic level of security to protect against attacks from these platforms. For example ensure that the device is up to date on patches or is not rooted. These configurations open those devices to vulnerabilities that are addressed in patched versions of the mobile OS."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create profile to create a new profile. Select the appropriate Platform and settings from the configuration screens.
+
+Impact:
+
+The impact associated with this change is dependent upon the settings specified in the mobile device configuration profile."
+  reference      : "800-171|3.1.18,800-53|AC-19,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,LEVEL|1NS,NESA|T3.4.1,NESA|T5.1.1,NESA|T5.4.3,NESA|T5.7.1,NIAv2|OS1,NIAv2|OS4,NIAv2|OS6"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceManagement"
+  json_transform : '.[] | .displayName'
+  regex          : ".+"
+  expect         : ".+"
+</custom_item>
+
+<custom_item>
+  description    : "7.2 Ensure that mobile device password reuse is prohibited"
+  info           : "You should not allow your users to reuse the same password on their mobile devices.
+
+Rationale:
+
+Devices without this protection are vulnerable to being accessed by attackers who can then steal account credentials, data, or install malware on the device. Choosing unique and unused passwords every time a password changes on mobile devices lessens the likelihood that the password can be guessed by an attacker."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create profile
+
+Set a Name for the policy, choose the appropriate Platformand select Device restrictions
+
+In the Password section, ensure that Prevent reuse of previous passwords is set to 5.
+
+Impact:
+
+This change will have a moderate user impact
+
+Default Value:
+
+Password reuse is not enforced by default."
+  reference      : "800-171|3.1.18,800-171|3.5.8,800-53|AC-19,800-53|IA-5(1),CSF|PR.AC-1,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ISO/IEC-27001|A.9.4.3,ITSG-33|AC-19,ITSG-33|IA-5(1),LEVEL|1NS,NESA|T5.2.3,NIAv2|AM22c,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.3"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | "Display Name: \(.displayName) - Number of previous passwords: \(if (.passcodePreviousPasscodeBlockCount != null) then .passcodePreviousPasscodeBlockCount else .passwordPreviousPasswordBlockCount end)"'
+  regex          : "Number of previous passwords:"
+  expect         : "Number of previous passwords: ([5-9]|[1-9][0-9])$"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "7.3 Ensure that mobile devices are set to never expire passwords"
+  info           : "Ensure that users passwords on their mobile devices, never expire.
+
+Rationale:
+
+While this is not the most intuitive recommendation, research has found that when periodic password resets are enforced, passwords become weaker as users tend to pick something weaker and then use a pattern of it for rotation. If a user creates a strong password: long, complex and without any pragmatic words present, it should remain just as strong is 60 days as it is today. It is Microsoft's official security position to not expire passwords periodically without a specific reason."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Select Device Management under Admin Centers.
+
+Select Devices, then Configuration profiles
+
+Review the list of profiles.
+
+From there, go to the device policies page to remove any device security policies that expire passwords.
+
+Impact:
+
+This setting should not cause a noticeable impact to users
+
+Default Value:
+
+Password changes are not required by default"
+  reference      : "800-171|3.1.18,800-53|AC-19,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ISO/IEC-27001|A.9.4.3,ITSG-33|AC-19,ITSG-33|IA-5(1),LEVEL|1NS,NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | "Display Name: \(.displayName) - Password expiration: \(if (.passcodeExpirationDays != null) then .passcodeExpirationDays else .passwordExpirationDays end)"'
+  regex          : "Password expiration:"
+  expect         : "Password expiration: (null|65535)$"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "7.4 Ensure that users cannot connect from devices that are jail broken or rooted"
+  info           : "You should not allow your users to use to connect with mobile devices that have been jail broken or rooted.
+
+Rationale:
+
+These devices have had basic protections disabled to run software that is often malicious and could very easily lead to an account or data breach."
+  solution       : "To set mobile device management policies, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create Policy
+
+Set a Name for the policy, choose the appropriate Platform
+
+Under Settings and Device Health ensure that Jailbroken devices is set to Block.
+
+Impact:
+
+Impact should be minimal however, in the event that a device is Jailbroken or running a developer build of a mobile Operating System it will be blocked from connecting."
+  reference      : "800-171|3.4.8,800-53|CM-7(4),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,LEVEL|1NS,NIAv2|SS13a,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | select((.["@odata.type"] | test("iosCompliancePolicy")) or (.["@odata.type"] | test("androidCompliancePolicy"))) | "Display Name: \(.displayName) - Block Jailbroken devices: \(.securityBlockJailbrokenDevices)"'
+  regex          : "Block Jailbroken devices:"
+  expect         : "Block Jailbroken devices: true"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "7.6 Ensure that mobile devices require a complex password to prevent brute force attacks"
+  info           : "You should require your users to use a complex password with a minimum password length of at least six characters to unlock their mobile devices.
+
+Rationale:
+
+Devices without this protection are vulnerable to being accessed physically by attackers who can then steal account credentials, data, or install malware on the device."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create profile
+
+Set a Name for the policy, choose the appropriate Platform and select Device restrictions
+
+In the Password section, ensure that Minimum password length is set to 6.
+
+Impact:
+
+This change has a moderate user impact
+
+Default Value:
+
+Minimum password lengths are not enforced by default"
+  reference      : "800-171|3.1.18,800-171|3.5.7,800-53|AC-19,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ISO/IEC-27001|A.9.4.3,ITSG-33|AC-19,ITSG-33|IA-5(1),LEVEL|1NS,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | "Display Name: \(.displayName) - Minimum password length: \(if (.passcodeMinimumLength != null) then .passcodeMinimumLength else .passwordMinimumLength end)"'
+  regex          : "Minimum password length:"
+  expect         : "Minimum password length: ([6-9]|[1-9][0-9])$"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "7.7 Ensure that settings are enable to lock devices after a period of inactivity to prevent unauthorized access"
+  info           : "You should require your users to configure their mobile devices to lock on inactivity.
+
+Rationale:
+
+Attackers can steal unlocked devices and access data and account information."
+  solution       : "To set mobile device management policies, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create profile
+
+Set a Name for the policy, choose the appropriate Platform and select Device restrictions
+
+In the Password section, ensure that Maximum minutes of inactivity until screen lock is set to 5 and Maximum minutes after screen lock before password is required is set to Immediately
+
+Impact:
+
+This setting has a low impact on users.
+
+Default Value:
+
+Screen locking is not enabled by default."
+  reference      : "800-171|3.1.10,800-171|3.1.18,800-53|AC-11,800-53|AC-19,CN-L3|8.1.4.1(b),CSF|PR.AC-3,ISO/IEC-27001|A.11.2.8,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-11,ITSG-33|AC-19,LEVEL|1NS"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | "Display Name: \(.displayName) - Inactivity minutes: \(if (.passcodeMinutesOfInactivityBeforeLock != null) then .passcodeMinutesOfInactivityBeforeLock else .passwordMinutesOfInactivityBeforeLock end)"'
+  regex          : "Inactivity minutes:"
+  expect         : "Inactivity minutes: [1-5]$"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "7.8 Ensure that mobile device encryption is enabled to prevent unauthorized access to mobile data"
+  info           : "You should require your users to use encryption on their mobile devices.
+
+Rationale:
+
+Unencrypted devices can be stolen and their data extracted by an attacker very easily."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create profile
+
+Set a Name for the policy, choose Android as the Platform and select Device restrictions
+
+In the Password section, ensure that Encryption is set to Require.
+
+Impact:
+
+This setting should have no user impact, provided the device supports the feature.
+
+Default Value:
+
+Device encryption is not required by the O365 platform by default, although some mobile platforms are encrypted by default."
+  reference      : "800-171|3.1.19,800-53|AC-19(5),LEVEL|1NS,NIAv2|OS5"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | select(.["@odata.type"] != "#microsoft.graph.iosCompliancePolicy") | "Display Name: \(.displayName) - Encryption: \(.storageRequireEncryption)"'
+  regex          : "Encryption:"
+  expect         : "Encryption: true"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "7.9 Ensure that mobile devices require complex passwords (Type = Alphanumeric)"
+  info           : "You should require your users to use a complex password with a at least two character sets (letters and numbers, for example) to unlock their mobile devices.
+
+Rationale:
+
+Devices without this protection are vulnerable to being accessed physically by attackers who can then steal account credentials, data, or install malware on the device."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create profile
+
+Set a Name for the policy, choose the appropriate Platform and select Device restrictions
+
+In the Password section, ensure that Required password type is set to Alphanumeric.
+
+Impact:
+
+This setting will have a moderate user impact
+
+Default Value:
+
+This setting is not enabled by default."
+  reference      : "800-171|3.1.18,800-171|3.5.7,800-53|AC-19,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ISO/IEC-27001|A.9.4.3,ITSG-33|AC-19,ITSG-33|IA-5(1),LEVEL|1NS,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | "Display Name: \(.displayName) - Required password type: \(if (.passcodeRequiredType != null) then .passcodeRequiredType else .passwordRequiredType end)"'
+  regex          : "Required password type:"
+  expect         : "Required password type: alphanumeric"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "7.10 Ensure that mobile devices require complex passwords (Simple Passwords = Blocked)"
+  info           : "You should require your users to use a complex password to unlock their mobile devices.
+
+Rationale:
+
+Devices without this protection are vulnerable to being accessed physically by attackers who can then steal account credentials, data, or install malware on the device."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Configuration profiles
+
+Select Create profile
+
+Set a Name for the policy, choose the appropriate Platform and select Device restrictions
+
+In the Password section, ensure that Simple Passwords is set to Blocked.
+
+Impact:
+
+This has a moderate impact on users
+
+Default Value:
+
+This setting is not enabled by default"
+  reference      : "800-171|3.1.18,800-171|3.5.7,800-53|AC-19,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ISO/IEC-27001|A.9.4.3,ITSG-33|AC-19,ITSG-33|IA-5(1),LEVEL|1NS,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | select((.["@odata.type"] | test("iosCompliancePolicy")) or (.["@odata.type"] | test("androidCompliancePolicy"))) | "Display Name: \(.displayName) - Required password type: \(if (.passcodeRequiredType != null) then .passcodeRequiredType else .passwordRequiredType end)"'
+  regex          : "Required password type:"
+  expect         : "Required password type: alphanumeric"
+  match_all      : YES
+</custom_item>
+
+<report type:"WARNING">
+  description : "7.11 Ensure that devices connecting have AV and a local firewall enabled"
+  info        : "You should configure your mobile device management policies to require the PC to have anti-virus and have a firewall enabled.
+
+Rationale:
+
+If you do not require this, users will be able to connect from devices that are vulnerable to basic internet attacks, leading to potential breaches of accounts and data.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To set mobile device management policies, use the Microsoft 365 Admin Center:
+
+Under Admin Centers select Endpoint Management.
+
+Select Devices and then select Compliance policies
+
+Select Create Policy
+
+Set a Name for the policy, choose the appropriate PC Platform
+
+Select System Security under Settings.
+
+Under Device Security set the values for Firewall, Antivirus, and Antispyware all to Require.
+
+Impact:
+
+Impact should be minimal however, in the event that a device is not running appropriate protection it will be blocked from connecting."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2860"
+</report>
+
+<custom_item>
+  description    : "7.13 Ensure mobile devices require the use of a password"
+  info           : "You should require your users to use a password to unlock their mobile devices.
+
+Rationale:
+
+Devices without this protection are vulnerable to being accessed physically by attackers who can then steal account credentials, data, or install malware on the device."
+  solution       : "To set mobile device management profiles, use the Microsoft 365 Admin Center:
+
+Select Device Management under Admin Centers.
+
+Select Device configuration and then select Profiles
+
+Select Create profile
+
+Set a Name for the policy, choose the appropriate Platform and select Device restrictions
+
+In the Password section, ensure that Password is set to Require.
+
+Impact:
+
+This change will require users to provide a password to unlock their mobile device after the timeout period expires
+
+Default Value:
+
+This setting is not enabled by default."
+  reference      : "800-171|3.1.18,800-171|3.5.2,800-53|AC-19,800-53|IA-5,CSF|PR.AC-1,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,ITSG-33|IA-5,LEVEL|1NS,NESA|T5.2.3"
+  see_also       : "https://workbench.cisecurity.org/files/2860"
+  request        : "listDeviceCompliancePolicies"
+  json_transform : '.[] | "Display Name: \(.displayName) - Password required: \(if (.passcodeRequired != null) then .passcodeRequired else .passwordRequired end)"'
+  regex          : "Password required:"
+  expect         : "Password required: true"
+  match_all      : YES
+</custom_item>
+
+</check_type>

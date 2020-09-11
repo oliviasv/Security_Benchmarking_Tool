@@ -1,0 +1,1429 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/05/06 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA MS SharePoint 2013 v1r8 STIG.
+#
+#<ui_metadata>
+#<display_name>DISA STIG SharePoint 2013 v1r8</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>SharePoint 2013</name>
+#  <version>1.8.0</version>
+#  <link>https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip</link>
+#</spec>
+#<labels>windows,disa,sharepoint,sharepoint_2013</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>RMS_SERVER</name>
+#    <default>http://rmsservername</default>
+#    <description>RMS Server</description>
+#    <info>The URL of the Windows Rights Management Services (RMS) (or a comparable IRM product) server.</info>
+#  </variable>
+#  <variable>
+#    <name>FARM_SVC_ACCT</name>
+#    <default>farmsvcaccount</default>
+#    <description>SharePoint farm service account</description>
+#    <info>The name of the Active Directory account used to run SharePoint services.</info>
+#  </variable>
+#  <variable>
+#    <name>DOM_SP_SETUP_ACCT</name>
+#    <default>domainsharepointsetupaccount</default>
+#    <description>Domain SharePoint setup account</description>
+#    <info>The name of the Active Directory domain account used to setup SharePoint.</info>
+#  </variable>
+#  <variable>
+#    <name>LOC_SP_SETUP_ACCT</name>
+#    <default>localsharepointsetupaccount</default>
+#    <description>Local SharePoint setup account</description>
+#    <info>The name of the local account used to setup SharePoint.</info>
+#  </variable>
+#  <variable>
+#    <name>CA_PORT</name>
+#    <default>28779</default>
+#    <description>SP13-00-000190 - CA DoD Port</description>
+#    <info>SP13-00-000190 - CA DoD Port</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"DISA STIG SharePoint 2013 v1R5">
+
+<report type:"PASSED">
+  description : "DISA STIG SharePoint 2013 v1r5"
+  info        : "This audit is designed against the DISA Checklist for SharePoint 2013 version v1r4."
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000005 - SharePoint must support the requirement to initiate a session lock after 15 minutes of system or application inactivity has transpired."
+  info                    : "A session time-out lock is a temporary action taken when a user stops work and moves away from the immediate physical vicinity of the information system but does not log out because of the temporary nature of the absence. Rather than relying on the user to manually lock their application session prior to vacating the vicinity, applications need to be able to identify when a user's application session has idled and take action to initiate the session lock.
+
+The session lock is implemented at the point where session activity can be determined and/or controlled. This is typically at the operating system level and results in a system lock, but it may be at the application level, where the application interface window is secured instead. The organization defines the period of inactivity that shall pass before a session lock is initiated, so this must be configurable."
+  solution                : "Configure the SharePoint server to lock the session lock after 15 minutes of inactivity.
+
+In SharePoint Central Administration, click Application Management.
+
+On the Application Management page, in the Web Applications section, click Manage web applications.
+
+Perform the following steps for each web application.
+- Select web application.
+- Select General Settings >> General Settings.
+- Navigate to Web Page Security Validation.
+- Set the 'Security validation is:' property to On.
+- Set the 'Security validation expires:' property to After.
+- Set the default time-out period to 15 minutes or less.
+- Select OK to save settings."
+  reference               : "800-171|3.1.11,800-53|AC-12,CAT|II,CCI|CCI-000057,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49,Rule-ID|SV-74349r1_rule,STIG-ID|SP13-00-000005,Vuln-ID|V-59919"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication | Where-Object {$_.FormDigestSettings.Enabled -eq $false -Or $_.FormDigestSettings.Expires -eq $false -Or $_.FormDigestSettings.Timeout.minutes -gt 15} | select DisplayName,Url,{$_.FormDigestSettings.Enabled},{$_.FormDigestSettings.Expires},{$_.FormDigestSettings.Timeout.Minutes} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000010 - SharePoint must maintain and support the use of security attributes with stored information - 'Custom content types have been defined for Site'"
+  info                    : "Security attributes are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These attributes are typically associated with internal data structures (e.g., records, buffers, files) within the information system and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security attributes may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security attributes are lost when the data is stored, there is the risk of a data compromise."
+  solution                : "Configure the SharePoint server to maintain and support the use of security attributes with stored information.
+
+From the Site Collection Settings menu:
+Add a column to Content Types that can hold 'security attributes', e.g., FOUO, etc., and 'prompt the user to enter as metadata or properties to collect when documents of this content type are added to SharePoint.'"
+  reference               : "800-53|SC-16,CAT|II,CCI|CCI-000366,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74365r1_rule,STIG-ID|SP13-00-000010,Vuln-ID|V-59935"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPSite | Get-SPWeb | select -ExpandProperty ContentTypes | where {$_.Group -match \\"Custom Content Types\\"} | select ParentWeb,Name | Format-List'
+  only_show_cmd_output    : YES
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000010 - SharePoint must maintain and support the use of security attributes with stored information - Document Library'"
+  info                    : "Security attributes are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These attributes are typically associated with internal data structures (e.g., records, buffers, files) within the information system and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security attributes may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security attributes are lost when the data is stored, there is the risk of a data compromise."
+  solution                : "Configure the SharePoint server to maintain and support the use of security attributes with stored information.
+
+From the Site Collection Settings menu:
+Add a column to Content Types that can hold 'security attributes', e.g., FOUO, etc., and 'prompt the user to enter as metadata or properties to collect when documents of this content type are added to SharePoint.'"
+  reference               : "800-53|SC-16,CAT|II,CCI|CCI-000366,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74365r1_rule,STIG-ID|SP13-00-000010,Vuln-ID|V-59935"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPSite | Get-SPWeb | select -expandproperty Lists | select -expandproperty ContentTypes | where {$_.Group -match \\"Custom Content Types\\" -and $_.Name -notmatch \\"Gallery\\" -and $_.Name -notmatch \\"Form\\"} | select ParentWeb,ParentList,Name | Format-List'
+  only_show_cmd_output    : YES
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000015 - SharePoint must utilize approved cryptography to protect the confidentiality of remote access sessions."
+  info                    : "Remote access is any access to an organizational information system by a user (or an information system) communicating through an external, non-organization-controlled network (e.g., the Internet). Examples of remote access methods include dial-up, broadband, and wireless.
+
+Remote network access is accomplished by leveraging common communication protocols and establishing a remote connection. These connections will typically occur over either the public Internet or the Public Switched Telephone Network (PSTN). Since neither of these Internetworking mechanisms are private nor secure, if cryptography is not used, then the session data traversing the remote connection could be intercepted and compromised. Cryptography provides a means to secure the remote connection to prevent unauthorized access to the data traversing the remote access connection, thereby providing a degree of confidentiality. The encryption strength of mechanism is selected based on the security categorization of the information traversing the remote connection."
+  solution                : "Configure the SharePoint server to use approved cryptography to protect the confidentiality of remote access sessions.
+
+Open IIS Manager.
+
+In the Connections pane, expand 'Sites'.
+
+Click the 'Web Application' site.
+
+In the Actions pane, click 'Bindings'.
+
+In the Site Bindings window, click 'Add'.
+
+In the Add Site Binding window, change 'Type' to 'https', and select the site's SSL certificate. Click 'OK'.
+
+Remove all bindings that do not use https.
+
+Click 'Close'."
+  reference               : "800-171|3.13.8,800-53|SC-8,CAT|I,CCI|CCI-000068,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,Rule-ID|SV-74367r2_rule,STIG-ID|SP13-00-000015,Vuln-ID|V-59937"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPSite | Get-SPWeb | Where-Object {$_.Url -notmatch \\"^https:\\"}'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000020 - SharePoint must use cryptography to protect the integrity of the remote access session."
+  info                    : "Remote access is any access to an organizational information system by a user (or an information system) communicating through an external, non-organization-controlled network (e.g., the Internet). Examples of remote access methods include dial-up, broadband, and wireless.
+
+Remote network access is accomplished by leveraging common communication protocols and establishing a remote connection. These connections will typically occur over the public Internet, the Public Switched Telephone Network (PSTN), or sometimes both. Since neither of these Internetworking mechanisms are private nor secure, if cryptography is not used, then the session data traversing the remote connection could be intercepted and potentially modified. Cryptography provides a means to secure the remote connection to prevent unauthorized access to the data traversing the remote access connection, thereby providing a degree of integrity. The encryption strength of a mechanism is selected based on the security categorization of the information traversing the remote connection."
+  solution                : "Configure the SharePoint server configuration to use cryptography to protect the integrity of the remote access session.
+
+Open IIS Manager.
+
+In the Connections pane, expand 'Sites'.
+
+Click the 'Web Application' site.
+
+In the Actions pane, click 'Bindings'.
+
+In the Site Bindings window, click 'Add'.
+
+In the Add Site Binding window, change 'Type' to 'https', and select the site's SSL certificate. Click 'OK'.
+
+Remove all bindings that do not use https.
+
+Click 'Close'."
+  reference               : "800-171|3.13.8,800-53|SC-8,CAT|I,CCI|CCI-001453,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,Rule-ID|SV-74369r2_rule,STIG-ID|SP13-00-000020,Vuln-ID|V-59939"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPSite | Get-SPWeb | Where-Object {$_.Url -notmatch \\"^https:\\"}'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "SP13-00-000030 - SharePoint must enforce approved authorizations for controlling the flow of information between interconnected systems in accordance with applicable policy."
+  info        : "Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to that information.
+
+From an application perspective, flow control is established once application data flow modeling has been completed. Data flow modeling can be described as the process of identifying, modeling, and documenting how data moves around an information system. Data flow modeling examines processes (activities that transform data from one form to another), data stores (the holding areas for data), external entities (what sends data into a system or receives data from a system), and data flows (routes by which data can flow).
+
+Once the application data flows have been identified, corresponding flow controls can be applied at the appropriate points.
+
+A few examples of flow control restrictions include the following: keeping export-controlled information from being transmitted in the clear to the Internet and blocking information that is marked as classified but is being transported to an unapproved destination. Information flow control policies and enforcement mechanisms are commonly employed by organizations to control the flow of information between designated sources and destinations (e.g., networks, individuals, devices) within information systems and between interconnected systems. Flow control is based on the characteristics of the information and/or the information path.
+
+Application-specific examples of flow control enforcement can be found in information protection software (e.g., guards, proxies, gateways, and cross domain solutions) employing rule sets or establishing configuration settings restricting information system services or providing message-filtering capability based on content (e.g., using key word searches or document characteristics).
+
+Applications providing information flow control must be able to enforce approved authorizations for controlling the flow of information between interconnected systems in accordance with applicable policy.
+
+SharePoint Central Administrator is a powerful management tool used to administer the farm. This server should be installed on a trusted network segment. This server should be used to run required services rather than user-oriented web applications.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint server to enforce approved authorizations for controlling the flow of information between interconnected systems in accordance with applicable policy.
+
+Remove the application server from the DMZ."
+  reference   : "CAT|I,CCI|CCI-001414,Rule-ID|SV-74373r1_rule,STIG-ID|SP13-00-000030,Vuln-ID|V-59943"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "IRM is enabled"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+      powershell_args         : "[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSEnabled -ne 1} | Select-Object IrmRMSEnabled | Format-List"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000025 - SharePoint must ensure remote sessions for accessing security functions and security-relevant information are audited."
+      info                    : "Remote access is any access to an organizational information system by a user (or an information system) communicating through an external, non-organization-controlled network (e.g., the Internet). Examples of remote access methods include dial-up, broadband, and wireless.
+
+Remote network and system access is accomplished by leveraging common communication protocols to establish a remote connection. These connections will typically originate over either the public Internet or the Public Switched Telephone Network (PSTN). Neither of these Internetworking mechanisms is private or secure, and they do not, by default, restrict access to networked resources once connectivity is established.
+
+Numerous best practices are employed to protect remote connections, such as utilizing encryption to protect data sessions and firewalls to restrict and control network connectivity. In addition to these protections, auditing must also be utilized in order to track system activity, assist in diagnosing system issues and provide evidence needed for forensic investigations post security incident.
+
+When organizations define security-related application functions or security-related application information, it is incumbent upon the application providing access to that data to ensure auditing of remote connectivity to those resources occurs in support of organizational requirements.
+
+Remote access to security functions (e.g., user management, audit log management, etc.) and security-relevant information requires the activity be audited by the organization. Any application providing remote access must support organizational requirements to audit access or organization-defined security functions and security-relevant information."
+      solution                : "Configure the SharePoint server configuration to audit remote sessions for accessing security functions and security-relevant information.
+
+In Central Administration, click on Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory', or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-53|SC-16,CAT|II,CCI|CCI-000067,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74371r1_rule,STIG-ID|SP13-00-000025,Vuln-ID|V-59941"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @RMS_SERVER@ replaced with "http://rmsservername" in field "powershell_args".
+      powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSCertServer -ne \\"http://rmsservername\\"} | Select-Object IrmRMSCertServer | Format-List'
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000035 - SharePoint must identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied."
+      info                    : "Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to that information.
+
+An example of flow control restrictions includes the following: keeping export-controlled information from being transmitted in the clear to the Internet. Information flow control policies and enforcement mechanisms are commonly employed by organizations to control the flow of information between designated sources and destinations (e.g., users, networks, devices) within information systems and between interconnected systems.
+
+Application-specific examples of flow control enforcement can be found in information protection software (e.g., guards, proxies, application layer gateways, and cross domain solutions) employing rule sets or establishing configuration settings restricting information system services or providing message-filtering capability based on content (e.g., using key word searches or document characteristics).
+
+Flow control is based on the characteristics of the information and/or the information path. Applications providing flow control must identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied.
+
+A security domain is defined as a domain implementing a security policy and administered by a single authority.
+
+Data type, specification, and usage includes using file naming to reflect the type of data being transferred and limiting data transfer based on file type."
+      solution                : "Configure the SharePoint server to identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied.
+
+In Central Administration, click Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory' or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-53|SC-16,CAT|II,CCI|CCI-000366,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74375r2_rule,STIG-ID|SP13-00-000035,Vuln-ID|V-59945"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @RMS_SERVER@ replaced with "http://rmsservername" in field "powershell_args".
+      powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSCertServer -ne \\"http://rmsservername\\"} | Select-Object IrmRMSCertServer | Format-List'
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000040 - SharePoint must provide the ability to prohibit the transfer of unsanctioned information in accordance with security policy."
+      info                    : "The application enforces approved authorizations for controlling the flow of information within the system and between interconnected systems in accordance with applicable policy.
+
+Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to that information.
+
+Specific examples of flow control enforcement can be found in boundary protection devices (e.g., proxies, gateways, guards, encrypted tunnels, firewalls, and routers) employing rule sets or establishing configuration settings restricting information system services, providing a packet-filtering capability based on header information or message-filtering capability based on content (e.g., using key word searches or document characteristics).
+
+Actions to support this requirement include, but are not limited to checking all transferred information for malware, implementing dirty word list searches on transferred information, and applying the same protection measures to metadata (e.g., security attributes) that is applied to the information payload."
+      solution                : "Configure the SharePoint server to prohibit the transfer of unsanctioned information in accordance with security policy.
+
+In Central Administration, click Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory', or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-53|SC-16,CAT|II,CCI|CCI-001374,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74377r2_rule,STIG-ID|SP13-00-000040,Vuln-ID|V-59947"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @RMS_SERVER@ replaced with "http://rmsservername" in field "powershell_args".
+      powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSCertServer -ne \\"http://rmsservername\\"} | Select-Object IrmRMSCertServer | Format-List'
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000105 - SharePoint must validate the integrity of security attributes exchanged between systems."
+      info                    : "When data is exchanged between information systems, the security attributes associated with said data need to be maintained.
+
+Security attributes are an abstraction representing the basic properties or characteristics of an entity with respect to safeguarding information, typically associated with internal data structures (e.g., records, buffers, files) within the information system and used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+Security attributes may be explicitly or implicitly associated with the information contained within the information system."
+      solution                : "Configure the SharePoint server to validate the integrity of security attributes exchanged between systems.
+
+In Central Administration, click Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory', or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-53|SC-16,CAT|II,CCI|CCI-001158,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74403r2_rule,STIG-ID|SP13-00-000105,Vuln-ID|V-59973"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @RMS_SERVER@ replaced with "http://rmsservername" in field "powershell_args".
+      powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSCertServer -ne \\"http://rmsservername\\"} | Select-Object IrmRMSCertServer | Format-List'
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000025 - SharePoint must ensure remote sessions for accessing security functions and security-relevant information are audited."
+      info                    : "Remote access is any access to an organizational information system by a user (or an information system) communicating through an external, non-organization-controlled network (e.g., the Internet). Examples of remote access methods include dial-up, broadband, and wireless.
+
+Remote network and system access is accomplished by leveraging common communication protocols to establish a remote connection. These connections will typically originate over either the public Internet or the Public Switched Telephone Network (PSTN). Neither of these Internetworking mechanisms is private or secure, and they do not, by default, restrict access to networked resources once connectivity is established.
+
+Numerous best practices are employed to protect remote connections, such as utilizing encryption to protect data sessions and firewalls to restrict and control network connectivity. In addition to these protections, auditing must also be utilized in order to track system activity, assist in diagnosing system issues and provide evidence needed for forensic investigations post security incident.
+
+When organizations define security-related application functions or security-related application information, it is incumbent upon the application providing access to that data to ensure auditing of remote connectivity to those resources occurs in support of organizational requirements.
+
+Remote access to security functions (e.g., user management, audit log management, etc.) and security-relevant information requires the activity be audited by the organization. Any application providing remote access must support organizational requirements to audit access or organization-defined security functions and security-relevant information."
+      solution                : "Configure the SharePoint server configuration to audit remote sessions for accessing security functions and security-relevant information.
+
+In Central Administration, click on Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory', or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-171|3.1.1,800-53|SC-16,CAT|II,CCI|CCI-000067,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74371r1_rule,STIG-ID|SP13-00-000025,Vuln-ID|V-59941"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+      powershell_args         : "[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSEnabled -ne 1} | Select-Object IrmRMSEnabled | Format-List"
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000035 - SharePoint must identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied."
+      info                    : "Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to that information.
+
+An example of flow control restrictions includes the following: keeping export-controlled information from being transmitted in the clear to the Internet. Information flow control policies and enforcement mechanisms are commonly employed by organizations to control the flow of information between designated sources and destinations (e.g., users, networks, devices) within information systems and between interconnected systems.
+
+Application-specific examples of flow control enforcement can be found in information protection software (e.g., guards, proxies, application layer gateways, and cross domain solutions) employing rule sets or establishing configuration settings restricting information system services or providing message-filtering capability based on content (e.g., using key word searches or document characteristics).
+
+Flow control is based on the characteristics of the information and/or the information path. Applications providing flow control must identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied.
+
+A security domain is defined as a domain implementing a security policy and administered by a single authority.
+
+Data type, specification, and usage includes using file naming to reflect the type of data being transferred and limiting data transfer based on file type."
+      solution                : "Configure the SharePoint server to identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied.
+
+In Central Administration, click Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory' or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-171|3.1.1,800-53|SC-16,CAT|II,CCI|CCI-000366,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74375r2_rule,STIG-ID|SP13-00-000035,Vuln-ID|V-59945"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+      powershell_args         : "[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSEnabled -ne 1} | Select-Object IrmRMSEnabled | Format-List"
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000040 - SharePoint must provide the ability to prohibit the transfer of unsanctioned information in accordance with security policy."
+      info                    : "The application enforces approved authorizations for controlling the flow of information within the system and between interconnected systems in accordance with applicable policy.
+
+Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to that information.
+
+Specific examples of flow control enforcement can be found in boundary protection devices (e.g., proxies, gateways, guards, encrypted tunnels, firewalls, and routers) employing rule sets or establishing configuration settings restricting information system services, providing a packet-filtering capability based on header information or message-filtering capability based on content (e.g., using key word searches or document characteristics).
+
+Actions to support this requirement include, but are not limited to checking all transferred information for malware, implementing dirty word list searches on transferred information, and applying the same protection measures to metadata (e.g., security attributes) that is applied to the information payload."
+      solution                : "Configure the SharePoint server to prohibit the transfer of unsanctioned information in accordance with security policy.
+
+In Central Administration, click Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory', or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-171|3.1.1,800-53|SC-16,CAT|II,CCI|CCI-001374,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74377r2_rule,STIG-ID|SP13-00-000040,Vuln-ID|V-59947"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+      powershell_args         : "[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSEnabled -ne 1} | Select-Object IrmRMSEnabled | Format-List"
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "SP13-00-000105 - SharePoint must validate the integrity of security attributes exchanged between systems."
+      info                    : "When data is exchanged between information systems, the security attributes associated with said data need to be maintained.
+
+Security attributes are an abstraction representing the basic properties or characteristics of an entity with respect to safeguarding information, typically associated with internal data structures (e.g., records, buffers, files) within the information system and used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+Security attributes may be explicitly or implicitly associated with the information contained within the information system."
+      solution                : "Configure the SharePoint server to validate the integrity of security attributes exchanged between systems.
+
+In Central Administration, click Security.
+
+On the Security page, in the Information policy list, click 'Configure information rights management'.
+
+Select 'Use the default RMS server specified in Active Directory', or identify a specific server by selecting 'Use this RMS server:' and entering the server name.
+
+Configure information management policies in accordance with the system security plan requirements."
+      reference               : "800-171|3.1.1,800-53|SC-16,CAT|II,CCI|CCI-001158,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|SC-16,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1,Rule-ID|SV-74403r2_rule,STIG-ID|SP13-00-000105,Vuln-ID|V-59973"
+      see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+      powershell_args         : "[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSEnabled -ne 1} | Select-Object IrmRMSEnabled | Format-List"
+    </custom_item>
+  </else>
+</if>
+
+<report type:"WARNING">
+  description : "SP13-00-000045 - SharePoint must display an approved system use notification message or banner before granting access to the system."
+  info        : "Applications are required to display an approved system use notification message or banner before granting access to the system providing privacy and security notices consistent with applicable federal laws, Executive Orders, directives, policies, regulations, standards, and guidance and stating that:
+
+(i) users are accessing a U.S. Government information system;
+(ii) system usage may be monitored, recorded, and subject to audit;
+(iii) unauthorized use of the system is prohibited and subject to criminal and civil penalties; and
+(iv) the use of the system indicates consent to monitoring and recording.
+
+System use notification messages can be implemented in the form of warning banners displayed when individuals log on to the information system.
+
+System use notification is intended only for information system access including an interactive logon interface with a human user and is not intended to require notification when an interactive interface does not exist.
+
+Use this banner for desktops, laptops, and other devices accommodating banners of 1300 characters. The banner shall be implemented as a click-through banner at logon (to the extent permitted by the operating system), meaning it prevents further activity on the information system unless and until the user executes a positive action to manifest agreement by clicking on a box indicating 'OK'.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint web application's home page to display the authorized DoD warning banner text on or before the logon page."
+  reference   : "CAT|II,CCI|CCI-000048,Rule-ID|SV-74379r2_rule,STIG-ID|SP13-00-000045,Vuln-ID|V-59949"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "SP13-00-000055 - SharePoint must allow designated organizational personnel to select which auditable events are to be audited by specific components of the system."
+  info        : "Audit records can be generated from various components within the information system, such as network interfaces, hard disks, modems, etc. From an application perspective, certain specific application functionalities may be audited as well.
+
+The list of audited events is the set of events for which audits are to be generated. This set of events is typically a subset of the list of all events for which the system is capable of generating audit records (i.e., auditable events, time stamps, source and destination addresses, user/process identifiers, event descriptions, success/fail indications, filenames involved, and access control or flow control rules invoked).
+
+Organizations may define the organizational personnel accountable for determining which application components shall provide auditable events.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint server configuration to allow designated organizational personnel to select which auditable events are to be audited by specific components of the system.
+
+Navigate to Central Administration.
+
+Click 'Monitoring'.
+
+Click 'Configure Diagnostic Logging'.
+
+Select the event categories and trace levels to match those defined by the organization's system security plan.
+
+Remember that a base set of events is always audited.
+
+Click 'Ok'."
+  reference   : "CAT|II,CCI|CCI-000171,Rule-ID|SV-74383r1_rule,STIG-ID|SP13-00-000055,Vuln-ID|V-59953"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<custom_item>
+  type                 : AUDIT_IIS_APPCMD
+  description          : "SP13-00-000060 - SharePoint must reject or delay, as defined by the organization, network traffic generated above configurable traffic volume thresholds - maxConnections"
+  info                 : "It is critical when a system is at risk of failing to process audit logs as required; actions are automatically taken to mitigate the failure or risk of failure.
+
+One method used to thwart the auditing system is for an attacker to attempt to overwhelm the auditing system with large amounts of irrelevant data. The end result is audit logs that are either overwritten and activity thereby erased or disk space that is exhausted and any future activity is no longer logged.
+
+In many system configurations, the disk space allocated to the auditing system is separate from the disks allocated for the operating system; therefore, this may not result in a system outage."
+  solution             : "Configure SharePoint to reject or delay, as defined by the organization or site SSP, network traffic generated above configurable traffic volume thresholds.
+
+Log on to the server.
+
+Click Start.
+
+Type Internet Information Services Manager in the Search Bar, click Enter.
+
+Determine which IIS Sites are subject to user traffic. This is generally the IIS site hosting the Content Web Application.
+
+For each site IIS site subject to user traffic, select the site.
+
+Click Advanced Settings.
+
+Expand Connection Limits.
+
+Ensure the following settings possess a value:
+-Connection Time-Out
+-Maximum Bandwidth
+-Maximum Concurrent Connections
+
+Repeat steps for each site subject to user traffic."
+  reference            : "800-53|SC-5,CAT|II,CCI|CCI-000366,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,Rule-ID|SV-74385r1_rule,STIG-ID|SP13-00-000060,Vuln-ID|V-59955"
+  see_also             : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type           : POLICY_TEXT
+  value_data           : 'MANUAL_REVIEW'
+  appcmd_args          : 'list sites /text:limits.maxConnections'
+  only_show_cmd_output : YES
+</custom_item>
+
+<custom_item>
+  type                 : AUDIT_IIS_APPCMD
+  description          : "SP13-00-000060 - SharePoint must reject or delay, as defined by the organization, network traffic generated above configurable traffic volume thresholds - ConnectionTimeout"
+  info                 : "It is critical when a system is at risk of failing to process audit logs as required; actions are automatically taken to mitigate the failure or risk of failure.
+
+One method used to thwart the auditing system is for an attacker to attempt to overwhelm the auditing system with large amounts of irrelevant data. The end result is audit logs that are either overwritten and activity thereby erased or disk space that is exhausted and any future activity is no longer logged.
+
+In many system configurations, the disk space allocated to the auditing system is separate from the disks allocated for the operating system; therefore, this may not result in a system outage."
+  solution             : "Configure SharePoint to reject or delay, as defined by the organization or site SSP, network traffic generated above configurable traffic volume thresholds.
+
+Log on to the server.
+
+Click Start.
+
+Type Internet Information Services Manager in the Search Bar, click Enter.
+
+Determine which IIS Sites are subject to user traffic. This is generally the IIS site hosting the Content Web Application.
+
+For each site IIS site subject to user traffic, select the site.
+
+Click Advanced Settings.
+
+Expand Connection Limits.
+
+Ensure the following settings possess a value:
+-Connection Time-Out
+-Maximum Bandwidth
+-Maximum Concurrent Connections
+
+Repeat steps for each site subject to user traffic."
+  reference            : "800-171|3.1.11,800-53|AC-12,CAT|II,CCI|CCI-000366,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49,Rule-ID|SV-74385r1_rule,STIG-ID|SP13-00-000060,Vuln-ID|V-59955"
+  see_also             : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type           : POLICY_TEXT
+  value_data           : 'MANUAL_REVIEW'
+  appcmd_args          : 'list sites /text:limits.ConnectionTimeout'
+  only_show_cmd_output : YES
+</custom_item>
+
+<custom_item>
+  type                 : AUDIT_IIS_APPCMD
+  description          : "SP13-00-000060 - SharePoint must reject or delay, as defined by the organization, network traffic generated above configurable traffic volume thresholds - maxBandwidth"
+  info                 : "It is critical when a system is at risk of failing to process audit logs as required; actions are automatically taken to mitigate the failure or risk of failure.
+
+One method used to thwart the auditing system is for an attacker to attempt to overwhelm the auditing system with large amounts of irrelevant data. The end result is audit logs that are either overwritten and activity thereby erased or disk space that is exhausted and any future activity is no longer logged.
+
+In many system configurations, the disk space allocated to the auditing system is separate from the disks allocated for the operating system; therefore, this may not result in a system outage."
+  solution             : "Configure SharePoint to reject or delay, as defined by the organization or site SSP, network traffic generated above configurable traffic volume thresholds.
+
+Log on to the server.
+
+Click Start.
+
+Type Internet Information Services Manager in the Search Bar, click Enter.
+
+Determine which IIS Sites are subject to user traffic. This is generally the IIS site hosting the Content Web Application.
+
+For each site IIS site subject to user traffic, select the site.
+
+Click Advanced Settings.
+
+Expand Connection Limits.
+
+Ensure the following settings possess a value:
+-Connection Time-Out
+-Maximum Bandwidth
+-Maximum Concurrent Connections
+
+Repeat steps for each site subject to user traffic."
+  reference            : "800-53|SC-5,CAT|II,CCI|CCI-000366,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,Rule-ID|SV-74385r1_rule,STIG-ID|SP13-00-000060,Vuln-ID|V-59955"
+  see_also             : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type           : POLICY_TEXT
+  value_data           : 'MANUAL_REVIEW'
+  appcmd_args          : 'list sites /text:limits.maxBandwidth'
+  only_show_cmd_output : YES
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000065 - SharePoint must prevent the execution of prohibited mobile code."
+  info                    : "Decisions regarding the utilization of mobile code within organizational information systems need to include evaluations that help determine the potential for the code to cause damage to the system if used maliciously.
+
+Mobile code technologies include, for example, Java, JavaScript, ActiveX, PDF, Postscript, Shockwave movies, Flash animations, and VBScript. Usage restrictions and implementation guidance apply to both the selection and use of mobile code installed on organizational servers and mobile code downloaded and executed on individual workstations.
+
+Applications can prevent the execution of prohibited mobile code by leveraging architectures that provide a virtual execution environment sometimes referred to as a 'sandbox'. The mobile code is executed within this isolated environment apart from the host's indigenous operating environment that allows for mobile code capability restrictions and helps to prevent malicious code from accessing system resources and data.
+
+Policy and procedures related to mobile code address preventing the introduction of unacceptable mobile code within the information system. The DoDI 8552.01 policy pertains to the use of mobile code technologies within DoD information systems.
+
+The application must prevent the execution of prohibited mobile code."
+  solution                : "Configure SharePoint to prevent the execution of prohibited mobile code.
+
+Navigate to Central Administration.
+
+Click Manage Web Applications.
+
+For each Web Application in the Farm:
+-Click on the Web Application to configure.
+-Click on the drop-down box below General Settings.
+-Click on General Settings in the drop down box.
+-Under Browser File Handling, verify that 'Strict' is selected.
+
+If 'Strict' is not selected, this is a finding.
+
+Mobile code can be further restricted to meet the policy of the organization:
+
+Log on to a farm server hosting Central Administration.
+
+Click Start and type SharePoint 2013 Management Shell followed by Enter.
+
+Type $webApp = Get-SPWebApplication -Identity {URL} where {URL is the {URL} of the web application to configure.
+
+Press Enter.
+
+Type $webApp.AllowedInlineDownloadedMimeTypes. Remove ({mime type}) where {mime type} represents the mime type to remove (e.g., application\x-shockwave-flash).
+
+Press Enter."
+  reference               : "800-171|3.4.2,800-53|CM-6,CAT|I,CCI|CCI-001695,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-74387r1_rule,STIG-ID|SP13-00-000065,SWIFT-CSCv1|2.3,Vuln-ID|V-59957"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication | where-object {$_.BrowserFileHandling -notmatch \\"strict\\"}|select {$_.name,$_.BrowserFileHandling}'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "SP13-00-000075 - SharePoint must use replay-resistant authentication mechanisms for network access to privileged accounts."
+  info        : "An authentication process resists replay attacks if it is impractical to achieve a successful authentication by recording and replaying a previous authentication message.
+
+Techniques used to address this include protocols using nonces (e.g., numbers generated for a specific one-time use) or challenges (e.g., TLS, WS_Security), and time synchronous or challenge-response one-time authenticators.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint server to use replay-resistant authentication mechanisms for network access to privileged accounts.
+
+If the web application is using Integrated Windows Authentication as the claims provider, perform the following:
+
+Open the Central Administration site, select 'Application Management'.
+
+On the 'Application Management' page, select 'Manage Web Applications', select the web application that corresponds to the site reviewed in the 'Check' section above, then click the 'Authentication Providers' button in the ribbon.
+
+Select the zone corresponding to the web application being reviewed, which will open the 'Edit Authentication' dialog in the 'Claims Authentication Types' section, select 'Negotiate (Kerberos)' in the 'Integrated Windows Authentication' dropdown, then click 'Save'."
+  reference   : "CAT|II,CCI|CCI-001941,Rule-ID|SV-74391r1_rule,STIG-ID|SP13-00-000075,Vuln-ID|V-59961"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000080 - SharePoint must uniquely identify and authenticate non-organizational users (or processes acting on behalf of non-organizational users)."
+  info                    : "Non-organizational users include all information system users other than organizational users, which include organizational employees or individuals the organization deems to have equivalent status of employees (e.g., contractors, guest researchers, individuals from allied nations).
+
+Non-organizational users must be uniquely identified and authenticated for all accesses other than those accesses explicitly identified and documented by the organization when related to the use of anonymous access, such as accessing a web server.
+
+Accordingly, a risk assessment is used in determining the authentication needs of the organization.
+
+Scalability, practicality, and security are simultaneously considered in balancing the need to ensure ease of use for access to federal information and information systems with the need to protect and adequately mitigate risk to organizational operations, organizational assets, individuals, other organizations, and the Nation."
+  solution                : "Configure SharePoint to uniquely identify and authenticate non-organizational users (or processes acting on behalf of non-organizational users).
+
+Navigate to Central Administration website.
+
+Click on 'Manage web applications'.
+
+Click the web application name.
+
+Click the 'Authentication Providers' button in the 'Web Applications' ribbon.
+
+Click each Zone, and clear the 'Enable anonymous access' check box.
+
+Click 'Save'.
+
+Repeat steps for each web application."
+  reference               : "800-171|3.5.1,800-53|IA-2,CAT|II,CCI|CCI-000804,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,Rule-ID|SV-74393r1_rule,STIG-ID|SP13-00-000080,TBA-FIISB|35.1,TBA-FIISB|36.1,Vuln-ID|V-59963"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'get-spwebapplication|foreach-object {$_.iissettings.Values}|where-object {$_.AllowAnonymous -notmatch \\"false\\"}|select ServerComment,AllowAnonymous|format-list'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "SP13-00-000085 - SharePoint must implement required cryptographic protections using cryptographic modules complying with applicable federal laws, Executive Orders, directives, policies, regulations, standards, and guidance."
+  info            : "Certain encryption types are no longer considered secure.  This setting configures a minimum encryption type for SharePoint. Different versions of the Windows Server OS, and versions of SharePoint will have different suites available."
+  solution        : "Configure the SharePoint server to implement required cryptographic protections using cryptographic modules complying with applicable federal laws, Executive Orders, directives, policies, regulations, standards, and guidance.
+
+Open MMC.
+
+Click 'File', 'Add/Remove Snap-in', and 'add Group Policy Object Editor'.
+
+Enter a name for the Group Policy Object, or accept the default.
+
+Click 'Finish'.
+
+Click 'OK'.
+
+Navigate to Computer Policy >> Computer Configuration >> Administrative Templates >> Network >> SSL Configuration settings.
+
+Right-click 'SSL Configuration Settings', click 'SSL Cipher Suite Order', and then click 'Edit'.
+
+In the 'SSL Cipher Suite Order' dialog box, select 'Enabled' option.
+
+Under 'Options', in the 'SSL Cipher Suites' text box, enter desired cipher suites that are not DES or RC4.
+
+Click 'OK'."
+  reference       : "800-171|3.13.11,800-53|SC-13,CAT|I,CCI|CCI-000803,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-74395r4_rule,STIG-ID|SP13-00-000085,Vuln-ID|V-59965"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : '^Pass'
+  powershell_args : "$regkey='HKLM:\software\Policies\Microsoft\Cryptography\Configuration\SSL\00010002'; $regvalue='Functions'; if((Get-ItemProperty -Path $regkey | Select-Object -ExpandProperty $regvalue -ErrorAction SilentlyContinue) -eq $null ) { $result='Fail - Registry Key not found' } else { $fullkey=(Get-ItemProperty -Path $regkey -name $regvalue).$regvalue; if($fullkey -notmatch '.*(DES|RC4).*' ) { $result='Pass - No DES or RC4 entries found' } else { $result='Fail - DES or RC4 entries found' } }; $fullkey; $result;"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "SP13-00-000090 - SharePoint must employ FIPS-validated cryptography to protect unclassified information."
+  info            : "Certain encryption types are no longer considered secure.  This setting configures a minimum encryption type for SharePoint. Different versions of the Windows Server OS, and versions of SharePoint will have different suites available."
+  solution        : "Configure SharePoint to employ FIPS-validated cryptography to protect unclassified information.
+
+Open MMC.
+
+Click 'File', 'Add/Remove Snap-in', and 'add Group Policy Object Editor'.
+
+Enter a name for the Group Policy Object, or accept the default.
+
+Click 'Finish'.
+
+Click 'OK'.
+
+Navigate to Computer Policy >> Computer Configuration >> Administrative Templates >> Network >> SSL Configuration settings.
+
+Right-click 'SSL Configuration Settings', click 'SSL Cipher Suite Order', and then click 'Edit'.
+
+In the 'SSL Cipher Suite Order' dialog box, select 'Enabled' option.
+
+Under 'Options', in the 'SSL Cipher Suites' text box, enter desired cipher suites that are not DES or RC4.
+
+Click 'OK'."
+  reference       : "800-171|3.13.11,800-53|SC-13,CAT|I,CCI|CCI-002450,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-74397r4_rule,STIG-ID|SP13-00-000090,Vuln-ID|V-59967"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : '^Pass'
+  powershell_args : "$regkey = (Get-ItemProperty -Path hklm:Software\\Policies\\Microsoft\\Cryptography\\Configuration\\Ssl\00010002 -name Functions).Functions; if($regkey -ne $null){ if($regkey -notmatch '.*(DES|RC4).*' ){ $result='Pass - No DES or RC4 entries found' } else { $result='Fail - DES or RC4 entries found' } } else { $result='Fail - Registry Key not found' }; $regkey; $result"
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "SP13-00-000095 - SharePoint must employ NSA-approved cryptography to protect classified information."
+  info            : "Certain encryption types are no longer considered secure.  This setting configures a minimum encryption type for SharePoint. Different versions of the Windows Server OS, and versions of SharePoint will have different suites available."
+  solution        : "Configure SharePoint to employ NSA-approved cryptography to protect classified information.
+
+Open MMC.
+
+Click 'File', 'Add/Remove Snap-in', and 'add Group Policy Object Editor'.
+
+Enter a name for the Group Policy Object, or accept the default.
+
+Click 'Finish'.
+
+Click 'OK'.
+
+Navigate to Computer Policy >> Computer Configuration >> Administrative Templates >> Network >> SSL Configuration settings.
+
+Right-click 'SSL Configuration Settings', click 'SSL Cipher Suite Order', and then click 'Edit'.
+
+In the 'SSL Cipher Suite Order' dialog box, select 'Enabled' option.
+
+Under 'Options', in the 'SSL Cipher Suites' text box, enter desired cipher suites that are not DES or RC4.
+
+Click 'OK'."
+  reference       : "800-171|3.13.11,800-53|SC-13,CAT|I,CCI|CCI-002450,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-74399r4_rule,STIG-ID|SP13-00-000095,Vuln-ID|V-59969"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : '^Pass'
+  powershell_args : "$regkey = (Get-ItemProperty -Path hklm:Software\\Policies\\Microsoft\\Cryptography\\Configuration\\Ssl\00010002 -name Functions).Functions; if($regkey -ne $null){ if($regkey -notmatch '.*(DES|RC4).*' ){ $result='Pass - No DES or RC4 entries found' } else { $result='Fail - DES or RC4 entries found' } } else { $result='Fail - Registry Key not found' }; $regkey; $result"
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "SP13-00-000100 - SharePoint must employ FIPS-validated cryptography to protect unclassified information when such information must be separated from individuals who have the necessary clearances yet lack the necessary access approvals."
+  info            : "Certain encryption types are no longer considered secure.  This setting configures a minimum encryption type for SharePoint. Different versions of the Windows Server OS, and versions of SharePoint will have different suites available."
+  solution        : "Configure SharePoint to employ FIPS-validated cryptography to protect unclassified information when such information must be separated from individuals who have the necessary clearances yet lack the necessary access approvals.
+
+Open MMC.
+
+Click 'File', 'Add/Remove Snap-in', and 'add Group Policy Object Editor'.
+
+Enter a name for the Group Policy Object, or accept the default.
+
+Click 'Finish'.
+
+Click 'OK'.
+
+Navigate to Computer Policy >> Computer Configuration >> Administrative Templates >> Network >> SSL Configuration settings.
+
+Right-click 'SSL Configuration Settings', click 'SSL Cipher Suite Order', and then click 'Edit'.
+
+In the 'SSL Cipher Suite Order' dialog box, select 'Enabled' option.
+
+Under 'Options', in the 'SSL Cipher Suites' text box, enter desired cipher suites that are not DES or RC4.
+
+Click 'OK'."
+  reference       : "800-171|3.13.11,800-53|SC-13,CAT|I,CCI|CCI-002450,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-74401r4_rule,STIG-ID|SP13-00-000100,Vuln-ID|V-59971"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : '^Pass'
+  powershell_args : "$regkey = (Get-ItemProperty -Path hklm:Software\\Policies\\Microsoft\\Cryptography\\Configuration\\Ssl\00010002 -name Functions).Functions; if($regkey -ne $null){ if($regkey -notmatch '.*(DES|RC4).*' ){ $result='Pass - No DES or RC4 entries found' } else { $result='Fail - DES or RC4 entries found' } } else { $result='Fail - Registry Key not found' }; $regkey; $result"
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000110 - SharePoint must ensure authentication of both client and server during the entire session. An example of this is SSL Mutual Authentication."
+  info                    : "This control focuses on communications protection at the session, versus packet level.
+
+At the application layer, session IDs are tokens generated by web applications to uniquely identify an application user's session. Web applications utilize session tokens or session IDs in order to establish application user identity. Proper use of session IDs addresses man-in-the-middle attacks, including session hijacking or insertion of false information into a session. This control is only implemented where deemed necessary by the organization (e.g., sessions in service-oriented architectures providing web-based services)."
+  solution                : "Configure the SharePoint server to ensure SSL Mutual authentication of both client and server during the entire session.
+
+Open IIS Manager.
+
+In the Connections pane, expand 'Sites'.
+
+Click the 'Web Application' site.
+
+In the Actions pane, click 'Bindings'.
+
+In the Site Bindings window, click 'Add'.
+
+In the Add Site Binding window, change 'Type' to 'https', and select the site's SSL certificate. Click 'OK'.
+
+Remove all bindings that do not use https.
+
+Click 'Close'."
+  reference               : "800-171|3.13.8,800-53|SC-8,CAT|I,CCI|CCI-001184,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,Rule-ID|SV-74405r2_rule,STIG-ID|SP13-00-000110,Vuln-ID|V-59975"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebapplication | Where-Object {$_.Url -notmatch \\"^https:\\"}'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000115 - SharePoint must terminate user sessions upon user logoff, and when idle time limit is exceeded."
+  info                    : "This requirement focuses on communications protection at the application session, versus network packet level.
+
+Session IDs are tokens generated by web applications to uniquely identify an application user's session.  Applications will make application decisions and execute business logic based on the session ID. Unique session identifiers or IDs are the opposite of sequentially generated session IDs that can be easily guessed by an attacker. Unique session IDs help to reduce predictability of said identifiers. Unique session IDs address man-in-the-middle attacks, including session hijacking or insertion of false information into a session. If the attacker is unable to identify or guess the session information related to pending application traffic, they will have more difficulty in hijacking the session or otherwise manipulating valid sessions. When a user logs off, or when any other session termination event occurs, the application must terminate the user session to minimize the potential for an attacker to hijack that particular user session."
+  solution                : "Configure the SharePoint server to terminate user sessions upon user logoff, and when idle time limit is exceeded.
+
+Navigate to Central Administration website.
+
+Click 'Application Management'.
+
+Click 'Manage Web Applications'.
+
+Repeat the following steps for each web application:
+-Select the web application.
+-Click 'General Settings' in the 'Web Application' ribbon.
+-In the 'Web Page Security Validation' section, set 'Security Validation:' to 'On' and that the 'Security Validation Expires:' setting is set to 15 minutes."
+  reference               : "800-171|3.1.11,800-53|AC-12,CAT|I,CCI|CCI-001185,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49,Rule-ID|SV-74407r1_rule,STIG-ID|SP13-00-000115,Vuln-ID|V-59977"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication | Where-Object {$_.FormDigestSettings.Enabled -eq $false -Or $_.FormDigestSettings.Expires -eq $false -Or $_.FormDigestSettings.Timeout.minutes -gt 15} | select DisplayName,Url,{$_.FormDigestSettings.Enabled},{$_.FormDigestSettings.Expires},{$_.FormDigestSettings.Timeout.Minutes} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000120 - SharePoint must maintain the confidentiality of information during aggregation, packaging, and transformation in preparation for transmission. When transmitting data, applications need to leverage transmission protection mechanisms such as TLS, SSL VPNs, or IPSec."
+  info                    : "Preventing the disclosure of transmitted information requires that applications take measures to employ some form of cryptographic mechanism in order to protect the information during transmission. This is usually achieved through the use of Transport Layer Security (TLS), SSL VPN, or IPSec tunnel.
+
+Alternative physical protection measures include protected distribution systems. Protective Distribution Systems (PDS) are used to transmit unencrypted classified NSI through an area of lesser classification or control. Inasmuch as the classified NSI is unencrypted, the PDS must provide adequate electrical, electromagnetic, and physical safeguards to deter exploitation. Refer to NSTSSI No. 7003 for additional details on a PDS."
+  solution                : "Configure the SharePoint server to maintain the confidentiality of information during aggregation, packaging, and transformation in preparation for transmission.
+
+Open IIS Manager.
+
+In the Connections pane, expand Sites.
+
+Click the Web Application site.
+
+In the Actions pane, click Bindings.
+
+In the Site Bindings window, click Add.
+
+In the Add Site Binding window, change Type to https, and select the site's SSL certificate.
+
+Click OK, and then click Close."
+  reference               : "800-171|3.13.8,800-53|SC-8,CAT|I,CCI|CCI-002420,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,Rule-ID|SV-74409r1_rule,STIG-ID|SP13-00-000120,Vuln-ID|V-59979"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebapplication | Where-Object {$_.Url -notmatch \\"^https:\\"}'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "SP13-00-000125 - SharePoint must implement an information system isolation boundary that minimizes the number of nonsecurity functions included within the boundary containing security functions."
+  info        : "The information system isolates security functions from nonsecurity functions by means of an isolation boundary (implemented via partitions and domains) controlling access to and protecting the integrity of, the hardware, software, and firmware that perform those security functions. The information system maintains a separate execution domain (e.g., address space) for each executing process.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint server to implement an information system isolation boundary that minimizes the number of nonsecurity functions included within the boundary containing security functions.
+
+Log on to the server that hosts the farm's Central Administration website.
+
+Open IIS Manager.
+
+Expand 'Sites' tree view and right-click the web application named 'SharePoint Central Administration'.
+
+Select 'Edit Bindings ...'.
+
+Select the site binding record and click 'Edit'.
+
+From the 'IP Address' dropdown list, select an OOB IP address.
+
+Click 'Ok'.
+
+*NOTE: If the Central Administration site has multiple site bindings, steps will need to be repeated for each site binding."
+  reference   : "CAT|I,CCI|CCI-001184,Rule-ID|SV-74411r1_rule,STIG-ID|SP13-00-000125,Vuln-ID|V-59981"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "SP13-00-000130 - SharePoint must implement security functions as a layered structure minimizing interactions between layers of the design and avoiding any dependence by lower layers on the functionality or correctness of higher layers."
+  info        : "The information system isolates security functions from nonsecurity functions by means of an isolation boundary (implemented via partitions and domains) controlling access to, and protecting the integrity of, the hardware, software, and firmware that perform those security functions. The information system maintains a separate execution domain (e.g., address space) for each executing process.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint server to implement security functions as a layered structure minimizing interactions between layers of the design and avoiding any dependence by lower layers on the functionality or correctness of higher layers.
+
+Configure access to Central Administration to be allowed over a management (OOB) network.
+
+Configure Central Administration on a server that resides within the internal network (not on a server in the DMZ).
+
+Configure management access (i.e., remote desktop access and local server access) so that it occurs only via a management network (OOB) and not over a production network."
+  reference   : "CAT|II,CCI|CCI-001089,Rule-ID|SV-74413r1_rule,STIG-ID|SP13-00-000130,Vuln-ID|V-59983"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000135 - SharePoint must employ cryptographic mechanisms preventing the unauthorized disclosure of information during transmission, unless the transmitted data is otherwise protected by alternative physical measures."
+  info                    : "Preventing the disclosure of transmitted information requires that applications take measures to employ some form of cryptographic mechanism in order to protect the information during transmission. This is usually achieved through the use of Transport Layer Security (TLS), SSL VPN, or IPSEC tunnel.
+
+Alternative physical protection measures include Protected Distribution Systems (PDS). PDS are used to transmit unencrypted classified NSI through an area of lesser classification or control. Inasmuch as the classified NSI is unencrypted, the PDS must provide adequate electrical, electromagnetic, and physical safeguards to deter exploitation. Refer to NSTSSI No. 7003 for additional details on a PDS."
+  solution                : "Configure the SharePoint server to employ cryptographic mechanisms preventing the unauthorized disclosure of information during transmission, unless the transmitted data is otherwise protected by alternative physical measures.
+
+Open IIS Manager.
+
+In the Connections pane, expand Sites.
+
+Click the Web Application site.
+
+In the Actions pane, click Bindings.
+
+In the Site Bindings window, click Add.
+
+In the Add Site Binding window, change Type to https, and select the site's SSL certificate.
+
+Click OK, and then click Close."
+  reference               : "800-171|3.13.8,800-53|SC-8,CAT|I,CCI|CCI-002421,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,Rule-ID|SV-74415r1_rule,STIG-ID|SP13-00-000135,Vuln-ID|V-59985"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebapplication | Where-Object {$_.Url -notmatch \\"^https:\\"}'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000140 - SharePoint must prevent non-privileged users from circumventing malicious code protection capabilities."
+  info                    : "Malicious code protection software must be protected to prevent a non-privileged user or malicious piece of software from disabling the protection mechanism. A common tactic of malware is to identify the type of malicious code protection software running on the system and deactivate it. Malicious code includes viruses, worms, Trojan horses, and Spyware.
+
+Examples include the capability for non-administrative users to turn off or otherwise disable anti-virus."
+  solution                : "Configure the SharePoint server to prevent non-privileged users from circumventing malicious code protection capabilities.
+
+Navigate to Central Administration.
+
+Click 'Manage web applications'.
+
+Select the web application by clicking its name.
+
+Select 'Blocked File Types' from the ribbon.
+
+Add file types that are defined in the SSP but not in the list of blocked file types.
+
+Click 'Ok'.
+
+Repeat for each web application that has findings."
+  reference               : "800-171|3.13.13,800-53|SC-18(3),CAT|I,CCI|CCI-002235,CSF|DE.CM-5,ITSG-33|SC-18(3),NIAv2|NS26f,Rule-ID|SV-74417r1_rule,STIG-ID|SP13-00-000140,Vuln-ID|V-59987"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'get-spwebapplication|foreach-object {$_.Name;$_.blockedfileextensions;write-host \\"-----\\"}'
+  only_show_cmd_output    : YES
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "SP13-00-000145 - SharePoint must use mechanisms for authentication to a cryptographic module that meet the requirements of applicable federal laws, Executive Orders, directives, policies, regulations, standards, and guidance for such authentication."
+  info            : "Certain encryption types are no longer considered secure.  This setting configures a minimum encryption type for SharePoint. Different versions of the Windows Server OS, and versions of SharePoint will have different suites available."
+  solution        : "Configure the SharePoint server to use mechanisms for authentication to a cryptographic module that meet the requirements of applicable federal laws, Executive Orders, directives, policies, regulations, standards, and guidance for such authentication.
+
+Open MMC.
+
+Click 'File', 'Add/Remove Snap-in', and 'add Group Policy Object Editor'.
+
+Enter a name for the Group Policy Object, or accept the default.
+
+Click 'Finish'.
+
+Click 'OK'.
+
+Navigate to Computer Policy >> Computer Configuration >> Administrative Templates >> Network >> SSL Configuration settings.
+
+Right-click 'SSL Configuration Settings', click 'SSL Cipher Suite Order', and then click 'Edit'.
+
+In the 'SSL Cipher Suite Order' dialog box, select 'Enabled' option.
+
+Under 'Options', in the 'SSL Cipher Suites' text box, enter desired cipher suites that are not DES or RC4.
+
+Click 'OK'."
+  reference       : "800-171|3.13.11,800-53|SC-13,CAT|I,CCI|CCI-000803,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-74419r4_rule,STIG-ID|SP13-00-000145,Vuln-ID|V-59989"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : '^Pass'
+  powershell_args : "$regkey = (Get-ItemProperty -Path hklm:Software\\Policies\\Microsoft\\Cryptography\\Configuration\\Ssl\00010002 -name Functions).Functions; if($regkey -ne $null){ if($regkey -notmatch '.*(DES|RC4).*' ){ $result='Pass - No DES or RC4 entries found' } else { $result='Fail - DES or RC4 entries found' } } else { $result='Fail - Registry Key not found' }; $regkey; $result"
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000205 - SharePoint server access to the Online Web Part Gallery must be configured for limited access."
+  info                    : "Web Part galleries are groupings of Web Parts. There are four Web Part galleries: Closed Web Parts, Site Name Gallery, Server Gallery, and Online Gallery. The Online Gallery is a collection of Microsoft MSNBC Web Parts located on the Internet. Allowing users to access the Online Web Part Gallery causes a significant performance hit on the server, due to the server attempting to connect to the MSNBC online gallery. This could result in a Denial-of-Service. The Online Gallery could contain Web Parts from unknown third parties, which could increase the risk of a malicious code execution attack. Preventing users from accessing the Online Web Part Gallery decreases the system's attack surface."
+  solution                : "Configure the SharePoint server for limited access to the Online Web Part Gallery.
+
+Enable the 'Prevents users from accessing the Online Web Part Gallery, and helps to improve security and performance' option for each web application.
+
+Log on to Central Administration.
+
+Navigate to the Security page.
+
+Click on 'Manage web part security'.
+
+For each web application in the web application section, perform the following:
+-Select the correct web application in the web application section.
+-Select the 'Prevents users from accessing the Online Web Part Gallery, and helps to improve security and performance' option in the Online Web Part Gallery section.
+
+Select 'OK'."
+  reference               : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-001167,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-74421r2_rule,STIG-ID|SP13-00-000205,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-59991"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication | Where-Object {$_.AllowAccessToWebPartCatalog -eq 1} | select DisplayName,AllowAccessToWebPartCatalog | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000150 - The SharePoint Central Administration site must not be accessible from Extranet or Internet connections."
+  info                    : "SharePoint must prevent the presentation of information system management-related functionality at an interface utilized by general, (i.e., non-privileged), users.
+
+The Central Administrator is an application used to manage SharePoint system settings and the settings of the web applications running under SharePoint. The Central Administrator application should both be protected using a defense-in-depth approach. Regular users should not be able to access the Central Administrator as the first line of defense. The second line of defense is regular users do not have user ids defined in the Central Administration application."
+  solution                : "Configure the SharePoint Central Administration site to not be accessible from Extranet or Internet connections.
+
+Block outside Central Administrator access.
+
+Use an IIS IP address restrictions, firewall, or other filtering solutions to limit access to Central Administration site."
+  reference               : "800-171|3.13.1,800-53|SC-7(11),CAT|II,CCI|CCI-001083,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),NIAv2|GS7c,Rule-ID|SV-74423r1_rule,STIG-ID|SP13-00-000150,TBA-FIISB|31.3,Vuln-ID|V-59993"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication -IncludeCentralAdministration | Where-Object {$_.IsAdministrationWebApplication} | select Url | Format-List'
+  only_show_cmd_output    : YES
+</custom_item>
+
+<report type:"WARNING">
+  description : "SP13-00-000155 - For environments requiring an Internet-facing capability, the SharePoint application server upon which Central Administration is installed, must not be installed in the DMZ."
+  info        : "Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to the information.
+
+SharePoint installed Central Administrator is a powerful management tool used to administer the farm. This server should be installed on a trusted network segment. This server should also be used to run services rather than user-oriented web applications.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "For environments requiring an Internet-facing capability, remove the SharePoint Central Administration application server upon which Central Administration is installed from the DMZ."
+  reference   : "CAT|II,CCI|CCI-001414,Rule-ID|SV-74425r1_rule,STIG-ID|SP13-00-000155,Vuln-ID|V-59995"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000160 - The SharePoint farm service account (database access account)  must be configured with minimum privileges in Active Directory (AD)."
+  info                    : "Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+This policy limits the Farm Account privileges in AD.  However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the 'Database Access' account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools."
+  solution                : "Configure the SharePoint farm service account (database access account) with minimum privileges in Active Directory (AD).
+
+Ensure the Setup User domain user has minimum permissions in Active Directory.
+- Using the AD DS console, navigate to 'Active Directory Users and Computers' >> Users.
+- Double click on the account to view the account properties.
+- Select the 'Members of' tab and configure the farm service account is a member of the Domain Users group. Remove any other group membership from the account.
+- Select the other tabs in this area and remove any services or permissions configured for this account."
+  reference               : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-74427r1_rule,STIG-ID|SP13-00-000160,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-59997"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @FARM_SVC_ACCT@ replaced with "farmsvcaccount" in field "powershell_args".
+  powershell_args         : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_SystemAccount.Domain=\'$env:userdomain\',Name=\'farmsvcaccount\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'Domain Users\'`\\"\\" | Select-Object PartComponent,GroupComponent | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "SP13-00-000165 - The SharePoint farm service account (database access account) must be configured with minimum privileges on the SQL server."
+  info        : "Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+This policy limits the Farm Account privileges in AD.  However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the 'Database Access' account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint farm service account (database access account) with minimum privileges on the SQL server.
+
+Configure the account on each SQL server in the farm.
+- Launch the SQL Server Management Console and navigate to Security >> Logins.
+- Select the SharePoint farm service account.
+- Click on Server Roles.
+- Ensure only public, dbcreator, and securityadmin roles are checked.
+- Remove checks from all other roles."
+  reference   : "CAT|II,CCI|CCI-000366,Rule-ID|SV-74429r2_rule,STIG-ID|SP13-00-000165,Vuln-ID|V-59999"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000170 - The SharePoint setup account must be configured with the minimum privileges in Active Directory."
+  info                    : "Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+
+This policy limits the setup account privileges in AD.  However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the 'Database Access' account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools."
+  solution                : "Configure the SharePoint setup account to be configured with the minimum privileges in Active Directory.
+
+Ensure the Setup User domain user has minimum permissions in Active Directory.
+- Using the AD DS console, navigate to 'Active Directory Users and Computers' >> Users.
+- Double click on the account to view the account properties.
+- Select the 'Members of' tab and configure the Setup user account is a member of the Domain Users group. Remove any other group membership from the account.
+- Select the other tabs in this area and remove any services or permissions configured for this account."
+  reference               : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-74431r1_rule,STIG-ID|SP13-00-000170,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-60001"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @DOM_SP_SETUP_ACCT@ replaced with "domainsharepointsetupaccount" in field "powershell_args".
+  powershell_args         : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_SystemAccount.Domain=\'$env:userdomain\',Name=\'domainsharepointsetupaccount\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'Domain Users\'`\\"\\" | Select-Object PartComponent,GroupComponent | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "SP13-00-000175 - The SharePoint setup account must be configured with the minimum privileges on the SQL server."
+  info        : "Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+This policy limits the Farm Account privileges in AD.  However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the 'Database Access' account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the SharePoint setup account with minimum privileges on the SQL server.
+
+Configure the account on the SQL server.
+- Launch the SQL Server Management Console and navigate to Security >> Logins.
+- Select the SharePoint Setup User account.
+- Click on 'Server Roles'.
+- Ensure only public, dbcreator, and securityadmin roles are checked.
+- Remove checks from all other roles."
+  reference   : "CAT|II,CCI|CCI-000366,Rule-ID|SV-74433r2_rule,STIG-ID|SP13-00-000175,Vuln-ID|V-60003"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+</report>
+
+<custom_item>
+  type              : AUDIT_POWERSHELL
+  description       : "SP13-00-000180 - The SharePoint setup account must be configured with the minimum privileges for the local server."
+  info              : "Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+
+This policy limits the setup account privileges in AD.  However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the 'Database Access' account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools."
+  solution          : "Configure the SharePoint setup account with the minimum privileges for the local server.
+
+- On the server(s) where the SharePoint software is installed, navigate to Server Manager -> Local Users and Groups.
+- Select the 'Member of' tab.
+- Configure the SharePoint Setup User as a member of Administrators, WSS_ADMIN_WPG, and IIS_IUSRS groups.
+- Remove all other group memberships from this account.
+- Select the other tabs in this area and remove other services or permissions configured for this account."
+  reference         : "800-171|3.1.1,800-53|AC-2,CAT|II,CCI|CCI-000366,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NESA|T5.2.1,NESA|T5.2.2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,Rule-ID|SV-74435r2_rule,STIG-ID|SP13-00-000180,Vuln-ID|V-60005"
+  see_also          : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type        : POLICY_TEXT
+  value_data        : ""
+# Note: Variable @LOC_SP_SETUP_ACCT@ replaced with "localsharepointsetupaccount" in field "powershell_args".
+  powershell_args   : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_SystemAccount.Domain=\'$env:userdomain\',Name=\'localsharepointsetupaccount\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'Administrators\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'WSS_ADMIN_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'IIS_IUSRS\'`\\"\\" | Select-Object PartComponent,GroupComponent | Format-List'
+  powershell_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000185 - A secondary SharePoint site collection administrator must be defined when creating a new site collection."
+  info                    : "If a site reaches its maximum size, users will be denied access until an administrator fixes the problem. Having a secondary administrator reduces the risk of having a Denial-of-Service on a site. If the site reaches its maximum size, the secondary administrator can fix the problem if the primary administrator is not available. In some situations, having a secondary site administrator could be inappropriate for reasons of control or confidentiality."
+  solution                : "Configure a secondary SharePoint site collection administrator when creating a new site collection.
+
+Log on to SharePoint Central Administration as a member of the Farm Administration Group.
+
+Click on 'Application Management'.
+
+Select 'Site Collections' >> Change Site Collections Administrator.
+
+For each site, define a Secondary Site Collection Administrator.
+
+Select 'OK'."
+  reference               : "800-171|3.5.3,800-53|IA-2(1),800-53|SC-5,CAT|III,CCI|CCI-000366,CN-L3|7.1.2.7(b),CSF|DE.CM-1,CSF|PR.AC-1,CSF|PR.DS-4,ITSG-33|IA-2(1),ITSG-33|SC-5,NESA|T3.3.1,NESA|T5.4.2,NIAv2|AM36,NIAv2|GS10c,NIAv2|GS8e,NIAv2|VL3c,Rule-ID|SV-74437r1_rule,STIG-ID|SP13-00-000185,SWIFT-CSCv1|1.2,Vuln-ID|V-60007"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : "Get-SPSite | foreach-object {$_.RootWeb.SiteAdministrators} | select @{name='Url';expr={$_.ParentWeb.Url}}, LoginName, Email|format-list"
+  only_show_cmd_output    : YES
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000190 - When configuring SharePoint Central Administration, the port number selected must comply with DoD Ports and Protocol Management (PPSM) program requirements."
+  info                    : "During the installation of Microsoft SharePoint, the Central Administration Web site is established on a randomly-assigned TCP port by default. Allowing a randomly-assigned default may result in use of a port which violates DoD policy or conflicts with ports already in use.  Use of certain well-known ports may also result in slow operational response or expose the application to known denial of service attacks."
+  solution                : "Configure the SharePoint Central Administration port number selected to comply with DoD Ports and Protocol Management (PPSM) program requirements.
+
+Open the SharePoint Management Shell (Start >> All Programs >> Microsoft SharePoint Products >> SharePoint Management Shell).
+
+Change the port number to a PPS-approved port that does not conflict with existing port usage using the following command:
+Set -SPCentralAdministration -Port <PortNumber>
+
+Press 'Enter' to save."
+  reference               : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000382,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-74439r2_rule,STIG-ID|SP13-00-000190,SWIFT-CSCv1|2.3,Vuln-ID|V-60009"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+# Note: Variable @CA_PORT@ replaced with "28779" in field "value_data".
+  value_data              : "Port[\s]+:[\s]+28779"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication -includecentraladministration |where {$_.IsAdministrationWebApplication} | Get-SPSite -identity {$_.Url} | select Port | Format-List'
+  check_type              : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000195 - SharePoint-specific malware (i.e. anti-virus) protection software must be integrated and configured - 'Scan Documents on Upload is enabled'"
+  info                    : "Configuring anti-virus settings ensures documents will be scanned for viruses upon download from and upload to the SharePoint server. Anti-virus settings are not configured by default, therefore leaving the documents downloaded from or uploaded to SharePoint open to potential viruses."
+  solution                : "Configure and integrate SharePoint-specific malware (i.e. anti-virus) protection software on the SharePoint server.
+
+Install and configure anti-virus package.
+
+Install a SharePoint Server 2010-specific antivirus package.
+
+Log in to Central Administration.
+
+Navigate to Operations >> Security Configuration.
+
+Select Anti-virus.
+
+Check the following boxes:
+- Scan documents on upload.
+- Scan documents on download.
+- Attempt to clean infected documents.
+
+Select 'OK'."
+  reference               : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001167,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,Rule-ID|SV-74441r1_rule,STIG-ID|SP13-00-000195,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7,Vuln-ID|V-60011"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | select -ExpandProperty AntivirusSettings | Where-Object {$_.UploadScanEnabled -ne 1} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000195 - SharePoint-specific malware (i.e. anti-virus) protection software must be integrated and configured - 'Scan Documents on Download is enabled'"
+  info                    : "Configuring anti-virus settings ensures documents will be scanned for viruses upon download from and upload to the SharePoint server. Anti-virus settings are not configured by default, therefore leaving the documents downloaded from or uploaded to SharePoint open to potential viruses."
+  solution                : "Configure and integrate SharePoint-specific malware (i.e. anti-virus) protection software on the SharePoint server.
+
+Install and configure anti-virus package.
+
+Install a SharePoint Server 2010-specific antivirus package.
+
+Log in to Central Administration.
+
+Navigate to Operations >> Security Configuration.
+
+Select Anti-virus.
+
+Check the following boxes:
+- Scan documents on upload.
+- Scan documents on download.
+- Attempt to clean infected documents.
+
+Select 'OK'."
+  reference               : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001167,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,Rule-ID|SV-74441r1_rule,STIG-ID|SP13-00-000195,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7,Vuln-ID|V-60011"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | select -ExpandProperty AntivirusSettings | Where-Object {$_.DownloadScanEnabled -ne 1} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000195 - SharePoint-specific malware (i.e. anti-virus) protection software must be integrated and configured - 'Attempt to Clean Infected Documents is enabled'"
+  info                    : "Configuring anti-virus settings ensures documents will be scanned for viruses upon download from and upload to the SharePoint server. Anti-virus settings are not configured by default, therefore leaving the documents downloaded from or uploaded to SharePoint open to potential viruses."
+  solution                : "Configure and integrate SharePoint-specific malware (i.e. anti-virus) protection software on the SharePoint server.
+
+Install and configure anti-virus package.
+
+Install a SharePoint Server 2010-specific antivirus package.
+
+Log in to Central Administration.
+
+Navigate to Operations >> Security Configuration.
+
+Select Anti-virus.
+
+Check the following boxes:
+- Scan documents on upload.
+- Scan documents on download.
+- Attempt to clean infected documents.
+
+Select 'OK'."
+  reference               : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001167,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,Rule-ID|SV-74441r1_rule,STIG-ID|SP13-00-000195,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7,Vuln-ID|V-60011"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | select -ExpandProperty AntivirusSettings | Where-Object {$_.CleaningEnabled -ne 1} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "SP13-00-000210 - The SharePoint farm service account (database access account) must be configured with the minimum privileges for the local server."
+  info                    : "Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+This policy limits the Farm Account privileges in AD.  However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the 'Database Access' account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools."
+  solution                : "Configure the SharePoint farm service account (database access account) with the minimum privileges for the local server.
+
+- On the server(s) where the SharePoint software is installed, navigate to Server Manager >> Local Users and Groups.
+- Select the 'Member of' tab. Configure the farm service account as a member of WSS_RESTRICTED_WPG, WSS_ADMIN_WPG, and WSS_WPG groups. Remove all other group memberships from this account.
+- Select the other tabs in this area and remove other services or permissions configured for this account."
+  reference               : "800-171|3.1.1,800-53|AC-2,CAT|II,CCI|CCI-000366,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NESA|T5.2.1,NESA|T5.2.2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,Rule-ID|SV-74821r1_rule,STIG-ID|SP13-00-000210,Vuln-ID|V-60391"
+  see_also                : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SharePoint_2013_V1R8_STIG.zip"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @FARM_SVC_ACCT@ replaced with "farmsvcaccount" in field "powershell_args".
+  powershell_args         : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_SystemAccount.Domain=\'$env:userdomain\',Name=\'farmsvcaccount\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'Administrators\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'WSS_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'WSS_ADMIN_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'WSS_RESTRICTED_WPG\'`\\"\\" | Select-Object PartComponent,GroupComponent | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+</group_policy>
+</check_type>

@@ -1,0 +1,328 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.3 $
+# $Date: 2020/07/14 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Microsoft Exchange Server 2016 v1.0.0 Benchmark
+#
+#<ui_metadata>
+#<display_name>CIS Microsoft Exchange Server 2016 Hub v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS Microsoft Exchange Server 2016 Hub</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/1514</link>
+#</spec>
+#<labels>microsoft,exchange,exchange_2016,hub,windows</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SECURE_STRING</name>
+#    <default>none</default>
+#    <description>Secure String for Authentication</description>
+#    <info>Comma separated secure string(s) which will be used to authenticate against the target servers.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"Microsoft Exchange Server 2016">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "Test secure string"
+      value_type      : POLICY_TEXT
+      value_data      : ".*"
+      powershell_args : "hostname"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "CIS_Microsoft_Exchange_Server_2016_Level_1_Hub_v1.0.0.audit from CIS Microsoft Exchange Server 2016 v1.0.0 Benchmark"
+      info            : "NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      value_type      : POLICY_TEXT
+      value_data      : "[\s]+15\.1[\s]+.*[\s]+True"
+      powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsHubTransportServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+      reference       : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "Platform check"
+          value_type      : POLICY_TEXT
+          value_data      : "[\s]+15\.1[\s]+.*[\s]+True"
+          powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsHubTransportServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.2 Set 'Maximum receive size - organization level' to '10240'"
+          info            : "This limit includes the message header, the message body, and any attachments. For internal message flow, Exchange Server uses the custom X-MS-Exchange-Organization-OriginalSize message header to record the original message size of the message as it enters the Exchange Server organization. Whenever the message is checked against the specified message size limits, either the lower value of the current message size or the original message size header is used. The size of the message can change because of content conversion, encoding, and agent processing.
+
+Rationale:
+
+This setting somewhat limits the impact that a malicious user or a computer with malware can have on the Exchange infrastructure by restricting the size of incoming messages."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-TransportConfig -MaxReceiveSize 10240KB"
+          reference       : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|1S,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "Get-TransportConfig | Format-List MaxReceiveSize; if ([int64]((Get-TransportConfig).MaxReceiveSize -Replace '.*\(' -Replace ' .*' )/1KB -gt 10240) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.5 Set 'Configure Sender Filtering' to 'Enabled'"
+          info            : "By default, sender filtering is enabled on a computer performing the Edge Transport server role for inbound messages from the Internet that are not authenticated. These messages are handled as external messages. You can disable the Sender Filter agent in individual computer configurations by using the Exchange admin center or the Exchange Management Shell. When you enable the Sender Filter agent on a computer running Exchange, it filters all messages from all Receive connectors on that computer. Only messages from external sources are filtered. External sources are defined as non-authenticated sources. These are considered anonymous Internet sources.
+
+Rationale:
+
+Spam consumes a large amount of network bandwidth and server capacity. In addition, it is often the source of malicious software."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-SenderFilterConfig -Enabled $true"
+          reference       : "800-53|SI-8,ITSG-33|SI-8,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "Enabled[\s]+:[\s]+True"
+          powershell_args : "Get-SenderFilterConfig | Format-List -property Enabled"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.7 Set 'Maximum number of recipients - organization level' to '5000'"
+          info            : "You can use this setting to control the total number of message recipients. When a message is first composed, the recipients exist in the To:, Cc:, and Bcc: header fields. When the message is submitted for delivery, the message recipients are converted into RCPT TO: entries in the message envelope. A distribution group is counted as a single recipient during message submission.
+
+Rationale:
+
+This setting somewhat limits the impact that a malicious user or a computer with malware can have on the Exchange infrastructure by restricting the number of recipients for any single message."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-TransportService -Identity 'Server01' -PickupDirectoryMaxRecipientsPerMessage 5000"
+          reference       : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|1S,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-TransportService; $settings | Format-List Identity, PickupDirectoryMaxRecipientsPerMessage; If ($settings | Where {$_.PickupDirectoryMaxRecipientsPerMessage -gt 5000}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.13 Set 'Message tracking logging - Transport' to 'True'"
+          info            : "A message tracking log provides a detailed log of all message activity as messages are transferred to and from a computer running Exchange. Message tracking is available on Hub Transport servers, Edge Transport servers, and Mailbox servers. By default, message tracking is enabled.
+
+Rationale:
+
+If events are not recorded it may be difficult or impossible to determine the root cause of system problems or the unauthorized activities of malicious users."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-TransportService EXCHANGE1 -MessageTrackingLogEnabled $true"
+          reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-TransportService ; $settings | Format-List Identity, MessageTrackingLogEnabled; If ($settings | Where {$_.MessageTrackingLogEnabled -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.17 Set 'Maximum send size - organization level' to '10240'"
+          info            : "This limit includes the message header, the message body, and any attachments. For internal message flow, Exchange Server uses the custom X-MS-Exchange-Organization-OriginalSize message header to record the original message size of the message as it enters the Exchange Server organization. Whenever the message is checked against the specified message size limits, the lower value of the current message size or the original message size header is used. The size of the message can change because of content conversion, encoding, and agent processing.
+
+Rationale:
+
+This setting somewhat limits the impact that a malicious user or a computer with malware can have on the Exchange infrastructure by restricting the size of outgoing messages."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-TransportConfig -MaxSendSize 10240KB"
+          reference       : "800-53|SC-5(1),ITSG-33|SC-5(1),LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "Get-TransportConfig | Format-List MaxSendSize; if ([int]((Get-TransportConfig).MaxSendSize -Replace '.*\(' -Replace ' .*' )/1KB -gt 10240) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.18 Set 'Maximum receive size - connector level' to '10240'"
+          info            : "You can use this setting to limit the total size of messages at the connector level. This includes the message header, the message body, and any attachments. For internal message flow, Exchange Server uses the custom X-MS-Exchange-Organization-OriginalSize message header to record the original message size of the message as it enters the Exchange Server organization. Whenever the message is checked against the specified message size limits, the lower value of the current message size or the original message size header is used. The size of the message can change because of content conversion, encoding, and agent processing.
+
+Rationale:
+
+This setting somewhat limits the impact a malicious user or a computer with malware can have on the Exchange infrastructure by restricting the size of incoming messages."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-ReceiveConnector 'Connection from Contoso.com' -MaxMessageSize 10240KB"
+          reference       : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|1S,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$pass = $true; Get-ReceiveConnector | Format-List Identity, MaxMessageSize; foreach ($item in (Get-ReceiveConnector).MaxMessageSize -Replace '.*\(' -Replace ' .*' ) { if (([int]$item)/1KB -gt 10240) { $pass = $false } }; If ($pass) { 'All policies compliant' } Else { 'Non compliant policies found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.3 Set 'Turn on script execution' to 'RemoteSigned'"
+          info            : "Use this setting to configure the script execution policy that controls what script types users can run.
+
+Rationale:
+
+Unsigned scripts are at greater risk of containing unauthorized code."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-ExecutionPolicy RemoteSigned"
+          reference       : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|1S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "RemoteSigned"
+          powershell_args : "Get-ExecutionPolicy"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.5 Set 'Enable automatic replies to remote domains' to 'False'"
+          info            : "You can use this setting to determine if the server automatically replies to remote domains.
+
+Rationale:
+
+Attackers can use automated messages to determine whether a user account is active, in the office, traveling, and so on. An attacker might use this information to conduct other types of attacks."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-RemoteDomain -Identity Default -AutoReplyEnabled $false"
+          reference       : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-RemoteDomain ; $settings | Format-List Identity, AutoReplyEnabled; If ($settings | Where {$_.AutoReplyEnabled -ne $false}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.7 Set 'Enable non-delivery reports to remote domains' to 'False'"
+          info            : "You can use this setting to determines if the server automatically sends delivery reports to remote domains.
+
+Rationale:
+
+Attackers can use automated messages to determine whether a user account is active, in the office, traveling, and so on. An attacker might use this information to conduct other types of attacks."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-RemoteDomain -Identity Contoso -NDREnabled $false"
+          reference       : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-RemoteDomain ; $settings | Format-List Identity, NDREnabled; If ($settings | Where {$_.NDREnabled -ne $false}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.8 Set 'Enable OOF messages to remote domains' to 'None'"
+          info            : "You can use this setting to determine if the server automatically forwards out-of-office messages to remote domains.
+
+Rationale:
+
+Attackers can use automated messages to determine whether a user is active, in the office, traveling, and so on. An attacker might use this information to conduct other types of attacks."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-RemoteDomain 'RemoteDomain' -AllowedOOFType None"
+          reference       : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-RemoteDomain ; $settings | Format-List Identity, AllowedOOFType; If ($settings | Where {$_.AllowedOOFType -ne 'None'}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "3.9 Set 'Enable automatic forwards to remote domains' to 'False'"
+          info            : "You can use this setting to determine if the server sends automatic forwards to remote domains.
+
+Rationale:
+
+Attackers can use automated messages to determine whether a user account is active, in the office, traveling, and so on. An attacker might use this information to conduct other types of attacks."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+Set-RemoteDomain -Identity Contoso -AutoForwardEnabled $false"
+          reference       : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+          see_also        : "https://workbench.cisecurity.org/files/1514"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-RemoteDomain ; $settings | Format-List Identity, AutoForwardEnabled; If ($settings | Where {$_.AutoForwardEnabled -ne $false}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Authentication Failure"
+      info        : "Secure string passed to powershell was invalid or empty."
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

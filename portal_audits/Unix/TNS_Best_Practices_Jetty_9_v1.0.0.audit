@@ -1,0 +1,1541 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.9 $
+# $Date: 2020/07/14 $
+#
+#<ui_metadata>
+#<display_name>TNS Best Practice Jetty 9 Linux</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>TNS Best Practice Jetty 9 Linux</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>jetty,agent,unix</labels>
+#<variables>
+#  <variable>
+#     <name>JETTY_USER</name>
+#     <default>jetty</default>
+#     <description>The Jetty user</description>
+#     <info>The user running the jetty process</info>
+#   </variable>
+#  <variable>
+#    <name>JETTY_HOME</name>
+#    <default>/usr/local/jetty</default>
+#    <description>${jetty.home}</description>
+#    <info>value of ${jetty.home}</info>
+#  </variable>
+#  <variable>
+#    <name>JETTY_BASE</name>
+#    <default>/var/lib/jetty</default>
+#    <description>${jetty.base}</description>
+#    <info>value of ${jetty.base}</info>
+#  </variable>
+#  <variable>
+#    <name>JETTY_POLICY</name>
+#    <default>/usr/local/jetty/etc/jetty.policy</default>
+#    <description>jetty.policy full file path</description>
+#    <info>jetty.policy file path</info>
+#  </variable>
+#  <variable>
+#    <name>JETTY_PROPERTIES</name>
+#    <default>/usr/local/jetty/etc/jetty.properties</default>
+#    <description>jetty.properties full file path</description>
+#    <info>jetty.properties file path</info>
+#  </variable>
+#  <variable>
+#    <name>LOGGING_PROP</name>
+#    <default>/usr/local/jetty/etc/logging.properties</default>
+#    <description>logging.properties full file path</description>
+#    <info>logging.properties file path</info>
+#  </variable>
+#  <variable>
+#    <name>USERS_XML</name>
+#    <default>/usr/local/jetty/etc/users.xml</default>
+#    <description>users.xml full file path</description>
+#    <info>users.xml full file path</info>
+#  </variable>
+#  <variable>
+#    <name>SERVER_XML</name>
+#    <default>/usr/local/jetty/etc/jetty.xml</default>
+#    <description>jetty.xml full file path</description>
+#    <info>jetty.xml full file path</info>
+#  </variable>
+#  <variable>
+#    <name>WEB_XML</name>
+#    <default>/usr/local/jetty/etc/web.xml</default>
+#    <description>web.xml full file path</description>
+#    <info>web.xml full file path</info>
+#  </variable>
+#  <variable>
+#    <name>WEB_APP_ROOT</name>
+#    <default>/var/lib/jetty/webapps</default>
+#    <description>Root path of your webapp</description>
+#    <info>Root path of your webapp</info>
+#  </variable>
+#  <variable>
+#    <name>CONTEXT_XML</name>
+#    <default>/var/lib/jetty/demo-base/webapps/test.xml</default>
+#    <description>Webapp Context.xml fullpath</description>
+#    <info>Webapp Context.xml fullpath</info>
+#  </variable>
+#  <variable>
+#    <name>SENSITIVE_PKGS</name>
+#    <default>sun.org.apache.JETTY,org.apache.coyote</default>
+#    <description>package.access =</description>
+#    <info>package.access list from JETTY_PROPERTIES</info>
+#  </variable>
+#  <variable>
+#    <name>REALM_PROPERTIES</name>
+#    <default>/usr/local/jetty/etc/realm.properties</default>
+#    <description>full path to realm.properties file</description>
+#    <info>full path to realm.properties file</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Is Jetty Installed?"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "[ -d \"/usr/local/jetty\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory exists"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "TNS_Best_Practices_Jetty_9_v1.0.0.audit"
+    </report>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          type        : CMD_EXEC
+          description : "1 - Application specific logging - ${jetty.base}/start.ini --module=logging"
+          info        : "By default, the internal Jetty Logging discovery mechanism will load logging specific properties from a classpath resource called jetty-logging.propertiesand then initialize the Logging from a combination of properties found in that file, along with any System Properties.
+
+Establishing per application logging profiles will help ensure that each applications logging verbosity is set to an appropriate level in order to provide appropriate information when needed for security review."
+          solution    : "To enable on the command line:
+
+[my-base]$ java -jar /opt/jetty/start.jar --module=logging
+
+You can also include the --module=logging command in your ${jetty.base}/start.ini by running:
+
+[my-base]$ java -jar /opt/jetty/start.jar --add-to-start=logging"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+          cmd         : "grep '^--[m]odule=logging' /var/lib/jetty/start.ini"
+          expect      : "^--module=logging"
+        </custom_item>
+
+        <custom_item>
+          type        : CMD_EXEC
+          description : "1 - Application specific logging - start.jar --module=logging"
+          info        : "By default, the internal Jetty Logging discovery mechanism will load logging specific properties from a classpath resource called jetty-logging.propertiesand then initialize the Logging from a combination of properties found in that file, along with any System Properties.
+
+Establishing per application logging profiles will help ensure that each applications logging verbosity is set to an appropriate level in order to provide appropriate information when needed for security review."
+          solution    : "To enable on the command line:
+
+[my-base]$ java -jar /opt/jetty/start.jar --module=logging
+You can also include the --module=logging command in your ${jetty.base}/start.ini by running:
+
+[my-base]$ java -jar /opt/jetty/start.jar --add-to-start=logging"
+          cmd         : "ps aux | grep '[s]tart.jar'"
+          expect      : "--module=.*logging.*"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "1 - Application specific logging"
+          info        : "By default, the internal Jetty Logging discovery mechanism will load logging specific properties from a classpath resource called jetty-logging.propertiesand then initialize the Logging from a combination of properties found in that file, along with any System Properties.
+
+Establishing per application logging profiles will help ensure that each applications logging verbosity is set to an appropriate level in order to provide appropriate information when needed for security review."
+          solution    : "To enable on the command line:
+
+[my-base]$ java -jar /opt/jetty/start.jar --module=logging
+You can also include the --module=logging command in your ${jetty.base}/start.ini
+
+[my-base]$ java -jar /opt/jetty/start.jar --add-to-start=logging"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "1 - Application specific logging"
+          info        : "By default, the internal Jetty Logging discovery mechanism will load logging specific properties from a classpath resource called jetty-logging.propertiesand then initialize the Logging from a combination of properties found in that file, along with any System Properties.
+
+Establishing per application logging profiles will help ensure that each applications logging verbosity is set to an appropriate level in order to provide appropriate information when needed for security review."
+          solution    : "To enable on the command line:
+
+[my-base]$ java -jar /opt/jetty/start.jar --module=logging
+You can also include the --module=logging command in your ${jetty.base}/start.ini
+
+[my-base]$ java -jar /opt/jetty/start.jar --add-to-start=logging"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2 - Specify file handler in jetty-logging.properties files - org.eclipse.jetty.util.log.class=org.eclipse.jetty.util.log.StrErrLog"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to the  ${jetty.base}/resources/jetty-logging.properties file if they do not exist.
+# Configure Jetty for StdErrLog Logging
+org.eclipse.jetty.util.log.class=org.eclipse.jetty.util.log.StrErrLog
+# Overall Logging Level is INFO
+org.eclipse.jetty.LEVEL=INFO
+# Detail Logging for WebSocket
+org.eclipse.jetty.websocket.LEVEL=DEBUG"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "grep 'org\.eclipse\.jetty\.util\.log\.class=org\.eclipse\.jetty\.util\.log\.StrErrLog' /var/lib/jetty/resources/jetty-logging.properties"
+      expect      : "^org\\.eclipse\\.jetty\\.util\\.log\\.class=org\\.eclipse\\.jetty\\.util\\.log\\.StrErrLog$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2 - Specify file handler in jetty-logging.properties files - org.eclipse.jetty.LEVEL=INFO"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to the  ${jetty.base}/resources/jetty-logging.properties file if they do not exist.
+# Configure Jetty for StdErrLog Logging
+org.eclipse.jetty.util.log.class=org.eclipse.jetty.util.log.StrErrLog
+# Overall Logging Level is INFO
+org.eclipse.jetty.LEVEL=INFO
+# Detail Logging for WebSocket
+org.eclipse.jetty.websocket.LEVEL=DEBUG"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "grep 'org\.eclipse\.jetty\.LEVEL=INFO' /var/lib/jetty/resources/jetty-logging.properties"
+      expect      : "^org\\.eclipse\\.jetty\\.LEVEL=INFO$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2 - Specify file handler in jetty-logging.properties files - org.eclipse.jetty.websocket.LEVEL=DEBUG"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to the  ${jetty.base}/resources/jetty-logging.properties file if they do not exist.
+# Configure Jetty for StdErrLog Logging
+org.eclipse.jetty.util.log.class=org.eclipse.jetty.util.log.StrErrLog
+# Overall Logging Level is INFO
+org.eclipse.jetty.LEVEL=INFO
+# Detail Logging for WebSocket
+org.eclipse.jetty.websocket.LEVEL=DEBUG"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "grep 'org\.eclipse\.jetty\.websocket\.LEVEL=DEBUG' /var/lib/jetty/resources/jetty-logging.properties"
+      expect      : "^org\\.eclipse\\.jetty\\.websocket\\.LEVEL=DEBUG$"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "3 - Configure log file size limit - org.eclipse.jetty.server.handler.RequestLogHandler"
+      info        : "By default, the logging.properties file will have no defined limit for the log file size. This is a potential denial of service attack as it would be possible to fill a drive or partition containing the log files.
+
+Establishing a maximum log size that is smaller than the partition size will help mitigate the risk of an attacker maliciously exhausting disk space.
+Note: Nessus has not performed this check. It is included for informational purposes only."
+      solution    : "The following example configures a single request log for the entire Jetty Server instance:
+
+<Set name=\"\"handler\"\">
+  <New id=\"\"Handlers\"\" class=\"\"org.eclipse.jetty.server.handler.HandlerCollection\"\">
+     <Set name=\"\"handlers\"\">
+        <Array type=\"\"org.eclipse.jetty.server.Handler\"\">
+           <Item>
+             <New id=\"\"Contexts\"\" class=\"\"org.eclipse.jetty.server.handler.ContextHandlerCollection\"\"/>
+            </Item>
+            <Item>
+              <New id=\"\"DefaultHandler\"\" class=\"\"org.eclipse.jetty.server.handler.DefaultHandler\"\"/>
+            </Item>
+            <Item>
+              <New id=\"\"RequestLog\"\" class=\"\"org.eclipse.jetty.server.handler.RequestLogHandler\"\"/>
+            </Item>
+        </Array>
+    </Set>
+  </New>
+</Set>
+
+
+<Ref id=\"\"RequestLog\"\">
+  <Set name=\"\"requestLog\"\">
+    <New id=\"\"RequestLogImpl\"\" class=\"\"org.eclipse.jetty.NCSARequestLog\"\">
+      <Arg><SystemProperty name=\"\"jetty.logs\"\" default=\"\"./logs\"\"/>/yyyy_mm_dd.request.log</Arg>
+      <Set name=\"\"retainDays\"\">90</Set>
+      <Set name=\"\"append\"\">true</Set>
+      <Set name=\"\"extended\"\">false</Set>
+      <Set name=\"\"LogTimeZone\"\">GMT</Set>
+     </New>
+  </Set>
+</Ref>"
+      reference   : "800-53|AU-4,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,NESA|T3.3.1,NESA|T3.6.2"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "file".
+      file        : "/usr/local/jetty/etc/jetty.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='Configure']//*[local-name()='New'][@id='RequestLog']\">"
+      xsl_stmt    : "RequestLogHandler = <xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='New'][@id='RequestLog']/@class\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "RequestLogHandler = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "RequestLogHandler = "
+      expect      : "RequestLogHandler = org\\.eclipse\\.jetty\\.server\\.handler\\.RequestLogHandler"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "3 - Configure log file size limit - Settings"
+      info        : "By default, the logging.properties file will have no defined limit for the log file size. This is a potential denial of service attack as it would be possible to fill a drive or partition containing the log files.
+
+Establishing a maximum log size that is smaller than the partition size will help mitigate the risk of an attacker maliciously exhausting disk space.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "The following example configures a single request log for the entire Jetty Server instance:
+
+<Set name=\"\"handler\"\">
+  <New id=\"\"Handlers\"\" class=\"\"org.eclipse.jetty.server.handler.HandlerCollection\"\">
+     <Set name=\"\"handlers\"\">
+        <Array type=\"\"org.eclipse.jetty.server.Handler\"\">
+           <Item>
+             <New id=\"\"Contexts\"\" class=\"\"org.eclipse.jetty.server.handler.ContextHandlerCollection\"\"/>
+            </Item>
+            <Item>
+              <New id=\"\"DefaultHandler\"\" class=\"\"org.eclipse.jetty.server.handler.DefaultHandler\"\"/>
+            </Item>
+            <Item>
+              <New id=\"\"RequestLog\"\" class=\"\"org.eclipse.jetty.server.handler.RequestLogHandler\"\"/>
+            </Item>
+        </Array>
+    </Set>
+  </New>
+</Set>
+
+
+<Ref id=\"\"RequestLog\"\">
+  <Set name=\"\"requestLog\"\">
+    <New id=\"\"RequestLogImpl\"\" class=\"\"org.eclipse.jetty.NCSARequestLog\"\">
+      <Arg><SystemProperty name=\"\"jetty.logs\"\" default=\"\"./logs\"\"/>/yyyy_mm_dd.request.log</Arg>
+      <Set name=\"\"retainDays\"\">90</Set>
+      <Set name=\"\"append\"\">true</Set>
+      <Set name=\"\"extended\"\">false</Set>
+      <Set name=\"\"LogTimeZone\"\">GMT</Set>
+     </New>
+  </Set>
+</Ref>"
+      reference   : "800-53|AU-4,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,NESA|T3.3.1,NESA|T3.6.2"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "file".
+      file        : "/usr/local/jetty/etc/jetty.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='Configure']//*[local-name()='Ref'][@id='RequestLog']\">"
+      xsl_stmt    : "RequestLog Settings = retainDays:<xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Ref'][@id='RequestLog']//*[local-name()='Set'][@name='retainDays']\"/> append:<xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Ref'][@id='RequestLog']//*[local-name()='Set'][@name='append']\"/> extended:<xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Ref'][@id='RequestLog']//*[local-name()='Set'][@name='extended']\"/> LogTimeZone:retainDays:<xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Ref'][@id='RequestLog']//*[local-name()='Set'][@name='LogTimeZone']\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "RequestLog Settings = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "RequestLog Settings = "
+      expect      : "RequestLog Settings = .*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "4 - Restrict access to $JETTY_HOME - mode"
+      info        : "$JETTY_HOME is the environment variable which holds the path to the Jetty root directory. It is important to protect access to this in order to protect the Jetty binaries and libraries from unauthorized modification. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permission on $JETTY_HOME prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w).
+
+The security of processes and data that traverse or depend on Jetty may become compromised if the $JETTY_HOME is not secured."
+      solution    : "To establish the recommended state:
+1. Set the ownership of $JETTY_HOME to your dedicated jetty user (e.g., admin).
+2. Remove read, write, and execute permissions for the world
+3. Remove write permissions for the group.
+# chown _admin. $JETTY_HOME # chmod g-w,o-rwx $JETTY_HOME"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "4 - Restrict access to $JETTY_HOME - owner"
+      info        : "$JETTY_HOME is the environment variable which holds the path to the Jetty root directory. It is important to protect access to this in order to protect the Jetty binaries and libraries from unauthorized modification. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permission on $JETTY_HOME prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w).
+
+The security of processes and data that traverse or depend on Jetty may become compromised if the $JETTY_HOME is not secured."
+      solution    : "To establish the recommended state:
+1. Set the ownership of $JETTY_HOME to your dedicated jetty user (e.g., admin).
+2. Remove read, write, and execute permissions for the world
+3. Remove write permissions for the group.
+# chown _admin. $JETTY_HOME # chmod g-w,o-rwx $JETTY_HOME"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "stat -c \"%U\" /usr/local/jetty"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "5 - Authentication"
+      info        : "Remove access for default and test users
+
+Default username and passwords should not be used
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Navigate to Server directory, open realm.properties file and create a new user. If you want to just use the default test realm, its better to delete the default users that already exist in realm.properties file. In the same folder find the webdefault.xml and specify the security constraint for the newly created user."
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "6 - Encryption"
+      info        : "Store the Username and Password in encrypted form
+
+Stored Username and Passwords should be encrypted
+
+Note: Nessus has not performed this check. It is included for informational purposes only."
+      solution    : "The class org.eclipse.jetty.util.security.Password can be used to generate all varieties of passwords.
+
+Run it without arguments to see usage instructions"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @REALM_PROPERTIES@ replaced with "/usr/local/jetty/etc/realm.properties" in field "cmd".
+      cmd         : "cat /usr/local/jetty/etc/realm.properties | grep -v 'CRYPT:'| grep -v '#' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.ini --module=http"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "grep '^[-]-module=http' /var/lib/jetty/start.ini"
+      expect      : "^--module=http$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.jar --module=http"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+      cmd         : "ps aux | grep '[s]tart.jar'"
+      expect      : "--module=.*http.*"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.ini --module=https"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "grep '^[-]-module=https' /var/lib/jetty/start.ini"
+      expect      : "^--module=https$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.jar --module=https"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+      cmd         : "ps aux | grep '[s]tart.jar'"
+      expect      : "--module=.*https.*"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.ini --module=deploy"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "grep '^[-]-module=deploy' /var/lib/jetty/start.ini"
+      expect      : "^--module=deploy$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.jar --module=deploy"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+      cmd         : "ps aux | grep '[s]tart.jar'"
+      expect      : "--module=.*deploy.*"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.ini --module=ssl"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "grep '^[-]-module=ssl' /var/lib/jetty/start.ini"
+      expect      : "^--module=ssl$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7 - SSL implementation - start.jar --module=ssl"
+      info        : "Encrypt the traffic between Server and Client
+
+Avoid Man in the Middle attack"
+      solution    : "Add the modules for SSL, HTTP, and webapp deployment
+------[my-base]$ java -jar /home/user/jetty-distribution-9.3.1-SNAPSHOT/start.jar --add-to-start=http,https,deploy
+      Initialize module ssl.
+------- --module=ssl"
+      reference   : "800-171|3.13.15,800-53|SC-23,ITSG-33|SC-23,NESA|T4.5.1"
+      cmd         : "ps aux | grep '[s]tart.jar'"
+      expect      : "--module=.*ssl.*"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "8 - Management IP - .htacess exists"
+      info        : "A dedicated management IP should be configured
+
+Avoid Unauthorized user access to the server"
+      solution    : "create .htaccess file in the root directory of your web application. Find in $jetty_home/contexts xml file, which corresponds to the name of your Jetty web application (test.xml in our case) and protect access to your application by HTAccessHandler, that uses the .htaccess policy file."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @WEB_APP_ROOT@ replaced with "/var/lib/jetty/webapps" in field "file".
+      file        : "/var/lib/jetty/webapps/.htaccess"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "8 - Management IP - review $jetty_home/contexts xml file"
+      info        : "A dedicated management IP should be configured
+
+Avoid Unauthorizd user access to the server
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "create .htaccess file in the root directory of your web application. Find in $jetty_home/contexts xml file, which corresponds to the name of your Jetty web application (test.xml in our case) and protect access to your application by HTAccessHandler, that uses the .htaccess policy file."
+    </report>
+
+    <report type:"WARNING">
+      description : "9 - Information Leakage"
+      info        : "Return a custom reply message when something goes wrong, instead of the default reply message Jetty replies with.
+
+Avoid information leakage by showing custom error messages.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Use a custom HttpBinding to be in control of the message mapping to construct the custom reply message."
+    </report>
+
+    <report type:"WARNING">
+      description : "10 - Access Control - Security Realms"
+      info        : "Security realms allow you to secure your web applications against unauthorized access. Protection is based on authentication that identifies who is requesting access to the webapp and access control that restricts what can be accessed and how it is accessed within the webapp.
+
+Avoid Unauthorizd user access to the server
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "A webapp statically declares its security requirements in its web.xml file. Authentication is controlled by the <login-config> element. Access controls are specified by <security-constraint> and <security-role-ref> elements."
+    </report>
+
+    <report type:"WARNING">
+      description : "11 - Access Control - JAAS"
+      info        : "JAAS can be used for two purposes:
+
+for authentication of users, to reliably and securely determine who is currently executing Java code, regardless of whether the code is running as an application, an applet, a bean, or a servlet; and
+for authorization of users to ensure they have the access control rights (permissions) required to do the actions performed.
+
+Jetty support for JAAS as a means of bringing greater flexibility to the declarative security models of the J2EE.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Configure a jetty org.eclipse.jetty.plus.jaas.JAASLoginService to match the <realm-name> in your web.xml file.
+   Set up your LoginModule in a configuration file
+  You now need to invoke jetty with support for jaas. This involves 3 elements:
+
+adding extra jars to jetty's classpath
+adding the jetty config file with the JAASLoginService declaration to the startup sequence
+adding the jaas system property java.security.auth.login.config which specifies the location of your login module config file"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "12 - Restrict access to logs directory - mode"
+      info        : "The  $JETTY_BASE/logs/ directory contains application logs. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permissions on this directory prevent read, write, and execute for the world (o-rwx).
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently altering s logs."
+      solution    : "Perform the following to restrict access to application log files:
+1. Set the ownership of the $JETTY_BASE/logs to the dedicated Jetty user (e.g., jetty).
+2. Remove read, write, and execute permissions for the world
+# chown _admin: $JETTY_BASE/logs # chmod o-rwx $JETTY_BASE/logs"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "stat --format \"%a\" /var/lib/jetty/logs"
+      expect      : "[0-7][0-7]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "12 - Restrict access to logs directory - owner"
+      info        : "The  $JETTY_BASE/logs/ directory contains logs. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permissions on this directory prevent read, write, and execute for the world (o-rwx).
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently altering s logs."
+      solution    : "Perform the following to restrict access to log files:
+1. Set the ownership of the $JETTY_BASE/logs to the dedicated Jetty user (e.g., jetty).
+2. Remove read, write, and execute permissions for the world
+# chown _admin: $JETTY_BASE/logs # chmod o-rwx $JETTY_BASE/logs"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "stat --format \"%U\" /var/lib/jetty/logs"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "13 - Restrict access to temp directory - mode"
+      info        : "The $JETTY_HOME/temp/ directory is used by Jetty to persist temporary information to disk. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permissions on this directory prevent read, write, and execute for the world (o-rwx).
+Rationale:
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of Jetty processes."
+      solution    : "Perform the following to restrict access to application log files:
+1. Set the ownership of the $JETTY_HOME/temp to _admin:.
+2. Remove read, write, and execute permissions for the world
+# chown _admin: $JETTY_HOME/temp # chmod o-rwx $JETTY_HOME/temp"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty/temp"
+      expect      : "[0-7][0-7]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "13 - Restrict access to temp directory - owner"
+      info        : "The  $JETTY_HOME/temp/ directory is used by Jetty to persist temporary information to disk. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permissions on this directory prevent read, write, and execute for the world (o-rwx).
+Rationale:
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of Jetty processes."
+      solution    : "Perform the following to restrict access to application log files:
+1. Set the ownership of the $JETTY_BASE/logs to the dedicated Jetty user (e.g., jetty).
+2. Remove read, write, and execute permissions for the world
+# chown _admin: $JETTY_HOME/temp # chmod o-rwx $JETTY_HOME/temp"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "stat --format \"%U\" /usr/local/jetty/temp"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "14 - Restrict access to binaries directory - mode"
+      info        : "The  $JETTY_HOME/bin/ directory contains executes that are part of the Jetty run-time. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permission on $JETTY_HOME prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w).
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of Jetty processes."
+      solution    : "Perform the following to restrict access to application log files:
+1. Set the ownership of the $JETTY_BASE/logs to the dedicated Jetty user (e.g., jetty).
+2. Remove read, write, and execute permissions for the world
+# chown _admin: $JETTY_HOME/bin
+# chmod g-w,o-rwx $JETTY_HOME/bin"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty/bin"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "14 - Restrict access to binaries directory - owner"
+      info        : "The  $JETTY_HOME/bin/ directory contains executes that are part of the Jetty run-time. It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permission on $JETTY_HOME prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w).
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of Jetty processes."
+      solution    : "Perform the following to restrict access to application log files:
+1. Set the ownership of the $JETTY_BASE/logs to the dedicated Jetty user (e.g., jetty).
+2. Remove read, write, and execute permissions for the world
+# chown _admin: $JETTY_HOME/bin
+# chmod g-w,o-rwx $JETTY_HOME/bin"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "stat --format \"%U\" /usr/local/jetty/bin"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "15 - Restrict access to web application directory - mode"
+      info        : "The  $JETTY_BASE/webapps directory contains web applications that are deployed through . It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permission on $JETTY_BASE/webapps prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w).
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of web applications."
+      solution    : "Perform the following to restrict access to application log files:
+1. Set the ownership of the $JETTY_BASE/webapps to _admin:.
+2. Remove read, write, and execute permissions for the world.
+# chown _admin: $JETTY_BASE/webapps
+# chmod g-w,o-rwx $JETTY_BASE/webapps"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "stat --format \"%a\" /var/lib/jetty/webapps"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "15 - Restrict access to web application directory - owner"
+      info        : "The  $JETTY_BASE/webapps directory contains web applications that are deployed through . It is recommended that you create a user to specifically run Jetty. This user should have the minimum set of privileges needed to run Jetty. The ownership of this directory should then be assigned to the Jetty user. It is also recommended that the permission on $JETTY_BASE/webapps prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w).
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of web applications."
+      solution    : "Perform the following to restrict access to application log files:
+1. Set the ownership of the $JETTY_BASE/webapps to _admin:.
+2. Remove read, write, and execute permissions for the world.
+# chown _admin: $JETTY_BASE/webapps
+# chmod g-w,o-rwx $JETTY_BASE/webapps"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "stat --format \"%U\" /var/lib/jetty/webapps"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "16 - Restrict access to JETTY.policy - mode"
+      info        : "The JETTY.policy file is used to configure security policies for . It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "Perform the following to restrict access to $JETTY_HOME/..../JETTY.policy, set the owner and group owner of the contents of $JETTY_HOME/ to _admin and , respectively.
+ # chmod 770 $JETTY_HOME/..../JETTY.policy # chown _admin: $JETTY_HOME/...../JETTY.policy"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_POLICY@ replaced with "/usr/local/jetty/etc/jetty.policy" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty/etc/jetty.policy"
+      expect      : "[0-7][0-7]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "16 - Restrict access to JETTY.policy - owner"
+      info        : "The JETTY.policy file is used to configure security policies for Jetty. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "Perform the following to restrict access to $JETTY_HOME/..../JETTY.policy, set the owner and group owner of the contents of $JETTY_HOME/ to _admin and , respectively.
+ # chmod 770 $JETTY_HOME/..../JETTY.policy # chown _admin: $JETTY_HOME/...../JETTY.policy"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_POLICY@ replaced with "/usr/local/jetty/etc/jetty.policy" in field "cmd".
+      cmd         : "stat --format \"%U\" /usr/local/jetty/etc/jetty.policy"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "17 - Restrict access to JETTY.properties - mode"
+      info        : "JETTY.properties is a Java properties files that contains settings for Jetty, including class loader information, security package lists, and performance properties. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "To restrict access to JETTY.policy perform the following actions:
+1. Set the ownership of the $JETTY_HOME/...../JETTY.policy to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/..../JETTY.properties # chmod g-w,o-rwx $JETTY_HOME/...../JETTY.properties"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_PROPERTIES@ replaced with "/usr/local/jetty/etc/jetty.properties" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty/etc/jetty.properties"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "17 - Restrict access to JETTY.properties - owner"
+      info        : "JETTY.properties is a Java properties files that contains settings for Jetty, including class loader information, security package lists, and performance properties. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "To restrict access to JETTY.policy perform the following actions:
+1. Set the ownership of the $JETTY_HOME/...../JETTY.policy to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/..../JETTY.properties # chmod g-w,o-rwx $JETTY_HOME/...../JETTY.properties"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_PROPERTIES@ replaced with "/usr/local/jetty/etc/jetty.properties" in field "cmd".
+      cmd         : "stat --format \"%U\" /usr/local/jetty/etc/jetty.properties"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "18 - Restrict access to context.xml - mode"
+      info        : "The context.xml file is loaded by all web applications and sets certain configuration options. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "Perform the following to restrict access to context.xml:
+1. Set the ownership of the $JETTY_HOME/..../context.xml to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/..../context.xml # chmod g-w,o-rwx $JETTY_HOME/...../context.xml"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "cmd".
+      cmd         : "stat --format \"%a\" /var/lib/jetty/demo-base/webapps/test.xml"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "18 - Restrict access to context.xml - owner"
+      info        : "The context.xml file is loaded by all web applications and sets certain configuration options. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "Perform the following to restrict access to context.xml:
+1. Set the ownership of the $JETTY_HOME/..../context.xml to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/..../context.xml # chmod g-w,o-rwx $JETTY_HOME/...../context.xml"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "cmd".
+      cmd         : "stat --format \"%U\" /var/lib/jetty/demo-base/webapps/test.xml"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "19 - Restrict access to logging.properties - mode"
+      info        : "logging.properties specifies the logging configuration. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "To restrict access to logging.properties:
+1. Set the ownership of the $JETTY_HOME/...../logging.properties to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/...../logging.properties # chmod g-w,o-rwx $JETTY_HOME/...../logging.properties"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @LOGGING_PROP@ replaced with "/usr/local/jetty/etc/logging.properties" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty/etc/logging.properties"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "19 - Restrict access to logging.properties - owner"
+      info        : "logging.properties specifies the logging configuration. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "To restrict access to logging.properties:
+1. Set the ownership of the $JETTY_HOME/...../logging.properties to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/...../logging.properties # chmod g-w,o-rwx $JETTY_HOME/...../logging.properties"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @LOGGING_PROP@ replaced with "/usr/local/jetty/etc/logging.properties" in field "cmd".
+      cmd         : "stat --format \"%U\" /usr/local/jetty/etc/logging.properties"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "20 - Restrict access to server.xml - mode"
+      info        : "The server.xml contains servlet definitions and configurations. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "To restrict access to server.xml follow the below mentioned steps:
+1. Set the ownership of the $JETTY_HOME/..../server.xml to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/....../server.xml # chmod g-w,o-rwx $JETTY_HOME/...../server.xml"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty/etc/jetty.xml"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "20 - Restrict access to server.xml - owner"
+      info        : "The server.xml contains servlet definitions and configurations. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "To restrict access to server.xml follow the below mentioned steps:
+1. Set the ownership of the $JETTY_HOME/..../server.xml to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/....../server.xml # chmod g-w,o-rwx $JETTY_HOME/...../server.xml"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "stat --format \"%U\" /usr/local/jetty/etc/jetty.xml"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "21 - Restrict access to users.xml - mode"
+      info        : "-users.xml contains authentication information for Jetty web applications. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "Perform the following to restrict access to -users.xml:
+1. Set the ownership of the $JETTY_HOME/...../-users.xml to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/....../-users.xml
+# chmod g-w,o-rwx $JETTY_HOME/....../-users.xml"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @USERS_XML@ replaced with "/usr/local/jetty/etc/users.xml" in field "cmd".
+      cmd         : "stat --format \"%a\" /usr/local/jetty/etc/users.xml"
+      expect      : "[0-7][0145]0"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "21 - Restrict access to users.xml - owner"
+      info        : "-users.xml contains authentication information for Jetty web applications. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering s security policy."
+      solution    : "Perform the following to restrict access to -users.xml:
+1. Set the ownership of the $JETTY_HOME/...../-users.xml to _admin:.
+2. Remove read, write, and execute permissions for the world.
+3. Remove write permissions for the group.
+# chown _admin: $JETTY_HOME/....../-users.xml
+# chmod g-w,o-rwx $JETTY_HOME/....../-users.xml"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @USERS_XML@ replaced with "/usr/local/jetty/etc/users.xml" in field "cmd".
+      cmd         : "stat --format \"%U\" /usr/local/jetty/etc/users.xml"
+# Note: Variable @JETTY_USER@ replaced with "jetty" in field "expect".
+      expect      : "jetty"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "22 - Use secure Realms"
+      info        : "A realm is a database of usernames and passwords used to identify valid users of web applications. Review the Realms configuration to ensure Jetty is configured to use JDBCRealm, DataSourceRealm, JNDIRealm, or JAASRealm. Specifically, should not utilize MemoryRealm.
+
+MemoryRealm is not designed for production usage and could result in reduced availability."
+      solution    : "Set the Realm className setting in $JETTY_HOME/etc/server.xml to one of the appropriate realms."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "cat /usr/local/jetty/etc/jetty.xml | grep -i memoryrealm | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "23 - Strong password policy must be established"
+      info        : "Password policy controls should be in line with the corporate security policy. Password policy is required to control user password characteristics including password minimum length, password history, maximum and minimum password age and complexity.
+
+Passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Password policy controls should be in line with the corporate security policy. A strong password has the following characteristics specified in appendix 3.1"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "24 - Remove extraneous files and directories - $JETTY_BASE/webapps/js-examples"
+      info        : "The Jetty installation may provide sample demos of applications, documentation, and other directories which may not serve a production use.
+
+Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources."
+      solution    : "Perform the following to remove extraneous resources:
+
+1) The following should yield no output:
+ $ rm -rf $JETTY_BASE/webapps/js-examples \
+$JETTY_BASE/webapps/servlet-example \
+$JETTY_BASE/webapps/webdev \
+$JETTY_BASE/webapps/-docs \
+$JETTY_BASE/webapps/balancer \
+$JETTY_BASE/webapps/ROOT/admin \
+ $JETTY_BASE/webapps/examples
+
+2) If the Manager application is not utilized, also remove the following resources: $ rm rf $JETTY_HOME/server/webapps/host-manager \ $JETTY_HOME/server/webapps/manager \ $JETTY_HOME/conf/JETTY/localhost/host-manager.xml \ $JETTY_HOME/conf/JETTY/localhost/manager.xml"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "[ -d \"/var/lib/jetty/webapps/js-examples\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory does not exist"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "24 - Remove extraneous files and directories - $JETTY_BASE/webapps/servlet-example"
+      info        : "The Jetty installation may provide sample demos of applications, documentation, and other directories which may not serve a production use.
+
+Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources."
+      solution    : "Perform the following to remove extraneous resources:
+
+1) The following should yield no output:
+ $ rm -rf $JETTY_BASE/webapps/js-examples \
+$JETTY_BASE/webapps/servlet-example \
+$JETTY_BASE/webapps/webdev \
+$JETTY_BASE/webapps/-docs \
+$JETTY_BASE/webapps/balancer \
+$JETTY_BASE/webapps/ROOT/admin \
+ $JETTY_BASE/webapps/examples
+
+2) If the Manager application is not utilized, also remove the following resources: $ rm rf $JETTY_HOME/server/webapps/host-manager \ $JETTY_HOME/server/webapps/manager \ $JETTY_HOME/conf/JETTY/localhost/host-manager.xml \ $JETTY_HOME/conf/JETTY/localhost/manager.xml"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "[ -d \"/var/lib/jetty/webapps/servlet-example\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory does not exist"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "24 - Remove extraneous files and directories - $JETTY_BASE/webapps/webdav"
+      info        : "The Jetty installation may provide sample demos of applications, documentation, and other directories which may not serve a production use.
+
+Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources."
+      solution    : "Perform the following to remove extraneous resources:
+
+1) The following should yield no output:
+ $ rm -rf $JETTY_BASE/webapps/js-examples \
+$JETTY_BASE/webapps/servlet-example \
+$JETTY_BASE/webapps/webdav \
+$JETTY_BASE/webapps/-docs \
+$JETTY_BASE/webapps/balancer \
+$JETTY_BASE/webapps/ROOT/admin \
+ $JETTY_BASE/webapps/examples
+
+2) If the Manager application is not utilized, also remove the following resources: $ rm rf $JETTY_HOME/server/webapps/host-manager \ $JETTY_HOME/server/webapps/manager \ $JETTY_HOME/conf/JETTY/localhost/host-manager.xml \ $JETTY_HOME/conf/JETTY/localhost/manager.xml"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "[ -d \"/var/lib/jetty/webapps/webdav\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory does not exist"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "24 - Remove extraneous files and directories - $JETTY_BASE/webapps/doc"
+      info        : "The Jetty installation may provide sample demos of applications, documentation, and other directories which may not serve a production use.
+
+Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources."
+      solution    : "Perform the following to remove extraneous resources:
+
+1) The following should yield no output:
+ $ rm -rf $JETTY_BASE/webapps/js-examples \
+$JETTY_BASE/webapps/servlet-example \
+$JETTY_BASE/webapps/webdev \
+$JETTY_BASE/webapps/-docs \
+$JETTY_BASE/webapps/balancer \
+$JETTY_BASE/webapps/ROOT/admin \
+ $JETTY_BASE/webapps/examples
+
+2) If the Manager application is not utilized, also remove the following resources: $ rm rf $JETTY_HOME/server/webapps/host-manager \ $JETTY_HOME/server/webapps/manager \ $JETTY_HOME/conf/JETTY/localhost/host-manager.xml \ $JETTY_HOME/conf/JETTY/localhost/manager.xml"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "[ -d \"/var/lib/jetty/webapps/doc\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory does not exist"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "24 - Remove extraneous files and directories - $JETTY_BASE/webapps/balancer"
+      info        : "The Jetty installation may provide sample demos of applications, documentation, and other directories which may not serve a production use.
+
+Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources."
+      solution    : "Perform the following to remove extraneous resources:
+
+1) The following should yield no output:
+ $ rm -rf $JETTY_BASE/webapps/js-examples \
+$JETTY_BASE/webapps/servlet-example \
+$JETTY_BASE/webapps/webdev \
+$JETTY_BASE/webapps/-docs \
+$JETTY_BASE/webapps/balancer \
+$JETTY_BASE/webapps/ROOT/admin \
+ $JETTY_BASE/webapps/examples
+
+2) If the Manager application is not utilized, also remove the following resources: $ rm rf $JETTY_HOME/server/webapps/host-manager \ $JETTY_HOME/server/webapps/manager \ $JETTY_HOME/conf/JETTY/localhost/host-manager.xml \ $JETTY_HOME/conf/JETTY/localhost/manager.xml"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "[ -d \"/var/lib/jetty/webapps/balancer\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory does not exist"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "24 - Remove extraneous files and directories - $JETTY_BASE/webapps/ROOT/admin"
+      info        : "The Jetty installation may provide sample demos of applications, documentation, and other directories which may not serve a production use.
+
+Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources."
+      solution    : "Perform the following to remove extraneous resources:
+
+1) The following should yield no output:
+ $ rm -rf $JETTY_BASE/webapps/js-examples \
+$JETTY_BASE/webapps/servlet-example \
+$JETTY_BASE/webapps/webdev \
+$JETTY_BASE/webapps/-docs \
+$JETTY_BASE/webapps/balancer \
+$JETTY_BASE/webapps/ROOT/admin \
+ $JETTY_BASE/webapps/examples
+
+2) If the Manager application is not utilized, also remove the following resources: $ rm rf $JETTY_HOME/server/webapps/host-manager \ $JETTY_HOME/server/webapps/manager \ $JETTY_HOME/conf/JETTY/localhost/host-manager.xml \ $JETTY_HOME/conf/JETTY/localhost/manager.xml"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "[ -d \"/var/lib/jetty/webapps/ROOT/admin\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory does not exist"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "24 - Remove extraneous files and directories - $JETTY_BASE/webapps/examples"
+      info        : "The Jetty installation may provide sample demos of applications, documentation, and other directories which may not serve a production use.
+
+Removing sample resources is a defense in depth measure that reduces potential exposures introduced by these resources."
+      solution    : "Perform the following to remove extraneous resources:
+
+1) The following should yield no output:
+ $ rm -rf $JETTY_BASE/webapps/js-examples \
+$JETTY_BASE/webapps/servlet-example \
+$JETTY_BASE/webapps/webdev \
+$JETTY_BASE/webapps/-docs \
+$JETTY_BASE/webapps/balancer \
+$JETTY_BASE/webapps/ROOT/admin \
+ $JETTY_BASE/webapps/examples
+
+2) If the Manager application is not utilized, also remove the following resources: $ rm rf $JETTY_HOME/server/webapps/host-manager \ $JETTY_HOME/server/webapps/manager \ $JETTY_HOME/conf/JETTY/localhost/host-manager.xml \ $JETTY_HOME/conf/JETTY/localhost/manager.xml"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @JETTY_BASE@ replaced with "/var/lib/jetty" in field "cmd".
+      cmd         : "[ -d \"/var/lib/jetty/webapps/examples\" ] && echo 'Directory exists' || echo 'Directory does not exist'"
+      expect      : "Directory does not exist"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "25 - Disable Unused Connectors"
+      info        : "The default installation of Jetty includes connectors with default settings. These connectors are set up for convenience. It is best to remove these connectors and develop connectors from scratch, only enabling exactly what is needed.
+
+Improperly configured or unnecessarily installed Connectors may lead to a security exposure.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "To to disable unused Connectors, within $JETTY_HOME/etc/server.xml, remove or comment each unused Connector."
+    </report>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "26 - Setup Client-cert Authentication"
+      info        : "Client-cert authentication requires that each client connecting to the server has a certificate used to authenticate. This is generally regarded as strong authentication than a password as it requires the client to have the cert and not just know a password.
+
+Certificate based authentication is more secure than password based authentication."
+      solution    : "In the Connector element, set the clientAuth parameter to true.
+<-- Define a SSL Coyote HTTP/1.1 Connector on port 8443 -->
+<Connector port=\"8443\" minProcessors=\"5\" maxProcessors=\"75\" enableLookups=\"true\" disableUploadTimeout=\"true\" acceptCount=\"100\" debug=\"0\" scheme=\"https\" secure=\"true\"; clientAuth=\"true\" sslProtocol=\"TLS\"/>"
+      reference   : "800-171|3.13.10,800-53|IA-5(2),CSF|PR.AC-1,ITSG-33|IA-5(2)"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "file".
+      file        : "/usr/local/jetty/etc/jetty.xml"
+      xsl_stmt    : "<xsl:template match=\"Configure\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='Configure']//*[local-name()='Connector'][@clientAuth]\">"
+      xsl_stmt    : "Client Cert = <xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Connector']/@clientAuth\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Client Cert = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Client Cert = "
+      expect      : "Client Cert = true"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "27 - Ensure SSLEnabled is set to True for Sensitive Connectors - SSLEngine"
+      info        : "The SSLEnabled setting determines if SSL is enabled for a specific Connector. It is recommended that SSL be utilized for any Connector that sends or receives sensitive information, such as authentication credentials or personal information.
+
+The SSLEnabled setting ensures SSL is active, which will in-turn ensure the confidentiality and integrity of sensitive information while in transit."
+      solution    : "\"Set the SSLEngine attribute is set to on in the Listener node within server.xml. Also in server.xml, set the SSLEnabled attribute to true for each Connector that sends or receives sensitive information.
+<Listener className=\"\"org.apache.JETTY.core.AprLifecycleListener\"\" SSLEngine=\"\"on\"\" />
+By default SSLEnabled is set to false."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'Listener className' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep 'SSLEngine'"
+      expect      : "on"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "27 - Ensure SSLEnabled is set to True for Sensitive Connectors - SSLEnabled"
+      info        : "The SSLEnabled setting determines if SSL is enabled for a specific Connector. It is recommended that SSL be utilized for any Connector that sends or receives sensitive information, such as authentication credentials or personal information.
+
+The SSLEnabled setting ensures SSL is active, which will in-turn ensure the confidentiality and integrity of sensitive information while in transit."
+      solution    : "\"Set the SSLEngine attribute is set to on in the Listener node within server.xml. Also in server.xml, set the SSLEnabled attribute to true for each Connector that sends or receives sensitive information.
+<Listener className=\"\"org.apache.JETTY.core.AprLifecycleListener\"\" SSLEngine=\"\"on\"\" />
+By default SSLEnabled is set to false."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'SSLEnabled' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep -v 'false'"
+      expect      : "true"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "28 - Ensure scheme is set accurately"
+      info        : "The scheme attribute is used to indicate to callers of request.getScheme() which scheme is in use by the Connector. Ensure the scheme attribute is set to http for Connectors operating over HTTP. Ensure the scheme attribute is set to https for Connectors operating of HTTPS.
+
+Maintaining parity between the scheme in use by the Connector and advertised by request.getScheme() will ensure applications built on Jetty have an accurate depiction of the context and security guarantees provided to them."
+      solution    : "In server.xml, set the Connectors scheme attribute to http for Connectors operating over HTTP. Set the Connectors scheme attribute to https for Connectors operating of HTTPS."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "file".
+      file        : "/usr/local/jetty/etc/jetty.xml"
+      xsl_stmt    : "<xsl:template match=\"Configure\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='Configure']//*[local-name()='Connector'][@scheme]\">"
+      xsl_stmt    : "scheme = <xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Connector']/@scheme\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "scheme = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "scheme = "
+      expect      : "scheme = https"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "29 - Ensure secure is set to true only for SSL-enabled Connectors"
+      info        : "The secure attribute is used to convey Connector security status to applications operating over the Connector. This is typically achieved by calling request.isSecure(). Ensure the secure attribute is only set to true for Connectors operating with the SSLEnabled attribute set to true.
+
+Accurately reporting the security state of the Connector will help ensure that applications built on Jetty are not unknowingly relying on security controls that are not in place."
+      solution    : "For each Connector defined in server.xml, set the secure attribute to true for those Connectors having SSLEnabled set to true. Set the secure attribute set to false for those Connectors having SSLEnabled set to false.
+
+By Default secure attribute is set to false."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "file".
+      file        : "/usr/local/jetty/etc/jetty.xml"
+      xsl_stmt    : "<xsl:template match=\"Configure\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='Configure']//*[local-name()='Connector'][@secure]\">"
+      xsl_stmt    : "secure = <xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Connector']/@secure\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "secure = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "secure = "
+      expect      : "secure = true"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "30  - Ensure sslProtocol is set to TLS for Secure Connector"
+      info        : "The ssl Protocol setting determines which protocol Jetty will use to protect traffic. It is recommended that sslProtocol attribute be set to TLS.
+
+The TLS protocol does not contain weaknesses that affect other secure transport protocols, such as SSLv1 or SSLv2. Therefore, TLS is leveraged to protect the confidentiality and integrity of data while in transit."
+      solution    : "In server.xml, set the sslProtocol attribute to TLS for all Connectors having SSLEngine set to on."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "file".
+      file        : "/usr/local/jetty/etc/jetty.xml"
+      xsl_stmt    : "<xsl:template match=\"Configure\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='Configure']//*[local-name()='Connector'][@sslProtocol]\">"
+      xsl_stmt    : "sslProtocol = <xsl:value-of select=\"//*[local-name()='Configure']//*[local-name()='Connector']/@sslProtocol\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "sslProtocol = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "sslProtocol = "
+      expect      : "sslProtocol = TLS"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "31 - Starting with Security Manager"
+      info        : "Configure application to run in a sandbox using the Security Manager. The Security Manager restricts what classes applications can access thus protecting the server from mistakes, Trojans, and malicious code.
+
+By running Jetty with the Security Manager, applications are run in a sandbox which can prevent untrusted code from accessing files on the file system."
+      solution    : "The security policies implemented by the Java SecurityManager are configured in the $JETTY_HOME/conf/JETTY.policy file. Once configured the JETTY.policy file for use with a SecurityManager,  can be started with a SecurityManager in place by using the --security option:
+$ $JETTY_HOMEJETTY.sh start -security (Unix) C:\> %JETTY_HOME%\bin\JETTY start -security (Windows)"
+      reference   : "800-53|SC-29(1)"
+      cmd         : "ps aux | grep jetty | grep [s]ecurity"
+      expect      : "security"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "32 - Disabling auto deployment of applications"
+      info        : "This feature allows auto deployment of applications while Jetty is running. This could allow malicious or untested applications to be deployed and should be disabled."
+      solution    : "In the $JETTY_HOME/conf/server.xml file, change autoDeploy to false.
+autoDeploy=\"false\"
+
+By default autoDeploy is set to true"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'autoDeploy' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep false"
+      expect      : "false"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "33 - Disable deploy on startup of applications"
+      info        : "This feature allows auto startup of applications. This could allow malicious or untested applications to be deployed and should be disabled."
+      solution    : "In the $JETTY_HOME/conf/server.xml file, change deployOnStartup to false.
+deployOnStartup=\"false\"
+
+By default deployOnStartup is set to true"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'deployOnStartup' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep false"
+      expect      : "false"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "34 - Ensure Web content directory is on a separate partition from the system files"
+      info        : "The web document directory is where the files which are served to the end user reside. Moving the web document directory onto a different partition will prevent these kinds of attacks from doing more damage to other part of the file system.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Move the web content files to a separate partition from the Jetty system files and update the configuration."
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "35 - Do not allow custom header status messages"
+      info        : "Being able to specify custom status messages opens up the possibility for additional headers to be injected. If custom header status messages are required make sure it is only in US-ASCII and does not include any user-supplied data.
+
+Allowing user-supplied data into a header allows the possibility of XSS."
+      solution    : "Start Jetty with USE_CUSTOM_STATUS_MSG_IN_HEADER set to false. Add the following to the startup script.
+Dorg.apache.coyote.USE_CUSTOM_STATUS_MSG_IN_HEADER=false.
+By default allowing custom header status messages is set to false."
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e"
+# Note: Variable @JETTY_HOME@ replaced with "/usr/local/jetty" in field "cmd".
+      cmd         : "grep 'USE_CUSTOM_STATUS_MSG_IN_HEADER' /usr/local/jetty/start.ini | grep -v '#'| grep false"
+      expect      : "false"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "36 - Configure connectionTimeout"
+      info        : "The connectionTimeout setting allows Jetty to close idle sockets after a specific amount of time to save system resources.
+
+Closing idle sockets reduces system resource usage thus can provide better performance and help protect against Denial of Service attacks."
+      solution    : "Within $JETTY_HOME/etc/server.xml ensure each connector is configured to the connectionTimeout setting that is optimal based on hardware resources, load, and number of concurrent connections.
+connectionTimeout=\"60000\""
+      reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'connectionTimeout' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep -v '\"60000\"' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "37 - Configure maxHttpHeaderSize"
+      info        : "The maxHttpHeaderSize limits the size of the request and response headers and is defined in bytes. If not specified, the default is 8192 bytes.
+
+Limiting the size of the header request can help protect against Denial of Service requests."
+      solution    : "Within $JETTY_HOME/etc/server.xml ensure each connector is configured to the appropriate maxHttpHeaderSize setting.
+maxHttpHeaderSize=\"8192\""
+      reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'maxHttpHeaderSize' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep -v '\"8192\"' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "38 - Force SSL for all applications"
+      info        : "Use the transport-guarantee attribute to ensure SSL protection when accessing all applications. This can be overridden to be disabled on a per application basis in the application configuration.
+
+
+By default when accessing applications SSL will be enforced to protect information sent over the network. By using the transport-guarantee attribute within web.xml, SSL is enforced."
+      solution    : "In $JETTY_HOME/etc/web.xml, set the following:
+<user-data-constraint> <transport-guarantee>CONFIDENTIAL</transport-guarantee> <user-data-constraint>"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+# Note: Variable @WEB_XML@ replaced with "/usr/local/jetty/etc/web.xml" in field "file".
+      file        : "/usr/local/jetty/etc/web.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='user-data-constraint']//*[local-name()='transport-guarantee']\">"
+      xsl_stmt    : "Transport Guarantee = <xsl:value-of select=\"//*[local-name()='user-data-constraint']/transport-guarantee\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Transport Guarantee = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Transport Guarantee ="
+      expect      : "Transport Guarantee = CONFIDENTIAL"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "39 - Increase the entropy in session identifiers"
+      info        : "Having a server that has deterministic session identifiers can lead to session hi-jacking. Specifying a randomClass attribute allows for truly random session identifiers.
+
+By default the entropy attribute on session managers uses the string representation of the Manager class name. Leading to a deterministic session identifier."
+      solution    : "In $JETTY_HOME/etc/context.xml, set the following:
+<Manager ... randomClass=\"java.security.SecureRandom\" />
+By default the string representation of the Manager class is used for entropy."
+      reference   : "800-171|3.13.15,800-53|SC-23(3),ITSG-33|SC-23(3)"
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "file".
+      file        : "/var/lib/jetty/demo-base/webapps/test.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='Manager']\">"
+      xsl_stmt    : "Random Class = <xsl:value-of select=\"//*[local-name()='Manager']/@randomClass\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Random Class = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Random Class = "
+      expect      : "Random Class = java\.security\.SecureRandom"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "40 - Do not allow symbolic linking"
+      info        : "Symbolic links allows one application to include the libraries from another. This allows for re-use of code but also allows for potential security issues when applications include libraries from other applications they should not have access to.
+
+Allowing symbolic links opens up all versions prior to 6.0.18 to directory traversal vulnerability. Also there is a potential that an application could link to another application it should not be linking too. On case-insensitive operating systems there is also the threat of source code disclosure."
+      solution    : "In all context.xml, set the allowLinking attribute to false.
+By default allowLinking has a value of false."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "cmd".
+      cmd         : "grep 'allowLinking' /var/lib/jetty/demo-base/webapps/test.xml | grep -v '#' | grep -v '\"false\"' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "41 - Do not run applications as privileged"
+      info        : "Setting the privileged attribute for an application changes the class loader to the Server class loader instead of the Shared class loader.
+
+Running an application in privileged mode allows an application to load the manager libraries."
+      solution    : "In all context.xml, set the privileged attribute to false unless it is required like the manager application.
+By default privileged has a value of false."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "cmd".
+      cmd         : "grep 'privileged' /var/lib/jetty/demo-base/webapps/test.xml | grep -v '#' | grep -v '\"false\"' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "42 - Do not allow cross context requests"
+      info        : "Setting crossContext to true allows for an application to call ServletConext.getContext to return a dispatcher for another application.
+
+Allowing crossContext creates the possibility for a malicious application to make requests to a restricted application."
+      solution    : "In all context.xml, set the crossContext attribute to false.
+By default crossContext has a value of false."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "cmd".
+      cmd         : "grep 'crossContext' /var/lib/jetty/demo-base/webapps/test.xml | grep -v '#' | grep -v '\"false\"' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "description".
+      description : "43 - Do not resolve hosts on logging valves - /usr/local/jetty/etc/jetty.xml"
+      info        : "Setting resolveHosts to true on logging valves requires a DNS look-up before logging the information. This adds additional resources when logging.
+
+Allowing resolveHosts adds additional overhead that is rarely needed."
+      solution    : "In all context.xml and server.xml that have Valve nodes, set the resolveHosts attribute to false.
+By default resolveHosts has a value of false."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'resolveHosts' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep -v '\"false\"' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "description".
+      description : "43 - Do not resolve hosts on logging valves - /var/lib/jetty/demo-base/webapps/test.xml"
+      info        : "Setting resolveHosts to true on logging valves requires a DNS look-up before logging the information. This adds additional resources when logging.
+
+Allowing resolveHosts adds additional overhead that is rarely needed."
+      solution    : "In all context.xml and server.xml that have Valve nodes, set the resolveHosts attribute to false.
+By default resolveHosts has a value of false."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+# Note: Variable @CONTEXT_XML@ replaced with "/var/lib/jetty/demo-base/webapps/test.xml" in field "cmd".
+      cmd         : "grep 'resolveHosts' /var/lib/jetty/demo-base/webapps/test.xml | grep -v '#' | grep -v '\"false\"' | awk '{ print } END { if (NR==0) print \"none\" }'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "44 - Use Lockout Realms"
+      info        : "A LockOut realm wraps around standard realms adding the ability to lock a user out after multiple failed logins.
+
+  Locking out a user after multiple failed logins slows down attackers from brute forcing logins.
+  Note: Nessus has not performed this check. It is included for informational purposes only."
+      solution    : "Create a lockout realm wrapping the main realm like the example below:
+<Realm className=\"org.apache.JETTY.realm.LockOutRealm\" failureCount=\"3\" lockOutTime=\"600\" cacheSize=\"1000\" cacheRemovalWarningTime=\"3600\"> <Realm className=\"org.apache.JETTY.realm.DataSourceRealm\" dataSourceName=... /> </Realm\""
+      reference   : "800-171|3.1.10,800-53|AC-11,CN-L3|8.1.4.1(b),ISO/IEC-27001|A.11.2.8,ITSG-33|AC-11,NESA|T2.3.8,NESA|T2.3.9,NIAv2|AM23a,NIAv2|AM23b"
+# Note: Variable @SERVER_XML@ replaced with "/usr/local/jetty/etc/jetty.xml" in field "cmd".
+      cmd         : "grep 'Realm' /usr/local/jetty/etc/jetty.xml | grep -v '#' | grep 'org\.apache\.JETTY\.realm\.LockOutRealm'"
+      expect      : "org\\.apache\\.JETTY\\.realm\\.LockOutRealm"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "45 - Restrict runtime access to sensitive packages"
+      info        : "package.access grants or revokes access to listed packages during runtime. It is recommended that application access to certain packages be restricted.
+
+This prevents web applications from accessing restricted or unknown packages which may be malicious or dangerous to the application."
+        solution    : "Edit $JETTY_BASE/etc/JETTY.properties by adding allowed packages to the package.access list:
+package.access = sun.,org.apache.JETTY.,org.apache.coyote.,org.apache.., org.apache.jasper"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+# Note: Variable @SENSITIVE_PKGS@ replaced with "sun.org.apache.JETTY,org.apache.coyote" in field "cmd".
+# Note: Variable @JETTY_PROPERTIES@ replaced with "/usr/local/jetty/etc/jetty.properties" in field "cmd".
+      cmd         : "grep 'sun.org.apache.JETTY,org.apache.coyote' /usr/local/jetty/etc/jetty.properties | grep package\.access"
+# Note: Variable @SENSITIVE_PKGS@ replaced with "sun.org.apache.JETTY,org.apache.coyote" in field "expect".
+      expect      : "sun.org.apache.JETTY,org.apache.coyote"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "TNS_Best_Practices_Jetty_9_v1.0.0.audit"
+      info        : "Jetty is not installed - $JETTY_HOME does not exist
+
+  NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

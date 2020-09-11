@@ -1,0 +1,1674 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.1 $
+# $Date: 2020/04/22 $
+#
+# description : This document implements the security configuration as recommended by the
+#               Security Hardening Guide for NetApp ONTAP 9 (TR-4569) from July 2019
+#
+#               https://www.netapp.com/us/media/tr-4569.pdf
+#
+#<ui_metadata>
+#<display_name>NetApp Security Hardening Guide for ONTAP 9 v1.7.0</display_name>
+#<spec>
+#  <type>NetApp</type>
+#  <name>Security Hardening Guide for ONTAP 9</name>
+#  <version>1.7.0</version>
+#  <link>https://www.netapp.com/us/media/tr-4569.pdf</link>
+#</spec>
+#<labels>NetApp,Hardening,ONTAP_9</labels>
+#</ui_metadata>
+
+<check_type:"Netapp_API">
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.1 - Roles, Applications, and Authentication - Use of secure applications"
+  info        : "For security reasons, Telnet and Remote Shell (RSH) are disabled by default because NetApp recommends Secure Shell (SSH) for secure remote access. If there is a requirement or a unique need to use Telnet or RSH, they must be enabled."
+  solution    : "The security protocol modify command modifies the existing clusterwide configuration of RSH and Telnet. You can disable RSH and Telnet in the cluster by setting the enabled field to false."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : '<security-login-get-iter></security-login-get-iter>'
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Administrative Application Methods&#xa;</xsl:text>
+<xsl:text>==================================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-account-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="user-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="application" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : "(rsh|telnet)"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.1 - Roles, Applications, and Authentication - Review authentication methods"
+  info        : "With role-based access control (RBAC), users have access only to the systems and options that are required for their job roles and functions. The RBAC solution in NetApp ONTAP software limits users' administrative access to the level that is granted for their defined role, which allows administrators to manage users by assigned role. ONTAP provides several predefined roles.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Operators and administrators can create, modify, or delete custom access-control roles, and they can specify account restrictions for specific roles."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-get-iter></security-login-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+  <xsl:text>Authentication Methods&#xa;</xsl:text>
+  <xsl:text>======================&#xa;</xsl:text>
+  <xsl:text>Application - Method&#xa;</xsl:text>
+  <xsl:text>----------------------&#xa;</xsl:text>
+  <xsl:for-each select="//security-login-account-info">
+    <xsl:value-of select="application" /><xsl:text> - </xsl:text>
+    <xsl:value-of select="authentication-method" />
+    <xsl:text>&#xa;</xsl:text>
+  </xsl:for-each>
+  </xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.1 - Roles, Applications, and Authentication - Review custom roles"
+  info        : "With role-based access control (RBAC), users have access only to the systems and options that are required for their job roles and functions. The RBAC solution in NetApp ONTAP software limits users' administrative access to the level that is granted for their defined role, which allows administrators to manage users by assigned role. ONTAP provides several predefined roles.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Operators and administrators can create, modify, or delete custom access-control roles, and they can specify account restrictions for specific roles."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-get-iter></security-login-role-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+  <xsl:text>Custom Roles&#xa;</xsl:text>
+  <xsl:text>======================&#xa;</xsl:text>
+  <xsl:variable name="elements" select="//security-login-role-info[role-name!=\'admin\' and role-name!=\'autosupport\' and role-name!=\'backup\' and role-name!=\'none\' and role-name!=\'readonly\']" />
+  <xsl:choose>
+    <xsl:when test="count($elements) &gt; 0" >
+      <xsl:for-each select="$elements">
+        <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+        <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+        <xsl:value-of select="access-level" /><xsl:text> - </xsl:text>
+        <xsl:value-of select="command-directory-name" /><xsl:text>&#xa;</xsl:text>
+      </xsl:for-each>
+    </xsl:when>
+    <xsl:otherwise>No custom roles found.</xsl:otherwise>
+  </xsl:choose>
+</xsl:template>'
+  expect      : "No custom roles found."
+  severity    : MEDIUM
+  reference   : "800-171|3.1.1,800-53|AC-2(7),CSF|PR.AC-1,CSF|PR.AC-4,ITSG-33|AC-2(7),NESA|M5.3.1"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.1 - Roles, Applications, and Authentication - RSH is disabled"
+  info        : "Establishing secure access to systems is a critical part of maintaining a secure solution. The most common command-line access options are SSH, Telnet, and RSH. Of those options, SSH is the most secure, industry-standard best practice for remote command-line access. NetApp highly recommends using SSH for command-line access to the ONTAP solution."
+  solution    : "TBD"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-protocol-get><application>rsh</application></security-protocol-get>"
+  xsl_stmt    : '<xsl:template match="/">RSH: <xsl:value-of select="//security-protocol-info/enabled" /></xsl:template>'
+  expect      : 'RSH: false'
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.1 - Roles, Applications, and Authentication - Telnet is disabled"
+  info        : "Establishing secure access to systems is a critical part of maintaining a secure solution. The most common command-line access options are SSH, Telnet, and RSH. Of those options, SSH is the most secure, industry-standard best practice for remote command-line access. NetApp highly recommends using SSH for command-line access to the ONTAP solution."
+  solution    : ""
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-protocol-get><application>telnet</application></security-protocol-get>"
+  xsl_stmt    : '<xsl:template match="/">Telnet: <xsl:value-of select="//security-protocol-info/enabled" /></xsl:template>'
+  expect      : "Telnet: false"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.2 - Default Accounts - Admin user has been renamed - create new admin"
+  info        : "Orphaned accounts are a major security vector that often lead to vulnerabilities, including the escalation of privileges. They are unnecessary and unused accounts that remain in the user account repository. They are primarily default accounts that were never used or for which passwords were never updated or changed. To address this issue, the ONTAP solution supports the removal and renaming of accounts."
+  solution    : "To completely remove the default admin account, you must first create another admin-level account that uses the console login application.
+
+After the new admin account is created, test access to that account with the NewAdmin account login. With the NewAdmin login, configure the account to have the same login applications as the default or the previous admin account (for example, http, ontapi, service-processor, or ssh). This step confirms that access control is maintained.
+
+After all functions have been tested, you can disable the admin account for all applications before you remove it from ONTAP. This step serves as a final test to confirm that there are no lingering functions that rely on the previous admin account."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-get-iter></security-login-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+  <xsl:text>New Admin Account&#xa;</xsl:text>
+  <xsl:text>======================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-account-info[./role-name=\'admin\' and ./user-name!=\'admin\']">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="user-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="is-locked" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="application" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "- .+ - false - (console|ssh|service-processor)"
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.2 - Default Accounts - Admin user has been renamed - default admin disabled or deleted"
+  info        : "Orphaned accounts are a major security vector that often lead to vulnerabilities, including the escalation of privileges. They are unnecessary and unused accounts that remain in the user account repository. They are primarily default accounts that were never used or for which passwords were never updated or changed. To address this issue, the ONTAP solution supports the removal and renaming of accounts."
+  solution    : "To completely remove the default admin account, you must first create another admin-level account that uses the console login application.
+
+After the new admin account is created, test access to that account with the NewAdmin account login. With the NewAdmin login, configure the account to have the same login applications as the default or the previous admin account (for example, http, ontapi, service-processor, or ssh). This step confirms that access control is maintained.
+
+After all functions have been tested, you can disable the admin account for all applications before you remove it from ONTAP. This step serves as a final test to confirm that there are no lingering functions that rely on the previous admin account."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-get-iter></security-login-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+  <xsl:text>Default Admin Disabled&#xa;</xsl:text>
+  <xsl:text>======================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-account-info[./user-name=\'admin\']">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="user-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="is-locked" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="application" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : "- admin - false -"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.2 - Default Accounts - Review default accounts"
+  info        : "Orphaned accounts are a major security vector that often lead to vulnerabilities, including the escalation of privileges. They are unnecessary and unused accounts that remain in the user account repository. They are primarily default accounts that were never used or for which passwords were never updated or changed. To address this issue, the ONTAP solution supports the removal and renaming of accounts.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Although orphaned accounts are a significant security issue, NetApp strongly recommends testing the effect of removing accounts from the local account repository."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-get-iter></security-login-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+  <xsl:text>Review Default Accounts&#xa;</xsl:text>
+  <xsl:text>=======================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-account-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="user-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="is-locked" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="application" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  regex       : "^[^ ]* - (admin|autosupport) - "
+  not_expect  : "- (admin|autosupport) - false - "
+  severity    : MEDIUM
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.3 - Certificate-Based API Access"
+  info        : "When using the NetApp Manageability SDK API access to ONTAP, you must use certificate-based authentication instead of the user ID and password authentication.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "A self-signed certificate can be generated and installed on ONTAP as follows:
+1. Using OpenSSL, generate a certificate by running the following command:
+
+openssl req -x509 -nodes -days 1095 -newkey rsa:2048 -keyout test.key -out test.pem \
+> -subj \"/C=US/ST=NC/L=RTP/O=NetApp/CN=cert_user\"
+Generating a 2048 bit RSA private key
+..............+++
+..........................+++
+writing new private key to 'test.key'
+
+This command generates a public certificate named test.pem and a private key named key.out.
+The common name, CN, corresponds to the ONTAP user ID.
+
+2. Install the contents of the public certificate in privacy enhanced mail (pem) format in ONTAP by
+running the following command and pasting the certificate's contents when prompted:
+
+security certificate install -type client-ca -vserver ontap9-tme-8040
+Please enter Certificate: Press <Enter> when done
+
+3. Enable ONTAP to allow client access through SSL and define the user ID for API access.
+
+security ssl modify -vserver ontap9-tme-8040 -client-enabled true
+security login create -user-or-group-name cert_user -application ontapi -authmethod cert -role admin -vserver ontap9-tme-8040"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-ssl-get-iter></security-ssl-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+  <xsl:text>Certificate based API Access:&#xa;</xsl:text>
+  <xsl:text>=============================&#xa;</xsl:text>
+  <xsl:text>Authority - Client Auth Enabled - Server Auth Enabled&#xa;</xsl:text>
+  <xsl:text>-----------------------------&#xa;</xsl:text>
+<xsl:for-each select="//vserver-ssl-info">
+  <xsl:value-of select="certificate-authority" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="client-authentication-enabled" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="server-authentication-enabled" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Account Maximum Failed Attempts <= 5"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Account Maximum Failed Attempts:&#xa;</xsl:text>
+<xsl:text>================================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="max-failed-login-attempts" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [^1-5]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Lockout Duration <= 1 Day"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Lockout Duration:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="lockout-duration" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [^0-9]+$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password Alphanumeric = true"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password Alphanumeric:&#xa;</xsl:text>
+<xsl:text>======================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="require-password-alpha-numeric" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - false$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Passwords Disallow Reuse >= 6"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Passwords Disallow Reuse:&#xa;</xsl:text>
+<xsl:text>=========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="last-passwords-disallowed-count" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [0-5]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password Minimum Length >= 8"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password Minimum Length:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="min-password-size" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [0-7]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password Require Initial Update = true"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password Require Initial Update:&#xa;</xsl:text>
+<xsl:text>================================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="require-initial-password-update" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - false$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password Minimum Special Characters >= 1"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password Minimum Special Characters:&#xa;</xsl:text>
+<xsl:text>====================================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="min-passwd-specialchar" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - 0$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Username Alphanumeric = false"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Username Alphanumeric:&#xa;</xsl:text>
+<xsl:text>======================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="require-username-alpha-numeric" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - true$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Username Minimum Lenth >= 3"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Username Minimum Length:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="min-username-size" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [0-2]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Hash Algorithm SHA512"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-get-iter></security-login-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Username Password Hash Algorithm:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-account-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="user-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="password-hash-algorithm" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - ((?!sha512).)*$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password Expiration Time <=90 days"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password Expiration Time:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="password-expiration-duration" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - (unlimited|0)$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Delay between password changes <= 1"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password change delay:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="change-password-duration-in-days" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - (unlimited|0)$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Delay after failed login <= 4 seconds"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password change delay:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="delay-after-failed-login" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [0-3]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password minimum lowercase <= 1"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password minimum lowercase:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="passwd-min-lowercase-chars" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - 0$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password minimum uppercase <= 1"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password minimum uppercase:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="passwd-min-uppercase-chars" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - 0$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password minimum digits <= 1"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password minimum digits:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="passwd-min-digits" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - 0$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Password expiration warning"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login"
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Password expiration warning:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="passwd-expiry-warn-time" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [^unlimited]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Account expiration time"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Account expiration time:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="account-expiry-time" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "3.4 - Login and Password Parameters - Account inactivity time"
+  info        : "To support an organization's user account policies, guidelines, or standards, including governances, the following functionality is now supported with ONTAP 9:
+
+- Configuring password policies to enforce a minimum number of digits, lowercase characters, or uppercase characters
+- Requiring a delay after a failed login attempt
+- Defining the account inactive limit
+- Expiring a user account
+- Displaying a password expiry warning message
+- Notifying about an invalid login
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Configurable settings are managed by using the security login role config modify command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-login-role-config-get-iter></security-login-role-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Account inactivity time:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-login-role-config-info">
+  <xsl:value-of select="vserver" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="role-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="account-inactive-limit" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "4.1 - System Administration Methods - Login Banner"
+  info        : "Login banners allow an organization to present any operators, administrators, and even miscreants with terms and conditions of acceptable use, and they indicate who is permitted access to the system. This approach is helpful for establishing expectations for access and use of the system. The security login banner modify command modifies the login banner. The login banner is displayed just before the authentication step during the SSH and console device login process."
+  solution    : "The banner text must be in double quotes (\" \"), as shown in the following example.
+
+cluster1::> security login banner modify -vserver cluster1 -message \"Authorized users ONLY!\""
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<vserver-login-banner-get-iter></vserver-login-banner-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Login banner:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//vserver-login-banner-info">
+  <xsl:value-of select="vserver" /><xsl:text> - Banner - </xsl:text>
+  <xsl:value-of select="message" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : " - Banner - (.*?)$"
+  reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "4.1 - System Administration Methods - Message of the Day"
+  info        : "There are two categories of MOTD: the cluster-level MOTD and the data SVM-level MOTD. A user logging in to a data SVM's ClusterShell might see two messages: the cluster-level MOTD followed by the SVM-level MOTD for that SVM.
+
+  The cluster administrator can enable or disable the cluster-level MOTD on each SVM individually if needed. If the cluster administrator disables the cluster-level MOTD for an SVM, a user logging in to the SVM does not see the cluster-level message. Only a cluster administrator can enable or disable the cluster-level message."
+  solution    : "The security login motd modify command updates the message of the day (MOTD), as shown in the following example.
+
+cluster1::> security login banner modify -vserver cluster1 -message \"Authorized users ONLY!\""
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<vserver-motd-get-iter></vserver-motd-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Login banner:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//vserver-motd-info">
+  <xsl:value-of select="vserver" /><xsl:text> - MOTD - </xsl:text>
+  <xsl:value-of select="message" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : " - MOTD - (.*?)$"
+  reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+</custom_item>
+
+<report type:"WARNING">
+  description : "4.1 - System Administration Methods - CLI Session Timeout"
+  info        : "The default CLI session timeout is 30 minutes. The timeout is important to prevent stale sessions and session piggybacking.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Use the system timeout show command to view the current CLI session timeout. To set the timeout value, use the system timeout modify -timeout <minutes> command."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+</report>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "5.1 - Storage Administrative System Auditing - Log Forwarding enabled"
+  info        : "Log and audit information is invaluable to an organization from a support and availability standpoint. In addition, the information and details contained in logs (syslog) and audit reports and outputs are generally of a sensitive nature. To maintain security controls and posture, it is imperative that organizations manage log and audit data in a secure manner."
+  solution    : "Offloading of syslog information is necessary for limiting the scope or footprint of a breach to a single system or solution. Therefore, NetApp recommends securely offloading syslog information to a secure storage or retention location.
+
+The cluster log-forwarding create command creates log-forwarding destinations for remote logging."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<cluster-log-forward-get-iter></cluster-log-forward-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Log Forwarding:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//cluster-log-forward-info">
+  <xsl:value-of select="destination" /><xsl:text> - Facility - </xsl:text>
+  <xsl:value-of select="facility" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "(.*?) - Facility - (.*?)$"
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "5.1 - Storage Administrative System Auditing - Log Forwarding protocol tcp-encrypted"
+  info        : "Log and audit information is invaluable to an organization from a support and availability standpoint. In addition, the information and details contained in logs (syslog) and audit reports and outputs are generally of a sensitive nature. To maintain security controls and posture, it is imperative that organizations manage log and audit data in a secure manner."
+  solution    : "Offloading of syslog information is necessary for limiting the scope or footprint of a breach to a single system or solution. Therefore, NetApp recommends securely offloading syslog information to a secure storage or retention location.
+
+The cluster log-forwarding create command creates log-forwarding destinations for remote logging."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<cluster-log-forward-get-iter></cluster-log-forward-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Log Forwarding protocol:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//cluster-log-forward-info">
+  <xsl:value-of select="destination" /><xsl:text> - Protocol - </xsl:text>
+  <xsl:value-of select="protocol" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "(.*?) - Protocol - tcp_encrypted$"
+  reference   : "800-171|3.3.8,800-53|AU-9(3),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(3),NESA|M5.2.3,NESA|M5.5.2,TBA-FIISB|37.3.3"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "5.2 - Storage Administrative System Auditing - Event Notifications"
+  info        : "Securing the information and data leaving a system is vital to maintaining and managing the system's security posture. The events generated by the ONTAP solution provide a wealth of information about what the solution is encountering, the information processed, and more. The vitality of this data highlights the need to manage and migrate it in a secure manner.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "The event notification create command sends a new notification of a set of events defined by an event filter to one or more notification destinations. The following examples depict the event notification configuration and the event notification show command, which displays the configured event notification filters and destinations.
+
+  cluster1::> event notification create -filter-name filter1 -destinations email_dest,syslog_dest,snmp-traphost"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<ems-event-notification-get-iter></ems-event-notification-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Event Notifications:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//event-notification">
+  <xsl:value-of select="filter-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="destinations/string" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "6 - Storage Encryption"
+  info        : "Data-at-rest encryption is important to protect sensitive data in the event of a disk that is stolen, returned, or repurposed.
+
+ONTAP 9 has two Federal Information Processing Standard (FIPS) 140-2-compliant data-at-rest encryption solutions:
+- NetApp Storage Encryption (NSE) is a hardware solution that makes use of self-encrypting drives.
+- NetApp Volume Encryption (NVE) is a software solution that enables encryption of any data volume on any drive type where it is enabled.
+
+NSE and NVE can make use of either external key management or the onboard key manager (OKM). Use of NSE or NVE does not affect ONTAP storage efficiency features. However, NVE volumes are excluded from aggregate inline dedupe.
+
+The OKM provides a self-contained encryption solution for data at rest with NSE or NVE.
+
+NVE and OKM make use of the ONTAP CryptoMod. CryptoMod is now listed on the CMVP FIPS 140-2 validated modules list. See FIPS 140-2 Cert# 3072 (https://csrc.nist.gov/projects/cryptographic-module-validation-program/Certificate/3072).
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To begin OKM configuration, use the security key-manager setup command, which is used to configure both key management methods supported by ONTAP: OKM and the Key Management Interoperability Protocol (KMIP). KMIP is the external key management option. For onboard key management, this configuration walks the operator or administrator through the passphrase setup and additional parameters for configuring OKM."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+</report>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "7 - Data Replication Encryption"
+  info        : "When replicating data for disaster recovery, caching, or backup, you must protect that data during transport over the wire from one ONTAP cluster to another. Doing so prevents malicious man-in-themiddle attacks against sensitive data while it's in flight.
+
+Starting with ONTAP 9.6, Cluster Peering Encryption provides TLS 1.2 AES-256 GCM encryption support for ONTAP data replication features such as SnapMirror, SnapVault, and FlexCache. Encryption is setup by way of a pre-shared key (PSK) between two cluster peers.
+
+Customers who use technologies like NSE, NVE, and NAE to protect data at rest can also use end-to-end data encryption by upgrading to ONTAP 9.6 or later to use Cluster Peering Encryption."
+  solution    : "Cluster peering encrypts all data between the cluster peers. For example, when using SnapMirror, all peering information as well as all SnapMirror relationships between the source and destination cluster peer are encrypted. You cannot send clear-text data between cluster peers with Cluster Peering Encryption enabled.
+
+Starting with ONTAP 9.6, new cluster-peer relationships have encryption enabled by default. To enable encryption on cluster peer relationships that were created prior to an ONTAP 9.6, the source and destination cluster must be upgraded to 9.6. In addition, you must use the cluster peer modify command to change both the source and destination cluster peers to use Cluster Peering Encryption.
+
+Converting an existing peer relationship to use Cluster Peering Encryption in 9.6 is shown in the following example:
+
+On the Destination Cluster Peer
+Cluster2::> cluster peer modify Cluster1 -auth-status-admin use-authentication -encryptionprotocol-proposed tls-psk
+When prompted enter a passphrase.
+
+On the Source Cluster Peer
+Cluster1::> cluster peer modify Cluster2 -auth-status-admin use-authentication -encryptionprotocol-proposed tls-psk
+
+When prompted enter the same passphrase you created in the previous step."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<cluster-peer-get-iter></cluster-peer-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Cluster Peer - Encryption Protocol&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//cluster-peer-info">
+  <xsl:value-of select="cluster-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="encryption-protocol" /><xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - none"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "8 - Managing TLS and SSL - FIPS 140-2 Enabled"
+  info        : "Beginning with ONTAP 9, you can enable the FIPS 140-2 compliance mode for clusterwide control plane interfaces. By default, the FIPS 140-2-only mode is disabled. You can enable the FIPS 140-2 compliance mode by setting the is-fips-enabled parameter to true for the security config modify command. You can then use the security config show command to confirm the online status.
+
+  When FIPS 140-2 compliance is enabled, TLSv1 and SSLv3 are disabled, and only TLSv1.1 and TLSv1.2 remain enabled. ONTAP prevents you from enabling TLSv1 and SSLv3 when FIPS 140-2 compliance is enabled. If you enable FIPS 140-2 and then subsequently disable it, TLSv1 and SSLv3 remain disabled, but TLSv1.2 or both TLSv1.1 and TLSv1.2 remain enabled, depending on the previous configuration."
+  solution    : "The security config modify command modifies the existing clusterwide security configuration. If you enable the FIPS-compliant mode, the cluster automatically selects only TLS protocols. Use the -supported-protocols parameter to include or exclude TLS protocols independently from FIPS mode. By default, FIPS mode is disabled, and ONTAP supports the TLSv1.2, TLSv1.1, and TLSv1 protocols.
+
+  For backward compatibility, ONTAP supports adding SSLv3 to the supported-protocols list when FIPS mode is disabled. Use the -supported-ciphers parameter to configure only the Advanced Encryption Standard (AES) or AES and 3DES. You can also disable weak ciphers such as RC4 by specifying !RC4. By default, the supported cipher setting is ALL:!LOW:!aNULL:!EXP:!eNULL. This setting means that all supported cipher suites for the protocols are enabled, except for the ones with no authentication, no encryption, no exports, and low-encryption cipher suites. These are suites using 64-bit or 56-bit encryption algorithms.
+
+Select a cipher suite that is available with the corresponding selected protocol. An invalid configuration might cause some functionality to fail to operate properly.
+
+Refer to OpenSSL ciphers (https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html) published by the OpenSSL software foundation for the correct cipher string syntax. After modifying the security configuration, reboot all the nodes manually.
+
+Enabling FIPS 140-2 compliance has effects on other systems and communications internal and external to ONTAP 9. NetApp highly recommends testing these settings on a nonproduction system that has console access.
+
+Note: If SSH is used to administer ONTAP 9, then you must use an OpenSSH 5.7 or later client."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-config-get><interface>SSL</interface></security-config-get>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>FIPS 140-2 Status:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-config-info">
+  <xsl:text>FIPS Enabled - </xsl:text><xsl:value-of select="is-fips-enabled" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "FIPS Enabled - true"
+  reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "8 - Managing TLS and SSL - TLSv1 disabled"
+  info        : "Beginning with ONTAP 9, you can enable the FIPS 140-2 compliance mode for clusterwide control plane interfaces. By default, the FIPS 140-2-only mode is disabled. You can enable the FIPS 140-2 compliance mode by setting the is-fips-enabled parameter to true for the security config modify command. You can then use the security config show command to confirm the online status.
+
+  When FIPS 140-2 compliance is enabled, TLSv1 and SSLv3 are disabled, and only TLSv1.1 and TLSv1.2 remain enabled. ONTAP prevents you from enabling TLSv1 and SSLv3 when FIPS 140-2 compliance is enabled. If you enable FIPS 140-2 and then subsequently disable it, TLSv1 and SSLv3 remain disabled, but TLSv1.2 or both TLSv1.1 and TLSv1.2 remain enabled, depending on the previous configuration."
+  solution    : "The security config modify command modifies the existing clusterwide security configuration. If you enable the FIPS-compliant mode, the cluster automatically selects only TLS protocols. Use the -supported-protocols parameter to include or exclude TLS protocols independently from FIPS mode. By default, FIPS mode is disabled, and ONTAP supports the TLSv1.2, TLSv1.1, and TLSv1 protocols.
+
+  For backward compatibility, ONTAP supports adding SSLv3 to the supported-protocols list when FIPS mode is disabled. Use the -supported-ciphers parameter to configure only the Advanced Encryption Standard (AES) or AES and 3DES. You can also disable weak ciphers such as RC4 by specifying !RC4. By default, the supported cipher setting is ALL:!LOW:!aNULL:!EXP:!eNULL. This setting means that all supported cipher suites for the protocols are enabled, except for the ones with no authentication, no encryption, no exports, and low-encryption cipher suites. These are suites using 64-bit or 56-bit encryption algorithms.
+
+Select a cipher suite that is available with the corresponding selected protocol. An invalid configuration might cause some functionality to fail to operate properly.
+
+Refer to OpenSSL ciphers (https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html) published by the OpenSSL software foundation for the correct cipher string syntax. After modifying the security configuration, reboot all the nodes manually.
+
+Enabling FIPS 140-2 compliance has effects on other systems and communications internal and external to ONTAP 9. NetApp highly recommends testing these settings on a nonproduction system that has console access.
+
+Note: If SSH is used to administer ONTAP 9, then you must use an OpenSSH 5.7 or later client."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-config-get><interface>SSL</interface></security-config-get>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>TLSv1 Status:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-config-info">
+  <xsl:for-each select="supported-protocols/string">
+    <xsl:text>Protocol - </xsl:text><xsl:value-of select="." />
+    <xsl:text>&#xa;</xsl:text>
+  </xsl:for-each>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - TLSv1$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "8 - Managing TLS and SSL - SSLv3 disabled"
+  info        : "Beginning with ONTAP 9, you can enable the FIPS 140-2 compliance mode for clusterwide control plane interfaces. By default, the FIPS 140-2-only mode is disabled. You can enable the FIPS 140-2 compliance mode by setting the is-fips-enabled parameter to true for the security config modify command. You can then use the security config show command to confirm the online status.
+
+  When FIPS 140-2 compliance is enabled, TLSv1 and SSLv3 are disabled, and only TLSv1.1 and TLSv1.2 remain enabled. ONTAP prevents you from enabling TLSv1 and SSLv3 when FIPS 140-2 compliance is enabled. If you enable FIPS 140-2 and then subsequently disable it, TLSv1 and SSLv3 remain disabled, but TLSv1.2 or both TLSv1.1 and TLSv1.2 remain enabled, depending on the previous configuration."
+  solution    : "The security config modify command modifies the existing clusterwide security configuration. If you enable the FIPS-compliant mode, the cluster automatically selects only TLS protocols. Use the -supported-protocols parameter to include or exclude TLS protocols independently from FIPS mode. By default, FIPS mode is disabled, and ONTAP supports the TLSv1.2, TLSv1.1, and TLSv1 protocols.
+
+  For backward compatibility, ONTAP supports adding SSLv3 to the supported-protocols list when FIPS mode is disabled. Use the -supported-ciphers parameter to configure only the Advanced Encryption Standard (AES) or AES and 3DES. You can also disable weak ciphers such as RC4 by specifying !RC4. By default, the supported cipher setting is ALL:!LOW:!aNULL:!EXP:!eNULL. This setting means that all supported cipher suites for the protocols are enabled, except for the ones with no authentication, no encryption, no exports, and low-encryption cipher suites. These are suites using 64-bit or 56-bit encryption algorithms.
+
+Select a cipher suite that is available with the corresponding selected protocol. An invalid configuration might cause some functionality to fail to operate properly.
+
+Refer to OpenSSL ciphers (https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html) published by the OpenSSL software foundation for the correct cipher string syntax. After modifying the security configuration, reboot all the nodes manually.
+
+Enabling FIPS 140-2 compliance has effects on other systems and communications internal and external to ONTAP 9. NetApp highly recommends testing these settings on a nonproduction system that has console access.
+
+Note: If SSH is used to administer ONTAP 9, then you must use an OpenSSH 5.7 or later client."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-config-get><interface>SSL</interface></security-config-get>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>SSLv3 Status:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-config-info">
+  <xsl:for-each select="supported-protocols/string">
+    <xsl:text>Protocol - </xsl:text><xsl:value-of select="." />
+    <xsl:text>&#xa;</xsl:text>
+  </xsl:for-each>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - SSLv3$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "8 - Managing TLS and SSL - Supported Ciphers"
+  info        : "Beginning with ONTAP 9, you can enable the FIPS 140-2 compliance mode for clusterwide control plane interfaces. By default, the FIPS 140-2-only mode is disabled. You can enable the FIPS 140-2 compliance mode by setting the is-fips-enabled parameter to true for the security config modify command. You can then use the security config show command to confirm the online status.
+
+  When FIPS 140-2 compliance is enabled, TLSv1 and SSLv3 are disabled, and only TLSv1.1 and TLSv1.2 remain enabled. ONTAP prevents you from enabling TLSv1 and SSLv3 when FIPS 140-2 compliance is enabled. If you enable FIPS 140-2 and then subsequently disable it, TLSv1 and SSLv3 remain disabled, but TLSv1.2 or both TLSv1.1 and TLSv1.2 remain enabled, depending on the previous configuration."
+  solution    : "The security config modify command modifies the existing clusterwide security configuration. If you enable the FIPS-compliant mode, the cluster automatically selects only TLS protocols. Use the -supported-protocols parameter to include or exclude TLS protocols independently from FIPS mode. By default, FIPS mode is disabled, and ONTAP supports the TLSv1.2, TLSv1.1, and TLSv1 protocols.
+
+  For backward compatibility, ONTAP supports adding SSLv3 to the supported-protocols list when FIPS mode is disabled. Use the -supported-ciphers parameter to configure only the Advanced Encryption Standard (AES) or AES and 3DES. You can also disable weak ciphers such as RC4 by specifying !RC4. By default, the supported cipher setting is ALL:!LOW:!aNULL:!EXP:!eNULL. This setting means that all supported cipher suites for the protocols are enabled, except for the ones with no authentication, no encryption, no exports, and low-encryption cipher suites. These are suites using 64-bit or 56-bit encryption algorithms.
+
+Select a cipher suite that is available with the corresponding selected protocol. An invalid configuration might cause some functionality to fail to operate properly.
+
+Refer to OpenSSL ciphers (https://www.openssl.org/docs/manmaster/man1/openssl-ciphers.html) published by the OpenSSL software foundation for the correct cipher string syntax. After modifying the security configuration, reboot all the nodes manually.
+
+Enabling FIPS 140-2 compliance has effects on other systems and communications internal and external to ONTAP 9. NetApp highly recommends testing these settings on a nonproduction system that has console access.
+
+Note: If SSH is used to administer ONTAP 9, then you must use an OpenSSH 5.7 or later client."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-config-get><interface>SSL</interface></security-config-get>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Supported Ciphers:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-config-info">
+  <xsl:text>Ciphers - </xsl:text><xsl:value-of select="supported-ciphers" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Ciphers - AES:!LOW:!aNULL:!EXP:!eNULL:!3DES:!RC4$"
+  reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "10 - Online Certificate Status Protocol"
+  info        : "Online Certificate Status Protocol (OCSP) enables ONTAP applications that use TLS communications, such as LDAP or TLS, to receive digital certificate status when OCSP is enabled. The application receives a signed response signifying that the certificate requested is good, revoked, or unknown.
+
+  OCSP enables determination of the current status of a digital certificate without requiring certificate revocation lists (CRLs).
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "By default, OCSP certificate status checking is disabled. It can be turned on with the command security config ocsp enable -app app name, where the app name can be autosupport, audit_log, fabricpool, ems, kmip, ldap_ad, ldap_nis_namemap, or all. The command requires advanced privilege level."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-config-ocsp-get-iter></security-config-ocsp-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>OCSP Status:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:text>Application - Enabled&#xa;</xsl:text>
+<xsl:text>------------------------&#xa;</xsl:text>
+<xsl:for-each select="//security-config-ocsp">
+  <xsl:value-of select="application" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="is-ocsp-enabled" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "11 - Managing SSHv2 - Ciphers"
+  info        : "Recommendations:
+
+- Use passwords for user sessions.
+- Use a public key for machine access.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "The security ssh modify command replaces the existing configurations of the SSH key exchange algorithms, ciphers, or MAC algorithms for the cluster or an SVM with the configuration settings you specify."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-ssh-get-iter></security-ssh-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>SSHv2 Ciphers:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-ssh-info">
+  <xsl:value-of select="vserver-name" /><xsl:text> - </xsl:text>
+  <xsl:for-each select="ciphers/ciphers">
+    <xsl:value-of select="." /><xsl:text> </xsl:text>
+  </xsl:for-each>
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "11 - Managing SSHv2 - Key Exchange Algorithms"
+  info        : "Recommendations:
+
+- Use passwords for user sessions.
+- Use a public key for machine access.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "The security ssh modify command replaces the existing configurations of the SSH key exchange algorithms, ciphers, or MAC algorithms for the cluster or an SVM with the configuration settings you specify."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-ssh-get-iter></security-ssh-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>SSHv2 Key Exchange Algorithms:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-ssh-info">
+  <xsl:value-of select="vserver-name" /><xsl:text> - </xsl:text>
+  <xsl:for-each select="key-exchange-algorithms/kex-algorithms">
+    <xsl:value-of select="." /><xsl:text> </xsl:text>
+  </xsl:for-each>
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "11 - Managing SSHv2 - MAC Algorithms"
+  info        : "Recommendations:
+
+- Use passwords for user sessions.
+- Use a public key for machine access.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "The security ssh modify command replaces the existing configurations of the SSH key exchange algorithms, ciphers, or MAC algorithms for the cluster or an SVM with the configuration settings you specify."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-ssh-get-iter></security-ssh-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>SSHv2 MAC Algorithms:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-ssh-info">
+  <xsl:value-of select="vserver-name" /><xsl:text> - </xsl:text>
+  <xsl:for-each select="mac-algorithms/mac-algorithms">
+    <xsl:value-of select="." /><xsl:text> </xsl:text>
+  </xsl:for-each>
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "11 - Managing SSHv2 - Max Authentication Retry Count"
+  info        : "Recommendations:
+
+- Use passwords for user sessions.
+- Use a public key for machine access."
+  solution    : "The security ssh modify command replaces the existing configurations of the SSH key exchange algorithms, ciphers, or MAC algorithms for the cluster or an SVM with the configuration settings you specify."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<security-ssh-get-iter></security-ssh-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>SSHv2 Max Authentication Retry Count:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//security-ssh-info">
+  <xsl:value-of select="vserver-name" /><xsl:text> - </xsl:text>
+    <xsl:value-of select="max-authentication-retry-count" />
+    <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - [^2-6]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "12 - AutoSupport - Enabled"
+  info        : "The AutoSupport feature of ONTAP allows you to proactively monitor the health of your system and automatically send messages and details to NetApp technical support, your organization's internal support team, or a support partner. By default, AutoSupport messages to NetApp technical support are enabled when the storage system is configured for the first time. In addition, AutoSupport begins sending messages to NetApp technical support 24 hours after it is enabled. This 24-hour period is configurable. To leverage the communication to an organization's internal support team, the mail host configuration must be completed.
+
+  Only the cluster administrator can perform AutoSupport management (configuration). The SVM administrator has no access to AutoSupport. The AutoSupport feature can be disabled. However, NetApp recommends enabling it because AutoSupport helps speed problem identification and resolution should an issue arise on the storage system. By default, the system collects AutoSupport information and stores it locally even if you disable AutoSupport.
+
+  For more details regarding AutoSupport messages, including what is contained in the various messages and where different types of messages are sent, see the NetApp Support portal (https://library.netapp.com/ecmdocs/ECMP1196798/html/GUID-DF931E89-B833-4DED-83B5-A97F7EC97425.html). AutoSupport messages contain sensitive data including, but not limited to, the following items:
+- Log files
+- Context-sensitive data regarding specific subsystems
+- Configuration and status data
+- Performance data
+
+AutoSupport supports HTTPS, HTTP, and SMTP for transport protocols. Because of the sensitive nature of AutoSupport messages, NetApp strongly recommends using HTTPS as the default transport protocol for sending AutoSupport messages to NetApp support."
+  solution    : "AutoSupport supports HTTPS, HTTP, and SMTP for transport protocols. Because of the sensitive nature of AutoSupport messages, NetApp strongly recommends using HTTPS as the default transport protocol for sending AutoSupport messages to NetApp support.
+
+  In addition, you should leverage the system node autosupport modify command to specify the targets of AutoSupport data (for example, NetApp technical support, an organization's internal operations, or partners). This command also allows you to specify what specific AutoSupport details to send (for example, performance data, log files, and so on).
+
+  ONTAP offers a unique solution that protects the privacy of sensitive information by masking or filtering sensitive information with the -remove-private-data parameter of the system node autosupport modify command. When enabled (set to true), this parameter removes, encodes, or masks sensitive data from AutoSupport attachments and headers. Use this parameter to eliminate private data from all AutoSupport messages. Eliminated data includes the following items:
+
+  - IP addresses
+- MAC addresses
+- URIs
+- DNS names
+- Email addresses
+- Port numbers
+- Node names
+- SVM names
+- Cluster names
+- Aggregate names
+- Volume names
+- Junction paths
+- Policy names
+- User IDs
+- Group IDs
+- LUNs
+- Qtree names
+
+By default, this parameter is disabled (set to false). NetApp highly recommends enabling this parameter (set to true) in any sensitive environments that require the most robust security posture."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<autosupport-config-get-iter></autosupport-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>AutoSupport:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//autosupport-config-info">
+  <xsl:text>Enabled - </xsl:text><xsl:value-of select="is-enabled" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Enabled - true$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "12 - AutoSupport - Transport type"
+  info        : "The AutoSupport feature of ONTAP allows you to proactively monitor the health of your system and automatically send messages and details to NetApp technical support, your organization's internal support team, or a support partner. By default, AutoSupport messages to NetApp technical support are enabled when the storage system is configured for the first time. In addition, AutoSupport begins sending messages to NetApp technical support 24 hours after it is enabled. This 24-hour period is configurable. To leverage the communication to an organization's internal support team, the mail host configuration must be completed.
+
+  Only the cluster administrator can perform AutoSupport management (configuration). The SVM administrator has no access to AutoSupport. The AutoSupport feature can be disabled. However, NetApp recommends enabling it because AutoSupport helps speed problem identification and resolution should an issue arise on the storage system. By default, the system collects AutoSupport information and stores it locally even if you disable AutoSupport.
+
+  For more details regarding AutoSupport messages, including what is contained in the various messages and where different types of messages are sent, see the NetApp Support portal (https://library.netapp.com/ecmdocs/ECMP1196798/html/GUID-DF931E89-B833-4DED-83B5-A97F7EC97425.html). AutoSupport messages contain sensitive data including, but not limited to, the following items:
+- Log files
+- Context-sensitive data regarding specific subsystems
+- Configuration and status data
+- Performance data
+
+AutoSupport supports HTTPS, HTTP, and SMTP for transport protocols. Because of the sensitive nature of AutoSupport messages, NetApp strongly recommends using HTTPS as the default transport protocol for sending AutoSupport messages to NetApp support."
+  solution    : "AutoSupport supports HTTPS, HTTP, and SMTP for transport protocols. Because of the sensitive nature of AutoSupport messages, NetApp strongly recommends using HTTPS as the default transport protocol for sending AutoSupport messages to NetApp support.
+
+  In addition, you should leverage the system node autosupport modify command to specify the targets of AutoSupport data (for example, NetApp technical support, an organization's internal operations, or partners). This command also allows you to specify what specific AutoSupport details to send (for example, performance data, log files, and so on).
+
+  ONTAP offers a unique solution that protects the privacy of sensitive information by masking or filtering sensitive information with the -remove-private-data parameter of the system node autosupport modify command. When enabled (set to true), this parameter removes, encodes, or masks sensitive data from AutoSupport attachments and headers. Use this parameter to eliminate private data from all AutoSupport messages. Eliminated data includes the following items:
+
+  - IP addresses
+- MAC addresses
+- URIs
+- DNS names
+- Email addresses
+- Port numbers
+- Node names
+- SVM names
+- Cluster names
+- Aggregate names
+- Volume names
+- Junction paths
+- Policy names
+- User IDs
+- Group IDs
+- LUNs
+- Qtree names
+
+By default, this parameter is disabled (set to false). NetApp highly recommends enabling this parameter (set to true) in any sensitive environments that require the most robust security posture."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<autosupport-config-get-iter></autosupport-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>AutoSupport Transport Type:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//autosupport-config-info">
+  <xsl:text>Transport - </xsl:text><xsl:value-of select="transport" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : "Transport - [^https]$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "12 - AutoSupport - Remove Private Data"
+  info        : "The AutoSupport feature of ONTAP allows you to proactively monitor the health of your system and automatically send messages and details to NetApp technical support, your organization's internal support team, or a support partner. By default, AutoSupport messages to NetApp technical support are enabled when the storage system is configured for the first time. In addition, AutoSupport begins sending messages to NetApp technical support 24 hours after it is enabled. This 24-hour period is configurable. To leverage the communication to an organization's internal support team, the mail host configuration must be completed.
+
+  Only the cluster administrator can perform AutoSupport management (configuration). The SVM administrator has no access to AutoSupport. The AutoSupport feature can be disabled. However, NetApp recommends enabling it because AutoSupport helps speed problem identification and resolution should an issue arise on the storage system. By default, the system collects AutoSupport information and stores it locally even if you disable AutoSupport.
+
+  For more details regarding AutoSupport messages, including what is contained in the various messages and where different types of messages are sent, see the NetApp Support portal (https://library.netapp.com/ecmdocs/ECMP1196798/html/GUID-DF931E89-B833-4DED-83B5-A97F7EC97425.html). AutoSupport messages contain sensitive data including, but not limited to, the following items:
+- Log files
+- Context-sensitive data regarding specific subsystems
+- Configuration and status data
+- Performance data
+
+AutoSupport supports HTTPS, HTTP, and SMTP for transport protocols. Because of the sensitive nature of AutoSupport messages, NetApp strongly recommends using HTTPS as the default transport protocol for sending AutoSupport messages to NetApp support."
+  solution    : "AutoSupport supports HTTPS, HTTP, and SMTP for transport protocols. Because of the sensitive nature of AutoSupport messages, NetApp strongly recommends using HTTPS as the default transport protocol for sending AutoSupport messages to NetApp support.
+
+  In addition, you should leverage the system node autosupport modify command to specify the targets of AutoSupport data (for example, NetApp technical support, an organization's internal operations, or partners). This command also allows you to specify what specific AutoSupport details to send (for example, performance data, log files, and so on).
+
+  ONTAP offers a unique solution that protects the privacy of sensitive information by masking or filtering sensitive information with the -remove-private-data parameter of the system node autosupport modify command. When enabled (set to true), this parameter removes, encodes, or masks sensitive data from AutoSupport attachments and headers. Use this parameter to eliminate private data from all AutoSupport messages. Eliminated data includes the following items:
+
+  - IP addresses
+- MAC addresses
+- URIs
+- DNS names
+- Email addresses
+- Port numbers
+- Node names
+- SVM names
+- Cluster names
+- Aggregate names
+- Volume names
+- Junction paths
+- Policy names
+- User IDs
+- Group IDs
+- LUNs
+- Qtree names
+
+By default, this parameter is disabled (set to false). NetApp highly recommends enabling this parameter (set to true) in any sensitive environments that require the most robust security posture."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<autosupport-config-get-iter></autosupport-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>AutoSupport Remove Private Data:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//autosupport-config-info">
+  <xsl:text>Private Data - </xsl:text><xsl:value-of select="is-private-data-removed" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Private Data - true$"
+  reference   : "800-53|SI-11,ITSG-33|SI-11"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "13 - Network Time Protocol"
+  info        : "Problems can occur when the cluster time is inaccurate. Although ONTAP enables you to manually set the time zone, date, and time on the cluster, you must configure the Network Time Protocol (NTP) servers to synchronize the cluster time with external NTP servers.
+
+Starting with ONTAP 9.5, you can configure your NTP server with symmetric authentication."
+  solution    : "You can associate a maximum of 10 external NTP servers by using the
+
+  cluster time- service ntp server create
+
+  command. For redundancy and quality of time service, you should associate at least three external NTP servers with the cluster."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<ntp-server-get-iter></ntp-server-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+  <xsl:variable name="elements" select="//ntp-server-info[server-name]" />
+  <xsl:text>NTP Servers:&#xa;</xsl:text>
+  <xsl:text>========================&#xa;</xsl:text>
+  <xsl:for-each select="//ntp-server-info">
+    <xsl:value-of select="server-name" /><xsl:text>&#xa;</xsl:text>
+  </xsl:for-each>
+  <xsl:text>Number of NTP servers: </xsl:text><xsl:value-of select="count($elements)" /><xsl:text>&#xa;</xsl:text>
+  </xsl:template>'
+  expect      : "Number of NTP servers: ([3-9]|10)"
+  reference   : "800-171|3.3.7,800-53|AU-8(1),800-53|AU-8(2),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "14 - NAS File System Local Accounts - Use NTLM Authentication with CIFS Workgroups"
+  info        : "Beginning with ONTAP 9, you can configure a CIFS server in a workgroup with CIFS clients that authenticate to the server by using locally defined users and groups. Workgroup client authentication provides an additional layer of security to the ONTAP solution that is consistent with a traditional domain authentication posture. To configure the CIFS server, use the vserver cifs create command. After the CIFS server is created, you can join it to a CIFS domain or join it to a workgroup. To join a workgroup, use the -workgroup parameter. Here is an example configuration:
+
+  cluster1::> vserver cifs create -vserver vs1 -cifs-server CIFSSERVER1 -workgroup Sales
+
+  Note: A CIFS server in workgroup mode supports only Windows NT LAN Manager (NTLM) authentication and does not support Kerberos authentication."
+  solution    : "NetApp recommends using the NTLM authentication function with CIFS workgroups to maintain your organization's security posture. To validate the CIFS security posture, NetApp recommends using the vserver cifs session show command to display numerous posture-related details, including IP information, the authentication mechanism, the protocol version, and the authentication type."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<cifs-security-get-iter></cifs-security-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>CIFS NTLM Authentication:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//attributes-list">
+  <xsl:text>Authentication Type - </xsl:text><xsl:value-of select="cifs-security/lm-compatibility-level" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  not_expect  : " - lm_ntlm_ntlmv2_krb$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "15 - NAS File System Auditing - CIFS auditing is enabled"
+  info        : "Security requires validation. ONTAP 9 provides increased auditing events and details across the solution. Because NAS file systems occupy an increased footprint in today's threat landscape, audit functions are critical to support visibility. Because of the improved audit capability in ONTAP 9, CIFS audit details are more plentiful than ever. Key details, including the following, are logged with events created:
+
+  - File, folder, and share access
+- Files created, modified, or deleted
+- Successful file read access
+- Failed attempts to read or write files
+- Folder permission changes"
+  solution    : "You must enable CIFS auditing to generate auditing events. Use the vserver audit create command to create an audit configuration. By default, the audit log uses a rotation method based on size. You can use a time-based rotation option if specified in the Rotation Parameters field. Additional log audit rotation configuration details include the rotation schedule, the rotation limits, the rotation days of the week, and the rotation size. The following text provides an example configuration depicting an audit configuration using a monthly time-based rotation scheduled for all days of the week at 12:30.
+
+  cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<fileservice-audit-config-get-iter></fileservice-audit-config-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>File System Auditing:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//fileservice-audit-config">
+  <xsl:text>Enabled - </xsl:text><xsl:value-of select="is-enabled" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Enabled - true$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "16 - CIFS SMB Signing and Sealing - SMB signing is enabled"
+  info        : "A common threat vector for file systems and architectures lies in the SMB protocol. To address this vector, the ONTAP 9 solution uses industry-standard SMB signing and sealing. SMB signing protects the security of the Data Fabric by making sure that traffic between storage systems and clients is not compromised by replay or man-in-the-middle attacks. It does so by verifying that SMB messages have valid signatures.
+
+  Although SMB signing is disabled by default in the interest of performance, NetApp highly recommends that you enable it. In addition, the ONTAP solution supports SMB encryption, which is also known as sealing. This approach allows for the secure transport of data on a share-by-share basis. By default, SMB encryption is disabled. However, NetApp recommends that you enable SMB encryption.
+
+  LDAP signing and sealing are now supported in SMB 2.0 and later. Signing (protection against tampering) and sealing (encryption) enable secure communication between SVMs and Active Directory servers. Accelerated AES new instructions (Intel AES NI) encryption is now supported in SMB 3.0 and later. Intel AES NI improves on the AES algorithm and accelerates data encryption with supported processor families."
+  solution    : "To configure and enable SMB signing, use the vserver cifs security modify command and verify that the -is-signing-required parameter is set to true. See the following example configuration:
+
+  cluster1::> vserver cifs security modify -vserver vs1 -kerberos-clock-skew 3 -kerberos-ticket-age 8 -is-signing-required true
+
+  To configure and enable SMB sealing and encryption, use the vserver cifs security modify command and verify that the -is-smb-encryption-required parameter is set to true. See the following example configuration:
+
+  cluster1::> vserver cifs security modify -vserver vs1 -is-smb-encryption-required true
+
+cluster1::> vserver cifs security show -vserver vs1 -fields is-smb-encryption-required
+
+vserver is-smb-encryption-required
+-------- -------------------------
+vs1 true"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<cifs-security-get-iter></cifs-security-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>CIFS SMB Signing:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//attributes-list">
+  <xsl:text>SMB Signing - </xsl:text><xsl:value-of select="cifs-security/is-signing-required" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : " - true$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "16 - CIFS SMB Signing and Sealing - SMB encryption is enabled"
+  info        : "A common threat vector for file systems and architectures lies in the SMB protocol. To address this vector, the ONTAP 9 solution uses industry-standard SMB signing and sealing. SMB signing protects the security of the Data Fabric by making sure that traffic between storage systems and clients is not compromised by replay or man-in-the-middle attacks. It does so by verifying that SMB messages have valid signatures.
+
+  Although SMB signing is disabled by default in the interest of performance, NetApp highly recommends that you enable it. In addition, the ONTAP solution supports SMB encryption, which is also known as sealing. This approach allows for the secure transport of data on a share-by-share basis. By default, SMB encryption is disabled. However, NetApp recommends that you enable SMB encryption.
+
+  LDAP signing and sealing are now supported in SMB 2.0 and later. Signing (protection against tampering) and sealing (encryption) enable secure communication between SVMs and Active Directory servers. Accelerated AES new instructions (Intel AES NI) encryption is now supported in SMB 3.0 and later. Intel AES NI improves on the AES algorithm and accelerates data encryption with supported processor families."
+  solution    : "To configure and enable SMB signing, use the vserver cifs security modify command and verify that the -is-signing-required parameter is set to true. See the following example configuration:
+
+  cluster1::> vserver cifs security modify -vserver vs1 -kerberos-clock-skew 3 -kerberos-ticket-age 8 -is-signing-required true
+
+  To configure and enable SMB sealing and encryption, use the vserver cifs security modify command and verify that the -is-smb-encryption-required parameter is set to true. See the following example configuration:
+
+  cluster1::> vserver cifs security modify -vserver vs1 -is-smb-encryption-required true
+
+cluster1::> vserver cifs security show -vserver vs1 -fields is-smb-encryption-required
+
+vserver is-smb-encryption-required
+-------- -------------------------
+vs1 true"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<cifs-security-get-iter></cifs-security-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>CIFS SMB Encryption:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//attributes-list">
+  <xsl:text>SMB Encryption - </xsl:text><xsl:value-of select="cifs-security/is-smb-encryption-required" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : " - true$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "17 - Securing NFS - Export policy rules"
+  info        : "Access control is central to maintaining a secure posture. Therefore, ONTAP uses the export policy feature to limit NFS volume access to clients that match specific parameters. Export policies contain one or more export rules that process each client access request. An export policy is associated with each volume to configure client access to the volume. The result of this process determines whether the client is granted or denied (with a permission-denied message) access to the volume. This process also determines what level of access is provided to the volume.
+
+  Note: An export policy with export rules must exist on an SVM for clients to access data. An SVM can contain multiple export policies.
+
+  Export rules are the functional elements of an export policy. Export rules match client access requests for a volume against specific parameters you configure to determine how to handle the client access requests. An export policy must contain at least one export rule to allow access to clients. If an export policy contains more than one rule, the rules are processed in the order in which they appear in the export policy. The rule order is dictated by the rule index number. If a rule matches a client, the permissions of that rule are used, and no further rules are processed. If no rules match, the client is denied access.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Export rules determine client access permissions by applying the following criteria:
+- The file access protocol used by the client sending the request (for example, NFSv4 or SMB)
+- A client identifier (for example, host name or IP address)
+- The security type used by the client to authenticate (for example, Kerberos v5, NTLM, or AUTH_SYS)
+
+If a rule specifies multiple criteria, and the client does not match one or more of them, the rule does not apply.
+
+An example export policy contains an export rule with the following parameters:
+- -protocol nfs
+- -clientmatch 10.1.16.0/255.255.255.0
+- -rorule any
+- -rwrule any"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<export-rule-get-iter></export-rule-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>NFS Export Policies:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:text>VServer Name - Policy Name - Client Match - Superuser Mode&#xa;</xsl:text>
+<xsl:text>------------------------&#xa;</xsl:text>
+<xsl:for-each select="//export-rule-info">
+  <xsl:value-of select="vserver-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="policy-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="client-match" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="super-user-security/security-flavor" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "18 - Kerberos 5 and Krb5p"
+  info        : "Beginning with ONTAP 9, Kerberos 5 authentication with privacy service (krb5p) is supported. The krbp5 authentication mode is secure, and it protects against data tampering and snooping by using checksums to encrypt all traffic between client and server. The ONTAP solution supports 128-bit and 256-bit AES encryption for Kerberos. The privacy service includes verifying the integrity of the received data, authenticating users, and encrypting data before transmission.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "The krb5p option is most present in the export policy feature, where it is set as an encryption option. The krb5p authentication method can be used as an authentication parameter, as seen in the following text:
+
+cluster1::> vserver export-policy check-access -vserver vs1 -client-ip 10.22.32.42 -volume flex_vol -authentication-method krb5p -protocol nfs3 -accesstype read"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<export-policy-get-iter></export-policy-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>Kerberos Export Policies:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//export-policy-info">
+  <xsl:value-of select="policy-name" /><xsl:text> - </xsl:text>
+  <xsl:value-of select="vserver" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "19 - LDAP Signing and Sealing"
+  info        : "Beginning in ONTAP 9, signing and sealing are supported to enable session security on queries to an LDAP server. This approach provides an alternative to LDAP-over-TLS session security.
+
+  Signing confirms the integrity of LDAP payload data using secret key technology. Sealing encrypts the LDAP payload data to avoid transmitting sensitive information in clear text. The session security settings on an SVM correspond to those available on the LDAP server. By default, LDAP signing and sealing are disabled."
+  solution    : "To enable this function, run the vserver cifs security modify command with the session-security-for-ad-ldap parameter. See the following list of options for LDAP security functions:
+
+  - none (default, no signing or sealing)
+- sign (sign LDAP traffic)
+- seal (sign and encrypt LDAP traffic)
+
+Note: The sign and seal parameters are cumulative, meaning that if the sign option is used, the outcome is LDAP with signing. However, if the seal option is used, the outcome is both sign and seal. In addition, if a parameter is not specified for this command, the default is none.
+
+The following text provides an example configuration:
+
+cluster1::> vserver cifs security modify -vserver vs1 -kerberos-clock-skew 3 -kerberos-ticket-age 8 -session-security-for-ad-ldap seal"
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<cifs-security-get-iter></cifs-security-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>LDAP Signing:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:for-each select="//attributes-list">
+  <xsl:text>LDAP Signing - </xsl:text><xsl:value-of select="cifs-security/session-security-for-ad-ldap" />
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : " - seal$"
+  reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "20 - FPolicy - Policies"
+  info        : "Access control is a key security concept. Indeed, visibility and the ability to respond to file access and file operations are critical for maintaining your security posture. To provide visibility and access control for files, the ONTAP solution uses the FPolicy feature. FPolicy is an infrastructure component of the ONTAP solution that allows partner applications to monitor and set file access permissions.
+
+File policies can be set based on file type. FPolicy determines how the storage system handles requests from individual client systems for operations such as create, open, rename, and delete. Beginning with ONTAP 9, the FPolicy file access notification framework is enhanced with filtering controls and resiliency against short network outages.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To leverage the FPolicy feature, the FPolicy policy must first be created with the vserver fpolicy policy create command. In addition, use the -events parameter if FPolicy is used for visibility and the collection of events. The additional granularity provided by ONTAP enables filtering and access down to the user name level of control. To control privileges and access with user names, specify the - privilege-user-name parameter. The following text provides an example of FPolicy creation:
+
+cluster1::> vserver fpolicy policy create -vserver vs1.example.com -policy-name vs1_pol -events cserver_evt,v1e1 -engine native -is-mandatory true -allow-privileged-access no -ispassthrough-read-enabled false
+
+After the FPolicy policy is created, it must be enabled with the vserver fpolicy enable command. This command also sets the priority or sequence of the FPolicy entry. The FPolicy sequence is important because, if multiple policies have subscribed to the same file access event, the sequence dictates the order in which access is granted or denied. The following text provides a sample configuration for enabling the FPolicy policy and validating the configuration with the vserver fpolicy show command:
+
+cluster1::> vserver fpolicy enable -vserver vs2.example.com -policy-name vs2_pol -sequence-number 5
+cluster1::> vserver fpolicy show
+Vserver Policy Name Sequence Status Engine
+----------------------- ------------------------------ -------- ------- -------
+vs1.example.com vs1_pol
+vs2.example.com vs2_pol
+external
+2 entries were displayed."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<fpolicy-policy-get-iter></fpolicy-policy-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>FPolicy Policies:&#xa;</xsl:text>
+<xsl:text>============================================================&#xa;</xsl:text>
+<xsl:text>Policy Name - Allow Priv Access - Passthrough Read - Events&#xa;</xsl:text>
+<xsl:text>-----------------------------------------------------------&#xa;</xsl:text>
+<xsl:for-each select="//fpolicy-policy-info">
+  <xsl:value-of select="policy-name" /><xsl:text> - </xsl:text><xsl:value-of select="allow-privileged-access" /><xsl:text> - </xsl:text><xsl:value-of select="is-passthrough-read-enabled" /><xsl:text> - </xsl:text>
+  <xsl:for-each select="events/event-name">
+    <xsl:value-of select="." /><xsl:text> </xsl:text>
+  </xsl:for-each>
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_XML
+  description : "20 - FPolicy - Events"
+  info        : "Access control is a key security concept. Indeed, visibility and the ability to respond to file access and file operations are critical for maintaining your security posture. To provide visibility and access control for files, the ONTAP solution uses the FPolicy feature. FPolicy is an infrastructure component of the ONTAP solution that allows partner applications to monitor and set file access permissions.
+
+File policies can be set based on file type. FPolicy determines how the storage system handles requests from individual client systems for operations such as create, open, rename, and delete. Beginning with ONTAP 9, the FPolicy file access notification framework is enhanced with filtering controls and resiliency against short network outages.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To leverage the FPolicy feature, the FPolicy policy must first be created with the vserver fpolicy policy create command. In addition, use the -events parameter if FPolicy is used for visibility and the collection of events. The additional granularity provided by ONTAP enables filtering and access down to the user name level of control. To control privileges and access with user names, specify the - privilege-user-name parameter. The following text provides an example of FPolicy creation:
+
+cluster1::> vserver fpolicy policy create -vserver vs1.example.com -policy-name vs1_pol -events cserver_evt,v1e1 -engine native -is-mandatory true -allow-privileged-access no -ispassthrough-read-enabled false
+
+After the FPolicy policy is created, it must be enabled with the vserver fpolicy enable command. This command also sets the priority or sequence of the FPolicy entry. The FPolicy sequence is important because, if multiple policies have subscribed to the same file access event, the sequence dictates the order in which access is granted or denied. The following text provides a sample configuration for enabling the FPolicy policy and validating the configuration with the vserver fpolicy show command:
+
+cluster1::> vserver fpolicy enable -vserver vs2.example.com -policy-name vs2_pol -sequence-number 5
+cluster1::> vserver fpolicy show
+Vserver Policy Name Sequence Status Engine
+----------------------- ------------------------------ -------- ------- -------
+vs1.example.com vs1_pol
+vs2.example.com vs2_pol
+external
+2 entries were displayed."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+  request     : "<fpolicy-policy-event-get-iter></fpolicy-policy-event-get-iter>"
+  xsl_stmt    : '<xsl:template match="/">
+<xsl:text>FPolicy Events:&#xa;</xsl:text>
+<xsl:text>========================&#xa;</xsl:text>
+<xsl:text>Event Name - Protocol - File Operations&#xa;</xsl:text>
+<xsl:text>------------------------&#xa;</xsl:text>
+<xsl:for-each select="//fpolicy-event-options-config">
+  <xsl:value-of select="event-name" /><xsl:text> - </xsl:text><xsl:value-of select="protocol" /><xsl:text> - </xsl:text>
+  <xsl:for-each select="file-operations/fpolicy-operation">
+    <xsl:value-of select="." /><xsl:text> </xsl:text>
+  </xsl:for-each>
+  <xsl:text>&#xa;</xsl:text>
+</xsl:for-each>
+</xsl:template>'
+  expect      : "Manual Review Required"
+  severity    : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "21 - Securing Logical Interfaces"
+  info        : "A logical interface (LIF) is an IP address or WWPN with associated characteristics, such as a role, a home port, a home node, a list of ports to fail over to, and a firewall policy. You can configure LIFs on ports over which the cluster sends and receives communications over the network.
+
+LIF roles can be the following:
+- Data LIF. A LIF that is associated with an SVM and is used for communicating with clients.
+- Cluster LIF. A LIF that is used to carry intracluster traffic between nodes in a cluster.
+- Node management LIF. A LIF that provides a dedicated IP address for managing a particular node
+in a cluster.
+- Cluster management LIF. A LIF that provides a single management interface for the entire cluster.
+- Intercluster LIF. A LIF that is used for cross-cluster communication, backup, and replication.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Note: Because the cluster LIF is completely open with no configurable firewall policy, it must be on a private IP subnet on a secure isolated network."
+  see_also    : "https://www.netapp.com/us/media/tr-4569.pdf"
+</report>
+
+</check_type>

@@ -1,0 +1,2085 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.2 $
+# $Date: 2020/07/14 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               CIS Apache Tomcat 8 Benchmark
+#
+#<ui_metadata>
+#<display_name>CIS Apache Tomcat 8 L1 v1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Apache Tomcat 8 L1</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/2506</link>
+#</spec>
+#<labels>unix,cis,apache,tomcat,agent</labels>
+#<variables>
+#  <variable>
+#    <name>WEBSERVER_NAME</name>
+#    <default>Apache Tomcat</default>
+#    <description>Web server name string</description>
+#    <info>The name given to Tomcat in your configuration information.</info>
+#  </variable>
+#  <variable>
+#    <name>CATALINA_HOME</name>
+#    <default>/usr/share/tomcat8</default>
+#    <description>Catalina home</description>
+#    <info>The absolute path to your Tomcat installation directory. It should not end in a slash.</info>
+#  </variable>
+#  <variable>
+#    <name>CATALINA_BASE</name>
+#    <default>/var/lib/tomcat8/webapps</default>
+#    <description>Catalina base</description>
+#    <info>The absolute path to your Tomcat base directory. If you are running multiple instances of Tomcat you should set CATALINA_BASE to the instance directory and CATALINA_HOME to the common Tomcat installation whose files will be shared between instances.</info>
+#  </variable>
+#  <variable>
+#    <name>CATALINA_CONF</name>
+#    <default>/etc/tomcat8</default>
+#    <description>Catalina configuration directory</description>
+#    <info>The absolute path to the Tomcat configuration files directory. (This is used primarily by Ubuntu and Debian-based installations of Linux).</info>
+#  </variable>
+#  <variable>
+#    <name>WEB_APP_DIR</name>
+#    <default>yourappname</default>
+#    <description>Web application directory</description>
+#    <info>The name of your web application directory within CATALINA_BASE (e.g., /var/lib/tomcat8/webapps/yourappname)</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_PORT</name>
+#    <default>443</default>
+#    <description>SSL port number</description>
+#    <info>The SSL port for your Sensitive Connector(s).</info>
+#  </variable>
+#  <variable>
+#    <name>SECURE_LOG_DIR</name>
+#    <default>/var/log/tomcat8</default>
+#    <description>Log directory</description>
+#    <info>The path to where your logs are kept on the system.</info>
+#  </variable>
+#  <variable>
+#    <name>LOGGING_LEVEL</name>
+#    <default>WARNING</default>
+#    <description>Configured logging level</description>
+#    <info>The level of verbosity at which Tomcat should record log information.</info>
+#  </variable>
+#  <variable>
+#    <name>TOMCAT_OWNER</name>
+#    <default>tomcat_admin</default>
+#    <description>Tomcat system owner</description>
+#    <info>Unix user that owns the Tomcat installation files</info>
+#  </variable>
+#  <variable>
+#    <name>TOMCAT_GROUP</name>
+#    <default>tomcat</default>
+#    <description>Tomcat system group</description>
+#    <info>Unix group that can access the Tomcat installation files</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Tomcat found"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "cmd".
+      cmd         : "java -cp /usr/share/tomcat8/lib/catalina.jar org.apache.catalina.util.ServerInfo | /bin/egrep 'version'"
+# Note: Variable @WEBSERVER_NAME@ replaced with "Apache Tomcat" in field "expect".
+      expect      : "Apache Tomcat"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_Apache_Tomcat_8_L1_v1.1.0.audit from CIS Apache Tomcat 8 Benchmark"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "2.5 Disable client facing Stack Traces - check for defined exception type"
+      info        : "When a runtime error occurs during request processing, Apache Tomcat will display debugging information to the requestor. It is recommended that such debug information be withheld from the requestor.
+
+Rationale:
+
+Debugging information, such as that found in call stacks, often contains sensitive information which may be useful to an attacker. By preventing Tomcat from providing this information, the risk of leaking sensitive information to a potential attacker is reduced."
+      solution    : "Perform the following to prevent Tomcat from providing debug information to the requestor during runtime errors:
+
+Create a web page that contains the logic or message you wish to invoke when encountering a runtime error. For example purposes, assume this page is located at /error.jsp.
+
+Add a child element, <error-page>, to the <web-app> element, in the $CATALINA_HOME/conf/web.xml file.
+
+Add a child element, <exception-type>, to the <error-page> element. Set the value of the <exception-type> element to java.lang.Throwable.
+
+Add a child element <location> to the <error-page> element. Set the value of the <location> element to the location of page created in step 1.
+
+The resulting entry will look as follows:
+
+<error-page>
+<span> <exception-type>java.lang.Throwable</exception-type>
+ <location>/error.jsp</location>
+</error-page>
+
+Default Value:
+
+Tomcat's default configuration does not include an <error-page> element in $CATALINA_HOME/conf/web.xml. Therefore, Tomcat will provide debug information to the requestor by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/api/org/apache/tomcat/util/descriptor/web/ErrorPage.html"
+      reference   : "800-53|SI-11,CSCv7|13.2,ITSG-33|SI-11,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/web.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"not(//*[local-name() = 'web-app']/*[local-name() = 'error-page'])\">"
+      xsl_stmt    : "<xsl:text>FAIL - Missing error-page element</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name() = 'web-app']/*[local-name() = 'error-page'] and not(//*[local-name() = 'web-app']/*[local-name() = 'error-page']/*[local-name() = 'exception-type'])\">"
+      xsl_stmt    : "<xsl:text>FAIL - Missing exception-type child element</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name() = 'web-app']/*[local-name() = 'error-page'] and (//*[local-name() = 'web-app']/*[local-name() = 'error-page']/*[local-name() = 'exception-type'] != 'java.lang.Throwable')\">"
+      xsl_stmt    : "<xsl:text>FAIL - Wrong exception-type - should be set to java.lang.Throwable</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name() = 'web-app']/*[local-name() = 'error-page'] and not(//*[local-name() = 'web-app']/*[local-name() = 'error-page']/*[local-name() = 'location'])\">"
+      xsl_stmt    : "<xsl:text>FAIL - Missing location child element</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - error-page element correctly added</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "2.6 Turn off TRACE - check server.xml"
+      info        : "The HTTP TRACE verb provides debugging and diagnostics information for a given request.
+
+Rationale:
+
+Diagnostic information, such as that found in the response to a TRACE request, often contains sensitive information which may useful to an attacker. By preventing Tomcat from providing this information, the risk of leaking sensitive information to a potential attacker is reduced."
+      solution    : "Perform the following to prevent Tomcat from accepting a TRACE request:
+Set the allowTrace attribute for each Connector specified in $CATALINA_HOME/conf/server.xml to false.
+
+<Connector ... allowTrace='false' />
+
+Alternatively, ensure the allowTrace attribute is absent from each Connector specified in $CATALINA_HOME/conf/server.xml.
+
+Default Value:
+
+Tomcat does not allow the TRACE HTTP verb by default. Tomcat will only allow TRACE if the allowTrace attribute is present and set to true.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/http.html
+
+https://tomcat.apache.org/tomcat-8.5-doc/security-howto.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/security-howto.html"
+      reference   : "800-53|SI-11,CSCv7|13.2,ITSG-33|SI-11,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"Server/Service/Connector\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"not(@allowTrace)\">"
+      xsl_stmt    : "<xsl:text>PASS - allowTrace not present</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"@allowTrace and @allowTrace='false'\">"
+      xsl_stmt    : "<xsl:text>PASS - allowTrace set to false</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>FAIL - allowTrace set to true</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "2.6 Turn off TRACE - check web.xml config files"
+      info        : "The HTTP TRACE verb provides debugging and diagnostics information for a given request.
+
+Rationale:
+
+Diagnostic information, such as that found in the response to a TRACE request, often contains sensitive information which may useful to an attacker. By preventing Tomcat from providing this information, the risk of leaking sensitive information to a potential attacker is reduced."
+      solution    : "Perform the following to prevent Tomcat from accepting a TRACE request:
+Set the allowTrace attribute for each Connector specified in $CATALINA_HOME/conf/server.xml to false.
+
+<Connector ... allowTrace='false' />
+
+Alternatively, ensure the allowTrace attribute is absent from each Connector specified in $CATALINA_HOME/conf/server.xml.
+
+Default Value:
+
+Tomcat does not allow the TRACE HTTP verb by default. Tomcat will only allow TRACE if the allowTrace attribute is present and set to true.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/http.html
+
+https://tomcat.apache.org/tomcat-8.5-doc/security-howto.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/security-howto.html"
+      reference   : "800-53|SI-11,CSCv6|18.5,CSCv7|13.2,ITSG-33|SI-11,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "cmd".
+      cmd         : "$(which find) /usr/share/tomcat8 -name web.xml -exec bash -c 'if test -f {}; then $(which cat) {} | $(which egrep) -q \"^[\\\s\\\t]*<servlet-name>[Gg][Ee][Tt][Tt][Rr][Aa][Cc][Ee]<\\\/servlet-name>\"; if test $? -lt 1; then echo {};fi; fi' \\;"
+      expect      : ""
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "3.1 Set a nondeterministic Shutdown command value"
+      info        : "Tomcat listens on TCP port 8005 to accept shutdown requests. By connecting to this port and sending the SHUTDOWN command, all applications within Tomcat are halted. The shutdown port is not exposed to the network as it is bound to the loopback interface. It is recommended that a nondeterministic value be set for the shutdown attribute in $CATALINA_HOME/conf/server.xml.
+
+Rationale:
+
+Setting the shutdown attribute to a nondeterministic value will prevent malicious local users from shutting down Tomcat."
+      solution    : "Perform the following to set a nondeterministic value for the shutdown attribute.
+Update the shutdown attribute in $CATALINA_HOME/conf/server.xml as follows:
+
+  <Server port='8005' shutdown='NONDETERMINISTICVALUE'>
+
+Note: NONDETERMINISTICVALUE should be replaced with a sequence of random characters.
+
+
+
+
+Default Value:
+
+The default value for the shutdown attribute is SHUTDOWN.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/server.html
+
+https://tomcat.apache.org/tomcat-8.5-doc/config/server.html"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv7|4.7,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:if test=\"Server/@shutdown='SHUTDOWN'\">"
+      xsl_stmt    : "<xsl:text>FAIL - Shutdown text is default value</xsl:text>"
+      xsl_stmt    : "</xsl:if>"
+      xsl_stmt    : "<xsl:if test=\"Server/@shutdown!='SHUTDOWN'\">"
+      xsl_stmt    : "<xsl:text>PASS - Shutdown text is not default value</xsl:text>"
+      xsl_stmt    : "</xsl:if>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.1 Restrict access to $CATALINA_HOME"
+      info        : "$CATALINA_HOME is the environment variable which holds the path to the root Tomcat directory. It is important to protect access to this in order to protect the Tomcat binaries and libraries from unauthorized modification. It is recommended that the ownership of $CATALINA_HOME be tomcat_admin:tomcat. It is also recommended that the permission on $CATALINA_HOME deny read, write, and execute for the world (o-rwx) and deny write access to the group (g-w).
+
+Rationale:
+
+The security of processes and data which traverse or depend on Tomcat may become compromised if the $CATALINA_HOME is not secured."
+      solution    : "Perform the following to establish the recommended state:
+
+Set the ownership of the $CATALINA_HOME to tomcat_admin:tomcat.
+
+# chown tomcat_admin.tomcat $CATALINA_HOME
+
+Remove write permissions for the group and read, write, and execute permissions for the world
+
+# chmod g-w,o-rwx $CATALINA_HOME"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.2 Restrict access to $CATALINA_BASE"
+      info        : "$CATALINA_BASE is the environment variable that specifies the base directory from which most relative paths are resolved. $CATALINA_BASE is usually used when there are multiple instances of Tomcat running. It is important to limit access to this in order to protect the Tomcat-related binaries and libraries from unauthorized modification. It is recommended that the ownership of $CATALINA_BASE be tomcat_admin:tomcat. It is also recommended that the permission on $CATALINA_BASE deny read, write, and execute for the world (o-rwx) and prevent write deny to the group (g-w).
+
+Rationale:
+
+The security of processes and data which traverse or depend on Tomcat may become compromised if the $CATALINA_BASE is not secured."
+      solution    : "Perform the following to establish the recommended state:
+
+Set the ownership of the $CATALINA_BASE to tomcat_admin:tomcat.
+
+# chown tomcat_admin.tomcat $CATALINA_BASE
+
+Remove write permissions for the group and read, write, and execute permissions for the world
+
+# chmod g-w,o-rwx $CATALINA_BASE"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "file".
+      file        : "/var/lib/tomcat8/webapps"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.3 Restrict access to Tomcat configuration directory"
+      info        : "The Tomcat $CATALINA_HOME/conf directory contains Tomcat configuration files. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on this directory deny read, write, and execute for the world (o-rwx) and deny write access to the group (g-w).
+
+Rationale:
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently altering Tomcat's configuration."
+      solution    : "Perform the following to restrict access to Tomcat configuration files:
+
+Set the ownership of the $CATALINA_HOME/conf to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf
+
+Remove write permissions for the group and read, write, and execute permissions for the world.
+
+# chmod g-w,o-rwx $CATALINA_HOME/conf
+
+Default Value:
+
+The default permissions of the top-level directories are 770."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.4 Restrict access to Tomcat logs directory"
+      info        : "The Tomcat $CATALINA_HOME/logs directory contains Tomcat logs. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on this directory deny read, write, and execute for the world (o-rwx).
+
+Rationale:
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently altering Tomcat's logs."
+      solution    : "Perform the following to restrict access to Tomcat log files:
+
+Set the ownership of the $CATALINA_HOME/logs to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/logs
+
+Remove read, write, and execute permissions for the world
+
+# chmod o-rwx $CATALINA_HOME/logs
+
+Default Value:
+
+The default permissions of the top-level directories are 770."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/log/tomcat8" in field "file".
+      file        : "/var/log/tomcat8"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "007"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.5 Restrict access to Tomcat temp directory"
+      info        : "The Tomcat $CATALINA_HOME/temp directory is used by Tomcat to persist temporary information to disk. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on this directory deny read, write, and execute for the world (o-rwx).
+
+Rationale:
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of Tomcat processes."
+      solution    : "Perform the following to restrict access to Tomcat temp directory:
+
+Set the ownership of the $CATALINA_HOME/temp to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/temp
+
+Remove read, write, and execute permissions for the world
+
+# chmod o-rwx $CATALINA_HOME/temp
+
+Default Value:
+
+The default permissions of the top-level directories are 770."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8/temp"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "007"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.6 Restrict access to Tomcat binaries directory"
+      info        : "The Tomcat $CATALINA_HOME/bin directory contains executes that are part of the Tomcat run-time. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permission on this directory deny read, write, and execute for the world (o-rwx) and deny write access to the group (g-w).
+
+Rationale:
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of Tomcat processes."
+      solution    : "Perform the following to restrict access to Tomcat bin directory:
+
+Set the ownership of the $CATALINA_HOME/bin to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/bin
+
+Remove read, write, and execute permissions for the world
+
+# chmod g-w,o-rwx $CATALINA_HOME/bin
+
+Default Value:
+
+The default permissions of the top-level directories are 770."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8/bin"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.7 Restrict access to Tomcat web application directory"
+      info        : "The Tomcat $CATALINA_HOME/webapps directory contains web applications that are deployed through Tomcat. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permission on $CATALINA_HOME/webapps deny read, write, and execute for the world (o-rwx) and deny write access to the group (g-w).
+
+Rationale:
+
+Restricting access to these directories will prevent local users from maliciously or inadvertently affecting the integrity of web applications."
+      solution    : "Perform the following to restrict access to Tomcat webapps directory:
+
+Set the ownership of the $CATALINA_HOME/webapps to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/webapps
+
+Remove read, write, and execute permissions for the world.
+
+# chmod g-w,o-rwx $CATALINA_HOME/webapps
+
+Default Value:
+
+The default permissions of the top-level directories are 770."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "file".
+      file        : "/var/lib/tomcat8/webapps"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.8 Restrict access to Tomcat catalina.properties"
+      info        : "catalina.properties is a Java properties file which contains settings for Tomcat including class loader information, security package lists, and performance properties. It is recommended that access to this file properly protect from unauthorized changes.
+
+Rationale:
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering Tomcat's security policy."
+      solution    : "Perform the following to restrict access to catalina.properties:
+
+Set the ownership of the $CATALINA_HOME/conf/catalina.properties to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf/catalina.properties
+
+Set the permissions of the $CATALINA_HOME/conf/catalina.properties to 600
+
+# chmod 600 $CATALINA_HOME/conf/catalina.properties
+
+Default Value:
+
+The default permissions of the top-level directories are 600."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/catalina.properties"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "177"
+      file_type   : "f"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.9 Restrict access to Tomcat catalina.policy"
+      info        : "The catalina.policy file is used to configure security policies for Tomcat. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes.
+
+Rationale:
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering Tomcat's security policy."
+      solution    : "Perform the following to restrict access to $CATALINA_HOME/conf/catalina.policy.
+
+Set the owner and group owner of the contents of $CATALINA_HOME/conf/catalina.policy to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf/catalina.policy
+
+Set the permissions of the $CATALINA_HOME/conf/catalina.policy file to 600.
+
+# chmod 600 $CATALINA_HOME/conf/catalina.policy
+
+Default Value:
+
+The default permissions of catalina.policy are 600."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/catalina.policy"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "177"
+      file_type   : "f"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.10 Restrict access to Tomcat context.xml"
+      info        : "The context.xml file is loaded by all web applications and sets certain configuration options. It is recommended that access to this file properly protect from unauthorized changes.
+
+Rationale:
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering Tomcat's security policy."
+      solution    : "Perform the following to restrict access to context.xml:
+
+Set the ownership of the $CATALINA_HOME/conf/context.xml to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf/context.xml
+
+Set the permissions for the $CATALINA_HOME/conf/context.xml to 600.
+
+# chmod 600 $CATALINA_HOME/conf/context.xml
+
+Default Value:
+
+The default permissions of context.xml are 600."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/context.xml"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "177"
+      file_type   : "f"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.11 Restrict access to Tomcat logging.properties"
+      info        : "logging.properties is a Tomcat file which specifies the logging configuration. It is recommended that access to this file properly protect against unauthorized changes.
+
+Rationale:
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering Tomcat's security policy."
+      solution    : "Perform the following to restrict access to logging.properties:
+
+Set the ownership of the $CATALINA_HOME/conf/logging.properties to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf/logging.properties
+
+Set the permissions for the $CATALINA_HOME/conf/logging.properties file to 600.
+
+# chmod 600 $CATALINA_HOME/conf/logging.properties
+
+Default Value:
+
+The default permissions are 600."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/logging.properties"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "177"
+      file_type   : "f"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.12 Restrict access to Tomcat server.xml"
+      info        : "server.xml contains Tomcat servlet definitions and configurations. It is recommended that access to this file properly protect against unauthorized changes.
+
+Rationale:
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering Tomcat's security policy."
+      solution    : "Perform the following to restrict access to server.xml:
+
+Set the ownership of the $CATALINA_HOME/conf/server.xml to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf/server.xml
+
+Set the permissions of the $CATALINA_HOME/conf/server.xml to 600
+
+# chmod 600 $CATALINA_HOME/conf/server.xml
+
+Default Value:
+
+The default permissions of the top-level directories are 600."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "177"
+      file_type   : "f"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.13 Restrict access to Tomcat tomcat-users.xml"
+      info        : "tomcat-users.xml contains authentication information for Tomcat applications. It is recommended that access to this file properly protect against unauthorized changes.
+
+Rationale:
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering Tomcat's security policy."
+      solution    : "Perform the following to restrict access to tomcat-users.xml:
+
+Set the ownership of the $CATALINA_HOME/conf/tomcat-users.xml to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf/tomcat-users.xml
+
+Set the permissions of the $CATALINA_HOME/conf/tomcat-users.xml to 600
+
+# chmod 600 $CATALINA_HOME/conf/tomcat-users.xml
+
+Default Value:
+
+The default permissions of the top-level directories are 600."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/tomcat-users.xml"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "177"
+      file_type   : "f"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "4.14 Restrict access to Tomcat web.xml"
+      info        : "web.xml is a Tomcat configuration file that stores application configuration settings. It is recommended that access to this file properly protect against unauthorized changes.
+
+Rationale:
+
+Restricting access to this file will prevent local users from maliciously or inadvertently altering Tomcat's security policy."
+      solution    : "Perform the following to restrict access to web.xml:
+
+Set the ownership of the $CATALINA_HOME/conf/web.xml to tomcat_admin:tomcat.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/conf/web.xml
+
+Set the permissions for the $CATALINA_HOME/conf/web.xml file to 400.
+
+# chmod 400 $CATALINA_HOME/conf/web.xml
+
+Default Value:
+
+The default permissions for web.xml are 400."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/web.xml"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "177"
+      file_type   : "f"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "6.2 Ensure SSLEnabled is set to True for Sensitive Connectors - verify SSLEnabled is set to true"
+      info        : "The SSLEnabled setting determines if SSL is enabled for a specific Connector. It is recommended that SSL be utilized for any Connector that sends or receives sensitive information, such as authentication credentials or personal information.
+
+Rationale:
+
+The SSLEnabled setting ensures SSL is active, which will in-turn ensure the confidentiality and integrity of sensitive information while in transit."
+      solution    : "In server.xml, set the SSLEnabled attribute to true for each Connector that sends or receives sensitive information:
+
+<Connector
+ ...
+ SSLEnabled='true'
+ ...
+/>
+
+Default Value:
+
+SSLEnabled is set to false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/ssl-howto.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/http.html
+
+https://tomcat.apache.org/tomcat-8.5-doc/security-howto.html"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|6.2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1NS,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"Server/Service/Connector\">"
+      xsl_stmt    : "<xsl:choose>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='false'\">"
+      xsl_stmt    : "<xsl:text>FAIL - SSLEnabled set to false on port </xsl:text><xsl:value-of select=\"@port\" />"
+      xsl_stmt    : "</xsl:when>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='true'\">"
+      xsl_stmt    : "<xsl:text>PASS - SSLEnabled configured correctly</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - No connectors using SSL</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "6.3 Ensure scheme is set accurately"
+      info        : "The scheme attribute is used to indicate to callers of request.getScheme() which scheme is in use by the Connector. Ensure the scheme attribute is set to http for Connectors operating over HTTP. Ensure the scheme attribute is set to https for Connectors operating over HTTPS.
+
+Rationale:
+
+Maintaining parity between the scheme in use by the Connector and advertised by request.getScheme() will ensure applications built on Tomcat have an accurate depiction of the context and security guarantees provided to them."
+      solution    : "In server.xml, set the Connector's scheme attribute to http for Connectors operating over HTTP. Set the Connector's scheme attribute to https for Connectors operating over HTTPS.
+
+<Connector
+    ...
+    scheme='https'
+    ...
+/>
+
+Default Value:
+
+The scheme attribute is set to http.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/ssl-howto.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/http.html"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|6.3,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"Server/Service/Connector\">"
+      xsl_stmt    : "<xsl:choose>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='true' and @scheme!='https'\">"
+      xsl_stmt    : "<xsl:text>FAIL - Scheme not set to HTTPS for SSL connector at port </xsl:text><xsl:value-of select=\"@port\" />"
+      xsl_stmt    : "</xsl:when>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='true' and @scheme='https'\">"
+      xsl_stmt    : "<xsl:text>PASS - Scheme configured correctly</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - No connectors using SSL</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "6.4 Ensure secure is set to true only for SSL-enabled Connectors - verify secure is set to true"
+      info        : "The secure attribute is used to convey Connector security status to applications operating over the Connector. This is typically achieved by calling request.isSecure(). Ensure the secure attribute is only set to true for Connectors operating with the SSLEnabled attribute set to true.
+
+Rationale:
+
+Accurately reporting the security state of the Connector will help ensure that applications built on Tomcat are not unknowingly relying on security controls that are not in place."
+      solution    : "For each Connector defined in server.xml, set the secure attribute to true for those Connectors having SSLEnabled set to true. Set the secure attribute to false for those Connectors having SSLEnabled set to false.
+
+<Connector SSLEnabled='true'
+    ...
+    secure='true'
+    ...
+/>
+...
+<Connector SSLEnabled='false'
+    ...
+    secure='false'
+    ...
+/>
+
+Default Value:
+
+The secure attribute is set to false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/ssl-howto.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/http.html"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|6.4,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"Server/Service/Connector\">"
+      xsl_stmt    : "<xsl:choose>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='true' and @secure!='true'\">"
+      xsl_stmt    : "<xsl:text>FAIL - Secure not set to true for SSL connector at port </xsl:text><xsl:value-of select=\"@port\" />"
+      xsl_stmt    : "</xsl:when>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='true' and @secure='true'\">"
+      xsl_stmt    : "<xsl:text>PASS - Secure configured correctly</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - No connectors using SSL</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "6.5 Ensure SSL Protocol is set to TLS for Secure Connectors - verify sslProtocol is set to TLS"
+      info        : "The sslProtocol setting determines which protocol Tomcat will use to protect traffic. It is recommended that sslProtocol attribute be set to TLS.
+
+Rationale:
+
+The TLS protocol does not contain weaknesses that affect other secure transport protocols, such as SSLv1 or SSLv2. Therefore, TLS is leveraged to protect the confidentiality and integrity of data while in transit."
+      solution    : "In server.xml, set the sslProtocol attribute to TLS for Connectors having SSLEnabled set to true.
+
+<Connector
+...
+sslProtocol='TLS'
+...
+/>
+
+In Tomcat 8.5.x using JSSE, set it to TLS or alternatively remove it.
+
+<Connector
+...
+    <SSLHostConfig
+        ...
+        sslProtocol='TLS'
+...
+/>
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/ssl-howto.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/http.html
+
+https://tomcat.apache.org/tomcat-8.5-doc/config/http.html"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSCv7|14.4,CSCv7|18.5,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"Server/Service/Connector\">"
+      xsl_stmt    : "<xsl:choose>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='true' and @sslProtocol!='TLS'\">"
+      xsl_stmt    : "<xsl:text>FAIL - sslProtocol not set to TLS for SSL connector at port </xsl:text><xsl:value-of select=\"@port\" />"
+      xsl_stmt    : "</xsl:when>"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "xsl_stmt".
+      xsl_stmt    : "<xsl:when test=\"@port='443' and @SSLEnabled='true' and @sslProtocol='TLS'\">"
+      xsl_stmt    : "<xsl:text>PASS - sslProtocol configured correctly</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - No connectors using SSL</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "6.6 Control the maximum size of a POST request that will be parsed for parameter"
+      info        : "The maxPostSize attribute controls the maximum size of a POST request which will be parsed for parameters. Setting a proper size is recommended to reduce DOS attack.
+
+Rationale:
+
+The maxPostSize value is the maximum size in bytes of the POST which will be handled by the container FORM URL parameter parsing. The parameters are cached for the duration of the request. Limit its size to reduce exposure to a DOS attack."
+      solution    : "Set the maxPostSize attributes to each Connector specified in $CATALINA_HOME/conf/server.xml per requirement.
+
+<Connector
+...
+maxPostSize=2097152
+...
+
+Impact:
+
+Disabling the maxPostSize may increase the risk for a DOS attack.
+
+Default Value:
+
+2097152 (2 MB)
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/security-howto.html
+
+https://tomcat.apache.org/tomcat-8.5-doc/security-howto.html"
+      reference   : "CSCv6|6.6,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:for-each select=\"Server/Service/Connector\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"@maxPostSize and @maxPostSize='2097152'\">"
+      xsl_stmt    : "<xsl:text>PASS - maxPostSize set to 2097152</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"@maxPostSize and @maxPostSize!='2097152'\">"
+      xsl_stmt    : "<xsl:text>FAIL - maxPostSize is not set to 2097152</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - maxPostSize not set</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if org.apache.juli.FileHandler exists in web application"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/var/lib/tomcat8/webapps/yourappname/WEB-INF/classes/logging.properties"
+      regex       : "handlers[\\s]*=[\\s]*.*org\.apache\.juli\.FileHandler"
+      expect      : "handlers[\\s]*=[\\s]*.*org\.apache\.juli\.FileHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if org.apache.juli.FileHandler logging is enabled in web application"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/var/lib/tomcat8/webapps/yourappname/WEB-INF/classes/logging.properties"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "regex".
+      regex       : "org\.apache\.juli\.FileHandler\.level[\\s]*=[\\s]*(WARNING)"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "expect".
+      expect      : "org\.apache\.juli\.FileHandler\.level[\\s]*=[\\s]*(WARNING)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if java.util.logging.ConsoleHandler exists in web application"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/var/lib/tomcat8/webapps/yourappname/WEB-INF/classes/logging.properties"
+      regex       : "handlers[\\s]*=[\\s]*.*java\.util\.logging\.ConsoleHandler"
+      expect      : "handlers[\\s]*=[\\s]*.*java\.util\.logging\.ConsoleHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if java.util.logging.ConsoleHandler logging is enabled in web application"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/var/lib/tomcat8/webapps/yourappname/WEB-INF/classes/logging.properties"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "regex".
+      regex       : "java\.util\.logging\.ConsoleHandler\.level\\s=\\s(WARNING)"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "expect".
+      expect      : "java\.util\.logging\.ConsoleHandler\.level\\s=\\s(WARNING)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if org.apache.juli.FileHandler exists in default"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/logging.properties"
+      regex       : "handlers[\\s]*=[\\s]*.*org\.apache\.juli\.FileHandler"
+      expect      : "handlers[\\s]*=[\\s]*.*org\.apache\.juli\.FileHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if org.apache.juli.FileHandler logging is enabled in default"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/logging.properties"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "regex".
+      regex       : "org\.apache\.juli\.FileHandler\.level[\\s]*=[\\s]*(WARNING)"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "expect".
+      expect      : "org\.apache\.juli\.FileHandler\.level[\\s]*=[\\s]*(WARNING)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if java.util.logging.ConsoleHandler exists inin default"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/logging.properties"
+      regex       : "handlers[\\s]*=[\\s]*.*java\.util\.logging\.ConsoleHandler"
+      expect      : "handlers[\\s]*=[\\s]*.*java\.util\.logging\.ConsoleHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Specify file handler in logging.properties files - check if java.util.logging.ConsoleHandler logging is enabled in default"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file.
+
+Rationale:
+
+Utilizing file handlers will ensure that security event information is persisted to disk."
+      solution    : "Add the following entries to your logging.properties file if they do not exist.
+
+handlers=...,<prefix>org.apache.juli.FileHandler,...
+
+Ensure logging is not off and set the logging level to the desired level such as:
+
+<prefix>org.apache.juli.FileHandler.level=FINEST
+
+Default Value:
+
+No value for new applications by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/logging.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/logging.properties"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "regex".
+      regex       : "java\.util\.logging\.ConsoleHandler\.level[\\s]*=[\\s]*(WARNING)"
+# Note: Variable @LOGGING_LEVEL@ replaced with "WARNING" in field "expect".
+      expect      : "java\.util\.logging\.ConsoleHandler\.level[\\s]*=[\\s]*(WARNING)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "7.4 Ensure directory in context.xml is a secure location - configuration"
+      info        : "The directory attribute tells Tomcat where to store logs. It is recommended that the location referenced by the directory attribute be secured.
+
+Rationale:
+
+Securing the log location will help ensure the integrity and confidentiality of web application activity."
+      solution    : "Perform the following:
+
+Add the following statement into the $CATALINA_HOME/webapps/<app name>/META-INF/context.xml file if it does not already exist.
+
+<Valve className='org.apache.catalina.valves.AccessLogValve'
+directory='$CATALINA_HOME/logs/'
+prefix='access_log' fileDateFormat='yyyy-MM-dd.HH' suffix='.log' pattern='%t %H cookie:%{SESSIONID}c
+request:%{SESSIONID}r %m %U %s %q %r'/>
+
+Set the location pointed to by the directory attribute to be owned by tomcat_admin:tomcat with permissions of o-rwx.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/logs
+# chmod o-rwx $CATALINA_HOME/logs
+
+Default Value:
+
+Does not exist by default"
+      reference   : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSCv7|14.6,CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "cmd".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "cmd".
+      cmd         : "$(which egrep) '^ *[^<!\-\-]*<Valve' -A 2 /var/lib/tomcat8/webapps/yourappname/META-INF/context.xml |$(which egrep) 'org\.apache\.catalina\.valves\.AccessLogValve' -A 3 | $(which egrep) 'directory=\"(.+)/\"' -o | $(which awk) -F= '{print $2}'"
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/log/tomcat8" in field "expect".
+      expect      : "/var/log/tomcat8"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "7.4 Ensure directory in context.xml is a secure location - permissions"
+      info        : "The directory attribute tells Tomcat where to store logs. It is recommended that the location referenced by the directory attribute be secured.
+
+Rationale:
+
+Securing the log location will help ensure the integrity and confidentiality of web application activity."
+      solution    : "Perform the following:
+
+Add the following statement into the $CATALINA_HOME/webapps/<app name>/META-INF/context.xml file if it does not already exist.
+
+<Valve className='org.apache.catalina.valves.AccessLogValve'
+directory='$CATALINA_HOME/logs/'
+prefix='access_log' fileDateFormat='yyyy-MM-dd.HH' suffix='.log' pattern='%t %H cookie:%{SESSIONID}c
+request:%{SESSIONID}r %m %U %s %q %r'/>
+
+Set the location pointed to by the directory attribute to be owned by tomcat_admin:tomcat with permissions of o-rwx.
+
+# chown tomcat_admin:tomcat $CATALINA_HOME/logs
+# chmod o-rwx $CATALINA_HOME/logs
+
+Default Value:
+
+Does not exist by default"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/log/tomcat8" in field "file".
+      file        : "/var/log/tomcat8"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "007"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "7.5 Ensure pattern in context.xml is correct"
+      info        : "The pattern setting informs Tomcat what information should be logged per application. At a minimum, enough information to uniquely identify a request, what was requested, where the requested originated from, and when the request occurred should be logged. The following will log the request date and time (%t), the requested URL (%U), the remote IP address (%a), the local IP address (%A), the request method (%m), the local port (%p), query string, if present, (%q), and the HTTP status code of the response (%s).
+
+pattern='%t %U %a %A %m %p %q %s'
+
+Rationale:
+
+The level of logging detail prescribed will assist in identifying correlating security events or incidents."
+      solution    : "Add the following statement into the $CATALINA_HOME/webapps/<app name>/META-INF/context.xml file if it does not already exist.
+
+<Valve
+className='org.apache.catalina.valves.AccessLogValve' directory='$CATALINA_HOME/logs/' prefix='access_log' fileDateFormat='yyyy-MM-dd.HH' suffix='.log'
+pattern='%h %t %H cookie:%{SESSIONID}c request:%{SESSIONID}r %m %U %s %q %r'
+/>
+
+Default Value:
+
+Does not exist by default.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/valve.html"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSCv7|6.3,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSSv3.1|10.3,PCI-DSSv3.2|10.3,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "cmd".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "cmd".
+      cmd         : "$(which egrep) '^ *[^<!\-\-]*<Valve' -A 2 /var/lib/tomcat8/webapps/yourappname/META-INF/context.xml |$(which egrep) 'org\.apache\.catalina\.valves\.AccessLogValve' -A 5 | $(which egrep) 'pattern=\".+\"' -o | $(which awk) -F= '{print $2}'"
+      expect      : "%t %H cookie:%\{SESSIONID\}c request:%\{SESSIONID\}r %m %U %s %q %r"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.6 Ensure directory in logging.properties is a secure location - check log directory location"
+      info        : "The directory attribute tells Tomcat where to store logs. The directory value should be a secure location with restricted access.
+
+Rationale:
+
+Securing the log location will help ensure the integrity and confidentiality of web application activity records."
+      solution    : "Perform the following:
+
+Add the following properties into your logging.properties file if they do not exist
+
+<application_name>.org.apache.juli.FileHandler.directory=<log_location>
+<application_name>.org.apache.juli.FileHandler.prefix=<application_name>
+
+Set the location pointed to by the directory attribute to be owned by tomcat_admin:tomcat with permissions of o-rwx.
+
+# chown tomcat_admin:tomcat <log_location>
+# chmod o-rwx <log_location>
+
+Default Value:
+
+The directory location is configured to store logs in $CATALINA_HOME/logs."
+      reference   : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSCv7|14.6,CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/logging.properties"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "regex".
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/log/tomcat8" in field "regex".
+      regex       : "yourappname\.org\.apache\.juli\.FileHandler\.directory[\\s]*=[\\s]*/var/log/tomcat8"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "expect".
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/log/tomcat8" in field "expect".
+      expect      : "yourappname\.org\.apache\.juli\.FileHandler\.directory[\\s]*=[\\s]*/var/log/tomcat8"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "7.6 Ensure directory in logging.properties is a secure location - check prefix application name"
+      info        : "The directory attribute tells Tomcat where to store logs. The directory value should be a secure location with restricted access.
+
+Rationale:
+
+Securing the log location will help ensure the integrity and confidentiality of web application activity records."
+      solution    : "Perform the following:
+
+Add the following properties into your logging.properties file if they do not exist
+
+<application_name>.org.apache.juli.FileHandler.directory=<log_location>
+<application_name>.org.apache.juli.FileHandler.prefix=<application_name>
+
+Set the location pointed to by the directory attribute to be owned by tomcat_admin:tomcat with permissions of o-rwx.
+
+# chown tomcat_admin:tomcat <log_location>
+# chmod o-rwx <log_location>
+
+Default Value:
+
+The directory location is configured to store logs in $CATALINA_HOME/logs."
+      reference   : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSCv7|14.6,CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/logging.properties"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "regex".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "regex".
+      regex       : "yourappname\.org\.apache\.juli\.FileHandler\.prefix[\\s]*=[\\s]*yourappname"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "expect".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "expect".
+      expect      : "yourappname\.org\.apache\.juli\.FileHandler\.prefix[\\s]*=[\\s]*yourappname"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "7.6 Ensure directory in logging.properties is a secure location - check application log directory is secure"
+      info        : "The directory attribute tells Tomcat where to store logs. The directory value should be a secure location with restricted access.
+
+Rationale:
+
+Securing the log location will help ensure the integrity and confidentiality of web application activity records."
+      solution    : "Perform the following:
+
+Add the following properties into your logging.properties file if they do not exist
+
+<application_name>.org.apache.juli.FileHandler.directory=<log_location>
+<application_name>.org.apache.juli.FileHandler.prefix=<application_name>
+
+Set the location pointed to by the directory attribute to be owned by tomcat_admin:tomcat with permissions of o-rwx.
+
+# chown tomcat_admin:tomcat <log_location>
+# chmod o-rwx <log_location>
+
+Default Value:
+
+The directory location is configured to store logs in $CATALINA_HOME/logs."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|14.6,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/log/tomcat8" in field "file".
+      file        : "/var/log/tomcat8"
+# Note: Variable @TOMCAT_OWNER@ replaced with "tomcat_admin" in field "owner".
+      owner       : "tomcat_admin"
+      mask        : "077"
+      file_type   : "d"
+# Note: Variable @TOMCAT_GROUP@ replaced with "tomcat" in field "group".
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "8.1 Restrict runtime access to sensitive packages"
+      info        : "package.access grants or revokes access to listed packages during runtime. It is recommended that application access to certain packages be restricted.
+
+Rationale:
+
+Prevent web applications from accessing restricted or unknown packages which may be malicious or dangerous to the application."
+      solution    : "Edit $CATALINA_BASE/conf/catalina.properties by adding allowed packages to the package.access list:
+
+package.access = sun.,org.apache.catalina.,org.apache.coyote.,org.apache.tomcat., org.apache.jasper
+
+Default Value:
+
+The default package.access value within $CATALINA_BASE/conf/catalina.properties is:
+
+package.access = sun.,org.apache.catalina.,org.apache.coyote.,org.apache.tomcat., org.apache.jasper"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv7|14.6,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "cmd".
+      cmd         : "/bin/egrep 'package\.access[\s\t]*=[\s\t]*(.*)' /etc/tomcat8/catalina.properties"
+      expect      : ""
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "9.1 Starting Tomcat with Security Manager"
+      info        : "Configure applications to run in a sandbox using the Security Manager. The Security Manager restricts what classes Tomcat can access thus protecting your server from mistakes, Trojans, and malicious code.
+
+Rationale:
+
+By running Tomcat with the Security Manager, applications are run in a sandbox which can prevent untrusted code from accessing files on the file system."
+      solution    : "The security policies implemented by the Java SecurityManager are configured in the $CATALINA_HOME/conf/catalina.policy file. Once you have configured the catalina.policy file for use with a SecurityManager, Tomcat can be started with a SecurityManager in place by using the --security option:
+
+On Unix:
+
+$ $CATALINA_HOME/bin/catalina.sh start -security
+
+On Windows:
+
+C:\> %CATALINA_HOME%\bin\catalina start -security
+
+Default Value:
+
+By default the -security option is not utilized.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/security-manager-howto.html"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|5.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8/bin/startup.sh"
+      regex       : "\-security"
+      expect      : "\-security"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "10.1 Ensure Web content directory is on a separate partition from the Tomcat system files - verify Web content directory"
+      info        : "Store web content on a separate partition from Tomcat system files.
+
+Rationale:
+
+The web document directory is where the files which are served to the end user reside. In the past, directory traversal exploits have allowed malicious users to wreak havoc on a web server including executing code, uploading files, and reading sensitive data. Even if you do not have any directory traversal exploits in your server or code at this time, that doesn't mean they won't be introduced in the future. Moving your web document directory onto a different partition will prevent these kinds of attacks from doing more damage to other parts of the file system."
+      solution    : "Move the web content files to a separate partition from the tomcat system files and update your configuration.
+
+Default Value:
+
+Not Applicable"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv7|2.10,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "cmd".
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "cmd".
+      cmd         : "/bin/df /usr/share/tomcat8 /usr/share/tomcat8/webapps | /bin/sed 1,1d | /usr/bin/sort -u | /usr/bin/wc -l"
+      expect      : "2"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "10.4 Force SSL when accessing the manager application"
+      info        : "Use the transport-guarantee attribute to ensure SSL protection when accessing the manager application.
+
+Rationale:
+
+By default when accessing the manager application, login information is sent over the wire in plain text. By setting the transport-guarantee within web.xml, SSL is enforced.
+
+Note: This requires SSL to be configured."
+      solution    : "Set <transport-guarantee> to CONFIDENTIAL in $CATALINA_HOME/webapps/manager/WEB-INF/web.xml:
+
+<security-constraint>
+  <user-data-constraint>
+    <transport-guarantee>CONFIDENTIAL</transport-guarantee>
+  <user-data-constraint>
+</security-constraint>
+
+Default Value:
+
+By default this configuration is not present.
+
+References:
+
+https://www.owasp.org/index.php/Securing_tomcat"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSCv7|14.4,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_BASE@ replaced with "/var/lib/tomcat8/webapps" in field "file".
+      file        : "/var/lib/tomcat8/webapps/manager/WEB-INF/web.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name() = 'web-app']/*[local-name() = 'security-constraint']/*[local-name() = 'user-data-constraint']/*[local-name() = 'transport-guarantee'] = 'CONFIDENTIAL'\">"
+      xsl_stmt    : "<xsl:text>PASS - SSL forced for manager application</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name() = 'web-app']/*[local-name() = 'security-constraint']/*[local-name() = 'user-data-constraint']/*[local-name() = 'transport-guarantee'] != 'CONFIDENTIAL'\">"
+      xsl_stmt    : "<xsl:text>FAIL - transport-guarantee not set to CONFIDENTIAL</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>FAIL - security-constraint misconfigured or not present</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "10.6 Enable strict servlet Compliance"
+      info        : "The STRICT_SERVLET_COMPLIANCE influences Tomcat's behavior in several subtle ways. See the References below for the complete list. It is recommended that STRICT_SERVLET_COMPLIANCE be set to true.
+
+Rationale:
+
+When STRICT_SERVLET_COMPLIANCE is set to true, Tomcat will always send an HTTP Content-type header when responding to requests. This is significant as the behavior of web browsers is inconsistent in the absence of the Content-type header. Some browsers will attempt to determine the appropriate content-type by sniffing"
+      solution    : "To start Tomcat with strict compliance enabled, add -Dorg.apache.catalina.STRICT_SERVLET_COMPLIANCE=true the to the startup script.
+
+Impact:
+
+Changing this to true will change a number of other default values which is likely to break the majority of systems as some browsers are unable to correctly handle the cookie headers that result from a strict adherence to the specifications. Please refer to the referenced documentation for a complete list of changed values. Defaults, regardless of whether or not they have been changed by setting org.apache.catalina.STRICT_SERVLET_COMPLIANCE can always be overridden by explicitly setting the appropriate system property or element attribute.
+
+Default Value:
+
+By default value is false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/systemprops.html"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8/bin/catalina.sh"
+      regex       : "-Dorg\.apache\.catalina\.STRICT_SERVLET_COMPLIANCE[\\s]*=[\\s]*[Tt][Rr][Uu][Ee]"
+      expect      : "-Dorg\.apache\.catalina\.STRICT_SERVLET_COMPLIANCE[\\s]*=[\\s]*[Tt][Rr][Uu][Ee]"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "10.7 Turn off session facade recycling"
+      info        : "The RECYCLE_FACADES can specify if a new facade will be created for each request. If a new facade is not created there is a potential for information leakage from a prior session.
+
+Rationale:
+
+When RECYCLE_FACADES is set to false, Tomcat will recycle the session facade between requests which may result in information leakage."
+      solution    : "To start Tomcat with RECYCLE_FACADES set to true, add Dorg.apache.catalina.connector.RECYCLE_FACADES=true to your startup script.
+
+Default Value:
+
+The default value is false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/systemprops.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/security-howto.html"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSCv7|5.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8/bin/catalina.sh"
+      regex       : "-Dorg\.apache\.catalina\.connector\.RECYCLE_FACADES[\\s]*=[\\s]*[Tt][Rr][Uu][Ee]"
+      expect      : "-Dorg\.apache\.catalina\.connector\.RECYCLE_FACADES[\\s]*=[\\s]*[Tt][Rr][Uu][Ee]"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "10.13 Do not allow symbolic linking"
+      info        : "Symbolic links permit one application to include the libraries from another. This allows for re-use of code but also allows for potential security issues when applications include libraries from other applications to which they should not have access.
+
+Rationale:
+
+Allowing symbolic links makes Tomcat susceptible to directory traversal vulnerability. Also, there is a potential that an application could link to another application to which it should not be linking. On case-insensitive operating systems there is also the threat of source code disclosure."
+      solution    : "In all context.xml, set the allowLinking attribute to false:
+
+<Context
+...
+    <Resources ... allowLinking='false' />
+...
+</Context>
+
+Default Value:
+
+By default allowLinking has a value of false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/resources.html
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/context.html"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv7|5.1,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/context.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"/Context/Resources/@allowLinking = 'false'\">"
+      xsl_stmt    : "<xsl:text>PASS - allowLinking is explicitly disabled</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"/Context/Resources/@allowLinking = 'true'\">"
+      xsl_stmt    : "<xsl:text>FAIL - allowLinking is enabled</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - allowLinking attribute not present</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "10.14 Do not run applications as privileged"
+      info        : "Setting the privileged attribute for an application changes the class loader to the Server class loader instead of the Shared class loader.
+
+Rationale:
+
+Running an application in privileged mode allows an application to load the manager libraries."
+      solution    : "Set the privileged attribute in all context.xml files to false unless it is required as for the manager application:
+
+<Context ... privileged='false' />
+
+Default Value:
+
+By default, privileged has a value of false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/context.html"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv7|4.7,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/context.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"/Context/@privileged = 'false'\">"
+      xsl_stmt    : "<xsl:text>PASS - privileged attribute is explicitly disabled</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"/Context/@privileged = 'true'\">"
+      xsl_stmt    : "<xsl:text>FAIL - privileged attribute is enabled</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - privileged attribute not present</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "10.15 Do not allow cross context requests"
+      info        : "Setting crossContext to false prevents an application from calling ServletConext.getContext to return a dispatcher for another application.
+
+Rationale:
+
+Allowing crossContext creates the possibility for a malicious application to make requests to a restricted application."
+      solution    : "Set the crossContext attribute in all context.xml files to false:
+
+<Context ... crossContext='false' />
+
+Default Value:
+
+By default crossContext has a value of false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/context.html"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv7|4.7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/context.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"/Context/@crossContext = 'false'\">"
+      xsl_stmt    : "<xsl:text>PASS - crossContext attribute is explicitly disabled</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"/Context/@crossContext = 'true'\">"
+      xsl_stmt    : "<xsl:text>FAIL - crossContext attribute is enabled</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - crossContext attribute not present</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "10.17 Enable memory leak listener - verify present"
+      info        : "The JRE Memory Leak Prevention Listener provides work-arounds for known places where the Java Runtime Environment uses the context class loader to load a singleton as this will cause a memory leak if a web application class loader happens to be the context class loader at the time. The work-around is to initialize these singletons when this listener starts as Tomcat's common class loader is the context class loader at that time. It also provides work-arounds for known issues that can result in locked JAR files.
+
+Rationale:
+
+Enabling the JRE Memory Leak Prevention Listener provides work-arounds for preventing memory leaks."
+      solution    : "Uncomment the JRE Memory Leak Prevention Listener in $CATALINA_HOME/conf/server.xml
+
+<Listener className='org.apache.catalina.core.JreMemoryLeakPreventionListener' />
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/listeners.html#JRE_Memory_Leak_Prevention_Listener_-_org.apache.catalina.core.JreMemoryLeakPreventionListener"
+      reference   : "800-53|SI-16,CSCv7|5.1,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"Server/Listener/@className = 'org.apache.catalina.core.JreMemoryLeakPreventionListener'\">"
+      xsl_stmt    : "<xsl:text>PASS - org.apache.catalina.core.JreMemoryLeakPreventionListener enabled</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>FAIL - org.apache.catalina.core.JreMemoryLeakPreventionListener commented out or not present</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "10.18 Setting Security Lifecycle Listener - check for config component"
+      info        : "The Security Lifecycle Listener performs a number of security checks when Tomcat starts and prevents Tomcat from starting if they fail.
+
+Rationale:
+
+When enabled, the Security Lifecycle Listener can
+
+Enforce a blacklist of OS users that must not be used to start Tomcat.
+
+Set the least restrictive umask before Tomcat starts."
+      solution    : "Uncomment the listener in $CATALINA_HOME/conf/server.xml. If the operating system supports umask then the line in $CATALINA_HOME/bin/catalina.sh that obtains the umask also needs to be uncommented.
+
+Within Server elements add:
+
+checkedOsUsers: A comma separated list of OS users that must not be used to start Tomcat. If not specified, the default value of root is used.
+
+minimumUmask: The least restrictive umask that must be configured before Tomcat will start. If not specified, the default value of 0007 is used.
+
+<Listener className='org.apache.catalina.security.SecurityListener' checkedOsUsers='alex,bob' minimumUmask='0007' />
+
+Default Value:
+
+The Security Lifecycle Listener is not enabled by default. For checkedOsUsers, the default value is root. For minimumUmask, the default value is 0007.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/listeners.html#Security_Lifecycle_Listener_-_org.apache.catalina.security.SecurityListener"
+      reference   : "800-53|SI-10(3),CSCv7|5.1,LEVEL|1S,NESA|T7.3.1"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/server.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"Server/Listener/@className = 'org.apache.catalina.security.SecurityListener'\">"
+      xsl_stmt    : "<xsl:text>PASS - org.apache.catalina.security.SecurityListener present</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>FAIL - org.apache.catalina.security.SecurityListener commented out or not present</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      expect      : "PASS"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "10.18 Setting Security Lifecycle Listener - check for umask uncommented in startup"
+      info        : "The Security Lifecycle Listener performs a number of security checks when Tomcat starts and prevents Tomcat from starting if they fail.
+
+Rationale:
+
+When enabled, the Security Lifecycle Listener can
+
+Enforce a blacklist of OS users that must not be used to start Tomcat.
+
+Set the least restrictive umask before Tomcat starts."
+      solution    : "Uncomment the listener in $CATALINA_HOME/conf/server.xml. If the operating system supports umask then the line in $CATALINA_HOME/bin/catalina.sh that obtains the umask also needs to be uncommented.
+
+Within Server elements add:
+
+checkedOsUsers: A comma separated list of OS users that must not be used to start Tomcat. If not specified, the default value of root is used.
+
+minimumUmask: The least restrictive umask that must be configured before Tomcat will start. If not specified, the default value of 0007 is used.
+
+<Listener className='org.apache.catalina.security.SecurityListener' checkedOsUsers='alex,bob' minimumUmask='0007' />
+
+Default Value:
+
+The Security Lifecycle Listener is not enabled by default. For checkedOsUsers, the default value is root. For minimumUmask, the default value is 0007.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/listeners.html#Security_Lifecycle_Listener_-_org.apache.catalina.security.SecurityListener"
+      reference   : "800-171|3.1.1,800-53|AC-3(4),CSCv7|5.1,CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(4),LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8/bin/catalina.sh"
+      regex       : "^\s*#\s*JAVA_OPTS=\"\$JAVA_OPTS -Dorg\.apache\.catalina\.security\.SecurityListener\.UMASK=.*\""
+      expect      : "^\s*#\s*JAVA_OPTS=\"\$JAVA_OPTS -Dorg\.apache\.catalina\.security\.SecurityListener\.UMASK=.*\""
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "10.18 Setting Security Lifecycle Listener - check for umask present in startup"
+      info        : "The Security Lifecycle Listener performs a number of security checks when Tomcat starts and prevents Tomcat from starting if they fail.
+
+Rationale:
+
+When enabled, the Security Lifecycle Listener can
+
+Enforce a blacklist of OS users that must not be used to start Tomcat.
+
+Set the least restrictive umask before Tomcat starts."
+      solution    : "Uncomment the listener in $CATALINA_HOME/conf/server.xml. If the operating system supports umask then the line in $CATALINA_HOME/bin/catalina.sh that obtains the umask also needs to be uncommented.
+
+Within Server elements add:
+
+checkedOsUsers: A comma separated list of OS users that must not be used to start Tomcat. If not specified, the default value of root is used.
+
+minimumUmask: The least restrictive umask that must be configured before Tomcat will start. If not specified, the default value of 0007 is used.
+
+<Listener className='org.apache.catalina.security.SecurityListener' checkedOsUsers='alex,bob' minimumUmask='0007' />
+
+Default Value:
+
+The Security Lifecycle Listener is not enabled by default. For checkedOsUsers, the default value is root. For minimumUmask, the default value is 0007.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/listeners.html#Security_Lifecycle_Listener_-_org.apache.catalina.security.SecurityListener"
+      reference   : "800-171|3.1.1,800-53|AC-3(4),CSCv7|5.1,CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(4),LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat8" in field "file".
+      file        : "/usr/share/tomcat8/bin/catalina.sh"
+      regex       : "^\s*JAVA_OPTS=\"\$JAVA_OPTS -Dorg\.apache\.catalina\.security\.SecurityListener\.UMASK=\d{3,4}\""
+      expect      : "^\s*JAVA_OPTS=\"\$JAVA_OPTS -Dorg\.apache\.catalina\.security\.SecurityListener\.UMASK=\d{3,4}\""
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "10.19 Use the logEffectiveWebXml and metadata-complete settings for deploying applications in production"
+      info        : "Both fragments and annotations give rise to security concerns. web.xml contains a metadata-complete attribute on the web-app element whose binary value defines whether other sources of metadata should be considered when deploying this web application, this includes annotations on class files (@WebServlet, but also @WebListener, @WebFilter, ...), web-fragment.xml as well as classes located in WEB-INF/classes. In addition, Tomcat could allow you to log the effective web.xml, when an application starts, and the effective web.xml is the result of taking the main web.xml for your application merging in all the fragments applying all the annotations. By logging that, you are able to review it, and see if that is in fact what you actually want.
+
+Rationale:
+
+Enable logEffectiveWebXml will allow you to log the effective web.xml and you are able to see if that is in fact what you actually want. Enable metadata-complete so that the web.xml is the only metadata considered.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Set the metadata-complete value in the web.xml in each of the applications to true.
+Note: The metadata-complete option is not enough to disable all of annotation scanning. If there is a ServletContainerInitializer with a @HandlesTypes annotation, Tomcat has to scan your application for classes that use annotations or interfaces specified in that annotation.
+
+Set the logEffectiveWebXml value in the context.xml in each of the application to true.
+
+Default Value:
+
+If logEffectiveWebXml and/or metadata-complete is/are not specified, the default value is false.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/config/context.html
+
+https://alexismp.wordpress.com/2010/07/28/servlet-3-0-fragments-and-web-xml-to-rule-them-all/
+
+https://tomcat.apache.org/tomcat-8.5-doc/config/context.html"
+      reference   : "CSCv7|6.3,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : AUDIT_XML
+      description : "11.1 Limit HTTP Request Methods"
+      info        : "Restrict unnecessary HTTP request methods such as PUT and DELETE.
+
+Rationale:
+
+The HTTP 1.1 protocol supports several request methods which are rarely used and potentially high risk. For example, methods such as PUT and DELETE are rarely used and should be disabled in keeping with the primary security principle of minimize features and options. Also since the usage of these methods is typically to modify resources on the Tomcat server, they should be explicitly disallowed."
+      solution    : "Perform the following to prevent Tomcat from accepting PUT or DELETE methods:
+
+Locate web.xml under $CATALINA_HOME/conf
+
+Find the init param readonly, remove it or set its value with true
+
+<init-param>
+   <param-name>readonly</param-name>
+   <param-value>true</param-value>
+</init-param>
+
+Impact:
+
+Applications which use PUT and DELETE may be impacted by this recommendation.
+
+Default Value:
+
+By default, the value of readonly is true.
+
+References:
+
+https://tomcat.apache.org/tomcat-8.0-doc/default-servlet.html"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv7|5.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+# Note: Variable @CATALINA_CONF@ replaced with "/etc/tomcat8" in field "file".
+      file        : "/etc/tomcat8/web.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"(//*[local-name() = 'web-app']/*[local-name() = 'servlet']/*[local-name() = 'init-param']/*[local-name() = 'param-name'] = 'readonly') and (//*[local-name() = 'web-app']/*[local-name() = 'servlet']/*[local-name() = 'init-param']/*[local-name() = 'param-value'] = 'true')\">"
+      xsl_stmt    : "<xsl:text>PASS - readonly set to true</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:when test=\"(//*[local-name() = 'web-app']/*[local-name() = 'servlet']/*[local-name() = 'init-param']/*[local-name() = 'param-name'] = 'readonly') and (//*[local-name() = 'web-app']/*[local-name() = 'servlet']/*[local-name() = 'init-param']/*[local-name() = 'param-value'] != 'true')\">"
+      xsl_stmt    : "<xsl:text>FAIL - readonly not true</xsl:text>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "<xsl:text>PASS - readonly not set</xsl:text>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "PASS"
+      expect      : "PASS"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_Apache_Tomcat_8_L1_v1.1.0.audit from CIS Apache Tomcat 8 Benchmark"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/2506"
+    </report>
+  </else>
+</if>
+
+</check_type>

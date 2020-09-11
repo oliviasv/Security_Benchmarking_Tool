@@ -1,0 +1,483 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/04/30 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA Mozilla FireFox v4r28 STIG.
+#
+#<ui_metadata>
+#<display_name>DISA STIG Mozilla Firefox Windows v4r28</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>Mozilla Firefox</name>
+#  <version>4.28.0</version>
+#  <link>https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip</link>
+#</spec>
+#<labels>windows,disa,mozilla,firefox</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>MOZILLA_CONFIG</name>
+#    <default>C:\Program Files (X86)\Mozilla Firefox\mozilla.cfg</default>
+#    <description>Mozilla configuration file</description>
+#    <info>This is the location where the mozilla configuration file can be found.</info>
+#  </variable>
+#  <variable>
+#    <name>LOCKING_FILE</name>
+#    <default>C:\Program Files (x86)\Mozilla Firefox\defaults\pref\local-settings.js</default>
+#    <description>Locking File</description>
+#    <info>This is the location where the file that loads and locks the setting in the configuration file.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"Firefox">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      type        : REG_CHECK
+      description : "Firefox is installed"
+      value_type  : POLICY_TEXT
+      value_data  : "HKLM\Software\Mozilla\Mozilla Firefox"
+      reg_option  : MUST_EXIST
+    </custom_item>
+
+    <custom_item>
+      type        : REG_CHECK
+      description : "Firefox ESR is installed"
+      value_type  : POLICY_TEXT
+      value_data  : "HKLM\Software\Mozilla\Mozilla Firefox ESR"
+      reg_option  : MUST_EXIST
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "DISA_STIG_Mozilla_Firefox_v4r28_Windows.audit from DISA Mozilla FireFox v4r28 STIG"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+    </report>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          type        : FILE_CONTENT_CHECK
+          description : "DTBG010 - The DOD Root Certificate is not installed."
+          value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+          value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+          regex       : '^[\\s]*lockPref\\("security.enterprise_roots",[\\s]*'
+          expect      : '^[\\s]*lockPref\\("security.enterprise_roots",[\\s]*true\\);[\\s]*$'
+          file_option : CAN_NOT_BE_NULL
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : FILE_CONTENT_CHECK
+          description : "DTBG010 - The DOD Root Certificate is not installed."
+          info        : "The DOD root certificate will ensure that the trust chain is established for server certificate issued from the DOD CA."
+          solution    : "Install the DOD root certificates."
+          reference   : "800-53|IA-5(2),CAT|II,CCI|CCI-000185,CSF|PR.AC-1,ITSG-33|IA-5(2),Rule-ID|SV-33373r5_rule,STIG-ID|DTBG010,Vuln-ID|V-6318"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+          value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+          value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+          regex       : '^[\\s]*lockPref\\("security.enterprise_roots",[\\s]*'
+          expect      : '^[\\s]*lockPref\\("security.enterprise_roots",[\\s]*true\\);[\\s]*$'
+          file_option : CAN_NOT_BE_NULL
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"WARNING">
+          description : "DTBG010 - The DOD Root Certificate is not installed."
+          info        : "The DOD root certificate will ensure that the trust chain is established for server certificate issued from the DOD CA.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Install the DOD root certificates."
+          reference   : "800-53|IA-5(2),CAT|II,CCI|CCI-000185,CSF|PR.AC-1,ITSG-33|IA-5(2),Rule-ID|SV-33373r5_rule,STIG-ID|DTBG010,Vuln-ID|V-6318"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF050 - FireFox is configured to ask which certificate to present to a web site when a certificate is required."
+      info        : "When a web site asks for a certificate for user authentication, Firefox must be configured to have the user choose which certificate to present. Websites within DOD require user authentication for access which increases security for DoD information. Access will be denied to the user if certificate management is not configured."
+      solution    : "Set the value of 'security.default_personal_cert' to 'Ask Every Time'.  Use the Mozilla.cfg file to lock the preference so users cannot change it."
+      reference   : "800-171|3.13.10,800-53|SI-4(12),CAT|II,CCI|CCI-001274,CN-L3|7.1.3.5(a),CSF|DE.AE-1,CSF|DE.AE-3,CSF|DE.CM-1,CSF|DE.CM-6,CSF|DE.CM-7,CSF|DE.DP-2,CSF|ID.RA-1,CSF|PR.IP-8,CSF|RS.AN-1,CSF|RS.CO-3,ITSG-33|SI-4(12),NESA|T7.4.1,NESA|T7.4.2,NIAv2|CY2,NIAv2|CY8,NIAv2|CY9,Rule-ID|SV-16707r1_rule,STIG-ID|DTBF050,TBA-FIISB|45.2.5,TBA-FIISB|51.2.2,Vuln-ID|V-15768"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("security.default_personal_cert",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("security.default_personal_cert",[\\s]*"Ask[\\s]+Every[\\s]+Time"\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "DTBF100 - Firefox automatically executes or downloads MIME types which are not authorized for auto-download."
+      info        : "The default action for file types for which a plugin is installed is to automatically download and execute the file using the associated plugin. Firefox allows you to change the specified download action so that the file is opened with a selected external application or saved to disk instead. View the list of installed browser plugins and related MIME types by entering about:plugins in the address bar.
+
+When you click a link to download a file, the MIME type determines what action Firefox will take. You may already have a plugin installed that will automatically handle the download, such as Windows Media Player or QuickTime. Other times, you may see a dialog asking whether you want to save the file or open it with a specific application. When you tell Firefox to open or save the file and also check the option to 'Do this automatically for files like this from now on', an entry appears for that type of file in the Firefox Applications panel, shown below.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Remove any unauthorized extensions from the autodownload list."
+      reference   : "800-53|SI-3,CAT|II,CCI|CCI-001242,Rule-ID|SV-16709r1_rule,STIG-ID|DTBF100,Vuln-ID|V-15770"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF105 - Network shell protocol is enabled in FireFox."
+      info        : "Although current versions of Firefox have this set to disabled by default, use of this option can be harmful.  This would allow the browser to access the Windows shell. This could allow access to the
+underlying system.  This check verifies that the default setting has not been changed."
+      solution    : "Procedure: Set the value of 'network.protocol-handler.external.shell' to 'false' and lock using the Mozilla.cfg file."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|SS15a,Rule-ID|SV-16710r3_rule,STIG-ID|DTBF105,SWIFT-CSCv1|2.3,Vuln-ID|V-15771"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("network.protocol-handler.external.shell",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("network.protocol-handler.external.shell",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF110 - Firefox is not configured to prompt a user before downloading and opening required file types."
+      info        : "New file types cannot be added directly to the helper applications or plugins listing. Files with these extensions will not be allowed to use Firefox publicly available plugins and extensions to open.  The application will be configured to open these files using external applications only.  After a helper application or save to disk download action has been set, that action will be taken automatically for those types of files.  When the user receives a dialog box asking if you want to save the file or open it with a specified application, this indicates that a plugin does not exist. The user has not previously selected a download action or helper application to automatically use for that type of file. When prompted, if the user checks the option to Do this automatically for files like this from now on, then an entry will appear for that type of file in the plugins listing and this file type is automatically opened in the future. This can be a security issue.  New file types cannot be added directly to the Application plugin listing."
+      solution    : "Ensure the following extensions are not automatically opened by Firefox without user confirmation. Do not use plugins and add-ons to open these files.
+Use the 'plugin.disable_full_page_plugin_for_types' preference to set and lock the following extensions so that an external application, rather than an add-on or plugin, will not be used:
+PDF, FDF, XFDF, LSL, LSO, LSS, IQY, RQY, XLK, XLS, XLT, POT, PPS, PPT, DOS, DOT, WKS, BAT, PS, EPS, WCH, WCM, WB1, WB3, RTF, DOC, MDB, MDE, WBK, WB1, WCH, WCM, AD, ADP."
+      reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-16711r4_rule,STIG-ID|DTBF110,Vuln-ID|V-15772"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("plugin.disable_full_page_plugin_for_types",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("plugin.disable_full_page_plugin_for_types",[\\s]*"(application\/(pdf|fdf|xfdf|lsl|lso|lss|iqy|rqy|xlk|xls|xlt|pot|pps|ppt|dos|dot|wks|bat|ps|eps|wch|wcm|wb1|wb3|rtf|doc|mdb|mde|wbk|wbi|wch|wcm|ad|adp),?){34}"\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "DTBF120 - FireFox plug-in for ActiveX controls is installed."
+      info        : "When an ActiveX control is referenced in an HTML document, MS Windows checks to see if
+the control already resides on the client machine. If not, the control can be downloaded from a
+remote web site. This provides an automated delivery method for mobile code.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Remove/uninstall the Mozilla ActiveX plugin"
+      reference   : "800-53|SC-18(4),CAT|II,CCI|CCI-001170,Rule-ID|SV-16712r1_rule,STIG-ID|DTBF120,Vuln-ID|V-15773"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF140 - Firefox formfill assistance option is disabled."
+      info        : "In order to protect privacy and sensitive data, Firefox provides the ability to configure Firefox such that data entered into forms is not saved.  This mitigates the risk of a website gleaning private information from prefilled information."
+      solution    : "Ensure the preference 'browser.formfill.enable' is set and locked to the value of 'false'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-16713r2_rule,STIG-ID|DTBF140,SWIFT-CSCv1|2.3,Vuln-ID|V-15774"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("browser.formfill.enable",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("browser.formfill.enable",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF150 - Firefox is configured to autofill passwords."
+      info        : "While on the internet, it may be possible for an attacker to view the saved password files and gain access to the user's accounts on various hosts."
+      solution    : "Ensure the preference 'signon.autofillForms' is set and locked to the value of 'false'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-16714r3_rule,STIG-ID|DTBF150,SWIFT-CSCv1|2.3,Vuln-ID|V-15775"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("signon.autofillForms",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("signon.autofillForms",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF160 - FireFox is configured to use a password store with or without a master password."
+      info        : "Firefox can be set to store passwords for sites visited by the user.  These individual passwords are stored in a file and can be protected by a master password. Autofill of the password can then be enabled when the site is visited.  This feature could also be used to autofill the certificate pin which could lead to compromise of DoD information."
+      solution    : "Ensure the preference 'signon.rememberSignons' is set and locked to the value of 'false'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|SS15a,Rule-ID|SV-16715r2_rule,STIG-ID|DTBF160,SWIFT-CSCv1|2.3,Vuln-ID|V-15776"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("signon.rememberSignons",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("signon.rememberSignons",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF180 - FireFox is not configured to block pop-up windows."
+      info        : "Popup windows may be used to launch an attack within a new browser window with altered settings. This setting blocks popup windows created while the page is loading."
+      solution    : "Ensure the preference  'dom.disable_window_open_feature.status '  is set and locked to the value of 'true'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|SS15a,Rule-ID|SV-16717r1_rule,STIG-ID|DTBF180,SWIFT-CSCv1|2.3,Vuln-ID|V-15778"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("dom.disable_window_open_feature.status",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("dom.disable_window_open_feature.status",[\\s]*true\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF181 - FireFox is configured to allow JavaScript to move or resize windows."
+      info        : "JavaScript can make changes to the browser's appearance. This activity can help disguise an attack taking place in a minimized background window.  Set browser setting to prevent scripts on visited websites from moving and resizing browser windows."
+      solution    : "Ensure the preference  'dom.disable_window_move_resize'  is set and locked to the value of 'true'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|SS15a,Rule-ID|SV-16718r1_rule,STIG-ID|DTBF181,SWIFT-CSCv1|2.3,Vuln-ID|V-15779"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("dom.disable_window_move_resize",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("dom.disable_window_move_resize",[\\s]*true\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF030 - Firefox must be configured to allow only TLS - security.tls.version.min"
+      info        : "Use of versions prior to TLS 1.1 are not permitted. SSL 2.0 and SSL 3.0 contain a number of security flaws. These versions must be disabled in compliance with the Network Infrastructure and Secure Remote Computing STIGs."
+      solution    : "Configure the following parameters using the Mozilla.cfg file:
+
+LockPref 'security.tls.version.min' is set to '2'.
+LockPref 'security.tls.version.max' is set to '4'."
+      reference   : "800-171|3.13.11,800-53|SC-13,CAT|II,CCI|CCI-002450,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-16925r8_rule,STIG-ID|DTBF030,Vuln-ID|V-15983"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("security.tls.version.min",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("security.tls.version.min",[\\s]*"2"\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF030 - Firefox must be configured to allow only TLS - security.tls.version.max"
+      info        : "Use of versions prior to TLS 1.1 are not permitted. SSL 2.0 and SSL 3.0 contain a number of security flaws. These versions must be disabled in compliance with the Network Infrastructure and Secure Remote Computing STIGs."
+      solution    : "Configure the following parameters using the Mozilla.cfg file:
+
+LockPref 'security.tls.version.min' is set to '2'.
+LockPref 'security.tls.version.max' is set to '4'."
+      reference   : "800-171|3.13.11,800-53|SC-13,CAT|II,CCI|CCI-002450,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-16925r8_rule,STIG-ID|DTBF030,Vuln-ID|V-15983"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("security.tls.version.max",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("security.tls.version.max",[\\s]*"4"\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF182 - Firefox is configured to allow JavaScript to raise or lower windows."
+      info        : "JavaScript can make changes to the browser's appearance. Allowing a website to use JavaScript to raise and lower browser windows may disguise an attack. Browser windows may not be set as active via JavaScript."
+      solution    : "Ensure the preference  'dom.disable_window_flip'  is set and locked to the value of 'true'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|SS15a,Rule-ID|SV-16927r1_rule,STIG-ID|DTBF182,SWIFT-CSCv1|2.3,Vuln-ID|V-15985"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("dom.disable_window_flip",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("dom.disable_window_flip",[\\s]*true\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF183 - Firefox is configured to allow JavaScript to disable or replace context menus - dom.event.contextmenu.enabled"
+      info        : "A context menu (also known as a pop-up menu) is often used in a graphical user interface (GUI) and appears upon user interaction (e.g., a right mouse click). A context menu offers a limited set of choices that are available in the current state, or context, of the operating system or application.  A website may execute JavaScript that can make changes to these context menus.  This can help disguise an attack.  Set this preference to 'false' so that webpages will not be able to affect the context menu event."
+      solution    : "Ensure the preferences 'dom.event.contextmenu.enabled' is set and locked to 'false'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|SS15a,Rule-ID|SV-16928r2_rule,STIG-ID|DTBF183,SWIFT-CSCv1|2.3,Vuln-ID|V-15986"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("dom.event.contextmenu.enabled",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("dom.event.contextmenu.enabled",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF186 - Extensions install must be disabled."
+      info        : "A browser extension is a program that has been installed into the browser which adds functionality to it. Where a plug-in interacts only with a web page and usually a third party external application (Flash, Adobe Reader) an extension interacts with the browser program itself. Extensions are not embedded in web pages and must be downloaded and installed in order to work. Extensions allow browsers to avoid restrictions which apply to web pages. For example, an extension can be written to combine data from multiple domains and present it when a certain page is accessed which can be considered Cross Site Scripting. If a browser is configured to allow unrestricted use of extension then plug-ins can be loaded and installed from malicious sources and used on the browser."
+      solution    : "Set the preference 'xpinstall.enabled' to 'false' and lock using the 'mozilla.cfg' file.  The 'mozilla.cfg' file may need to be created if it does not already exist."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-79381r3_rule,STIG-ID|DTBF186,SWIFT-CSCv1|2.3,Vuln-ID|V-64891"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("xpinstall.enabled",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("xpinstall.enabled",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF190 - Background submission of information to Mozilla must be disabled"
+      info        : "There should be no background submission of technical and other information from DoD computers to Mozilla with portions posted publically."
+      solution    : "Ensure the preferences 'datareporting.policy.dataSubmissionEnabled' is set and locked to 'false'."
+      reference   : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000381,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-93759r3_rule,STIG-ID|DTBF190,SWIFT-CSCv1|2.3,Vuln-ID|V-79053"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("datareporting.policy.dataSubmissionEnabled",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("datareporting.policy.dataSubmissionEnabled",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF195 - Firefox Development Tools Must Be Disabled."
+      info        : "Information needed by an attacker to begin looking for possible vulnerabilities in a web browser includes any information about the web browser and plug-ins or modules being used. When debugging or trace information is enabled in a production web browser, information about the web browser, such as web browser type, version, patches installed, plug-ins and modules installed, type of code being used by the hosted application, and any back-ends being used for data storage may be displayed. Since this information may be placed in logs and general messages during normal operation of the web browser, an attacker does not need to cause an error condition to gain this information."
+      solution    : "Set the value of 'devtools.policy.disabled' to 'true' using the Mozilla.cfg file, or the registry value of HKLM\Software\Policies\Mozilla\Firefox\DisableDeveloperTools to '1'"
+      reference   : "800-53|SI-11,CAT|III,CCI|CCI-001312,ITSG-33|SI-11,Rule-ID|SV-106633r1_rule,STIG-ID|DTBF195,Vuln-ID|V-97529"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("devtools\.policy\.disabled",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("devtools\.policy\.disabled",[\\s]*true\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : REG_CHECK
+          description : "Firefox is installed"
+          value_type  : POLICY_TEXT
+          value_data  : "HKLM\Software\Mozilla\Mozilla Firefox"
+          reg_option  : MUST_EXIST
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : REGISTRY_SETTING
+          description : "DTBF003 - Installed version of Firefox unsupported."
+          info        : "Use of versions of an application which are not supported by the vendor are not permitted. Vendors respond to security flaws with updates and patches. These updates are not available for unsupported version which can leave the application vulnerable to attack.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Upgrade the version of the browser to an approved version by obtaining software from the vendor or other trusted source."
+          reference   : "800-53|SA-22,CAT|I,CCI|CCI-003376,Rule-ID|SV-19509r4_rule,STIG-ID|DTBF003,Vuln-ID|V-17988"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+          value_type  : POLICY_TEXT
+          value_data  : "Manual Review Required"
+          reg_key     : "HKLM\Software\Mozilla\Mozilla Firefox"
+          reg_item    : "CurrentVersion"
+          check_type  : CHECK_REGEX
+          severity    : MEDIUM
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : REGISTRY_SETTING
+          description : "DTBF003 - Installed version of Firefox unsupported."
+          info        : "Use of versions of an application which are not supported by the vendor are not permitted. Vendors respond to security flaws with updates and patches. These updates are not available for unsupported version which can leave the application vulnerable to attack.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+          solution    : "Upgrade the version of the browser to an approved version by obtaining software from the vendor or other trusted source."
+          reference   : "800-53|SA-22,CAT|I,CCI|CCI-003376,Rule-ID|SV-19509r4_rule,STIG-ID|DTBF003,Vuln-ID|V-17988"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+          value_type  : POLICY_TEXT
+          value_data  : "Manual Review Required"
+          reg_key     : "HKLM\Software\Mozilla\Mozilla Firefox ESR"
+          reg_item    : "CurrentVersion"
+          check_type  : CHECK_REGEX
+          severity    : MEDIUM
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF090 - Firefox automatically updates installed add-ons and plugins."
+      info        : "Set this to false to disable checking for updated versions of the Extensions/Themes.  Automatic updates from untrusted sites puts the enclave at risk of attack and may override security settings."
+      solution    : "Set the preference 'extensions.update.enabled' value to 'false' and lock using the Mozilla.cfg file."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-59603r1_rule,STIG-ID|DTBF090,SWIFT-CSCv1|2.3,Vuln-ID|V-19742"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("extensions.update.enabled",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("extensions.update.enabled",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF070 - Firefox required security preferences cannot be changed by user."
+      info        : "Locked settings prevent users from accessing about:config and changing the security settings set by the system administrator.  Locked settings should be placed in the mozilla.cfg file. The mozilla.cfg file is an encoded file of JavaScript commands. The encoding is a simple 'byte-shifting' with an offset of 13 (Netscape 4 used a similar encoding, but with a 7 instead). This file also needs to be 'called' from the configuration file local-settings.js"
+      solution    : "Ensure the required settings in 'about:config' are locked using the 'mozilla.cfg' file."
+      reference   : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000366,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-21889r9_rule,STIG-ID|DTBF070,SWIFT-CSCv1|2.3,Vuln-ID|V-19743"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @LOCKING_FILE@ replaced with "C:\\Program Files (x86)\\Mozilla Firefox\\defaults\\pref\\local-settings.js" in field "value_data".
+      value_data  : "C:\\Program Files (x86)\\Mozilla Firefox\\defaults\\pref\\local-settings.js"
+      regex       : '^[\\s]*pref\\("general.config.filename",[\\s]*'
+      expect      : '^[\\s]*pref\\("general.config.filename",[\\s]*"mozilla.cfg"\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DTBF085 - Firefox automatically checks for updated version of installed Search plugins."
+      info        : "Updates need to be controlled and installed from authorized and trusted servers.  This setting overrides a number of other settings which may direct the application to access external URLs."
+      solution    : "Ensure the preference  'browser.search.update'  is set and locked to the value of 'False'."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-21890r1_rule,STIG-ID|DTBF085,SWIFT-CSCv1|2.3,Vuln-ID|V-19744"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @MOZILLA_CONFIG@ replaced with "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg" in field "value_data".
+      value_data  : "C:\\Program Files (X86)\\Mozilla Firefox\\mozilla.cfg"
+      regex       : '^[\\s]*lockPref\\("browser.search.update",[\\s]*'
+      expect      : '^[\\s]*lockPref\\("browser.search.update",[\\s]*false\\);[\\s]*$'
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "DISA_STIG_Mozilla_Firefox_v4r28_Windows.audit from DISA Mozilla FireFox v4r28 STIG"
+      info        : "Firefox is not installed or remote registry service is disabled.
+
+      NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Mozilla_FireFox_V4R28_STIG.zip"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

@@ -1,0 +1,2013 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.7 $
+# $Date: 2020/07/14 $
+#
+# Description   : This .audit is designed against the CIS ISC BIND DNS Server 9.9 v3.0.1, 07-10-2017
+#                 https://workbench.cisecurity.org/files/1735
+#
+#<ui_metadata>
+#<display_name>CIS BIND DNS v3.0.1 Caching Only Name Server</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>BIND DNS Caching Only Name Server</name>
+#  <version>3.0.1</version>
+#  <link>https://workbench.cisecurity.org/files/1735</link>
+#</spec>
+#<labels>unix,cis,bind,dns,agent</labels>
+#<benchmark_refs>LEVEL,CSCv6</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>NAMED_CONF</name>
+#    <default>/var/named/chroot/etc/named.conf</default>
+#    <description>named.conf file path</description>
+#    <info>The path to the named.conf file for BIND.</info>
+#  </variable>
+#  <variable>
+#    <name>BIND_HOME</name>
+#    <default>/var/named/</default>
+#    <description>BIND directory</description>
+#    <info>The full path to the BIND directory.</info>
+#  </variable>
+#  <variable>
+#    <name>CONFIG_FILES</name>
+#    <default>/var/named/chroot/etc/</default>
+#    <description>Full path to BIND config files.</description>
+#    <info>Directory for all config files, includes, etc..</info>
+#  </variable>
+#  <variable>
+#    <name>ZONE_FILES</name>
+#    <default>/var/named/chroot/var/named/zones/</default>
+#    <description>Full path to BIND zone files.</description>
+#    <info>Directory for zone files.</info>
+#  </variable>
+#  <variable>
+#    <name>RUNDIR</name>
+#    <default>/var/named/chroot/run/named</default>
+#    <description>Full path to temp run time files</description>
+#    <info>Directory for temporary run time files, typically /var/run, /run or or chrooted equivalent.</info>
+#  </variable>
+#  <variable>
+#    <name>DYNDIR</name>
+#    <default>/var/named/chroot/var/named/dynamic/</default>
+#    <description>Full path for managed keys</description>
+#    <info>Directory for managed keys which are dynamically updated. Typically /var/named/dynamic/ or a chrooted equivalent.</info>
+#  </variable>
+#  <variable>
+#    <name>SLAVEDIR</name>
+#    <default>/var/named/chroot/var/named/slaves/</default>
+#    <description>Full path for slave zone files</description>
+#    <info>Directory for dynamically updated slave zone files. Typically /var/named/slaves/.</info>
+#  </variable>
+#  <variable>
+#    <name>DATADIR</name>
+#    <default>/var/named/chroot/var/named/data/</default>
+#    <description>Full path for run time statistics files</description>
+#    <info>Directory for run time statistics.</info>
+#  </variable>
+#  <variable>
+#    <name>LOGDIR</name>
+#    <default>/var/named/chroot/var/named/slaves/</default>
+#    <description>Full path for log files</description>
+#    <info>Directory for log files. Typically /var/named/slaves/</info>
+#  </variable>
+#  <variable>
+#    <name>TMPDIR</name>
+#    <default>/var/named/chroot/var/tmp/</default>
+#    <description>Full path for temp files</description>
+#    <info>Directory for temporary files.</info>
+#  </variable>
+#  <variable>
+#    <name>ALLOW_RECURSION_ACL</name>
+#    <default>trusted_clients</default>
+#    <description>The ACL for the allow-recursion option</description>
+#    <info>An ACL which will identify the networks which are expected to use the DNS caching server, and will be allowed to send recursive DNS queries.</info>
+#  </variable>
+#  <variable>
+#    <name>ALLOW_QUERY_ACL</name>
+#    <default>authorized_networks</default>
+#    <description>The ACL for the allow-query option</description>
+#    <info>An ACL which will identify the networks which are expected to use the DNS server. A caching only server may not use 'any'</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Check for BIND 9 installation"
+      cmd         : "/usr/sbin/named -v"
+      expect      : "^[\\s]*BIND 9\.9.*"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_ISC_BIND_DNS_Server_9.9_Benchmark_v3.0.1_CachingOnly.audit"
+    </report>
+
+    <report type:"WARNING">
+      description : "1.1 Use a Split-Horizon Architecture"
+      info        : "Running a Split-Horizon DNS architecture refers to running authoritative DNS servers and services for external DNS queries separate from the internal authoritative DNS servers, which answer all queries originating from within the organization. The external servers are configured to provide only a limited amount of information for the services needed for communication with external clients and services. Typically, the information published in the externally available DNS is the minimal needed for the Internet services such as email, web and gateway systems such as VPNs. The separate internal DNS service typically provides a richer information set typically needed by internal clients.
+
+  Rationale:
+
+  The two goals of Split-Horizon are to:
+  1. Minimize the amount and type of externally available information.
+  2. Physical and logical separation of external and internal DNS services.
+
+  Separating the external and internal DNS servers in this manner adheres to a defense-in-depth approach that limits the potential damage and impact should the external name server be compromised, since it does not service internal clients, nor does it have information on the internal systems and services.
+
+  BIND 9 Views can be used to provide different responses based on the source IP address, and have been suggested by some as a means to implement split-horizon without having to separate the internal and external servers.??  However, the usage of views without separating the servers does not accomplish the second goal. In addition, the usage of views often erroneously assumes that source IP addresses are a reliable security control and cannot be spoofed.??  Therefore, it is necessary that the internal DNS server be located internally in a way that firewalls and other network controls will ensure external malicious queries will not reach the internal server.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Implement Split-Horizon Architecture to separate external and internal DNS services. The external DNS servers should respond only to names of approved external services, such as web, email and VPN services."
+      reference   : "CSCv6|12,LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "1.2 Do Not Install a Multi-Use System - chkconfig"
+      info        : "Default server configurations often expose a wide variety of services unnecessarily increasing the risk to the system. Just because a server can perform many services doesn't mean it is wise to do so. The number of services and daemons executing on the ISC BIND DNS server should be limited to those necessary, with the DNS service being the only primary function of the server.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Disable all unnecessary services or move necessary primary services other than DNS to another server. Leverage the package or services manager for your OS to uninstall or disable unneeded services. On Red Hat systems, the following commands may be used to uninstall a package or disable a service:
+
+  # yum erase
+
+  # systemctl disable .service"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.5,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "chkconfig --list | /bin/grep \':on\'"
+      expect      : ""
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "1.2 Do Not Install a Multi-Use System - systemctl"
+      info        : "Default server configurations often expose a wide variety of services unnecessarily increasing the risk to the system. Just because a server can perform many services doesn't mean it is wise to do so. The number of services and daemons executing on the ISC BIND DNS server should be limited to those necessary, with the DNS service being the only primary function of the server.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Disable all unnecessary services or move necessary primary services other than DNS to another server. Leverage the package or services manager for your OS to uninstall or disable unneeded services. On Red Hat systems, the following commands may be used to uninstall a package or disable a service:
+
+  # yum erase
+
+  # systemctl disable .service"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.5,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "systemctl -t service --state enabled list-unit-files"
+      expect      : ""
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "1.3 Dedicated Name Server Role"
+      info        : "A name server may be an authoritative name server for one or more domains for which it is configured to provide information. An authoritative-only name server only answers queries on the domains for which it is configured, and will reject queries for other domains. A caching name server will answer queries any domain. The caching name server gets answers by sending recursive DNS queries to other name servers and then storing the answer in its cache to provide a quicker response to the next query for that name. A caching-only name server is not authoritative for any domain. The BIND DNS names server should be configured to be either a caching-only or an authoritative-only name server, but not both.
+
+Rationale:
+
+DNS name servers are a foundational part of your network architecture and the security of other network services depend on their integrity. It is important to separate the roles of caching and authoritative name servers to minimize functionality and reduce risk for each server. Each name server role faces different threats in addition to direct attacks on the server. For example, the caching name server faces unique threats of malicious replies with bogus answers or over-sized answers intended to deny service. The authoritative name server is a critical part of the infrastructure should not be exposed to these additional attacks.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Authoritative-Only Name Server:
+
+For the authoritative-only name server add or modify the allow-recursion statement to only include the localhost to as shown below.
+
+options {
+. . .
+allow-rescursion { local; };
+
+Caching-Only Name Server:
+
+For the caching-only name server remove the non-local zone statements from the configuration file and restart the server."
+      reference   : "800-53|SC-22,CSCv6|9,ITSG-33|SC-22,LEVEL|1S,NESA|T4.5.1,NIAv2|NS17,NIAv2|NS18,NIAv2|NS19,NIAv2|NS20,NIAv2|NS21,NIAv2|NS22,NIAv2|NS23"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*zone.*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - zone Not Found\" }' /var/named/chroot/etc/named.conf"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "1.4 Use Secure Upstream Caching DNS Servers"
+      info        : "Caching name servers often forward queries to another caching name server to allow the name service work to be aggregated and improve performance by taking advantage of the cache of an upstream name server. The default caching name server provided by the Internet service provider is often used in this manner. This may also be a security weakness by relying on insecure servers outside the organization's control and security policies.
+
+Rationale:
+The security of all of the external connections that your systems on your network depend in part on getting accurate IP addresses for external names. If the upstream caching name server is compromised, or has its cache poisoned with malicious records, then your entire network may be subject to an attack which may redirect web, email, or VPN traffic to malicious servers, or may cause denial of services attacks. Therefore, it is important to evaluate the security of the upstream caching name servers to reduce the risk of DNS attacks propagated to your network via the upstream provider.
+
+There are a number of security companies that offer secure caching DNS services that are worth considering. Features to look for and test include:
+- Blocking of traffic to websites known to contain malware.
+- Configurable categories for blocking inappropriate content, such as adult content.??
+- Detecting and blocking of malware communications to an external command and control server.
+- Prevent DNS spoofing by ensuring the integrity and authenticity of all DNS responses.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Perform the following for remediation:
+
+- Review network architectural, approved internal DNS servers, and block outbound DNS traffic, except for the approved DNS servers.
+- Select an external DNS provider that sufficiently mitigates malicious DNS traffic to meet your organizational requirements??
+- Review, test and document the approved external DNS servers, and configure the internal caching-only DNS servers to use the approved external caching DNS server."
+      reference   : "CSCv6|12,LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+    </report>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "Linux"
+          type        : RPM_CHECK
+          description : "Check for BIND via RPM"
+          rpm         : "bind-9.0.0-0"
+          operator    : "gt"
+          required    : YES
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "Check for BIND via dpkg"
+          cmd         : "/usr/bin/dpkg -s bind9 2>&1"
+          expect      : "install[\\s]+ok[\\s]+installed"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "1.5 Installing ISC BIND 9 - bind9 installation"
+          info        : "The ISC BIND Benchmark recommends using the binary packages provided by your platform vendor for most situations in order to reduce the effort and increase the effectiveness of maintenance and security patches. The Red Hat Enterprise Linux 7 has been used for testing the benchmark.
+
+      Rationale:
+
+      The benefits of using the vendor supplied binaries include:
+
+      - Ease of installation.
+      - It is customized for your OS environment.
+      - It will be tested and have gone through QA procedures.
+      - Additional software you may need is likely to be included, such as chroot setup and startup scripts.
+      - Your vendor will tell you about security issues so you have to look in less places.
+      - Updates to fix security issues will be easier to apply.
+
+      However, building from source is suitable for those that want full control of the build process, prefer to build from source, or do not have a suitable package available for their platform. Source download and build information is available on the ISC website knowledge base at the URL reference below."
+          solution    : "Installation depends on the operating system platform. The following commands were tested on RHEL7.
+
+      # yum install bind
+      . . .
+      # yum install bind-chroot
+      . . ."
+          reference   : "CSCv6|2,LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "1.5 Installing ISC BIND 9 - bind9 installation"
+          info        : "The ISC BIND Benchmark recommends using the binary packages provided by your platform vendor for most situations in order to reduce the effort and increase the effectiveness of maintenance and security patches. The Red Hat Enterprise Linux 7 has been used for testing the benchmark.
+
+      Rationale:
+
+      The benefits of using the vendor supplied binaries include:
+
+      - Ease of installation.
+      - It is customized for your OS environment.
+      - It will be tested and have gone through QA procedures.
+      - Additional software you may need is likely to be included, such as chroot setup and startup scripts.
+      - Your vendor will tell you about security issues so you have to look in less places.
+      - Updates to fix security issues will be easier to apply.
+
+      However, building from source is suitable for those that want full control of the build process, prefer to build from source, or do not have a suitable package available for their platform. Source download and build information is available on the ISC website knowledge base at the URL reference below.
+
+      NOTE - The BIND package does not appear to be installed via 'rpm' or 'dpkg'. Please check the target system to ensure it satisfies benchmark compliance."
+          solution    : "Installation depends on the operating system platform. The following commands were tested on RHEL7.
+
+      # yum install bind
+      . . .
+      # yum install bind-chroot
+      . . ."
+          reference   : "CSCv6|2,LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.5 Installing ISC BIND 9 - named location"
+      info        : "The ISC BIND Benchmark recommends using the binary packages provided by your platform vendor for most situations in order to reduce the effort and increase the effectiveness of maintenance and security patches. The Red Hat Enterprise Linux 7 has been used for testing the benchmark.
+
+  Rationale:
+
+  The benefits of using the vendor supplied binaries include:
+
+  - Ease of installation.
+  - It is customized for your OS environment.
+  - It will be tested and have gone through QA procedures.
+  - Additional software you may need is likely to be included, such as chroot setup and startup scripts.
+  - Your vendor will tell you about security issues so you have to look in less places.
+  - Updates to fix security issues will be easier to apply.
+
+  However, building from source is suitable for those that want full control of the build process, prefer to build from source, or do not have a suitable package available for their platform. Source download and build information is available on the ISC website knowledge base at the URL reference below."
+      solution    : "Installation depends on the operating system platform. The following commands were tested on RHEL7.
+
+  # yum install bind
+  . . .
+  # yum install bind-chroot
+  . . ."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|2,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "/usr/bin/which named"
+      expect      : ".*named"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "2.1 Run BIND as a non-root User - UID"
+      info        : "To start BIND you must execute it as the root user. After the initial startup, BIND has the ability to change to a non-root user, allowing it to drop the root privileges.
+
+Rationale:
+
+The reason for configuring BIND to run as a non-root user is to limit the impact in case a future vulnerability is discovered and exploited. This is a common practice, which implements the principal of least privilege. This principle states that an entity, such as a service or user, should be granted only those specific privileges necessary to perform authorized actions. The server will still need to be started as root, but it should be configured to give up the root privilege after listening on port 53. The user ID under which named runs, needs to be created if it does not already exist and needs appropriate access to the DNS configuration and data files. Many systems including Red Hat Linux will come with a named user already created. Usage of the user and group id of 53 in the examples is arbitrary but is intended to be easier to recognize as it matches the listening port number."
+      solution    : "Create the named user and group if it does not already exist. Using a shell of /dev/null is best practice.
+
+if ! id named; then
+ groupadd -g 53 named
+ useradd -m -u 53 -g 53 -c \"BIND named\" -d /var/named -s /dev/null named
+fi 2>/dev/null
+
+Add the -u named to the OPTIONS parameters in the /etc/sysconfig/named if not already present.
+
+Default Value:
+
+The default named startup parameters include the -u named value."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSCv6|5.1,CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|1S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "v1=$(awk '/^UID_MIN/ {print $2}' /etc/login.defs);awk -F':' -v \"uidmin=${v1}\" '{ if ($1 == \"named\" && $3 < uidmin) print \"Pass\"; else if ($1 ==\"named\" && $3 > uidmin) print \"Fail\" }' /etc/passwd"
+      expect      : "Pass"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "2.1 Run BIND as a non-root User - process -u named"
+      info        : "To start BIND you must execute it as the root user. After the initial startup, BIND has the ability to change to a non-root user, allowing it to drop the root privileges.
+
+Rationale:
+
+The reason for configuring BIND to run as a non-root user is to limit the impact in case a future vulnerability is discovered and exploited. This is a common practice, which implements the principal of least privilege. This principle states that an entity, such as a service or user, should be granted only those specific privileges necessary to perform authorized actions. The server will still need to be started as root, but it should be configured to give up the root privilege after listening on port 53. The user ID under which named runs, needs to be created if it does not already exist and needs appropriate access to the DNS configuration and data files. Many systems including Red Hat Linux will come with a named user already created. Usage of the user and group id of 53 in the examples is arbitrary but is intended to be easier to recognize as it matches the listening port number."
+      solution    : "Create the named user and group if it does not already exist. Using a shell of /dev/null is best practice.
+
+if ! id named; then
+ groupadd -g 53 named
+ useradd -m -u 53 -g 53 -c \"BIND named\" -d /var/named -s /dev/null named
+fi 2>/dev/null
+
+Add the -u named to the OPTIONS parameters in the /etc/sysconfig/named if not already present.
+
+Default Value:
+
+The default named startup parameters include the -u named value."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSCv6|5.1,CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|1S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "ps axu | grep named | grep -v 'grep'"
+      expect      : "named -u named"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.2 Give the BIND User Account an Invalid Shell"
+      info        : "The BIND user account, named by default, must not be used as a regular login account, and should be assigned an invalid or nologin shell to ensure that the account cannot be used to login.
+
+Rationale:
+
+Service accounts such as the named account represent a risk if they can be used to get a login shell to the system."
+      solution    : "Change the named account to use the nologin shell as shown:
+
+# chsh -s /sbin/nologin named
+
+Default Value:
+
+/sbin/nologin"
+      reference   : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSCv6|16,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|1S,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "grep named /etc/passwd | awk -F: '{ print $7}'"
+      expect      : "(/sbin/nologin|/dev/null|/bin/false)"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.3 Lock the BIND User Account"
+      info        : "The user account under which BIND runs should not have a valid password, but should be locked.
+
+Rationale:
+
+As a defense-in-depth measure the named user account should be locked to prevent logins, and to prevent a user from su'ing to named using a password. In general, there shouldn't be a need for anyone to have to su as named, and when there is a need, then sudo should be used instead, which would not require the account password."
+      solution    : "Change the named account to use the nologin shell as shown:
+
+# chsh -s /sbin/nologin named
+
+Default Value:
+Account is locked by default."
+      reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSCv6|16,CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,LEVEL|1S,NESA|M4.4.3,NESA|T5.2.1,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14d,NIAv2|SS14e"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "passwd -S named"
+      expect      : "(LK|Password locked)"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.4 Set root Ownership of BIND Directories"
+      info        : "All of the directories under which ISC BIND runs should be owned by root. Of course, any files created at run time by BIND will still be owned by named.
+
+Rationale:
+
+Restricting ownership of the directories provides defense in depth and will reduce the probability of unauthorized modifications to those resources. If there was a BIND vulnerability that allowed code execution as the named user, then the code would not be able to modify permissions on the BIND directories owned by root."
+      solution    : "To correct the directory ownership, perform the following:
+
+chown -R root $BIND_HOME $RUNDIR
+
+Default Value:
+
+The following directories are owned by named in the default RHEL7 package install
+
+- /var/named/dynamic
+- /var/named/slaves
+- /var/named/data
+- /run/named"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+      cmd         : "find /var/named/ -type d \! -user root -ls 2>/dev/null | awk '{print} END {if (NR == 0) print \"Pass\" ; else print \"Fail\"}'"
+      expect      : "Pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.5 Set root Ownership of BIND Configuration Files"
+      info        : "The configuration files in the ISC BIND directories should be owned by root. Of course, any files created at run time by BIND, such as pid files, log files and slave zone files will necessarily be owned by named.
+
+Rationale:
+
+Restricting ownership of the configuration files provides defense in depth and will reduce the probability of unauthorized modifications to those important files. If there was a BIND vulnerability that allowed code execution as the named user, then the code would not be able modify the configuration files."
+      solution    : "Perform the following:
+
+- Capture the output of the previous audit command to a file named nonroot-files.txt and review any files not owned by root to ensure the files are necessary and are not expected run-time files. Delete any unnecessary files, and ensure any run-time files are being created in the appropriate run-time directory.
+
+# find $BIND_HOME -type f \! -user root | egrep -v \
+ \^$DYNDIR\|\^$SLAVEDIR\^$DATADIR\|\^$RUNDIR\|\^$LOGDIR\|\^$TMPDIR > \
+$TMPDIR/nonroot-files.txt
+
+- The remaining non-run-time files should be changed to be owned by root, with a command like the following:
+# cat $TMPDIR/nonroot-files.txt | xargs chown root
+# rm $TMPDIR/nonroot-files.txt
+
+Default Value:
+The default rpm has all configuration files owned by root."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @DYNDIR@ replaced with "/var/named/chroot/var/named/dynamic/" in field "cmd".
+# Note: Variable @SLAVEDIR@ replaced with "/var/named/chroot/var/named/slaves/" in field "cmd".
+# Note: Variable @DATADIR@ replaced with "/var/named/chroot/var/named/data/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+# Note: Variable @LOGDIR@ replaced with "/var/named/chroot/var/named/slaves/" in field "cmd".
+# Note: Variable @TMPDIR@ replaced with "/var/named/chroot/var/tmp/" in field "cmd".
+      cmd         : "find /var/named/ -type f \! -user root 2>/dev/null | egrep -v '^/var/named/chroot/var/named/dynamic/|^/var/named/chroot/var/named/slaves/|^/var/named/chroot/var/named/data/|^/var/named/chroot/run/named|^/var/named/chroot/var/named/slaves/|^/var/named/chroot/var/tmp/' | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.6 Set Group named or root for BIND Directories and Files"
+      info        : "All the BIND directories and files should have a group of either named or root.
+
+Rationale:
+
+In general the BIND directories and files default to a group of named, however some system files may have a group of root. Examples of system files include chroot'ed system device files. Either group root or named is accepted, as the intent is to prevent unexpected group ids, from getting inappropriate access to BIND files. Run time directories to which BIND will need write access should have a group of named, so that write access may be granted via the group permissions."
+      solution    : "Run the command below to change all BIND directories and files to the group named.
+
+chgrp -R named $BIND_HOME $RUNDIR
+
+Default Value:
+
+The default rpm install has all directories and files in the BIND home and the run time directory with a group of named."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+      cmd         : "find /var/named/ /var/named/chroot/run/named  \\! \\( -group root -o -group named \\) -ls 2>/dev/null | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.7 Set Group and Other Permissions Read-Only for BIND Non-Runtime Directories - 'group' permissions"
+      info        : "All the BIND directories except the run-time directories into which BIND will create files should have group and other permissions set to not be writable. No directories in the BIND_HOME or the RUNDIR should have other write permissions, even a chroot'ed tmp directory only needs to be writable by the named group.
+
+Rationale:
+
+Restricting permissions on the directories provides defense in depth and will reduce the probability of unauthorized modifications to important files. If there was a BIND vulnerability that allowed code execution as the named user, then the code would not be able create or modify configuration files."
+      solution    : "Perform the following:
+
+- Capture the output from the audit commands above into a file named write-dirs.txt
+- Review the purpose for the identified directories and either delete them if the directory is not needed, or change the permissions of the directory to not be writable by group or other.
+- The following command can be used to change the permissions of the directories that are appropriate.
+
+xargs -a write-dirs.txt chmod go-w
+
+Default Value:
+
+The default rpm install has all non-runtime directories without group or other write access."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @DYNDIR@ replaced with "/var/named/chroot/var/named/dynamic/" in field "cmd".
+# Note: Variable @SLAVEDIR@ replaced with "/var/named/chroot/var/named/slaves/" in field "cmd".
+# Note: Variable @DATADIR@ replaced with "/var/named/chroot/var/named/data/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+# Note: Variable @LOGDIR@ replaced with "/var/named/chroot/var/named/slaves/" in field "cmd".
+# Note: Variable @TMPDIR@ replaced with "/var/named/chroot/var/tmp/" in field "cmd".
+      cmd         : "find /var/named/ -type d -perm /020 | egrep -vx '^/var/named/chroot/var/named/dynamic/|^/var/named/chroot/var/named/slaves/|^/var/named/chroot/var/named/data/|^/var/named/chroot/run/named|^/var/named/chroot/var/named/slaves/|^/var/named/chroot/var/tmp/' | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.7 Set Group and Other Permissions Read-Only for BIND Non-Runtime Directories - 'other' permissions"
+      info        : "All the BIND directories except the run-time directories into which BIND will create files should have group and other permissions set to not be writable. No directories in the BIND_HOME or the RUNDIR should have other write permissions, even a chroot'ed tmp directory only needs to be writable by the named group.
+
+Rationale:
+
+Restricting permissions on the directories provides defense in depth and will reduce the probability of unauthorized modifications to important files. If there was a BIND vulnerability that allowed code execution as the named user, then the code would not be able create or modify configuration files."
+      solution    : "Perform the following:
+
+- Capture the output from the audit commands above into a file named write-dirs.txt
+- Review the purpose for the identified directories and either delete them if the directory is not needed, or change the permissions of the directory to not be writable by group or other.
+- The following command can be used to change the permissions of the directories that are appropriate.
+
+xargs -a write-dirs.txt chmod go-w
+
+Default Value:
+
+The default rpm install has all non-runtime directories without group or other write access."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+      cmd         : "find /var/named/ /var/named/chroot/run/named -type d -perm /002 | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.8 Set Group and Other Permissions Read-Only for All BIND Files"
+      info        : "All the files in BIND home and run time directories should have group and other permissions set to not be writable. Configuration files should, of course, not be writable by named, and any run time files created by BIND will be owned by named and writable by the user. Therefore, there are no exceptions required for the run time files.
+
+Rationale:
+
+Restricting permissions on the files provides defense in depth and will reduce the probability of unauthorized modifications to important files. If there was a BIND vulnerability that allowed code execution as the named user, then the code would not be able to modify configuration files."
+      solution    : "Perform the following:
+
+- Capture the output from the audit commands above into a file with the name $TMPDIR/write-files.txt
+- Review the purpose for the identified files and either delete them if the file is not needed, or change the permissions of the file to not be writable by group or other.
+- The following commands can be used to change the permissions of the appropriate files.
+
+# find $BIND_HOME $RUNDIR -type f -perm /022 > $TMPDIR/write-files.txt
+# xargs -a $TMPDIR/write-files.txt chmod go-w
+# rm $TMPDIR/write-files.txt
+
+Default Value:
+
+The default rpm install has all BIND files without group or other write access."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+      cmd         : "find /var/named/ /var/named/chroot/run/named -type f -perm /022 | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "2.9 Isolate BIND with chroot'ed Subdirectory"
+      info        : "The chroot() system call causes an application to run with limited file system access so that a subdirectory becomes the root directory for the application environment. When this is done, the application is jailed and no longer has access to the entire file structure but is limited to the given subdirectory.
+
+Rationale:
+
+Although there are ways that a chroot jail can be broken, most methods require that a process be running as root in order to escape. Since BIND should be run as a different user than root, a chroot is an effective defense, to limit access to sensitive system configuration files. In the event that BIND has a vulnerability that allows code execution, the attack will not have access to the real system files such as /etc/password, but will be limited to the files placed in the chroot subdirectory."
+      solution    : "Perform the following:
+
+- Stop the named service and install the bind-chroot package to provide the chroot directories.
+
+# systemctl stop named.service
+# yum install bind-chroot
+
+- Edit the /etc/sysconfig/named configuration file to have a line similar to the one shown below that sets the ROOTDIR environment variable.
+
+ROOTDIR=\"/var/named/chroot\"
+
+- Move all the configuration files and any master zone files into their respective directions under the subdirectory /var/named/chroot/??
+- It may be helpful to create symbolic links from a couple of system /etc files such as /etc/named.conf and /etc/rndc.key to the real files in the chroot-ed subdirectory, so that utilities like rndc will work as expected. Do not create symbolic links or hard links from inside the chroot to external resources! Instead use symbolic links to point from the outside resources into the chroot.
+- Restart the named service and test the configuration.
+
+# systemctl start named.service
+
+Default Value:
+
+The BIND service is not chroot'ed by default.
+
+3 Restricting Queries
+
+Recommendations in this section pertain to configurable access control mechanisms that are available in ISC BIND to restrict queries."
+      reference   : "800-53|AC-6(8),CSCv6|14.4,CSF|PR.AC-4,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "ls -ld /proc/`pidof named`/root | awk '{print} END {if (NR == 0) print \"Named process not found\" }'"
+      expect      : "chroot"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.1 Ignore Erroneous or Unwanted Queries - RFC 1918 10/8; addresses"
+      info        : "BIND can be configured to ignore requests originating from specified network segments. This is accomplished by implementing the blackhole option in named.conf. It is recommended that this feature be implemented to ignore requests that originate outside of expected network segments.
+
+Rationale:
+
+By ignoring traffic that originates from unexpected networks, the server's exposure to malicious entities is reduced."
+      solution    : "Add a blackhole option for multicast and link local addresses, and all private RFC 1918 addresses that are not being used.
+
+blackhole {
+// Private RFC 1918 addresses
+10/8; 192.168/16; 172.16/12;
+// Multicast
+224/8;
+// Link Local
+169.254/16;
+};
+
+Default Value:
+
+No networks are blackhole'd by default."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*blackhole\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - Blackhole Not Found\" }' /var/named/chroot/etc/named.conf"
+      expect      : "10/8;"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.1 Ignore Erroneous or Unwanted Queries - RFC 1918 192.168/16; addresses"
+      info        : "BIND can be configured to ignore requests originating from specified network segments. This is accomplished by implementing the blackhole option in named.conf. It is recommended that this feature be implemented to ignore requests that originate outside of expected network segments.
+
+Rationale:
+
+By ignoring traffic that originates from unexpected networks, the server's exposure to malicious entities is reduced."
+      solution    : "Add a blackhole option for multicast and link local addresses, and all private RFC 1918 addresses that are not being used.
+
+blackhole {
+// Private RFC 1918 addresses
+10/8; 192.168/16; 172.16/12;
+// Multicast
+224/8;
+// Link Local
+169.254/16;
+};
+
+Default Value:
+
+No networks are blackhole'd by default."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*blackhole\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - Blackhole Not Found\" }' /var/named/chroot/etc/named.conf"
+      expect      : "192.168/16;"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.1 Ignore Erroneous or Unwanted Queries - RFC 1918 172.16/12; addresses"
+      info        : "BIND can be configured to ignore requests originating from specified network segments. This is accomplished by implementing the blackhole option in named.conf. It is recommended that this feature be implemented to ignore requests that originate outside of expected network segments.
+
+Rationale:
+
+By ignoring traffic that originates from unexpected networks, the server's exposure to malicious entities is reduced."
+      solution    : "Add a blackhole option for multicast and link local addresses, and all private RFC 1918 addresses that are not being used.
+
+blackhole {
+// Private RFC 1918 addresses
+10/8; 192.168/16; 172.16/12;
+// Multicast
+224/8;
+// Link Local
+169.254/16;
+};
+
+Default Value:
+
+No networks are blackhole'd by default."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*blackhole\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - Blackhole Not Found\" }' /var/named/chroot/etc/named.conf"
+      expect      : "172.16/12;"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.1 Ignore Erroneous or Unwanted Queries - Multicast addresses"
+      info        : "BIND can be configured to ignore requests originating from specified network segments. This is accomplished by implementing the blackhole option in named.conf. It is recommended that this feature be implemented to ignore requests that originate outside of expected network segments.
+
+Rationale:
+
+By ignoring traffic that originates from unexpected networks, the server's exposure to malicious entities is reduced."
+      solution    : "Add a blackhole option for multicast and link local addresses, and all private RFC 1918 addresses that are not being used.
+
+blackhole {
+// Private RFC 1918 addresses
+10/8; 192.168/16; 172.16/12;
+// Multicast
+224/8;
+// Link Local
+169.254/16;
+};
+
+Default Value:
+
+No networks are blackhole'd by default."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*blackhole\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - Blackhole Not Found\" }' /var/named/chroot/etc/named.conf"
+      expect      : "224/8;"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.1 Ignore Erroneous or Unwanted Queries - Link local addresses"
+      info        : "BIND can be configured to ignore requests originating from specified network segments. This is accomplished by implementing the blackhole option in named.conf. It is recommended that this feature be implemented to ignore requests that originate outside of expected network segments.
+
+Rationale:
+
+By ignoring traffic that originates from unexpected networks, the server's exposure to malicious entities is reduced."
+      solution    : "Add a blackhole option for multicast and link local addresses, and all private RFC 1918 addresses that are not being used.
+
+blackhole {
+// Private RFC 1918 addresses
+10/8; 192.168/16; 172.16/12;
+// Multicast
+224/8;
+// Link Local
+169.254/16;
+};
+
+Default Value:
+
+No networks are blackhole'd by default."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|1S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*blackhole\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - Blackhole Not Found\" }' /var/named/chroot/etc/named.conf"
+      expect      : "169.254/16;"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.2 Restrict Recursive Queries - Caching Name Server"
+      info        : "A recursive DNS query is your typical DNS query from a client to a caching DNS server. It places the burden of finding the answer on the caching DNS server which will recursively query other DNS servers authoritative for the domains, until it gets the answer which is then returned to the client. The DNS server will then cache the answer to that query until its time-to-live expires in order to provide a quick answer to future queries for the same name. BIND can be configured to restrict fulfillment of recursive lookups to only authorized network segments and hosts. This is made possible by the allow-recursion option. Caching non-authoritative name servers should only allow recursive queries from clients on their own authorized networks. Authoritative name servers should not allow recursive queries, except to the local host.
+
+Rationale:
+
+Recursive DNS queries are commonly used in malicious attacks, including DNS amplification attacks and DNS cache poisoning attacks. A DNS amplification attack is a form of a reflected distributed denial-of-service attack, where multiple publicly accessible servers are sent recursive queries with the source IP address spoofed to be that of the victim. A high volume of relatively large DNS responses then flood the victim. For a DNS cache poisoning attack, the attacker may perform a query, and then provide a bogus response for the server to store in the cache.??  The bogus response may redirect clients to a different IP address which is provided by the attacker. Once the cache is poisoned, then clients visiting web sites, connecting to mail servers or VPNs may be connected with a malicious server configured to attack the client or steal credentials.
+
+Limiting recursive queries to trusted networks does not prevent all of the DNS attacks possible, but it does make the attacks much more difficult and dramatically limits the scope of possible attacks so that detection and response are manageable."
+      solution    : "Authoritative Name Server:
+
+For an authoritative name, insert the following either into the global options or into every zone section.
+
+allow-recursion { localhost; };
+
+Caching Name Server:
+
+- Define an ACL named trusted_clients which will identify the networks which are expected to use the DNS caching server, and will be allowed to send recursive DNS queries.
+
+acl trusted_clients { 10.19.4.0/28; . . . }
+
+- Insert the following into the global options.
+
+allow-recursion { localhost; trusted_clients };
+
+Default Value:
+
+The allow-recursion option is not defined by default."
+      reference   : "800-53|SC-21,CSCv6|9.1,ITSG-33|SC-21,LEVEL|1S,NESA|T4.5.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*options\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - options Not Found\" }' /var/named/chroot/etc/named.conf"
+# Note: Variable @ALLOW_RECURSION_ACL@ replaced with "trusted_clients" in field "expect".
+      expect      : "^[\\s]*allow-recursion[\\s]+{[\\s]*(localhost|local|127.0.0.1);[\\s]*trusted_clients[\\s]*};"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "3.3 Restrict Query Origins"
+      info        : "BIND can be configured to restrict access to its query services based on source IP address. It is recommended that the allow-query option be used to restrict access to only the networks authorized to use the name server. For an external authoritative only name server, the authorized networks may include all networks, however for internal authoritative or caching name servers the authorized networks should be explicitly configured.
+
+Rationale:
+
+Using allow-query in conjunction with an ACL of trusted networks will reduce the risk of unauthorized access to name services content. Additionally, the exposure of vulnerabilities present in BIND's query handlers is reduced by this configuration as requests with an untrusted source will be rejected before the request is fully parsed by named. Keep in mind however, that the source IP addresses can be easily spoofed, and the firewall and network architecture also needs to protect internal name servers from external spoofed requests."
+      solution    : "For remediation:
+
+- Create an ACL for the authorized trusted networks in the named.conf file.
+acl authorized_networks { 10.10.32.0/24; 10.10.34.0/24; . . .  };
+
+- Add the allow-query statement to the global options of the named.conf file with the localhost ACL and the authorized trusted networks ACL.
+allow-query { localhost; authorized_networks };
+
+Default Value:
+
+The default package install allows queries only from localhost."
+      reference   : "800-53|SC-20,CSCv6|9,ITSG-33|SC-20,LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*options\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - options Not Found\" }' /var/named/chroot/etc/named.conf"
+# Note: Variable @ALLOW_QUERY_ACL@ replaced with "authorized_networks" in field "expect".
+      expect      : "^[\\s]*allow-query[\\s]+{[\\s]*authorized_networks[\\s]*};"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.4 Restrict Queries of the Cache - Caching Only"
+      info        : "The BIND option allow-query-cache may be used to restrict or allow BIND to provide answers to queries from the current cache of previously resolved queries. An authoritative only name server should not allow cache queries, except from the localhost, A caching only name server should allow cache queries only from the list of authorized networks.
+
+Rationale:
+
+Caching only name servers are critical to the security of all of the clients and servers using them, only the local authorized networks should be allowed to perform queries of the server's cache. In addition to malicious malformed queries, an attacker could use information about what is or is not in the name servers cache to help setup a DNS attack against the systems using the caching name server."
+      solution    : "Authoritative Only Name Server:
+
+For an authoritative name, insert the following either into the global options or into every zone section.
+
+allow-query-cache { localhost; };
+
+Caching Only Name Server:
+
+Use the previously defined an ACL named trusted_clients which will identify the networks which are expected to use the DNS caching server, and will be allowed to send DNS cache queries.
+
+allow-query-cache { localhost; trusted_clients };
+
+Default Value:
+
+If the allow-query-cache option is not present in the configuration, the default value is the allow-recursion setting.??  If the allow-recursion setting is not present, then the allow-query setting is used, unless recursion is set to no. If recursion is set to no, then the default value is none. Otherwise, if allow-query is also not present then the default value is localnets and localhost."
+      reference   : "800-53|SC-21,CSCv6|9,ITSG-33|SC-21,LEVEL|1S,NESA|T4.5.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*options\\s*{/ { l=1 } /{/ { b += 1 } /}/ { b -= 1 } l == 1 { print; o=1 } b == 0 { l = 0 } END { if (o == 0) print \"fail - options Not Found\" }' /var/named/chroot/etc/named.conf"
+# Note: Variable @ALLOW_QUERY_ACL@ replaced with "authorized_networks" in field "expect".
+      expect      : "^[\\s]*allow-query-cache[\\s]+{[\\s]*authorized_networks[\\s]*};"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CMD_EXEC
+          description : "Check for failing field lengths for item 4.1"
+# Note: Variable @DYNDIR@ replaced with "/var/named/chroot/var/named/dynamic/" in field "cmd".
+          cmd         : "awk -F' ' '{ if ( length($7) >= 44 ) print \"pass - \" FILENAME; else print \"fail - \" FILENAME }' /var/named/chroot/var/named/dynamic//*.key"
+          expect      : "fail"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CMD_EXEC
+          description : "4.1 Use TSIG Keys 256 Bits in Length"
+          info        : "The TSIG secret keys used by the name server should be generated from a good source of entropy and should be at least 256 bits in length.
+
+      Rationale:
+
+      Weak cryptographic keys may allow cryptographic attacks to discover the key value, through repeated guesses. A strong HMAC key requires a good source of entropy and at least 256 bits in length."
+          solution    : "For remediation, replace any keys which are too short with a securely generated key with a length of 256 or 512.??  The dnssec-keygen command below can be used to generate a key.
+
+      $ dnssec-keygen -a HMAC-SHA256 -b 256 -n HOST ns1-ns2.cisecurity.org.
+      $ cat Kns1-ns2.cisecurity.org.+163+21730.key
+      ns1-ns2.cisecurity.org. IN KEY 512 3 163 ezoZopbE4Q73HShuFYlf3FRvLWjtNXI5fd0TeQAYOug=
+
+      Default Value:
+
+      The rndc key is generated as 128 bits during bind-utils package install, while the nsupdate session key is dynamically generated with a length of 256 bits."
+          reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @DYNDIR@ replaced with "/var/named/chroot/var/named/dynamic/" in field "cmd".
+          cmd         : "awk -F' ' '{ if ( length($7) >= 44 ) print \"pass - \" FILENAME; else print \"fail - \" FILENAME }' /var/named/chroot/var/named/dynamic//*.key"
+          expect      : ""
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : CMD_EXEC
+          description : "4.1 Use TSIG Keys 256 Bits in Length"
+          info        : "The TSIG secret keys used by the name server should be generated from a good source of entropy and should be at least 256 bits in length.
+
+      Rationale:
+
+      Weak cryptographic keys may allow cryptographic attacks to discover the key value, through repeated guesses. A strong HMAC key requires a good source of entropy and at least 256 bits in length."
+          solution    : "For remediation, replace any keys which are too short with a securely generated key with a length of 256 or 512.??  The dnssec-keygen command below can be used to generate a key.
+
+      $ dnssec-keygen -a HMAC-SHA256 -b 256 -n HOST ns1-ns2.cisecurity.org.
+      $ cat Kns1-ns2.cisecurity.org.+163+21730.key
+      ns1-ns2.cisecurity.org. IN KEY 512 3 163 ezoZopbE4Q73HShuFYlf3FRvLWjtNXI5fd0TeQAYOug=
+
+      Default Value:
+
+      The rndc key is generated as 128 bits during bind-utils package install, while the nsupdate session key is dynamically generated with a length of 256 bits."
+          reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @DYNDIR@ replaced with "/var/named/chroot/var/named/dynamic/" in field "cmd".
+          cmd         : "awk -F' ' '{ if ( length($7) >= 44 ) print \"pass - \" FILENAME; else print \"fail - \" FILENAME }' /var/named/chroot/var/named/dynamic//*.key"
+          expect      : ".*"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "4.2 Include Cryptographic Key Files"
+      info        : "Do not place keys directly in the BIND named.conf, but use separate configuration files for the keys and include them into the named.conf file, in order to protect the keys from unintentional disclosure.
+
+Rationale:
+
+Although the keys may be placed directly in the named.conf file, putting it in a separate file will limit the number of times it needs to be viewed, and make it independent of viewing and changes to the main configuration file."
+      solution    : "Move each key definition statement from the named.conf file into its own key file. It is recommended to name both the key and the key file after the two hosts that will be sharing the secret key, in order to avoid confusion. Then include the key files with include statements in the named.conf. An example is shown below with the key definition statement moved to a separate key file, however it is also accepted for only the secret statement to be moved to another file.
+
+# grep -C 1 include /etc/named.conf
+
+// Include the key file used for the host1 and host2 TSIG comms
+include \"/etc/private/host1-host2.cisecurity.org.key\";
+
+# cat /var/named/chroot/etc/private/host1-host2.cisecurity.org.key
+key host1-host2.cisecurity.org {
+ algorithm hmac-sha256;
+ secret \"1R3DP9D81/yWXjqf3hlg2beRpti1883JnZ3s7RVb1HU=\";
+};
+
+Default Value:
+
+During a default install an rndc key is generated in a separate file /etc/rndc.key and included in the named.conf."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|14,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*secret[\\s]*\".*\";"
+      expect      : "^[\\s]*secret[\\s]*\".*\";"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CMD_EXEC
+          description : "Check for failing unique secrets for item 4.3"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+# Note: Variable @CONFIG_FILES@ replaced with "/var/named/chroot/etc/" in field "cmd".
+          cmd         : "cat /var/named/chroot/etc/named.conf /var/named/chroot/etc/*.key | egrep -o \"secret.*;\" | sort | uniq -c | awk -F' ' '{ if ($1 == 1) printf \"pass - # found: %s, %s %s\\n\",$1,$2,$3; else printf \"fail, not unique - # found: %s, %s %s\\n\",$1,$2,$3 }'"
+          expect      : "fail"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CMD_EXEC
+          description : "4.3 Use Unique Keys for Each Pair of Hosts - unique secret"
+          info        : "A unique TSIG key should be used for each pair of communicating hosts. For example if there is one master authoritative name server and three slave authoritative name servers that were updated by the master, then there would need to be a unique TSIG key for at least the following:
+
+      - Master <-> Slave1
+      - Master <-> Slave2
+      - Master <-> Slave3
+
+      Rationale:
+
+      Each communication channel should have a unique key, to reduce the risk of key disclosure. If one of the TSIG keys or one of the slave servers is compromised, then the remaining TSIG keys are not disclosed."
+          solution    : "Generate unique keys for host to host communication. The command below can be used to generate 2 files, and <anem>.key file and a <name>.private file with secret keys of suitable length with base64 encoding.??  The files themselves are not needed, and should be securely deleted once the values are copied into a key file for including in the named configuration.
+
+      $ dnssec-keygen -a HMAC-SHA256 -b 256 -n HOST ns1-ns2.cisecurity.org
+      Kns1-ns2.cisecurity.org.+163+13013
+
+      $ cat Kns1-ns2.cisecurity.org.+163+13013.key
+      ns1-ns2.cisecurity.org. IN KEY 512 3 163 9FQ2dYCQ17HJwDi/uHgANh2dlb8M7eb+F4AjML8tTdA=
+
+      Default Value:
+
+      The rndc key is automatically generated during package installation."
+          reference   : "800-53|SC-20,CSCv6|14,ITSG-33|SC-20,LEVEL|1S,NESA|T4.5.1"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+# Note: Variable @CONFIG_FILES@ replaced with "/var/named/chroot/etc/" in field "cmd".
+          cmd         : "cat /var/named/chroot/etc/named.conf /var/named/chroot/etc/*.key | egrep -o \"secret.*;\" | sort | uniq -c | awk -F' ' '{ if ($1 == 1) printf \"pass - # found: %s, %s %s\\n\",$1,$2,$3; else printf \"fail, not unique - # found: %s, %s %s\\n\",$1,$2,$3 }'"
+          expect      : ""
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : CMD_EXEC
+          description : "4.3 Use Unique Keys for Each Pair of Hosts - unique secret"
+          info        : "A unique TSIG key should be used for each pair of communicating hosts. For example if there is one master authoritative name server and three slave authoritative name servers that were updated by the master, then there would need to be a unique TSIG key for at least the following:
+
+      - Master <-> Slave1
+      - Master <-> Slave2
+      - Master <-> Slave3
+
+      Rationale:
+
+      Each communication channel should have a unique key, to reduce the risk of key disclosure. If one of the TSIG keys or one of the slave servers is compromised, then the remaining TSIG keys are not disclosed."
+          solution    : "Generate unique keys for host to host communication. The command below can be used to generate 2 files, and <anem>.key file and a <name>.private file with secret keys of suitable length with base64 encoding.??  The files themselves are not needed, and should be securely deleted once the values are copied into a key file for including in the named configuration.
+
+      $ dnssec-keygen -a HMAC-SHA256 -b 256 -n HOST ns1-ns2.cisecurity.org
+      Kns1-ns2.cisecurity.org.+163+13013
+
+      $ cat Kns1-ns2.cisecurity.org.+163+13013.key
+      ns1-ns2.cisecurity.org. IN KEY 512 3 163 9FQ2dYCQ17HJwDi/uHgANh2dlb8M7eb+F4AjML8tTdA=
+
+      Default Value:
+
+      The rndc key is automatically generated during package installation."
+          reference   : "800-53|SC-20,CSCv6|14,ITSG-33|SC-20,LEVEL|1S,NESA|T4.5.1"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+# Note: Variable @CONFIG_FILES@ replaced with "/var/named/chroot/etc/" in field "cmd".
+          cmd         : "cat /var/named/chroot/etc/named.conf /var/named/chroot/etc/*.key | egrep -o \"secret.*;\" | sort | uniq -c | awk -F' ' '{ if ($1 == 1) printf \"pass - # found: %s, %s %s\\n\",$1,$2,$3; else printf \"fail, not unique - # found: %s, %s %s\\n\",$1,$2,$3 }'"
+          expect      : ".*"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CMD_EXEC
+          description : "Checking for failing unique keys for item 4.3"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+# Note: Variable @CONFIG_FILES@ replaced with "/var/named/chroot/etc/" in field "cmd".
+          cmd         : "/usr/bin/awk '/^\\s*keys.*{/,/};/ { print; o=1 } END { if (o == 0) print \"fail - keys Not Found\" }' /var/named/chroot/etc/named.conf /var/named/chroot/etc//*.key | sort | uniq -c | awk -F' ' '{ if ($1 == 1) printf \"pass - # found: %s, %s %s %s %s\\n\",$1,$2,$3,$4,$5; else printf \"fail, not unique - # found: %s, %s %s %s %s\\n\",$1,$2,$3,$4,$5 }'"
+          expect      : "fail"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CMD_EXEC
+          description : "4.3 Use Unique Keys for Each Pair of Hosts - unique keys"
+          info        : "A unique TSIG key should be used for each pair of communicating hosts. For example if there is one master authoritative name server and three slave authoritative name servers that were updated by the master, then there would need to be a unique TSIG key for at least the following:
+
+      - Master <-> Slave1
+      - Master <-> Slave2
+      - Master <-> Slave3
+
+      Rationale:
+
+      Each communication channel should have a unique key, to reduce the risk of key disclosure. If one of the TSIG keys or one of the slave servers is compromised, then the remaining TSIG keys are not disclosed."
+          solution    : "Generate unique keys for host to host communication. The command below can be used to generate 2 files, and <anem>.key file and a <name>.private file with secret keys of suitable length with base64 encoding.??  The files themselves are not needed, and should be securely deleted once the values are copied into a key file for including in the named configuration.
+
+      $ dnssec-keygen -a HMAC-SHA256 -b 256 -n HOST ns1-ns2.cisecurity.org
+      Kns1-ns2.cisecurity.org.+163+13013
+
+      $ cat Kns1-ns2.cisecurity.org.+163+13013.key
+      ns1-ns2.cisecurity.org. IN KEY 512 3 163 9FQ2dYCQ17HJwDi/uHgANh2dlb8M7eb+F4AjML8tTdA=
+
+      Default Value:
+
+      The rndc key is automatically generated during package installation."
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|14,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+# Note: Variable @CONFIG_FILES@ replaced with "/var/named/chroot/etc/" in field "cmd".
+          cmd         : "/usr/bin/awk '/^\\s*keys.*{/,/};/ { print; o=1 } END { if (o == 0) print \"fail - keys Not Found\" }' /var/named/chroot/etc/named.conf /var/named/chroot/etc//*.key | sort | uniq -c | awk -F' ' '{ if ($1 == 1) printf \"pass - # found: %s, %s %s %s %s\\n\",$1,$2,$3,$4,$5; else printf \"fail, not unique - # found: %s, %s %s %s %s\\n\",$1,$2,$3,$4,$5 }'"
+          expect      : ""
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : CMD_EXEC
+          description : "4.3 Use Unique Keys for Each Pair of Hosts - unique keys"
+          info        : "A unique TSIG key should be used for each pair of communicating hosts. For example if there is one master authoritative name server and three slave authoritative name servers that were updated by the master, then there would need to be a unique TSIG key for at least the following:
+
+      - Master <-> Slave1
+      - Master <-> Slave2
+      - Master <-> Slave3
+
+      Rationale:
+
+      Each communication channel should have a unique key, to reduce the risk of key disclosure. If one of the TSIG keys or one of the slave servers is compromised, then the remaining TSIG keys are not disclosed."
+          solution    : "Generate unique keys for host to host communication. The command below can be used to generate 2 files, and <anem>.key file and a <name>.private file with secret keys of suitable length with base64 encoding.??  The files themselves are not needed, and should be securely deleted once the values are copied into a key file for including in the named configuration.
+
+      $ dnssec-keygen -a HMAC-SHA256 -b 256 -n HOST ns1-ns2.cisecurity.org
+      Kns1-ns2.cisecurity.org.+163+13013
+
+      $ cat Kns1-ns2.cisecurity.org.+163+13013.key
+      ns1-ns2.cisecurity.org. IN KEY 512 3 163 9FQ2dYCQ17HJwDi/uHgANh2dlb8M7eb+F4AjML8tTdA=
+
+      Default Value:
+
+      The rndc key is automatically generated during package installation."
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|14,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "cmd".
+# Note: Variable @CONFIG_FILES@ replaced with "/var/named/chroot/etc/" in field "cmd".
+          cmd         : "/usr/bin/awk '/^\\s*keys.*{/,/};/ { print; o=1 } END { if (o == 0) print \"fail - keys Not Found\" }' /var/named/chroot/etc/named.conf /var/named/chroot/etc//*.key | sort | uniq -c | awk -F' ' '{ if ($1 == 1) printf \"pass - # found: %s, %s %s %s %s\\n\",$1,$2,$3,$4,$5; else printf \"fail, not unique - # found: %s, %s %s %s %s\\n\",$1,$2,$3,$4,$5 }'"
+          expect      : ".*"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "4.4 Restrict Access to All Key Files - user root/named"
+      info        : "The TSIG keys should be readable only by the named and root accounts. No other user accounts or groups should have read access. Note that BIND often creates a session key on startup for usage by nsupdate -l. Both the $BIND_HOME and $RUNDIR are included since the session key should also have the recommended permissions.
+
+Rationale:
+
+The secret key protects the authenticity and integrity of TSIG communications and disclosure of a key would allow an attacker to perform the authenticated operations such as rndc administrative operations, zone transfers or dynamic updates."
+      solution    : "Perform the following for remediation:
+
+- Use the command below to find secret key files. Review the list of key files, and delete any unused or unnecessary key files. Recreate the file list, after deleting any unused files.
+# find $BIND_HOME $RUNDIR -type f | xargs fgrep -l secret | sort -u > $TMPDIR/key_files.txt
+
+- Change the ownership, group and permissions on the key files.
+# xargs -a $TMPDIR/key_files.txt chown -R root
+# xargs -a $TMPDIR/key_files.txt?? chgrp -R named
+# xargs -a $TMPDIR/key_files.txt chmod o-r
+
+- Remove the temporary file,
+rm $TMPDIR/key_files.txt
+
+Default Value:
+
+Ownership, Group and Permissions are correct for any default key files."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+      cmd         : "find /var/named/ /var/named/chroot/run/named -type f \\! \\( -user root -o -user named \\) -exec fgrep -l secret {} \\; 2>/dev/null | sort -u | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "4.4 Restrict Access to All Key Files - group root/named"
+      info        : "The TSIG keys should be readable only by the named and root accounts. No other user accounts or groups should have read access. Note that BIND often creates a session key on startup for usage by nsupdate -l. Both the $BIND_HOME and $RUNDIR are included since the session key should also have the recommended permissions.
+
+Rationale:
+
+The secret key protects the authenticity and integrity of TSIG communications and disclosure of a key would allow an attacker to perform the authenticated operations such as rndc administrative operations, zone transfers or dynamic updates."
+      solution    : "Perform the following for remediation:
+
+- Use the command below to find secret key files. Review the list of key files, and delete any unused or unnecessary key files. Recreate the file list, after deleting any unused files.
+# find $BIND_HOME $RUNDIR -type f | xargs fgrep -l secret | sort -u > $TMPDIR/key_files.txt
+
+- Change the ownership, group and permissions on the key files.
+# xargs -a $TMPDIR/key_files.txt chown -R root
+# xargs -a $TMPDIR/key_files.txt?? chgrp -R named
+# xargs -a $TMPDIR/key_files.txt chmod o-r
+
+- Remove the temporary file,
+rm $TMPDIR/key_files.txt
+
+Default Value:
+
+Ownership, Group and Permissions are correct for any default key files."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+      cmd         : "find /var/named/ /var/named/chroot/run/named -type f \\! \\( -group root -o -group named \\) -exec fgrep -l secret {} \\; 2>/dev/null | sort -u | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "4.4 Restrict Access to All Key Files - permissions"
+      info        : "The TSIG keys should be readable only by the named and root accounts. No other user accounts or groups should have read access. Note that BIND often creates a session key on startup for usage by nsupdate -l. Both the $BIND_HOME and $RUNDIR are included since the session key should also have the recommended permissions.
+
+Rationale:
+
+The secret key protects the authenticity and integrity of TSIG communications and disclosure of a key would allow an attacker to perform the authenticated operations such as rndc administrative operations, zone transfers or dynamic updates."
+      solution    : "Perform the following for remediation:
+
+- Use the command below to find secret key files. Review the list of key files, and delete any unused or unnecessary key files. Recreate the file list, after deleting any unused files.
+# find $BIND_HOME $RUNDIR -type f | xargs fgrep -l secret | sort -u > $TMPDIR/key_files.txt
+
+- Change the ownership, group and permissions on the key files.
+# xargs -a $TMPDIR/key_files.txt chown -R root
+# xargs -a $TMPDIR/key_files.txt?? chgrp -R named
+# xargs -a $TMPDIR/key_files.txt chmod o-r
+
+- Remove the temporary file,
+rm $TMPDIR/key_files.txt
+
+Default Value:
+
+Ownership, Group and Permissions are correct for any default key files."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14.4,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @BIND_HOME@ replaced with "/var/named/" in field "cmd".
+# Note: Variable @RUNDIR@ replaced with "/var/named/chroot/run/named" in field "cmd".
+      cmd         : "find /var/named/ /var/named/chroot/run/named -type f -perm /022 -exec fgrep -l secret {} \\; 2>/dev/null | sort -u | awk '{print} END {if (NR == 0) print \"pass\" ; else print \"fail\"}'"
+      expect      : "pass"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "5.1 Securely Authenticate Zone Transfers"
+      info        : "A zone transfer is a mechanism commonly used by DNS deployments to replicate zone information from master/primary servers to slave/secondary servers. Each pair of name servers participating in zone transfers should authenticate the requests and ensure the integrity of the responses by using a unique shared secret TSIG key. BIND can be configured to respond only to authenticated transfer requests by using the allow-transfer statement with a key statement, that restricts the transfers to servers that provide a MAC using the named key.
+
+Rationale:
+
+A zone transfer is a popular information disclosure attack as it provides the entire list of resource records for a zone. There should be very few systems such as the slave name servers that should be authorized to perform a zone transfer for your domains. Authentication of transfer requests should not be made using only an IP address, since IP addresses can be spoofed, but rather by using TSIG keys.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Generate TSIG keys 256 bits in length, unique for each host-to-host communication. Securely Transfer the keys and configure the keys to be required in all allow-transfer statements.
+
+Default Value:
+
+If the allow-transfer statement is missing, then transfers are allowed to any host."
+      reference   : "800-53|SC-20,CSCv6|9.1,ITSG-33|SC-20,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @CONFIG_FILES@ replaced with "/var/named/chroot/etc/" in field "cmd".
+# Note: Variable @ZONE_FILES@ replaced with "/var/named/chroot/var/named/zones/" in field "cmd".
+      cmd         : "/usr/bin/awk '/^\\s*allow-transfer\\s*{/,/};/ { print; o=1 } END { if (o == 0) print \"fail - transfer-query Not Found\" }' /var/named/chroot/etc//* /var/named/chroot/var/named/zones//*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "6.1 Hide BIND Version String"
+      info        : "BIND includes a built-in zone, version.bind which may be queried to get the version of the name server. The version may be set to a value of none, to disable reporting of the version information.
+
+Rationale:
+
+Making detailed BIND version information easy to obtain remotely helps attackers automate and target their attacks. The information is not necessary for the health of the server, and should not be disclosed."
+      solution    : "Add or modify the version option to have a value of none in the BIND global options, as shown below.
+
+options {
+version none;
+. . .
+}
+
+Default Value:
+
+Default value returns the current BIND detailed version."
+      reference   : "800-53|SC-30(5),CSCv6|9,LEVEL|1S,NIAv2|GS8f,NIAv2|NS1,NIAv2|NS28"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*version.*"
+      expect      : "^[\\s]*[^#/]*[\\s]*version[\\s]+[\'\"]?none[\'\"]?[\\s]*;"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "6.2 Hide Nameserver ID"
+      info        : "The server-id option provides a server identifier that will be returned in response to an NSID query. An NSID query is described in RFC-5001, and is a method to identify servers in an environment where there are multiple DNS servers sharing the same IP address. With the use of load balancing and other IP sharing mechanisms, it can become difficult to discern exactly which name server is responding to a particular query. NSID allows a name server to respond with identifying information. The server-id option should be disabled with a value of none.
+
+Rationale:
+
+Enabling the NSID option may allow external parties to obtain information about the configuration and architecture of the DNS server. If it is found to be necessary to enable this service, then the identifying information should be generic. You should not use the server's geographic location, internal IP address or any other privileged information."
+      solution    : "To explicitly disable NSID support, add or modify the server-id option in the global BIND options with a value of none as shown below.
+
+server-id none;
+
+Default Value:
+
+NSID is disabled by default."
+      reference   : "800-53|SC-30(5),CSCv6|9,LEVEL|1S,NIAv2|GS8f,NIAv2|NS1,NIAv2|NS28"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*server-id.*"
+      expect      : "^[\\s]*[^#/]*[\\s]*server-id[\\s]+[\'\"]?none[\'\"]?[\\s]*;"
+    </custom_item>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK
+          description : "Check for query-source port *"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+          file        : "/var/named/chroot/etc/named.conf"
+          regex       : "^[\\s]*[^#/]*[\\s]*query-source"
+          expect      : "port[\\s]*\\*"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "Check for query-source not set"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+          file        : "/var/named/chroot/etc/named.conf"
+          regex       : "^[\\s]*[^#/]*[\\s]*query-source"
+          expect      : "^[\\s]*[^#/]*[\\s]*query-source"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "7.1 Do Not Define a Static Source Port"
+          info        : "BIND can be configured to always use the same source port when communicating with other DNS servers. This capability is made possible through the query-source port option, and the query-source-v6 port option. It is recommended that the source port be omitted if the query-source option is used, or that the port be specified as a \"*\", so that the port will not be a static port number.
+
+      Rationale:
+
+      DNS attacks which involve spoofing a bogus DNS reply may require the attacker to guess the source port number of the request, if the attacker is unable to see the initial DNS query. Making the source port static makes the attack easier, as it eliminates the effort of getting the correct destination port number for the spoofed reply. Instead of a static source port, the port number should be selected randomly amount the client ephemeral ports."
+          solution    : "Either remove the port specification from the query-source or the query-source-v6 option or use an * for the port number.
+
+      Default Value:
+
+      The default is to not use a static source port for queries."
+          reference   : "CSCv6|9,LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "7.1 Do Not Define a Static Source Port"
+          info        : "BIND can be configured to always use the same source port when communicating with other DNS servers. This capability is made possible through the query-source port option, and the query-source-v6 port option. It is recommended that the source port be omitted if the query-source option is used, or that the port be specified as a \"*\", so that the port will not be a static port number.
+
+      Rationale:
+
+      DNS attacks which involve spoofing a bogus DNS reply may require the attacker to guess the source port number of the request, if the attacker is unable to see the initial DNS query. Making the source port static makes the attack easier, as it eliminates the effort of getting the correct destination port number for the spoofed reply. Instead of a static source port, the port number should be selected randomly amount the client ephemeral ports."
+          solution    : "Either remove the port specification from the query-source or the query-source-v6 option or use an * for the port number.
+
+      Default Value:
+
+      The default is to not use a static source port for queries."
+          reference   : "CSCv6|9,LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Enable DNSSEC Validation - dnssec-enable"
+      info        : "DNS Security Extensions or DNSSEC for short provides authentication of the name servers through public key cryptography. With DNSSEC, the name server signs its responses with its private key. This allows other name servers that have the public key of the name server to verify the integrity and authenticity of the response. DNSSEC also provides for signing of public keys so that delegated sub-domains may have their keys signed by a higher-level authority. This creates a chain of trust so that any name server that trusts the public key of the higher level signing authority can trust the signed key. It is recommended that DNSSEC be enabled and be configured to validate domains that are signed. DNSSEC and validation are enabled via the options dnssec-enable and dnssec-validation, respectively.
+
+Rationale:
+
+DNSSEC reliably authenticates DNS responses to prevent the DNS spoofing and cache poisoning attacks."
+      solution    : "Perform the following for remediation:
+
+- Check the BIND configuration files, and in the global options set the two options dnssec-enable and dnssec-validation to yes as shown below:
+
+dnssec-enable yes
+dnssec-validation yes
+
+- Restart the named server.
+
+Default Value:
+
+DNSSEC and DNSSEC validation are enabled by default."
+      reference   : "800-53|SC-20,CSCv6|9,ITSG-33|SC-20,LEVEL|1S,NESA|T4.5.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*dnssec-enable"
+      expect      : "^[\\s]*[^#/]*[\\s]*dnssec-enable yes"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "7.2 Enable DNSSEC Validation - dnssec-validation"
+      info        : "DNS Security Extensions or DNSSEC for short provides authentication of the name servers through public key cryptography. With DNSSEC, the name server signs its responses with its private key. This allows other name servers that have the public key of the name server to verify the integrity and authenticity of the response. DNSSEC also provides for signing of public keys so that delegated sub-domains may have their keys signed by a higher-level authority. This creates a chain of trust so that any name server that trusts the public key of the higher level signing authority can trust the signed key. It is recommended that DNSSEC be enabled and be configured to validate domains that are signed. DNSSEC and validation are enabled via the options dnssec-enable and dnssec-validation, respectively.
+
+Rationale:
+
+DNSSEC reliably authenticates DNS responses to prevent the DNS spoofing and cache poisoning attacks."
+      solution    : "Perform the following for remediation:
+
+- Check the BIND configuration files, and in the global options set the two options dnssec-enable and dnssec-validation to yes as shown below:
+
+dnssec-enable yes
+dnssec-validation yes
+
+- Restart the named server.
+
+Default Value:
+
+DNSSEC and DNSSEC validation are enabled by default."
+      reference   : "800-53|SC-20,CSCv6|9,ITSG-33|SC-20,LEVEL|1S,NESA|T4.5.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*dnssec-validation"
+      expect      : "^[\\s]*[^#/]*[\\s]*dnssec-validation yes"
+    </custom_item>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK
+          description : "Check for dnssec-accept-expired no"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+          file        : "/var/named/chroot/etc/named.conf"
+          regex       : "^[\\s]*[^#/]*[\\s]*dnssec-accept-expired"
+          expect      : "^[\\s]*[^#/]*[\\s]*dnssec-accept-expired[\\s]*no"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "Check for dnssec-accept-expired not set"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+          file        : "/var/named/chroot/etc/named.conf"
+          regex       : "^[\\s]*[^#/]*[\\s]*dnssec-accept-expired"
+          expect      : "^[\\s]*[^#/]*[\\s]*dnssec-accept-expired"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "7.3 Disable the dnssec-accept-expired Option"
+          info        : "The dnssec-accept-expired option allows BIND to accept expired signatures during validation. The option should be disabled so that expired signatures will not be accepted.
+
+    Rationale:
+
+    Allowing expired signatures would leave the server vulnerable to replay attacks."
+          solution    : "Change the dnssec-accept-expired option to have a value of \"no\", or remove the option from the configuration files.
+
+    Default Value:
+
+    The dnssec-accept-expired option is disabled by default.
+
+    8 Operations - Logging, Monitoring and Maintenance
+
+    This section provides recommendations for the BIND server configurations related to operations, updates, logging and monitoring."
+          reference   : "CSCv6|9,LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "7.3 Disable the dnssec-accept-expired Option"
+          info        : "The dnssec-accept-expired option allows BIND to accept expired signatures during validation. The option should be disabled so that expired signatures will not be accepted.
+
+    Rationale:
+
+    Allowing expired signatures would leave the server vulnerable to replay attacks."
+          solution    : "Change the dnssec-accept-expired option to have a value of \"no\", or remove the option from the configuration files.
+
+    Default Value:
+
+    The dnssec-accept-expired option is disabled by default.
+
+    8 Operations - Logging, Monitoring and Maintenance
+
+    This section provides recommendations for the BIND server configurations related to operations, updates, logging and monitoring."
+          reference   : "CSCv6|9,LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1735"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "8.1 Apply Applicable Updates"
+      info        : "Over time, patches will be released to resolve defects in BIND. It is recommended that such patches be applied soon after they are available based on risk. High risk vulnerabilities should be patched within 30 days of availability.
+
+Rationale:
+
+By ensuring that BIND remains current and patched, the probability of an attacker successfully compromising BIND is reduced.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Update BIND to the most current revision available. Institute a patch process that aims to apply security updates within 30 days of their release. Subscribe to bind-announce@lists.isc.org on the https://www.isc.org web site to receive notifications of available BIND updates.
+
+Default Value:
+
+Not Applicable"
+      reference   : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSCv6|4,CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,LEVEL|1S,NESA|T7.6.2,NESA|T7.7.1,NIAv2|PR9,SWIFT-CSCv1|2.2"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+      cmd         : "named -v"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - logging section"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*logging[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*logging[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - category config"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*category[\\s]*config[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*category[\\s]*config[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - category dnssec"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*category[\\s]*dnssec[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*category[\\s]*dnssec[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - category network"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*category[\\s]*network[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*category[\\s]*network[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - category security"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*category[\\s]*security[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*category[\\s]*security[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - category update"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*category[\\s]*update[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*category[\\s]*update[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - category xfer-in"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*category[\\s]*xfer-in[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*category[\\s]*xfer-in[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.2 Configure a Logging File Channel - category xfer-out"
+      info        : "To capture logs to a local file, setup a channel for the file, in the logging configuration section. It's often helpful to have one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events is critical for monitoring the security of the server in order to see any issues affecting the server, and to be able to respond to attacks."
+      solution    : "In named.conf, configure a channel for a local security log file with the categories config,
+
+dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory.
+
+logging {
+. . .
+    channel local_security_log {
+        file \"/var/run/named/secure.log\" versions 10 size 20m;
+        severity debug;
+        print-time yes;
+    };
+    // Config file processing
+    category config { local_security_log; };
+    // Processing signed responses
+    category dnssec { local_security_log; };
+    // Network Operations
+    category network { local_security_log; };
+    // Approved or unapproved requests
+    category security { local_security_log; };
+    // dynamic updates
+    category update { local_security_log; };
+    // transfers to the name server
+    category xfer-in { local_security_log; };
+    // transfers from the name server
+    category xfer-out { local_security_log; };
+    // Optional debug log file, may be enabled dynamically.
+    channel local_debug_log {
+        file \"/var/run/named/debug.log\";
+        severity dynamic;
+        print-time yes;
+    };
+    category default { local_debug_log; };
+    category general { local_debug_log; };
+};
+
+Default Value:
+
+There is no security log by default."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6.2,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*category[\\s]*xfer-out[\\s]*{"
+      expect      : "^[\\s]*[^#/]*[\\s]*category[\\s]*xfer-out[\\s]*{"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "8.3 Configure a Logging syslog Channel - syslog"
+      info        : "The syslog option of the logging configuration allows specification of the syslog facility to send log events. A syslog channel should be configured with the value of daemon or other appropriate syslog facility. The default and general categories should be included and the severity level should be info or lower.
+
+Rationale:
+
+Configuring a syslog channel allows BIND to log important information via the standard system syslog facility. It is important that the BIND logs be included with the system monitoring and response that is performed on other system logs, and the syslog facility is helpful to ensure that the important log information isn't lost, or ignored."
+      solution    : "Configure a syslog channel to capture at least the default and general categories of log events. For external authoritative name servers, the category lame-servers may be redirect to null, so that it is not logged. Using lame name servers is common for the domains used for SPAM and may overload the log with information that is not very useful.
+
+logging {
+. . .
+  // Syslog
+  channel default_syslog {
+    syslog daemon; # send to syslog's daemon facility
+    severity info; # only send priority info and higher
+  };
+
+  category default { default_syslog; };
+  category general { default_syslog; };
+  // Too many lame servers, especially from SPAM
+  category lame-servers { null; };
+
+Default Value:
+
+There is no syslog channel by default."
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSCv6|6.6,CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|1S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*syslog[\\s]+"
+      expect      : "^[\\s]*[^#/]*[\\s]*syslog[\\s]+"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "8.4 Disable the HTTP Statistics Server"
+      info        : "Starting in BIND 9.5.0 there was a new statistics web server included, that is a useful debugging tool in a non-production environment. The HTTP server provides data in XML format about the condition of a BIND 9 server. The statistics server provides the same statistics that are available to the statistics-file dump. This server should be left disabled.
+
+Rationale:
+
+A production name server should not have additional, unnecessary services running, as the additional services increases the risk of vulnerabilities."
+      solution    : "Remove the statistics-channel option from the configuration file.
+
+Default Value:
+
+The HTTP server is disabled by default."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+# Note: Variable @NAMED_CONF@ replaced with "/var/named/chroot/etc/named.conf" in field "file".
+      file        : "/var/named/chroot/etc/named.conf"
+      regex       : "^[\\s]*[^#/]*[\\s]*statistics-channels"
+      expect      : "statistics-channels"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_ISC_BIND_DNS_Server_9.9_Benchmark_v3.0.1_CachingOnly.audit"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1735"
+    </report>
+  </else>
+</if>
+
+</check_type>

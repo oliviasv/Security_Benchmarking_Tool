@@ -1,0 +1,1250 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.1 $
+# $Date: 2020/04/22 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA IBM DB2 V10.5 LUW v1r4 STIG.
+#
+#<ui_metadata>
+#<display_name>DISA STIG IBM DB2 v10.5 LUW v1r4 OS Windows</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>IBM DB2 v10.5 LUW v1r2</name>
+#  <version>1.4.0</version>
+#  <link>https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip</link>
+#</spec>
+#<labels>windows,disa,ibm,db2,db2_105,db2_luw</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>DB2_USER</name>
+#    <default>db2admin</default>
+#    <description>User for DB2</description>
+#    <info>User that runs the processes for the instance of DB2 that is being audited.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_INSTHOME</name>
+#    <default>C:\Program Files\IBM\SQLLIB</default>
+#    <description>Instance home for DB2</description>
+#    <info>Installation home for the instance of DB2 that is being audited.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_AUDITGROUP</name>
+#    <default>db2adms</default>
+#    <description>Group of Audit Authorized Users</description>
+#    <info>Group of users that are authorized to view audit log data on the filesystem.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_AUDITARCHIVE</name>
+#    <default>C:\auditarchive</default>
+#    <description>Location of Audit Archives</description>
+#    <info>Filesystem location for the audit archives.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_AUDITDATA</name>
+#    <default>C:\auditdata</default>
+#    <description>Location of Audit Data</description>
+#    <info>Filesystem location for the audit data.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_COMMS</name>
+#    <default>SSL,TCPIP</default>
+#    <description>Allowed Protocols</description>
+#    <info>Comma separated list of protocols allowed to be used by the organization.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_PORT</name>
+#    <default>50000</default>
+#    <description>Configured TCP Port</description>
+#    <info>Port used for non-SSL TCP connections to the database</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_SSLPORT</name>
+#    <default>50000</default>
+#    <description>Configured SSL Port</description>
+#    <info>Port used for SSL TCP connections to the database</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"DISA STIG IBM DB2 v10.5 LUW">
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-000300 - DB2 must integrate with an organization-level authentication/access mechanism providing account management and automation for all users, groups, roles, and any other principals - config file"
+  info            : "Enterprise environments make account management for applications and databases challenging and complex. A manual process for account management functions adds the risk of a potential oversight or other error. Managing accounts for the same person in multiple places is inefficient and prone to problems with consistency and synchronization.
+
+A comprehensive application account management process that includes automation helps to ensure that accounts designated as requiring attention are consistently and promptly addressed.
+
+Examples include, but are not limited to, using automation to take action on multiple accounts designated as inactive, suspended, or terminated, or by disabling accounts located in non-centralized account stores, such as multiple servers. Account management functions can also include: assignment of group or role membership; identifying account type; specifying user access authorizations (i.e., privileges); account removal, update, or termination; and administrative alerts. The use of automated mechanisms can include, for example: using email or text messaging to notify account managers when users are terminated or transferred; using the information system to monitor account usage; and using automated telephone notification to report atypical system account usage.
+
+The DBMS must be configured to automatically utilize organization-level account management functions, and these functions must immediately enforce the organization's current account policy.
+
+Automation may be comprised of differing technologies that when placed together contain an overall mechanism supporting an organization's automated account management requirements."
+  solution        : "Create an IBMLDAPSecurity.ini file at the default name and location for the IBM LDAP security plug-in configuration file:
+
+    On UNIX/LINUX:  $INSTHOME/sqllib/cfg/IBMLDAPSecurity.ini
+    On Windows:  %DB2PATH%\cfg\IBMLDAPSecurity.ini
+
+To create the file in a non-default location, set the environment variable DB2LDAPSecurityConfig to the directory name where configuration file IBMLDAPSecurity.ini is located.
+
+Set the value of SRVCON_PW_PLUGIN to IBMLDAPauthserver for instance by running the following command:
+
+     $db2 update dbm cfg using SRVCON_PW_PLUGIN IBMLDAPauthserver immediate
+
+Refer to details below to determine appropriate values in LDAP configuration file.
+
+-- SERVER-RELATED values:
+1) LDAP_HOST - The name of the LDAP server(s) - This is a space separated list of LDAP server host names or IP addresses, with an optional port number for each one.
+
+For example: host1[:port1] [host2:[port2] ... The default port number is 389, or 636 if SSL is enabled.
+
+2) ENABLE_SSL - To enable SSL support, set ENABLE_SSL to TRUE (you must have the GSKit installed). This is an optional parameter; it defaults to FALSE (no SSL support).
+
+3) SSL_KEYFILE - The path for the SSL keyring. A keyfile is only required if your LDAP server is using a certificate that is not automatically trusted by your GSKit installation.
+
+For example: SSL_KEYFILE = /home/db2inst1/IBMLDAPSecurity.kdb
+
+4) SSL_PW - The SSL keyring password. For example: SSL_PW = keyfile-password
+
+5) SECURITY_PROTOCOL - To enable TLS 1.2 support, set SECURITY_PROTOCOL to TLSV12. To enable TLS 1.0, 1.1, and 1.2 support, set SECURITY_PROTOCOL to ALL.
+
+By default, SECURITY_PROTOCOL is not set. This setting means TLS 1.2 is not supported.
+
+-- USER_RELATED values:
+1) USER_OBJECTCLASS - The LDAP object class used for users.
+
+Generally, set USER_OBJECTCLASS to inetOrgPerson (the user for Microsoft Active Directory)
+
+For example: USER_OBJECTCLASS = inetOrgPerson
+
+2) USER_BASEDN -  The LDAP base DN to use when searching for users. If not specified, user searches start at the root of the LDAP directory. Some LDAP servers require that you specify a value for this parameter.
+
+For example: USER_BASEDN = o=ibm
+
+3) USERID_ATTRIBUTE - The LDAP user attribute that represents the user ID. The USERID_ATTRIBUTE attribute is combined with the USER_OBJECTCLASS and USER_BASEDN (if specified) to construct an LDAP search filter when a user issues a DB2 CONNECT statement with an unqualified user ID.
+
+For example, if USERID_ATTRIBUTE = uid, then issuing this statement: db2 connect to MYDB user bob using bobpass results in the following search filter:
+&(objectClass=inetOrgPerson)(uid=bob)
+
+4) AUTHID_ATTRIBUTE - The LDAP user attribute that represents the DB2 authorization ID. Usually this is the same as the USERID_ATTRIBUTE.
+For example: AUTHID_ATTRIBUTE = uid
+
+-- GROUP-RELATED values:
+1) GROUP_OBJECTCLASS - The LDAP object class used for groups. Generally this is groupOfNames or groupOfUniqueNames
+(for Microsoft Active Directory, it is group)
+
+For example: GROUP_OBJECTCLASS = groupOfNames
+
+2) GROUP_BASEDN - The LDAP base DN to use when searching for groups If not specified, group searches start at the root of the LDAP directory. Some LDAP servers require that you specify a value for this parameter.
+
+For example: GROUP_BASEDN = o=ibm
+
+3) GROUPNAME_ATTRIBUTE - The LDAP group attribute that represents the name of the group.
+
+For example: GROUPNAME_ATTRIBUTE = cn
+
+4) GROUP_LOOKUP_ METHOD - Determines the method used to find the group memberships for a user.
+Possible values are:
+SEARCH_BY_DN Indicates to search for groups that list the user as a member. Membership is indicated by the group attribute defined as GROUP_LOOKUP_ATTRIBUTE (typically, member or uniqueMember).
+
+USER_ATTRIBUTE In this case, a user's groups are listed as attributes of the user object itself. This setting indicates to search for the user attribute defined as GROUP_LOOKUP_ATTRIBUTE to get the user's groups (typically memberOf for Microsoft Active Directory or ibm-allGroups for IBM Tivoli Directory Server).
+
+For example: GROUP_LOOKUP_METHOD = SEARCH_BY_DN
+GROUP_LOOKUP_METHOD = USER_ATTRIBUTE
+
+5) GROUP_LOOKUP_ATTRIBUTE - Name of the attribute used to determine group membership, as described for GROUP_LOOKUP_METHOD.
+
+For example:
+GROUP_LOOKUP_ATTRIBUTE = member
+GROUP_LOOKUP_ATTRIBUTE = ibm-allGroups
+NESTED_GROUPS If NESTED_GROUPS is TRUE, the DB2 database manager recursively searches for group membership by attempting to look up the group memberships for every group that is found.
+
+Cycles (such as A belongs to B, and B belongs to A) are handled correctly.
+This parameter is optional, and defaults to FALSE.
+
+-- MISCELLANEOUS  values:
+1) SEARCH_DN, SEARCH_PW If your LDAP server does not support anonymous access, or if anonymous access is not sufficient when searching for users or groups, then you can optionally define a DN and password that will be used to perform searches.
+
+For example:
+SEARCH_DN = cn=root
+SEARCH_PW = rootpassword
+
+2) DEBUG  Set DEBUG to TRUE to write extra information to the db2diag log files to aid in debugging LDAP related issues.
+
+Most of the additional information is logged at
+DIAGLEVEL 4 (INFO).
+DEBUG defaults to false."
+  reference       : "800-171|3.5.1,800-53|IA-2,CAT|II,CCI|CCI-000015,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,Rule-ID|SV-89105r1_rule,STIG-ID|DB2X-00-000300,TBA-FIISB|35.1,TBA-FIISB|36.1,Vuln-ID|V-74431"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "Config file not found"
+# Note: Variable @DB2_INSTHOME@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "powershell_args".
+# Note: Variable @DB2_INSTHOME@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "powershell_args".
+  powershell_args : "if (Test-Path -Path 'C:\\Program Files\\IBM\\SQLLIB\\cfg\\IBMLDAPSecurity.ini') { 'C:\\Program Files\\IBM\\SQLLIB\\cfg\\IBMLDAPSecurity.ini' } elseif (($Env:DB2LDAPSecurityConfig.length -gt 0) -and (Test-Path -Path $Env:DB2LDAPSecurityConfig)) { $Env:DB2LDAPSecurityConfig } else { 'Config file not found' }"
+  check_type      : CHECK_NOT_EQUAL
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-002200 - The audit information produced by DB2 must be protected from unauthorized read access - verify setting"
+  info            : "If audit data were to become compromised, then competent forensic analysis and discovery of the true source of potentially malicious system activity is difficult, if not impossible, to achieve. In addition, access to audit records provides information an attacker could potentially use to his or her advantage.
+
+To ensure the veracity of audit data, the information system and/or the application must protect audit information from any and all unauthorized access. This includes read, write, copy, etc.
+
+This requirement can be achieved through multiple methods which will depend upon system architecture and design. Some commonly employed methods include ensuring log files enjoy the proper file system permissions utilizing file system protections and limiting log data location.
+
+Additionally, applications with user interfaces to audit records should not allow for the unfettered manipulation of or access to those records via the application. If the application provides access to the audit data, the application becomes accountable for ensuring that audit information is protected from unauthorized access.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity."
+  solution        : "Remove the write permission from non-instance owner users on the audit directory.
+
+Remove the read permission from non-authorized users from audit directory.
+
+Only the instance owner needs write access to directory and users authorized to archive the audit logs need to have read access to audit directory.
+
+Change the permissions on audit datapath and archivepath directories so that only the instance owner has write access on datapath and users with audit archive privileges have read access on datapath. Only users with SYSADM and SECADM privileges and can extract and archive the audit logs."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-000162,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89127r1_rule,STIG-ID|DB2X-00-002200,Vuln-ID|V-74453"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_AUDITARCHIVE@ replaced with "C:\\auditarchive" in field "value_data".
+  value_data      : '"C:\\auditarchive"'
+  powershell_args : "db2audit describe | Select-String -Pattern 'Audit Archive Path'"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-002200 - The audit information produced by DB2 must be protected from unauthorized read access - ownership"
+  info            : "If audit data were to become compromised, then competent forensic analysis and discovery of the true source of potentially malicious system activity is difficult, if not impossible, to achieve. In addition, access to audit records provides information an attacker could potentially use to his or her advantage.
+
+To ensure the veracity of audit data, the information system and/or the application must protect audit information from any and all unauthorized access. This includes read, write, copy, etc.
+
+This requirement can be achieved through multiple methods which will depend upon system architecture and design. Some commonly employed methods include ensuring log files enjoy the proper file system permissions utilizing file system protections and limiting log data location.
+
+Additionally, applications with user interfaces to audit records should not allow for the unfettered manipulation of or access to those records via the application. If the application provides access to the audit data, the application becomes accountable for ensuring that audit information is protected from unauthorized access.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity."
+  solution        : "Remove the write permission from non-instance owner users on the audit directory.
+
+Remove the read permission from non-authorized users from audit directory.
+
+Only the instance owner needs write access to directory and users authorized to archive the audit logs need to have read access to audit directory.
+
+Change the permissions on audit datapath and archivepath directories so that only the instance owner has write access on datapath and users with audit archive privileges have read access on datapath. Only users with SYSADM and SECADM privileges and can extract and archive the audit logs."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-000162,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89127r1_rule,STIG-ID|DB2X-00-002200,Vuln-ID|V-74453"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "STATUS: PASSED"
+# Note: Variable @DB2_AUDITARCHIVE@ replaced with "C:\\auditarchive" in field "powershell_args".
+# Note: Variable @DB2_USER@ replaced with "db2admin" in field "powershell_args".
+# Note: Variable @DB2_AUDITGROUP@ replaced with "db2adms" in field "powershell_args".
+  powershell_args : "$file = 'C:\\auditarchive'; $perms = 'NT AUTHORITY\SYSTEM:(OI)(CI)(F)', 'BUILTIN\Administrators:(OI)(CI)(F)', 'db2admin:(OI)(CI)(F)', 'db2adms:(OI)(CI)(RX)'; $required = $true; $status = 'PASSED'; $acls = icacls $file; $file+':'; foreach ($acl in $acls) { $acl = $acl.Replace($file, '').Trim(); if ((!$acl) -or ($acl -like 'Successfully processed*')) { continue } else { $newPerms = @(); foreach ($perm in $perms) { if ($acl -like '*'+$perm) { '   '+$acl; } else { $newPerms += $perm; } } if ($perms.length -eq $newPerms.length) { $status = 'FAILED'; '   '+$acl+' ** incorrect **' } $perms = $newPerms; } }; if (($perms.length) -and ($required)) { foreach ($acl in $perms) { $status = 'FAILED'; '   '+$acl+' ** missing **' } }; ''; 'STATUS: '+$status"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-002300 - The audit information produced by DB2 must be protected from unauthorized modification - verify setting"
+  info            : "If audit data were to become compromised, then competent forensic analysis and discovery of the true source of potentially malicious system activity is impossible to achieve.
+
+To ensure the veracity of audit data the information system and/or the application must protect audit information from unauthorized modification.
+
+This requirement can be achieved through multiple methods that will depend upon system architecture and design. Some commonly employed methods include ensuring log files enjoy the proper file system permissions and limiting log data locations.
+
+Applications providing a user interface to audit data will leverage user permissions and roles identifying the user accessing the data and the corresponding rights that the user enjoys in order to make access decisions regarding the modification of audit data.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity.
+
+Modification of database audit data could mask the theft of, or the unauthorized modification of, sensitive data stored in the database."
+  solution        : "At the operating system level, remove the write permission from non-instance owner users on the audit directory.
+
+At the operating system level, remove the  read permission from non-authorized users on the audit directory."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-000163,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89129r1_rule,STIG-ID|DB2X-00-002300,Vuln-ID|V-74455"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_AUDITDATA@ replaced with "C:\\auditdata" in field "value_data".
+  value_data      : '"C:\\auditdata"'
+  powershell_args : "db2audit describe | Select-String -Pattern 'Audit Data Path'"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-002300 - The audit information produced by DB2 must be protected from unauthorized modification - ownership"
+  info            : "If audit data were to become compromised, then competent forensic analysis and discovery of the true source of potentially malicious system activity is impossible to achieve.
+
+To ensure the veracity of audit data the information system and/or the application must protect audit information from unauthorized modification.
+
+This requirement can be achieved through multiple methods that will depend upon system architecture and design. Some commonly employed methods include ensuring log files enjoy the proper file system permissions and limiting log data locations.
+
+Applications providing a user interface to audit data will leverage user permissions and roles identifying the user accessing the data and the corresponding rights that the user enjoys in order to make access decisions regarding the modification of audit data.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity.
+
+Modification of database audit data could mask the theft of, or the unauthorized modification of, sensitive data stored in the database."
+  solution        : "At the operating system level, remove the write permission from non-instance owner users on the audit directory.
+
+At the operating system level, remove the  read permission from non-authorized users on the audit directory."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-000163,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89129r1_rule,STIG-ID|DB2X-00-002300,Vuln-ID|V-74455"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "STATUS: PASSED"
+# Note: Variable @DB2_AUDITDATA@ replaced with "C:\\auditdata" in field "powershell_args".
+# Note: Variable @DB2_USER@ replaced with "db2admin" in field "powershell_args".
+# Note: Variable @DB2_AUDITGROUP@ replaced with "db2adms" in field "powershell_args".
+  powershell_args : "$file = 'C:\\auditdata'; $perms = 'NT AUTHORITY\SYSTEM:(OI)(CI)(F)', 'BUILTIN\Administrators:(OI)(CI)(F)', 'db2admin:(OI)(CI)(F)', 'db2adms:(OI)(CI)(RX)'; $required = $true; $status = 'PASSED'; $acls = icacls $file; $file+':'; foreach ($acl in $acls) { $acl = $acl.Replace($file, '').Trim(); if ((!$acl) -or ($acl -like 'Successfully processed*')) { continue } else { $newPerms = @(); foreach ($perm in $perms) { if ($acl -like '*'+$perm) { '   '+$acl; } else { $newPerms += $perm; } } if ($perms.length -eq $newPerms.length) { $status = 'FAILED'; '   '+$acl+' ** incorrect **' } $perms = $newPerms; } }; if (($perms.length) -and ($required)) { foreach ($acl in $perms) { $status = 'FAILED'; '   '+$acl+' ** missing **' } }; ''; 'STATUS: '+$status"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-002400 - The audit information produced by DB2 must be protected from unauthorized deletion - verify setting"
+  info            : "If audit data were to become compromised, then competent forensic analysis and discovery of the true source of potentially malicious system activity is impossible to achieve.
+
+To ensure the veracity of audit data, the information system and/or the application must protect audit information from unauthorized deletion. This requirement can be achieved through multiple methods which will depend upon system architecture and design.
+
+Some commonly employed methods include: ensuring log files enjoy the proper file system permissions utilizing file system protections; restricting access; and backing up log data to ensure log data is retained.
+
+Applications providing a user interface to audit data will leverage user permissions and roles identifying the user accessing the data and the corresponding rights the user enjoys in order make access decisions regarding the deletion of audit data.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity.
+
+Deletion of database audit data could mask the theft of, or the unauthorized modification of, sensitive data stored in the database."
+  solution        : "At the operating system level, remove the write permission from non-instance owner users on the audit directory.
+
+At the operating system level, remove the  read permission from non-authorized users on the audit directory."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-000164,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89131r1_rule,STIG-ID|DB2X-00-002400,Vuln-ID|V-74457"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_AUDITDATA@ replaced with "C:\\auditdata" in field "value_data".
+  value_data      : '"C:\\auditdata"'
+  powershell_args : "db2audit describe | Select-String -Pattern 'Audit Data Path'"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-002400 - The audit information produced by DB2 must be protected from unauthorized deletion - ownership"
+  info            : "If audit data were to become compromised, then competent forensic analysis and discovery of the true source of potentially malicious system activity is impossible to achieve.
+
+To ensure the veracity of audit data, the information system and/or the application must protect audit information from unauthorized deletion. This requirement can be achieved through multiple methods which will depend upon system architecture and design.
+
+Some commonly employed methods include: ensuring log files enjoy the proper file system permissions utilizing file system protections; restricting access; and backing up log data to ensure log data is retained.
+
+Applications providing a user interface to audit data will leverage user permissions and roles identifying the user accessing the data and the corresponding rights the user enjoys in order make access decisions regarding the deletion of audit data.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity.
+
+Deletion of database audit data could mask the theft of, or the unauthorized modification of, sensitive data stored in the database."
+  solution        : "At the operating system level, remove the write permission from non-instance owner users on the audit directory.
+
+At the operating system level, remove the  read permission from non-authorized users on the audit directory."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-000164,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89131r1_rule,STIG-ID|DB2X-00-002400,Vuln-ID|V-74457"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "STATUS: PASSED"
+# Note: Variable @DB2_AUDITDATA@ replaced with "C:\\auditdata" in field "powershell_args".
+# Note: Variable @DB2_USER@ replaced with "db2admin" in field "powershell_args".
+# Note: Variable @DB2_AUDITGROUP@ replaced with "db2adms" in field "powershell_args".
+  powershell_args : "$file = 'C:\\auditdata'; $perms = 'NT AUTHORITY\SYSTEM:(OI)(CI)(F)', 'BUILTIN\Administrators:(OI)(CI)(F)', 'db2admin:(OI)(CI)(F)', 'db2adms:(OI)(CI)(RX)'; $required = $true; $status = 'PASSED'; $acls = icacls $file; $file+':'; foreach ($acl in $acls) { $acl = $acl.Replace($file, '').Trim(); if ((!$acl) -or ($acl -like 'Successfully processed*')) { continue } else { $newPerms = @(); foreach ($perm in $perms) { if ($acl -like '*'+$perm) { '   '+$acl; } else { $newPerms += $perm; } } if ($perms.length -eq $newPerms.length) { $status = 'FAILED'; '   '+$acl+' ** incorrect **' } $perms = $newPerms; } }; if (($perms.length) -and ($required)) { foreach ($acl in $perms) { $status = 'FAILED'; '   '+$acl+' ** missing **' } }; ''; 'STATUS: '+$status"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-002900 - The OS must limit privileges to change the DB2 software resident within software libraries (including privileged programs)."
+  info            : "If the system were to allow any user to make changes to software libraries, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.
+
+Accordingly, only qualified and authorized individuals shall be allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+Unmanaged changes that occur to the database software libraries or configuration can lead to unauthorized or compromised installations.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Remove the write permission from non-root, non-sysadmin users on the DB2 installation base directory and instance home directory."
+  reference       : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-001499,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-89141r1_rule,STIG-ID|DB2X-00-002900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-74467"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^ManualReviewRequired$"
+# Note: Variable @DB2_INSTHOME@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "powershell_args".
+  powershell_args : "$files = Get-ChildItem -Recurs -Path 'C:\\Program Files\\IBM\\SQLLIB' | ForEach-Object { $_.FullName }; $access = '', ''; foreach ($file in $files) { $acls = icacls $file | Select-String -Pattern ':'; foreach ($acl in $acls) { $perm = $acl.ToString().Replace($file, '').Trim() -replace ':.*$', ''; if ($access -notcontains $perm) { $access += $perm; } } }; 'Users and Groups with Access:'; $sorted = $access | Where-Object { $_ } | Sort-Object; foreach ($perm in $sorted) { '  '+$perm; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-003100 - Database software, including DBMS configuration files, must be stored in dedicated directories, separate from the host OS and other applications."
+  info            : "When dealing with change control issues, it should be noted any changes to the hardware, software, and/or firmware components of the information system and/or application can potentially have significant effects on the overall security of the system.
+
+Multiple applications can provide a cumulative negative effect. A vulnerability and subsequent exploit to one application can lead to an exploit of other applications sharing the same security context. For example, an exploit to a web server process that leads to unauthorized administrative access to host system directories can most likely lead to a compromise of all applications hosted by the same system. Database software not installed using dedicated directories both threatens and is threatened by other hosted applications. Access controls defined for one application may by default provide access to the other application's database objects or directories. Any method that provides any level of separation of security context assists in the protection between applications.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Remove the non-DB2 software from instance home directory and subdirectories.
+
+Remove the non-DB2 software from DB2 installation directories and subdirectories."
+  reference       : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-89145r1_rule,STIG-ID|DB2X-00-003100,SWIFT-CSCv1|2.3,Vuln-ID|V-74471"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual review of install directory$"
+# Note: Variable @DB2_INSTHOME@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "powershell_args".
+  powershell_args : "Get-Item 'C:\\Program Files\\IBM\\SQLLIB\*'"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-003400 - Default demonstration and sample databases, database objects, and applications must be removed."
+  info            : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for software products to provide, or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software, demonstrations, or browser plugins not related to requirements or providing a wide array of functionality, not required for every mission, that cannot be disabled.
+
+DBMSs must adhere to the principles of least functionality by providing only essential capabilities.
+
+Demonstration and sample database objects and applications present publicly known attack points for malicious users. These demonstration and sample objects are meant to provide simple examples of coding specific functions and are not developed to prevent vulnerabilities from being introduced to the DBMS and host system."
+  solution        : "Run the following command to DROP the SAMPLE database:
+
+     $db2 drop database sample"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89151r1_rule,STIG-ID|DB2X-00-003400,SWIFT-CSCv1|2.3,Vuln-ID|V-74477"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^no sample$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $sample = db2 list db directory | Select-String 'Database name.*SAMPLE *$'; if ($sample) { $sample } else { 'no sample' }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-003500 - Unused database components, DBMS software, and database objects must be removed."
+  info            : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for software products to provide, or install by default, functionality exceeding requirements or mission objectives.
+
+DBMSs must adhere to the principles of least functionality by providing only essential capabilities.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "On UNIX/Linux, run the following db2_deinstall command to remove the non-essential features:
+
+     $db2_deinstall -F <feature>
+
+Note: The db2_deinstall command is located at DB2DIR/install, where DB2DIR is the location where the current version of the DB2 database product is installed. (If uncertain of the value to provide for DB2DIR, find it using the db2level command.
+
+On Windows, run the db2unins command to remove one or more db2 product, feature or languages.
+
+     >>-db2unins -p product     (to remove db2 product)
+         or
+     >>-db2unins -u response-file     (to remove db2 product, feature or languages.)
+
+Note:
+Use the following URL to access the knowledgebase documentation on the db2_deinstall command:
+http://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0023670.html
+
+Use the following URL to access the knowledgebase documentation on the db2unins command:
+http://www-01.ibm.com/support/knowledgecenter/SSEPGGman db2__10.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0023371.html?lang=en"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89153r1_rule,STIG-ID|DB2X-00-003500,SWIFT-CSCv1|2.3,Vuln-ID|V-74479"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual Review Required$"
+  powershell_args : "Get-Item HKLM:\SOFTWARE\IBM\DB2\COMPONENTS"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-003800 - DB2 must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments."
+  info            : "In order to prevent unauthorized connection of devices, unauthorized transfer of information, or unauthorized tunneling (i.e., embedding of data types within data types), organizations must disable or restrict unused or unnecessary physical and logical ports/protocols/services on information systems.
+
+Applications are capable of providing a wide variety of functions and services. Some of the functions and services provided by default may not be necessary to support essential organizational operations. Additionally, it is sometimes convenient to provide multiple services from a single component (e.g., email and web services); however, doing so increases risk over limiting the services provided by any one component.
+
+To support the requirements and principles of least functionality, the application must support the organizational requirements providing only essential capabilities and limiting the use of ports, protocols, and/or services to only those required, authorized, and approved to conduct official business or to address authorized quality of life issues.
+
+Database Management Systems using ports, protocols, and services deemed unsafe are open to attack through those ports, protocols, and services. This can allow unauthorized access to the database and through the database to other components of the information system."
+  solution        : "Run the following command to set the value of the DB2COMM parameter to the organization-approved communication protocol:
+
+     $db2 set DB2COMM=TCPIP,SSL
+
+Set the SSL version:
+
+     $db2 update DBM CFG using SSL_VERSIONS TLSV12
+
+The database manager can be set to a service name or an organization-approved port number directly for the SVCENAME parameter.
+
+Use the following command to change the database manager configuration:
+
+     $db2 update dbm cfg using svcename <svcename>
+       Or
+     $db2 update dbm cfg using svcename <port number>
+
+Notes: Configuring Secure Sockets Layer (SSL) support in a DB2 instance:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000382,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89159r2_rule,STIG-ID|DB2X-00-003800,SWIFT-CSCv1|2.3,Vuln-ID|V-74485"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : ": passed$"
+# Note: Variable @DB2_COMMS@ replaced with "SSL,TCPIP" in field "powershell_args".
+  powershell_args : "$comms = db2set DB2COMM; $success = $true; foreach ($comm in $comms.split(',')) { if ($comm -like 'SSL,TCPIP') { $comm+' is allowed'; } else { $comm+' is NOT allowed'; $success = $false; } }; if ($success) { 'Protocols: passed'; } else { 'Protocols: failed'; }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-003800 - DB2 must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments - SVCENAME"
+  info            : "In order to prevent unauthorized connection of devices, unauthorized transfer of information, or unauthorized tunneling (i.e., embedding of data types within data types), organizations must disable or restrict unused or unnecessary physical and logical ports/protocols/services on information systems.
+
+Applications are capable of providing a wide variety of functions and services. Some of the functions and services provided by default may not be necessary to support essential organizational operations. Additionally, it is sometimes convenient to provide multiple services from a single component (e.g., email and web services); however, doing so increases risk over limiting the services provided by any one component.
+
+To support the requirements and principles of least functionality, the application must support the organizational requirements providing only essential capabilities and limiting the use of ports, protocols, and/or services to only those required, authorized, and approved to conduct official business or to address authorized quality of life issues.
+
+Database Management Systems using ports, protocols, and services deemed unsafe are open to attack through those ports, protocols, and services. This can allow unauthorized access to the database and through the database to other components of the information system."
+  solution        : "Run the following command to set the value of the DB2COMM parameter to the organization-approved communication protocol:
+
+     $db2 set DB2COMM=TCPIP,SSL
+
+Set the SSL version:
+
+     $db2 update DBM CFG using SSL_VERSIONS TLSV12
+
+The database manager can be set to a service name or an organization-approved port number directly for the SVCENAME parameter.
+
+Use the following command to change the database manager configuration:
+
+     $db2 update dbm cfg using svcename <svcename>
+       Or
+     $db2 update dbm cfg using svcename <port number>
+
+Notes: Configuring Secure Sockets Layer (SSL) support in a DB2 instance:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000382,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89159r2_rule,STIG-ID|DB2X-00-003800,SWIFT-CSCv1|2.3,Vuln-ID|V-74485"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_PORT@ replaced with "50000" in field "value_data".
+  value_data      : "(^| )50000[ /]"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $config = db2 get dbm cfg | Select-String -Pattern 'TCP.*SVCENAME'; $port = $config -Replace '.* = ',''; $services = ''; if ($port) { $regex = '^\s*'+$port; $services = Get-Content $env:windir\system32\drivers\etc\services | Select-String -Pattern $regex }; 'Ports: ' + $port + ' / ' + $services -Replace '\t',' ';"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-003800 - DB2 must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments - SSL_SVCENAME"
+  info            : "In order to prevent unauthorized connection of devices, unauthorized transfer of information, or unauthorized tunneling (i.e., embedding of data types within data types), organizations must disable or restrict unused or unnecessary physical and logical ports/protocols/services on information systems.
+
+Applications are capable of providing a wide variety of functions and services. Some of the functions and services provided by default may not be necessary to support essential organizational operations. Additionally, it is sometimes convenient to provide multiple services from a single component (e.g., email and web services); however, doing so increases risk over limiting the services provided by any one component.
+
+To support the requirements and principles of least functionality, the application must support the organizational requirements providing only essential capabilities and limiting the use of ports, protocols, and/or services to only those required, authorized, and approved to conduct official business or to address authorized quality of life issues.
+
+Database Management Systems using ports, protocols, and services deemed unsafe are open to attack through those ports, protocols, and services. This can allow unauthorized access to the database and through the database to other components of the information system."
+  solution        : "Run the following command to set the value of the DB2COMM parameter to the organization-approved communication protocol:
+
+     $db2 set DB2COMM=TCPIP,SSL
+
+Set the SSL version:
+
+     $db2 update DBM CFG using SSL_VERSIONS TLSV12
+
+The database manager can be set to a service name or an organization-approved port number directly for the SVCENAME parameter.
+
+Use the following command to change the database manager configuration:
+
+     $db2 update dbm cfg using svcename <svcename>
+       Or
+     $db2 update dbm cfg using svcename <port number>
+
+Notes: Configuring Secure Sockets Layer (SSL) support in a DB2 instance:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000382,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89159r2_rule,STIG-ID|DB2X-00-003800,SWIFT-CSCv1|2.3,Vuln-ID|V-74485"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_SSLPORT@ replaced with "50000" in field "value_data".
+  value_data      : "(^| )50000[ /]"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $config = db2 get dbm cfg | Select-String -Pattern 'SSL.*SSL_SVCENAME'; $port = $config -Replace '.* = ',''; $services = ''; if ($port) { $regex = '^\s*'+$port; $services = Get-Content $env:windir\system32\drivers\etc\services | Select-String -Pattern $regex }; 'Ports: ' + $port + ' / ' + $services -Replace '\t',' ';"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-004100 - If passwords are used for authentication, DB2 must transmit only encrypted representations of passwords - AUTHENTICATION"
+  info            : "The DoD standard for authentication is DoD-approved PKI certificates.
+
+Authentication based on User ID and Password may be used only when it is not possible to employ a PKI certificate, and requires AO approval.
+
+In such cases, passwords need to be protected at all times, and encryption is the standard method for protecting passwords during transmission.
+
+DBMS passwords sent in clear text format across the network are vulnerable to discovery by unauthorized users. Disclosure of passwords may easily lead to unauthorized access to the database."
+  solution        : "Run the following command to set the value of the authentication encryption to SERVER_ENCRYPT:
+
+$db2 update dbm cfg using authentication server_encrypt
+
+Run the following db2set command to set the value of DB2AUTH to JCC_ENFORCE_SECMEC:
+
+$db2 set DB2AUTH=JCC_ENFORCE_SECMEC
+Notes: It is recommended to set the ALTERNATE_AUTH_ENC database manager configuration parameter to AES_ONLY to require that AES encryption be used."
+  reference       : "800-171|3.5.10,800-53|IA-5(1),CAT|II,CCI|CCI-000197,CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,Rule-ID|SV-89161r2_rule,STIG-ID|DB2X-00-004100,SWIFT-CSCv1|4.1,TBA-FIISB|26.1,Vuln-ID|V-74487"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "= (SERVER_ENCRYPT|DATA_ENCRYPT|DATA_ENCRYPT_CMP)$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $config = db2 get dbm cfg | Select-String -Pattern '(AUTHENTICATION) =' -SimpleMatch; if ($config) { $config } else { 'No config found' }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-004100 - If passwords are used for authentication, DB2 must transmit only encrypted representations of passwords - DB2AUTH"
+  info            : "The DoD standard for authentication is DoD-approved PKI certificates.
+
+Authentication based on User ID and Password may be used only when it is not possible to employ a PKI certificate, and requires AO approval.
+
+In such cases, passwords need to be protected at all times, and encryption is the standard method for protecting passwords during transmission.
+
+DBMS passwords sent in clear text format across the network are vulnerable to discovery by unauthorized users. Disclosure of passwords may easily lead to unauthorized access to the database."
+  solution        : "Run the following command to set the value of the authentication encryption to SERVER_ENCRYPT:
+
+$db2 update dbm cfg using authentication server_encrypt
+
+Run the following db2set command to set the value of DB2AUTH to JCC_ENFORCE_SECMEC:
+
+$db2 set DB2AUTH=JCC_ENFORCE_SECMEC
+Notes: It is recommended to set the ALTERNATE_AUTH_ENC database manager configuration parameter to AES_ONLY to require that AES encryption be used."
+  reference       : "800-171|3.5.10,800-53|IA-5(1),CAT|II,CCI|CCI-000197,CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,Rule-ID|SV-89161r2_rule,STIG-ID|DB2X-00-004100,SWIFT-CSCv1|4.1,TBA-FIISB|26.1,Vuln-ID|V-74487"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^JCC_ENFORCE_SECMEC$"
+  powershell_args : "$auth = db2set -all | Select-String 'DB2AUTH=' | ForEach-Object { $_ -replace '^.*=', '' }; if ($auth) { $auth } else { 'no setting' }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-004600 - DB2 must use NIST FIPS 140-2 validated cryptographic modules for cryptographic operations - DB2COMM"
+  info            : "Use of weak or not validated cryptographic algorithms undermines the purposes of utilizing encryption and digital signatures to protect data.  Weak algorithms can be easily broken and not validated cryptographic modules may not implement algorithms correctly. Unapproved cryptographic modules or algorithms should not be relied on for authentication, confidentiality or integrity. Weak cryptography could allow an attacker to gain access to and modify data stored in the database as well as the administration settings of the DBMS.
+
+Applications, including DBMSs, utilizing cryptography are required to use approved NIST FIPS 140-2 validated cryptographic modules that meet the requirements of applicable federal laws, Executive Orders, directives, policies, regulations, standards, and guidance.
+
+The security functions validated as part of FIPS 140-2 for cryptographic modules are described in FIPS 140-2 Annex A.
+
+The cryptographic functionality in IBM DB2 for LUW includes features that are fully FIPS 140-2 validated, and others that are not.  To be sure of using only FIPS 140-2 validated modules, specify SSL (TLS) for communication and IBM Database Native Encryption for data at rest.
+
+The decision whether to employ cryptography is the responsibility of the information owner/steward, who exercises discretion within the framework of applicable rules, policies, and law."
+  solution        : "Modify the cryptographic configuration to employ SSL/TLS for encryption of communications.
+
+Modify the cryptographic configuration to employ IBM Database Native Encryption for encryption of data at rest."
+  reference       : "800-171|3.13.11,800-53|SC-13,CAT|I,CCI|CCI-000803,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-89167r1_rule,STIG-ID|DB2X-00-004600,Vuln-ID|V-74493"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^SSL$"
+  powershell_args : "$comms = db2set DB2COMM; if ($comms) { $comms; } else { 'No config found'; }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005100 - DB2 must maintain the authenticity of communications sessions by guarding against man-in-the-middle attacks that guess at Session ID values - SSL"
+  info            : "One class of man-in-the-middle, or session hijacking, attack involves the adversary guessing at valid session identifiers based on patterns in identifiers already known.
+
+The preferred technique for thwarting guesses at Session IDs is the generation of unique session identifiers using a FIPS 140-2 approved random number generator.
+
+However, it is recognized that available DBMS products do not all implement the preferred technique yet may have other protections against session hijacking. Therefore, other techniques are acceptable, provided they are demonstrated to be effective."
+  solution        : "Use the following commands to set the protocol and ports as per PPSM guidance:
+
+     $db2 update dbm cfg using svcename    [service_name | port_number]
+     $db2 update dbm cfg using ssl_svcename [ssl_service_name | port_number]
+
+Note: http://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.13.15,800-53|SC-23,CAT|II,CCI|CCI-001188,ITSG-33|SC-23,NESA|T4.5.1,Rule-ID|SV-89171r1_rule,STIG-ID|DB2X-00-005100,Vuln-ID|V-74497"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : ": passed$"
+# Note: Variable @DB2_COMMS@ replaced with "SSL,TCPIP" in field "powershell_args".
+  powershell_args : "$comms = db2set DB2COMM; $success = $true; foreach ($comm in $comms.split(',')) { if ($comm -like 'SSL,TCPIP') { $comm+' is allowed'; } else { $comm+' is NOT allowed'; $success = $false; } }; if ($success) { 'Authenticity: passed'; } else { 'Authenticity: failed'; }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005100 - DB2 must maintain the authenticity of communications sessions by guarding against man-in-the-middle attacks that guess at Session ID values - SVCENAME"
+  info            : "One class of man-in-the-middle, or session hijacking, attack involves the adversary guessing at valid session identifiers based on patterns in identifiers already known.
+
+The preferred technique for thwarting guesses at Session IDs is the generation of unique session identifiers using a FIPS 140-2 approved random number generator.
+
+However, it is recognized that available DBMS products do not all implement the preferred technique yet may have other protections against session hijacking. Therefore, other techniques are acceptable, provided they are demonstrated to be effective."
+  solution        : "Use the following commands to set the protocol and ports as per PPSM guidance:
+
+     $db2 update dbm cfg using svcename    [service_name | port_number]
+     $db2 update dbm cfg using ssl_svcename [ssl_service_name | port_number]
+
+Note: http://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.13.15,800-53|SC-23,CAT|II,CCI|CCI-001188,ITSG-33|SC-23,NESA|T4.5.1,Rule-ID|SV-89171r1_rule,STIG-ID|DB2X-00-005100,Vuln-ID|V-74497"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_PORT@ replaced with "50000" in field "value_data".
+  value_data      : "(^| )50000[ /]"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $config = db2 get dbm cfg | Select-String -Pattern 'TCP.*SVCENAME'; $port = $config -Replace '.* = ',''; $services = ''; if ($port) { $regex = '^\s*'+$port; $services = Get-Content $env:windir\system32\drivers\etc\services | Select-String -Pattern $regex }; 'Authenticity: ' + $port + ' / ' + $services -Replace '\t',' ';"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005100 - DB2 must maintain the authenticity of communications sessions by guarding against man-in-the-middle attacks that guess at Session ID values - SSL_SVCENAME"
+  info            : "One class of man-in-the-middle, or session hijacking, attack involves the adversary guessing at valid session identifiers based on patterns in identifiers already known.
+
+The preferred technique for thwarting guesses at Session IDs is the generation of unique session identifiers using a FIPS 140-2 approved random number generator.
+
+However, it is recognized that available DBMS products do not all implement the preferred technique yet may have other protections against session hijacking. Therefore, other techniques are acceptable, provided they are demonstrated to be effective."
+  solution        : "Use the following commands to set the protocol and ports as per PPSM guidance:
+
+     $db2 update dbm cfg using svcename    [service_name | port_number]
+     $db2 update dbm cfg using ssl_svcename [ssl_service_name | port_number]
+
+Note: http://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.13.15,800-53|SC-23,CAT|II,CCI|CCI-001188,ITSG-33|SC-23,NESA|T4.5.1,Rule-ID|SV-89171r1_rule,STIG-ID|DB2X-00-005100,Vuln-ID|V-74497"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_SSLPORT@ replaced with "50000" in field "value_data".
+  value_data      : "(^| )50000[ /]"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $config = db2 get dbm cfg | Select-String -Pattern 'SSL.*SSL_SVCENAME'; $port = $config -Replace '.* = ',''; $services = ''; if ($port) { $regex = '^\s*'+$port; $services = Get-Content $env:windir\system32\drivers\etc\services | Select-String -Pattern $regex }; 'Authenticity: ' + $port + ' / ' + $services -Replace '\t',' ';"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<report type:"WARNING">
+  description : "DB2X-00-005300 - In the event of a system failure, DB2 must preserve any information necessary to determine cause of failure and any information necessary to return to operations with least disruption to mission processes - Recovery Plan"
+  info        : "Failure to a known state can address safety or security in accordance with the mission/business needs of the organization.
+
+Failure to a known secure state helps prevent a loss of confidentiality, integrity, or availability in the event of a failure of the information system or a component of the system.
+
+Preserving information system state information helps to facilitate system restart and return to the operational mode of the organization with less disruption of mission/business processes.
+
+Since it is usually not possible to test this capability in a production environment, systems should either be validated in a testing environment or prior to installation. This requirement is normally a function of the design of the IDPS component. Compliance can be verified by acceptance/validation processes or vendor attestation.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Modify the database backup plan to include whether the database needs to be in archive logging, the correct recovery model to be used, the backup schedule, and the plan for testing the database restoration.
+
+Update db2 logging to archive logging for the database which requires roll forward recovery using the following db2 command:
+
+     $db2 update db2 cfg for <database name> using LOGARCHMETH1 <value>
+
+Note: Set the value as per your online file system or backup vendor like TSM
+
+Verify and correct the scheduled backup jobs.
+
+Correct any issues that have been causing backups to fail.
+
+Test the restoration of the database at least once a year; correct any issues that cause it to fail. Maintain a record of these tests.
+
+Note:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.1.0/com.ibm.db2.luw.admin.config.doc/doc/r0011448.html
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0001991.html"
+  reference   : "CAT|II,CCI|CCI-001665,Rule-ID|SV-89173r1_rule,STIG-ID|DB2X-00-005300,Vuln-ID|V-74499"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+</report>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005300 - In the event of a system failure, DB2 must preserve any information necessary to determine cause of failure and any information necessary to return to operations with least disruption to mission processes - Roll forward"
+  info            : "Failure to a known state can address safety or security in accordance with the mission/business needs of the organization.
+
+Failure to a known secure state helps prevent a loss of confidentiality, integrity, or availability in the event of a failure of the information system or a component of the system.
+
+Preserving information system state information helps to facilitate system restart and return to the operational mode of the organization with less disruption of mission/business processes.
+
+Since it is usually not possible to test this capability in a production environment, systems should either be validated in a testing environment or prior to installation. This requirement is normally a function of the design of the IDPS component. Compliance can be verified by acceptance/validation processes or vendor attestation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Modify the database backup plan to include whether the database needs to be in archive logging, the correct recovery model to be used, the backup schedule, and the plan for testing the database restoration.
+
+Update db2 logging to archive logging for the database which requires roll forward recovery using the following db2 command:
+
+     $db2 update db2 cfg for <database name> using LOGARCHMETH1 <value>
+
+Note: Set the value as per your online file system or backup vendor like TSM
+
+Verify and correct the scheduled backup jobs.
+
+Correct any issues that have been causing backups to fail.
+
+Test the restoration of the database at least once a year; correct any issues that cause it to fail. Maintain a record of these tests.
+
+Note:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.1.0/com.ibm.db2.luw.admin.config.doc/doc/r0011448.html
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0001991.html"
+  reference       : "800-171|3.8.9,800-53|CP-9,CAT|II,CCI|CCI-001665,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4,Rule-ID|SV-89173r1_rule,STIG-ID|DB2X-00-005300,Vuln-ID|V-74499"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual review of roll foward$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $databases = db2 list database directory | Select-String 'Database name' | ForEach-Object { $_ -replace '^.*=', '' }; if ($databases) { foreach ($db in $databases) { $db+':'; db2 get db cfg for $db | Select-String 'LOGARCHMETH'; } } else { 'no items'; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005300 - In the event of a system failure, DB2 must preserve any information necessary to determine cause of failure and any information necessary to return to operations with least disruption to mission processes - History"
+  info            : "Failure to a known state can address safety or security in accordance with the mission/business needs of the organization.
+
+Failure to a known secure state helps prevent a loss of confidentiality, integrity, or availability in the event of a failure of the information system or a component of the system.
+
+Preserving information system state information helps to facilitate system restart and return to the operational mode of the organization with less disruption of mission/business processes.
+
+Since it is usually not possible to test this capability in a production environment, systems should either be validated in a testing environment or prior to installation. This requirement is normally a function of the design of the IDPS component. Compliance can be verified by acceptance/validation processes or vendor attestation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Modify the database backup plan to include whether the database needs to be in archive logging, the correct recovery model to be used, the backup schedule, and the plan for testing the database restoration.
+
+Update db2 logging to archive logging for the database which requires roll forward recovery using the following db2 command:
+
+     $db2 update db2 cfg for <database name> using LOGARCHMETH1 <value>
+
+Note: Set the value as per your online file system or backup vendor like TSM
+
+Verify and correct the scheduled backup jobs.
+
+Correct any issues that have been causing backups to fail.
+
+Test the restoration of the database at least once a year; correct any issues that cause it to fail. Maintain a record of these tests.
+
+Note:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.1.0/com.ibm.db2.luw.admin.config.doc/doc/r0011448.html
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0001991.html"
+  reference       : "800-171|3.8.9,800-53|CP-9,CAT|II,CCI|CCI-001665,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4,Rule-ID|SV-89173r1_rule,STIG-ID|DB2X-00-005300,Vuln-ID|V-74499"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual reveiw of backup history$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $databases = db2 list database directory | Select-String 'Database name' | ForEach-Object { $_ -replace '^.*=', '' }; if ($databases) { foreach ($db in $databases) { $db+':'; db2 list history backup all for $db; } } else { 'no items'; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "DB2X-00-005300 - In the event of a system failure, DB2 must preserve any information necessary to determine cause of failure and any information necessary to return to operations with least disruption to mission processes - Tested"
+  info        : "Failure to a known state can address safety or security in accordance with the mission/business needs of the organization.
+
+Failure to a known secure state helps prevent a loss of confidentiality, integrity, or availability in the event of a failure of the information system or a component of the system.
+
+Preserving information system state information helps to facilitate system restart and return to the operational mode of the organization with less disruption of mission/business processes.
+
+Since it is usually not possible to test this capability in a production environment, systems should either be validated in a testing environment or prior to installation. This requirement is normally a function of the design of the IDPS component. Compliance can be verified by acceptance/validation processes or vendor attestation.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Modify the database backup plan to include whether the database needs to be in archive logging, the correct recovery model to be used, the backup schedule, and the plan for testing the database restoration.
+
+Update db2 logging to archive logging for the database which requires roll forward recovery using the following db2 command:
+
+     $db2 update db2 cfg for <database name> using LOGARCHMETH1 <value>
+
+Note: Set the value as per your online file system or backup vendor like TSM
+
+Verify and correct the scheduled backup jobs.
+
+Correct any issues that have been causing backups to fail.
+
+Test the restoration of the database at least once a year; correct any issues that cause it to fail. Maintain a record of these tests.
+
+Note:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.1.0/com.ibm.db2.luw.admin.config.doc/doc/r0011448.html
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0001991.html"
+  reference   : "CAT|II,CCI|CCI-001665,Rule-ID|SV-89173r1_rule,STIG-ID|DB2X-00-005300,Vuln-ID|V-74499"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+</report>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005800 - Access to database files must be limited to relevant processes and to authorized, administrative users - Instance"
+  info            : "Applications, including DBMSs, must prevent unauthorized and unintended information transfer via shared system resources. Permitting only DBMS processes and authorized, administrative users to have access to the files where the database resides helps ensure that those files are not shared inappropriately and are not open to backdoor access and manipulation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure the permissions granted by the operating system/file system on the database files, database transaction log files, database audit log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files."
+  reference       : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-001090,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-89181r1_rule,STIG-ID|DB2X-00-005800,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-74507"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^no items$"
+# Note: Variable @DB2_INSTHOME@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "powershell_args".
+  powershell_args : "$pathname = 'C:\\Program Files\\IBM\\SQLLIB'; if ($pathname) { $dirs = Get-Item $pathname | ForEach-Object { $_.Fullname }; foreach ($dir in $dirs) { $dir+':'; icacls $dir | Select-String ':' | ForEach-Object { '  '+$_.ToString().Replace($dir, '').Trim() }; } } else { 'no items'; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005800 - Access to database files must be limited to relevant processes and to authorized, administrative users - Database"
+  info            : "Applications, including DBMSs, must prevent unauthorized and unintended information transfer via shared system resources. Permitting only DBMS processes and authorized, administrative users to have access to the files where the database resides helps ensure that those files are not shared inappropriately and are not open to backdoor access and manipulation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure the permissions granted by the operating system/file system on the database files, database transaction log files, database audit log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files."
+  reference       : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-001090,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-89181r1_rule,STIG-ID|DB2X-00-005800,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-74507"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^no items$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $dirname = db2 list database directory | Select-String 'Local database directory' | ForEach-Object { $_ -replace '^.*=', '' }; $instname = db2set -all | Select-String 'DB2INSTDEF' | ForEach-Object { $_ -replace '^.*=', '' }; $pathname = $dirname+'\'+$instname; $pathname = $pathname.Trim(); if ($pathname) { $dirs = Get-Item $pathname, $pathname\*, $pathname\*\* | ForEach-Object { $_.Fullname }; foreach ($dir in $dirs) { $dir+':'; icacls $dir | Select-String ':' | ForEach-Object { '  '+$_.ToString().Replace($dir, '').Trim() }; } } else { 'no items'; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005800 - Access to database files must be limited to relevant processes and to authorized, administrative users - Audit Log"
+  info            : "Applications, including DBMSs, must prevent unauthorized and unintended information transfer via shared system resources. Permitting only DBMS processes and authorized, administrative users to have access to the files where the database resides helps ensure that those files are not shared inappropriately and are not open to backdoor access and manipulation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure the permissions granted by the operating system/file system on the database files, database transaction log files, database audit log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-001090,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89181r1_rule,STIG-ID|DB2X-00-005800,Vuln-ID|V-74507"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^no items$"
+  powershell_args : "$archives = db2audit describe | Select-String 'Audit (Data|Archive) Path'; $found = $false; foreach ($archive in $archives) { $archive; $dir = $item -replace '^.*: .', '' -replace '. *$', ''; $dir = $dir.Trim(); if ($dir) { icacls $dir | Select-String ':' | ForEach-Object { '  '+$_.ToString().Replace($dir, '').Trim() }; $found = $true } }; if (!$found) { 'no items' }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005800 - Access to database files must be limited to relevant processes and to authorized, administrative users - Transaction Paths"
+  info            : "Applications, including DBMSs, must prevent unauthorized and unintended information transfer via shared system resources. Permitting only DBMS processes and authorized, administrative users to have access to the files where the database resides helps ensure that those files are not shared inappropriately and are not open to backdoor access and manipulation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure the permissions granted by the operating system/file system on the database files, database transaction log files, database audit log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files."
+  reference       : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-001090,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-89181r1_rule,STIG-ID|DB2X-00-005800,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-74507"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^no items$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $databases = db2 list database directory | Select-String 'Database name' | ForEach-Object { $_ -replace '^.*=', '' }; if ($databases) { foreach ($db in $databases) { $db.Trim()+' Database:'; $directories = db2 get db cfg for $db | Select-String 'PATH' | ForEach-Object { $_ -replace '^.* =', '' }; foreach ($dir in $directories) { $dir = $dir.Trim(); if ($dir) { $dir+':'; icacls $dir | Select-String ':' | ForEach-Object { '  '+$_.ToString().Replace($dir, '').Trim() }; } } } } else { 'no items'; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005800 - Access to database files must be limited to relevant processes and to authorized, administrative users - LOGARCHMETH"
+  info            : "Applications, including DBMSs, must prevent unauthorized and unintended information transfer via shared system resources. Permitting only DBMS processes and authorized, administrative users to have access to the files where the database resides helps ensure that those files are not shared inappropriately and are not open to backdoor access and manipulation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure the permissions granted by the operating system/file system on the database files, database transaction log files, database audit log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-001090,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89181r1_rule,STIG-ID|DB2X-00-005800,Vuln-ID|V-74507"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^no items$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $databases = db2 list database directory | Select-String 'Database name' | ForEach-Object { $_ -replace '^.*=', '' }; if ($databases) { foreach ($db in $databases) { $db+':'; db2 get db cfg for $db | Select-String 'LOGARCHMETH'; } } else { 'no items'; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-005800 - Access to database files must be limited to relevant processes and to authorized, administrative users - Backup History"
+  info            : "Applications, including DBMSs, must prevent unauthorized and unintended information transfer via shared system resources. Permitting only DBMS processes and authorized, administrative users to have access to the files where the database resides helps ensure that those files are not shared inappropriately and are not open to backdoor access and manipulation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure the permissions granted by the operating system/file system on the database files, database transaction log files, database audit log files, and database backup files so that only relevant system accounts and authorized system administrators and database administrators with a need to know are permitted to read/view these files."
+  reference       : "800-171|3.3.8,800-53|AU-9,CAT|II,CCI|CCI-001090,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-89181r1_rule,STIG-ID|DB2X-00-005800,Vuln-ID|V-74507"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^no items$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $databases = db2 list database directory | Select-String 'Database name' | ForEach-Object { $_ -replace '^.*=', '' }; if ($databases) { foreach ($db in $databases) { $db+':'; db2 list history backup all for $db; } } else { 'no items'; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-007300 - DB2 must utilize centralized management of the content captured in audit records generated by all components of DB2."
+  info            : "Without the ability to centrally manage the content captured in the audit records, identification, troubleshooting, and correlation of suspicious behavior would be difficult and could lead to a delayed or incomplete analysis of an ongoing attack.
+
+The content captured in audit records must be managed from a central location (necessitating automation). Centralized management of audit records and logs provides for efficiency in maintenance and management of records, as well as the backup and archiving of those records.
+
+The DBMS may write audit records to database tables, to files in the file system, to other kinds of local repository, or directly to a centralized log management system. Whatever the method used, it must be compatible with off-loading the records to the centralized system.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Run the following command to set the audit data directory and archive data directory to the location which is compatible with the organization's centralized system:
+
+     $db2audit configure datapath <AUDIT DATA DIRECTORY > archivepath <AUDIT ARCHIVE DIRECTORY>
+
+Note: See the following knowledgebase page for information regarding extracting Audit logs to syslog for any file system other than Windows:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.cmd.doc/doc/r0002072.html
+
+DB2 does not directly support syslog on windows.  Devise an alternate method of log capture."
+  reference       : "800-171|3.3.1,800-53|AU-3(2),CAT|II,CCI|CCI-001844,CSF|PR.PT-1,ITSG-33|AU-3(2),Rule-ID|SV-89241r1_rule,STIG-ID|DB2X-00-007300,SWIFT-CSCv1|6.4,Vuln-ID|V-74567"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual reveiw of centralized audit management$"
+  powershell_args : "db2audit describe"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-007500 - DB2 must allocate audit record storage capacity in accordance with organization-defined audit record storage requirements."
+  info            : "In order to ensure sufficient storage capacity for the audit logs, the DBMS must be able to allocate audit record storage capacity. Although another requirement (SRG-APP-000515-DB-000318) mandates that audit data be off-loaded to a centralized log management system, it remains necessary to provide space on the database server to serve as a buffer against outages and capacity limits of the off-loading mechanism.
+
+The task of allocating audit record storage capacity is usually performed during initial installation of the DBMS and is closely associated with the DBA and system administrator roles. The DBA or system administrator will usually coordinate the allocation of physical drive space with the application owner/installer and the application will prompt the installer to provide the capacity information, the physical location of the disk, or both.
+
+In determining the capacity requirements, consider such factors as: total number of users; expected number of concurrent users during busy periods; number and type of events being monitored; types and amounts of data being captured; the frequency/speed with which audit records are off-loaded to the central log management system; and any limitations that exist on the DBMS's ability to reuse the space formerly occupied by off-loaded records.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Allocate space to the file system where the audit data directory resides."
+  reference       : "800-53|AU-4,CAT|II,CCI|CCI-001849,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,NESA|T3.3.1,NESA|T3.6.2,Rule-ID|SV-89243r1_rule,STIG-ID|DB2X-00-007500,Vuln-ID|V-74569"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual review of allocated audit record storage$"
+  powershell_args : "db2audit describe"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-007600 - DB2 must provide a warning to appropriate support staff when allocated audit record storage volume reaches 75% of maximum audit record storage capacity."
+  info            : "Organizations are required to use a central log management system, so, under normal conditions, the audit space allocated to the DBMS on its own server will not be an issue. However, space will still be required on the DBMS server for audit records in transit, and, under abnormal conditions, this could fill up. Since a requirement exists to halt processing upon audit failure, a service outage would result.
+
+If support personnel are not notified immediately upon storage volume utilization reaching 75%, they are unable to plan for storage capacity expansion.
+
+The appropriate support staff include, at a minimum, the ISSO and the DBA/SA.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Use the Operating system tools or external utilities to monitor the Audit Data Path and set alerts for 75% space utilization."
+  reference       : "800-53|AU-5(1),CAT|II,CCI|CCI-001855,CN-L3|7.1.3.7(e),CSF|PR.PT-1,ITSG-33|AU-5(1),NESA|T3.3.1,Rule-ID|SV-89245r1_rule,STIG-ID|DB2X-00-007600,TBA-FIISB|37.3.2,Vuln-ID|V-74571"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual review of audit storage alerting$"
+  powershell_args : "db2audit describe"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "DB2X-00-007700 - DB2 must provide an immediate real-time alert to appropriate support staff of all audit failure events requiring real-time alerts."
+  info        : "It is critical for the appropriate personnel to be aware if a system is at risk of failing to process audit logs as required. Without a real-time alert, security personnel may be unaware of an impending failure of the audit capability, and system operation may be adversely affected.
+
+The appropriate support staff include, at a minimum, the ISSO and the DBA/SA.
+
+Alerts provide organizations with urgent messages. Real-time alerts provide these messages immediately (i.e., the time from event detection to alert occurs in seconds or less).
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Run the following command to alter the audit policies and to set the ERRORTYPE to audit:
+DB2>ALTER AUDIT POLICY <DB audit policy name> CATEGORIES AUDIT STATUS BOTH  ERROR TYPE AUDIT
+
+Monitor the diagnostic log file for audit failure error using the following command:
+
+     $db2diag  -g msg:='Write to audit log failed'"
+  reference   : "CAT|II,CCI|CCI-001858,Rule-ID|SV-89247r1_rule,STIG-ID|DB2X-00-007700,Vuln-ID|V-74573"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+</report>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-008100 - DB2 and the operating system must enforce access restrictions associated with changes to the configuration of DB2 or database(s)."
+  info            : "Failure to provide logical access restrictions associated with changes to configuration may have significant effects on the overall security of the system.
+
+When dealing with access restrictions pertaining to change control, it should be noted that any changes to the hardware, software, and/or firmware components of the information system can potentially have significant effects on the overall security of the system.
+
+Accordingly, only qualified and authorized individuals should be allowed to obtain access to system components for the purposes of initiating changes, including upgrades and modifications.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Remove the write permission from non-root/non-sysadmin users on the DB2 installation base directory and instance home directory."
+  reference       : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-001813,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-89265r1_rule,STIG-ID|DB2X-00-008100,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-74591"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^ManualReviewRequired$"
+# Note: Variable @DB2_INSTHOME@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "powershell_args".
+  powershell_args : "$files = Get-ChildItem -Recurs -Path 'C:\\Program Files\\IBM\\SQLLIB' | ForEach-Object { $_.FullName }; $access = '', ''; foreach ($file in $files) { $acls = icacls $file | Select-String -Pattern ':'; foreach ($acl in $acls) { $perm = $acl.ToString().Replace($file, '').Trim() -replace ':.*$', ''; if ($access -notcontains $perm) { $access += $perm; } } }; 'Users and Groups with Access:'; $sorted = $access | Where-Object { $_ } | Sort-Object; foreach ($perm in $sorted) { '  '+$perm; }"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-008200 - DB2 must produce audit records of its enforcement of access restrictions associated with changes to the configuration of DB2 or database(s) - OS Auditing"
+  info            : "Without auditing the enforcement of access restrictions against changes to configuration, it would be difficult to identify attempted attacks and an audit trail would not be available for forensic investigation for after-the-fact actions.
+
+Enforcement actions are the methods or mechanisms used to prevent unauthorized changes to configuration settings. Enforcement action methods may be as simple as denying access to a file based on the application of file permissions (access restriction). Audit items may consist of lists of actions blocked by access restrictions or changes identified after the fact."
+  solution        : "Run the following command to set the auditing at the instance level:
+
+     $db2audit configure scope sysadmin status both error type audit
+
+Run the following command to set the auditing at the database level:
+DB2> CREATE AUDIT POLICY <DB audit policy name> CATEGORIES SYSADMIN STATUS BOTH, CONTEXT STATUS BOTH ERROR TYPE AUDIT
+
+Run the following command if the auditing policy exists but does not include the sysadmin category:
+DB2> ALTER AUDIT POLICY <DB audit policy name> SYSADMIN STATUS BOTH, CONTEXT STATUS BOTH ERROR TYPE AUDIT
+
+If CREATE was used above, apply the policy created above to the database:
+DB2> AUDIT DATABASE USING POLICY <DB audit policy name>
+
+Note: See the following page for knowledgebase information regarding the ALTER AUDIT POLICY:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0050608.html?lang=en"
+  reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-001814,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-89267r1_rule,STIG-ID|DB2X-00-008200,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-74593"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : ' "BOTH" *$'
+  powershell_args : "$events = db2audit describe | Select-String -Pattern 'Log system administrator events'; if ($events) { $events } else { 'Setting not found' }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-008300 - DB2 must disable network functions, ports, protocols, and services deemed by the organization to be nonsecure, in accord with the Ports, Protocols, and Services Management (PPSM) guidance - SSL"
+  info            : "Use of nonsecure network functions, ports, protocols, and services exposes the system to avoidable threats."
+  solution        : "Use the following commands to set the protocol and ports as per PPSM guidance:
+
+     $db2 update dbm cfg using svcename [service_name | port_number]
+
+     $db2 update dbm cfg using ssl_svcename [ssl_service_name | port_number]
+
+
+Note: http://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-001762,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89269r1_rule,STIG-ID|DB2X-00-008300,SWIFT-CSCv1|2.3,Vuln-ID|V-74595"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : ": passed$"
+# Note: Variable @DB2_COMMS@ replaced with "SSL,TCPIP" in field "powershell_args".
+  powershell_args : "$comms = db2set DB2COMM; $success = $true; foreach ($comm in $comms.split(',')) { if ($comm -like 'SSL,TCPIP') { $comm+' is allowed'; } else { $comm+' is NOT allowed'; $success = $false; } }; if ($success) { 'Protocols: passed'; } else { 'Protocols: failed'; }"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-008300 - DB2 must disable network functions, ports, protocols, and services deemed by the organization to be nonsecure, in accord with the Ports, Protocols, and Services Management (PPSM) guidance - SVCENAME"
+  info            : "Use of nonsecure network functions, ports, protocols, and services exposes the system to avoidable threats."
+  solution        : "Use the following commands to set the protocol and ports as per PPSM guidance:
+
+     $db2 update dbm cfg using svcename [service_name | port_number]
+
+     $db2 update dbm cfg using ssl_svcename [ssl_service_name | port_number]
+
+
+Note: http://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-001762,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89269r1_rule,STIG-ID|DB2X-00-008300,SWIFT-CSCv1|2.3,Vuln-ID|V-74595"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_PORT@ replaced with "50000" in field "value_data".
+  value_data      : "(^| )50000[ /]"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $config = db2 get dbm cfg | Select-String -Pattern 'TCP.*SVCENAME'; $port = $config -Replace '.* = ',''; $services = ''; if ($port) { $regex = '^\s*'+$port; $services = Get-Content $env:windir\system32\drivers\etc\services | Select-String -Pattern $regex }; 'Ports: ' + $port + ' / ' + $services -Replace '\t',' ';"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-008300 - DB2 must disable network functions, ports, protocols, and services deemed by the organization to be nonsecure, in accord with the Ports, Protocols, and Services Management (PPSM) guidance - SSL_SVCENAME"
+  info            : "Use of nonsecure network functions, ports, protocols, and services exposes the system to avoidable threats."
+  solution        : "Use the following commands to set the protocol and ports as per PPSM guidance:
+
+     $db2 update dbm cfg using svcename [service_name | port_number]
+
+     $db2 update dbm cfg using ssl_svcename [ssl_service_name | port_number]
+
+
+Note: http://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-001762,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-89269r1_rule,STIG-ID|DB2X-00-008300,SWIFT-CSCv1|2.3,Vuln-ID|V-74595"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @DB2_SSLPORT@ replaced with "50000" in field "value_data".
+  value_data      : "(^| )50000[ /]"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**'; $config = db2 get dbm cfg | Select-String -Pattern 'SSL.*SSL_SVCENAME'; $port = $config -Replace '.* = ',''; $services = ''; if ($port) { $regex = '^\s*'+$port; $services = Get-Content $env:windir\system32\drivers\etc\services | Select-String -Pattern $regex }; 'Ports: ' + $port + ' / ' + $services -Replace '\t',' ';"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-009100 - DB2 must maintain the confidentiality and integrity of information during preparation for transmission."
+  info            : "Information can be either unintentionally or maliciously disclosed or modified during preparation for transmission, including, for example, during aggregation, at protocol transformation points, and during packing/unpacking. These unauthorized disclosures or modifications compromise the confidentiality or integrity of the information.
+
+Use of this requirement will be limited to situations where the data owner has a strict requirement for ensuring data integrity and confidentiality is maintained at every step of the data transfer and handling process.
+
+When transmitting data, the DBMS, associated applications, and infrastructure must leverage transmission protection mechanisms."
+  solution        : "Run the following DB2 command to set the value of ssl_versions to approved TLS or SSL version:
+
+$db2 update dbm cfg using SSL_VERSIONS <SSL Version>
+
+Run the following command to set the value of db2comm parameter to SSL:
+
+$db2set db2comm=ssl
+
+Restart the database manager.
+
+Note: Details on key database creation and setting up SSL environment are in following links
+
+Select the following knowledgebase link for more information regarding configuring SSL support:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html?lang=en
+
+Select the following knowledgebase link for more information regarding SSL_versions:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.config.doc/doc/r0053616.html?cp=SSEPGG_10.5.0%2F2-4-4-8-88&lang=en
+
+Select the following knowledgebase link for setting communication protocol:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.qb.server.doc/doc/t0004714.html?cp=SSEPGG_10.5.0&lang=en"
+  reference       : "800-171|3.13.15,800-53|SC-23,CAT|II,CCI|CCI-002420,ITSG-33|SC-23,NESA|T4.5.1,Rule-ID|SV-89279r2_rule,STIG-ID|DB2X-00-009100,Vuln-ID|V-74605"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^.*=SSL$"
+  powershell_args : "db2set -all | Select-String -Pattern 'DB2COMM='"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-009200 - DB2 must maintain the confidentiality and integrity of information during reception."
+  info            : ": Information can be either unintentionally or maliciously disclosed or modified during reception, including, for example, during aggregation, at protocol transformation points, and during packing/unpacking. These unauthorized disclosures or modifications compromise the confidentiality or integrity of the information.
+
+This requirement applies only to those applications that are either distributed or can allow access to data non-locally. Use of this requirement will be limited to situations where the data owner has a strict requirement for ensuring data integrity and confidentiality is maintained at every step of the data transfer and handling process.
+
+When receiving data, the DBMS, associated applications, and infrastructure must leverage protection mechanisms."
+  solution        : "Run the following DB2 command to set the value of ssl_versions to approved TLS or SSL version:
+
+$db2 update dbm cfg using SSL_VERSIONS <SSL Version>
+
+Run the following command to set the value of db2comm parameter to SSL:
+
+$db2set db2comm=ssl
+
+Restart the database manager.
+
+Note: Details on key database creation and setting up SSL environment are in the following links
+
+Select the following knowledgebase link for more information regarding configuring SSL support:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.sec.doc/doc/t0025241.html?lang=en
+
+Select the following knowledgebase link for more information regarding SSL_versions:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.admin.config.doc/doc/r0053616.html?cp=SSEPGG_10.5.0%2F2-4-4-8-88&lang=en
+
+Select the following knowledgebase link for setting communication protocol:
+http://www.ibm.com/support/knowledgecenter/SSEPGG_10.5.0/com.ibm.db2.luw.qb.server.doc/doc/t0004714.html?cp=SSEPGG_10.5.0&lang=en"
+  reference       : "800-171|3.13.15,800-53|SC-23,CAT|II,CCI|CCI-002422,ITSG-33|SC-23,NESA|T4.5.1,Rule-ID|SV-89281r2_rule,STIG-ID|DB2X-00-009200,Vuln-ID|V-74607"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^.*=SSL$"
+  powershell_args : "db2set -all | Select-String -Pattern 'DB2COMM='"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DB2X-00-012600 - DB2 must off-load audit data to a separate log management facility; this must be continuous and in near real time for systems with a network connection to the storage facility and weekly or more often for stand-alone systems."
+  info            : "Information stored in one location is vulnerable to accidental or incidental deletion or alteration.
+
+Off-loading is a common process in information systems with limited audit storage capacity.
+
+The DBMS may write audit records to database tables, to files in the file system, to other kinds of local repository, or directly to a centralized log management system. Whatever the method used, it must be compatible with off-loading the records to the centralized system.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure the separate log management facility to absorb audit logs data from comma delimited files produced by extracting the audit data from archived audit logs."
+  reference       : "800-53|AU-4(1),CAT|II,CCI|CCI-001851,CSF|PR.DS-4,CSF|PR.PT-1,Rule-ID|SV-89249r1_rule,STIG-ID|DB2X-00-012600,Vuln-ID|V-74575"
+  see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_IBM_DB2_V10-5_V1R4_STIG.zip"
+  value_type      : POLICY_TEXT
+  value_data      : "^Manual review audit records are off-loaded$"
+  powershell_args : "db2audit describe | Select-String -Pattern 'Audit (Data|Archive) Path'"
+  check_type      : CHECK_REGEX
+  severity        : MEDIUM
+</custom_item>
+
+</group_policy>
+</check_type>

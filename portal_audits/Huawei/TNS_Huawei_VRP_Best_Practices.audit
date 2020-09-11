@@ -1,0 +1,501 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.3 $
+# $Date: 2020/04/14 $
+#
+# Description	: This .audit is designed to review the configuration of a Huawei VRP device
+# 	and validate its settings against a comprehensive list of relevant best
+# 	practice settings.
+#
+#<ui_metadata>
+#<display_name>TNS Huawei VRP Best Practice Audit</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Huawei VRP Best Practice Audit</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>huawei,tenable,series,vrp</labels>
+#<variables>
+#  <variable>
+#    <name>LOGIN_HEADER_FIRST_LINE</name>
+#    <default>Authorized Personnel Only!</default>
+#    <description>First line of text in login header</description>
+#    <info>The start of your organization's login header. The check for the appropriate header is only done when a header is defined.</info>
+#  </variable>
+#  <variable>
+#    <name>SHELL_HEADER_FIRST_LINE</name>
+#    <default>Authorized Personnel Only!</default>
+#    <description>First line of text in shell header</description>
+#    <info>The start of your organization's shell header. The check for the appropriate header is only done when a header is defined.</info>
+#  </variable>
+#  <variable>
+#    <name>NTP_SERVER_IP</name>
+#    <default>192.168.1.1</default>
+#    <description>IP address of NTP server.</description>
+#    <info>Enter the address of your organizations NTP server to syncronize clocks with.</info>
+#  </variable>
+#  <variable>
+#    <name>LOGGING_HOST_IP</name>
+#    <default>192.168.1.1</default>
+#    <description>IP address of syslog server.</description>
+#    <info>Enter the address of your organizations logging host to send logs to.</info>
+#  </variable>
+#  <variable>
+#    <name>SNMP_HOST_IP</name>
+#    <default>192.168.1.1</default>
+#    <description>SNMP trap host ip.</description>
+#    <info>IP address to send SNMP traps to.</info>
+#  </variable>
+#  <variable>
+#    <name>SNMP_V3_GROUP</name>
+#    <default>notpublic</default>
+#    <description>SNMP V3 group name</description>
+#    <info>SNMP V3 group name for use in authenticating and encrypting messages.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Huawei">
+
+<custom_item>
+  description : "Huawei: Review Device Info/Version"
+  info        : "Review the output of this check for Asset Inventory purposes
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35,PCI-DSS|2.4,SANS-CSC|1-4"
+  cmd         : "display version"
+  not_expect  : ".+"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Set System Name"
+  info        : "Default name of the device is 'Huawei', and should be changed to uniquely identify this device on the network. This check will look for the sysname command to verify that there was an effort to change, but will not check for uniqueness."
+  solution    : "Set a system name to uniquely identify this device on the network by running the following command in system view:\n\nsysname <unique_name>"
+  expect      : "^\s*sysname [^\s]+"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Set 'shell' header"
+  info        : "A shell header should be set to display information or instructions that a user must know."
+  solution    : "In system view, run the following command to configure shell header\n\n header shell information c line c\n\nWhere 'c' is the delimiter for e.g. %"
+  expect      : "^\s*header shell information "
+  reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Verify header shell exists before checking appropriateness."
+      expect      : "^\s*header shell information "
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Huawei: Set appropriate 'shell' header"
+      info        : "Set appropriate shell header. This audit currently compares to any text on the first line of the header only."
+      solution    : "In system view, run the following command to configure shell header\n\n header shell information c line c\n\nWhere 'c' is the delimiter for e.g. %"
+# Note: Variable @SHELL_HEADER_FIRST_LINE@ replaced with "Authorized Personnel Only!" in field "expect".
+      expect      : "Authorized Personnel Only!"
+      regex       : "^\s*header shell information "
+      reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+    </custom_item>
+  </then>
+</if>
+
+<custom_item>
+  description : "Huawei: Set 'login' header"
+  info        : "A login header should be set to display any disclaimers or warnings prior to logging into the device."
+  solution    : "In system view, run the following command to configure login header\n\n header login information c line c\n\nWhere 'c' is the delimiter for e.g. %"
+  expect      : "^\s*header login information "
+  reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Verify header login exists before checking appropriateness."
+      expect      : "^\s*header login information "
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Huawei: Set appropriate 'login' header"
+      info        : "Set appropriate login header. This audit currently compares to any text on the first line of the header only."
+      solution    : "In system view, run the following command to configure login header\n\n header login information c line c\n\nWhere 'c' is the delimiter for e.g. %"
+# Note: Variable @LOGIN_HEADER_FIRST_LINE@ replaced with "Authorized Personnel Only!" in field "expect".
+      expect      : "Authorized Personnel Only!"
+      regex       : "^\s*header login information "
+      reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+    </custom_item>
+  </then>
+</if>
+
+<custom_item>
+  description : "Huawei: Command Levels Not Changed"
+  info        : "Changing the default level of a command is not recommended as some user may be unable to use the command any longer."
+  solution    : "In system view, undo any commands that have had command level changed by running the following:\n\n undo command-privilege level"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|7.1.3,SANS-CSC|12-14,SWIFT-CSCv1|2.3"
+  not_expect  : "^\s*command-privilege level"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: User Interfaces are Authenticated"
+  info        : "Configuration a user interface to be non-authenticated will allow the user to login with out being challenged for a username or password. Users should be authenticated through password or AAA.\n\nIf all user-interfaces are configured for authentication and there is a FAILED result, this could be a result of the 'user-interfaces maximum-vty' is configured for more terminals than are configured."
+  solution    : "In system view, change any user interfaces that are configured to be non-authenticated with a valid authentication method."
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,HIPAA|164.312(a)(2)(i),ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|2.1,SANS-CSC|12-4,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  context     : "user-interface (con|vty|tty)"
+  expect      : "^\s*authentication-mode (aaa|password)"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: User Interfaces Idle Timeout Less Than 5 Minutes"
+  info        : "If a connection remains idle for a time out period, the system automatically terminates the connection. By default, the idle timeout is 5 minutes.\n\nIf all user-interfaces are configured for authentication and there is a FAILED result, this could be a result of the 'user-interfaces maximum-vty' is configured for more terminals than are configured."
+  solution    : "In system view, undo or lower the idle time out for any user interfaceses by:\n\n undo idle-timeout <minutes> [<seconds>]"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.4,SANS-CSC|16-5"
+  context     : "user-interface (con|vty|tty)"
+  not_expect  : " idle-timeout (5 [1-9]|[6-9]|[1-9][0-9]+)"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Simple Password Authentication is not used."
+  info        : "If a simple password is displayed in the configuration, anyone that is able to view the configuration, on system or on backup, would have access to the password.\n\nIf all user-interfaces are configured for authentication and there is a FAILED result, this could be a result of the 'user-interfaces maximum-vty' is configured for more terminals than are configured."
+  solution    : "Use password cipher in all configuration files. When configuring on system, a simple password should be converted to cipher."
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|8.2.1,SANS-CSC|12-6,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  context     : "user-interface (con|vty|tty)"
+  not_expect  : "^\s*set authentication password simple"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Enable SSH"
+  info        : "Enable SSH on the server."
+  solution    : "To enable ssh, run the following command in system view:\n\n stelnet server enable"
+  reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10-4"
+  expect      : "^\s*stelnet server enable"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Require SSH version 2"
+  info        : "Only allow SSH version 2. By default, the ssh server compatibility is enabled. Commands must be specified to disable the compatibility."
+  solution    : "To require ssh version 2, run the following command:\n\n undo ssh server compatible-ssh1x enable"
+  reference   : "800-53|CM-7,CIP|007-6-R1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),PCI-DSS|2.2.3,SANS-CSC|10-4"
+  expect      : "^\s*undo ssh server compatible-ssh1x enable"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: SSH Max Retries <= 3"
+  info        : "Allow no more than 3 incorrect password attempts. The default value of attempts is 3. Check for commands that would increase the number of attempts"
+  solution    : "To configure max retries, run the following command in system view:\n\n ssh server authentication-retries 3"
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),CSCv6|16.7,ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,PCI-DSS|8.1.6,SANS-CSC|16-9,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  not_expect  : "^\s*ssh server authentication-retries [4-5]"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: User Interfaces Configured Inbound SSH"
+  info        : "In order for users to access the system via SSH, each virtual terminal requires the inboud protocol to be enabled.\n\nIf all user-interfaces are configured for authentication and there is a FAILED result, this could be a result of the 'user-interfaces maximum-vty' is configured for more terminals than are configured."
+  solution    : "To configure inbound protocol, run the following command in the user interface context:\n\n protocol inbound ssh"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,HIPAA|164.312(e)(1),ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,PCI-DSS|2.3,SANS-CSC|10-4,SWIFT-CSCv1|2.3"
+  context     : "user-interface vty"
+  expect      : "^\s*protocol inbound ssh"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Disable Telnet on IPV4"
+  info        : "Disable Telnet server. By default, the telnet server is enabled. Commands must be specified to disable both telnet servers for IPV4 and IPV6."
+  solution    : "To disable Telnet, run the following commands in system view:\n\n undo telnet server enable"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|11-1,SWIFT-CSCv1|2.3"
+  expect      : "^\s*undo telnet server enable"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Disable Telnet on IPV6"
+  info        : "Disable Telnet server. By default, the telnet server is enabled. Commands must be specified to disable both telnet servers for IPV4 and IPV6."
+  solution    : "To disable Telnet, run the following commands in system view:\n\n undo telnet ipv6 server enable"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|11-1,SWIFT-CSCv1|2.3"
+  expect      : "^\s*undo telnet ipv6 server enable"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Set super password"
+  info        : "Set super password for managment levels of 3-15."
+  solution    : "In system view, run the following command to configure super password :\n super password level <level> encryption-type cipher <password>"
+  reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,PCI-DSS|2.2.3,SANS-CSC|12-14,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+  expect      : "^super password level ([3-9]|1[0-5]) cipher"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Disable FTP IPV4"
+  info        : "Disable FTP server. By default, the ftp server is disabled. Commands must be specified to enable both telnet servers for IPV4 and IPV6."
+  solution    : "To disable FTP, run the following command in system view:\n\n undo ftp server"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|11-1,SWIFT-CSCv1|2.3"
+  not_expect  : "^\s*ftp server enable"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Disable FTP IPV6"
+  info        : "Disable FTP server. By default, the ftp server is disabled. Commands must be specified to enable both telnet servers for IPV4 and IPV6."
+  solution    : "To disable FTP, run the following command in system view:\n\n undo ftp ipv6 server"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|11-1,SWIFT-CSCv1|2.3"
+  not_expect  : "^\s*ftp ipv6 server enable"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Enable AAA accounting"
+  info        : "Enable exec aaa accounting. By default, accounting mode is not enabled. Devices do not do local accounting, so accounting mode must be set. This check looks for an accounting mode to be set, but does not verify it is active on all schemes."
+  solution    : "Run the following command to enable accounting in AAA view:\n\n accounting-mode {hwtacacs|radius}"
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,HIPAA|164.312(b),ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|10.2.1,SANS-CSC|16-7,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  expect      : "^\s*accounting-mode [^\s]"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Enable AAA authorization"
+  info        : "Enable authentication, authorization, and accounting (AAA) authorization to determine if a user can access the privileged command level. Default value for authorization is local users, which provides minimal authorization. Check looks for authenitcation turned off in any schemes."
+  solution    : "Run the following command to enable authorization in AAA authorization shceme:\n\n authorization-mode {local|hwtacaca|if-authenticated}"
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,HIPAA|164.312(d),ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|7.2,SANS-CSC|16-12,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  not_expect  : "^\s*authorization-mode none"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Enable AAA authentication"
+  info        : "Enable authentication, authorization, and accounting (AAA) authentication to determine if a user can access the privileged command level. Default value for authentication is local users, which provides minimal authentication. Check looks for authenitcation turned off in any schemes."
+  solution    : "Run the following command to enable authentication in AAA authentication shceme:\n\n authentication-mode {local|hwtacaca|radius}"
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,HIPAA|164.312(d),ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|7.2,SANS-CSC|16-12,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  not_expect  : "^\s*authentication-mode none"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Verify ntp service has not been disabled"
+      not_expect  : "^\s*undo ntp-service enable"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "Huawei: NTP is enabled"
+      info        : "NTP time service is used for syncronizing the system clock to common time sources to provide the ability to correlate events between devices."
+      reference   : "HIPAA|164.312(b),PCI-DSS|10.4.1,SANS-CSC|14-1"
+    </report>
+
+    <custom_item>
+      description : "Huawei: Configure appropriate NTP server"
+      info        : "Configure at least one NTP server. In environments with sycnfonization vlans, broadcast, manycast, or multicast can be used on specific interfaces."
+      solution    : "To configure ntp server, run one of the following command in system view:\n\n ntp-service unicast-peer ip/hostname"
+      reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.3,SANS-CSC|14-1"
+# Note: Variable @NTP_SERVER_IP@ replaced with "192.168.1.1" in field "expect".
+      expect      : "client 192.168.1.1"
+      regex       : "^\s*ntp-service "
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Huawei: NTP is enabled"
+      info        : "NTP time service is used for syncronizing the system clock to common time sources to provide the ability to correlate events between devices."
+      solution    : "To configure ntp server, run one of the following command in system view:\n\n ntp-service unicast-peer ip/hostname"
+      reference   : "HIPAA|164.312(b),PCI-DSS|10.4.1,SANS-CSC|14-1"
+    </report>
+
+    <custom_item>
+      description : "Huawei: Device clock = UTC"
+      info        : "Make sure device clock is set to UTC"
+      solution    : "Use following command to configure timezone:\n\n undo clock timezone"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,HIPAA|164.312(b),ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      not_expect  : "^\s*clock timezone "
+    </custom_item>
+
+    <custom_item>
+      description : "Huawei: Device clock disable DST adjustment"
+      info        : "Disable summer time DST adjustments"
+      solution    : "To remove summer-time config, run the following command:\n\n undo clock daylight-saving-time"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,HIPAA|164.312(b),ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      not_expect  : "^\s*clock daylight-saving-time"
+    </custom_item>
+  </else>
+</if>
+
+<custom_item>
+  description : "Huawei: Require service timestamp"
+  info        : "Require time stamps to be included in debug, log, and trap messages. By default, time stamps are configured for the debug, log, and trap services. Commands would be specified to disable the timestamps."
+  solution    : "To configure service timestamps, run the following command in system view:\n\n undo info-center timestamp [debugging|log|trap]"
+  reference   : "800-171|3.3.7,800-53|AU-8,CN-L3|8.1.4.3(b),CSF|PR.PT-1,HIPAA|164.312(b),ITSG-33|AU-8,NESA|T3.6.2,NESA|T3.6.7,PCI-DSS|10.5.4,SANS-CSC|14-2,TBA-FIISB|37.4"
+  not_expect  : "^\s*info-center timestamp (debugging|log|trap) none"
+</custom_item>
+
+<custom_item>
+  description : "Huawei: Information Center is not disabled."
+  info        : "The information center is the hub of information flow for the device, and thus controls logging of events. If the information center is disabled, there will be no logging."
+  solution    : "Run the following command in system view to enable information center:\n\n info-center enable"
+  reference   : "800-171|3.3.1,800-53|AU-12(1),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ITSG-33|AU-12(1),PCI-DSS|10.5.4,SANS-CSC|14-2,SWIFT-CSCv1|6.4"
+  not_expect  : "^\s*undo info-center enable"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Verify an external loghost is configured"
+      expect      : "^\s*info-center loghost "
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "Huawei: External Syslog server is configured"
+      info        : "Configure an IP address of a Syslog server where logging messages will be sent."
+      reference   : "800-53|AU-9,CSF|PR.PT-1,HIPAA|164.312(b),PCI-DSS|10.5.4,SANS-CSC|14-7"
+    </report>
+
+    <custom_item>
+      description : "Huawei: Configure appropriate External Syslog server"
+      info        : "Configure an IP address of a Syslog server where logging messages will be sent."
+      solution    : "To configure Syslog server, run the following command in system view:\n\n info-center loghost [logging_ip]"
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.312(b),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,PCI-DSS|10.5.4,SANS-CSC|14-7"
+# Note: Variable @LOGGING_HOST_IP@ replaced with "192.168.1.1" in field "expect".
+      expect      : "192.168.1.1"
+      regex       : "^\s*info-center loghost "
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Huawei: External Syslog server is configured"
+      info        : "Configure an IP address of a Syslog server where logging messages will be sent."
+      solution    : "To configure Syslog server, run the following command in system view:\n\n info-center loghost [logging_ip]"
+      reference   : "800-53|AU-9,CSF|PR.PT-1,HIPAA|164.312(b),PCI-DSS|10.5.4,SANS-CSC|14-7"
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Verify SNMP trap agent is configured before checking host"
+      expect      : "^\s*snmp-agent\s*$"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "Huawei: SNMP is Configured"
+      info        : "SNMP traps are configured for monitoring and alerting."
+      reference   : "800-53|AU-9,CSF|PR.PT-1,HIPAA|164.312(b),PCI-DSS|10.5.4,SANS-CSC|14-7"
+    </report>
+
+    <custom_item>
+      description : "Huawei: Require Group for SNMPv3 Access"
+      info        : "Do not allow plaintext SNMPv3 access."
+      solution    : "Run the following command in system view to configure SNMPv3 Access:\n\n snmp-agent group <group_name> v3 privacy"
+      reference   : "800-171|3.14.1,800-171|3.4.2,800-53|CM-6,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.10.6(d),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSCv6|3.1,CSF|ID.RA-1,CSF|PR.IP-1,CSF|PR.IP-12,HIPAA|164.312(e)(2)(i),ITSG-33|CM-6,ITSG-33|SI-2,NESA|T3.2.1,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.4,SANS-CSC|11-4,SWIFT-CSCv1|2.2,SWIFT-CSCv1|2.3"
+# Note: Variable @SNMP_V3_GROUP@ replaced with "notpublic" in field "expect".
+      expect      : "snmp-agent group v3 notpublic privacy"
+    </custom_item>
+
+    <custom_item>
+      description : "Huawei: SNMP Community string != private"
+      info        : "Make sure 'private' community string does not exist"
+      solution    : "To remove the private community string, use the following command in system view:\n\n undo snmp-agent community <community-string>"
+      reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3,PCI-DSS|2.2.4,SANS-CSC|11-4"
+      not_expect  : "snmp-agent community (read|write) private"
+    </custom_item>
+
+    <custom_item>
+      description : "Huawei: SNMP Community string != public"
+      info        : "Make sure 'public' community string does not exist"
+      solution    : "To remove the public community string, use the following command in system view:\n\n undo snmp-agent community <community-string>"
+      reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3,PCI-DSS|2.2.4,SANS-CSC|11-4"
+      not_expect  : "snmp-agent community (read|write) public"
+    </custom_item>
+
+    <custom_item>
+      description : "Huawei: Disable SNMP write access"
+      info        : "Do not allow SNMP write access."
+      solution    : "To change the community to read only, use the following command in system view:\n\n snmp-agent community read <community-string>"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,HIPAA|164.312(e)(2)(i),ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,PCI-DSS|2.2.4,SANS-CSC|11-4,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      not_expect  : "snmp-agent community write "
+    </custom_item>
+
+    <custom_item>
+      description : "Huawei: Enable SNMP Traps"
+      info        : "Enable SNMP traps"
+      solution    : "Run the following command in system view to enable SNMP traps:\n\n snmp-agent"
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.312(b),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,PCI-DSS|10.5.4,SANS-CSC|14-7"
+      expect      : "^\s*snmp-agent\s*$"
+    </custom_item>
+
+    <custom_item>
+      description : "Huawei: SNMP appropriate trap host"
+      info        : "If SNMP traps are configured, make sure snmp-server host is configured."
+      solution    : "Use the following command in system view to configure SNMP target host:\n\n snmp-agent target-host trap-hostname <hostname> address <ip_address> trap-paramsname <paramsname>"
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.312(b),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,PCI-DSS|10.5.4,SANS-CSC|14-7"
+# Note: Variable @SNMP_HOST_IP@ replaced with "192.168.1.1" in field "expect".
+      expect      : "192.168.1.1"
+      regex       : "^\s*snmp-agent target-host trap-hostname "
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Huawei: SNMP is Configured"
+      info        : "SNMP traps are configured for monitoring and alerting."
+      solution    : "Use the following command in system view to configure SNMP agent:\n\n snmp-agent"
+      reference   : "800-53|AU-9,CSF|PR.PT-1,HIPAA|164.312(b),PCI-DSS|10.5.4,SANS-CSC|14-7"
+    </report>
+  </else>
+</if>
+
+<custom_item>
+  description : "Huawei: Insecure HTTP is not configured."
+  info        : "Access router configuration over an insecure HTTP protocol can lead to disclosure of credentials and configuration."
+  solution    : "In system view, execute the following command:\n\n undo http server enable"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|10-4,SWIFT-CSCv1|2.3"
+  not_expect  : "^\s*http server enable"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Verify http secure-server is configured"
+      expect      : "http secure-server enable"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "Huawei: HTTPS Server is configured"
+      info        : "If management of HTTP is configured, secure HTTP should be used."
+      reference   : "HIPAA|164.312(e)(1),PCI-DSS|2.2.3,SANS-CSC|10-4"
+    </report>
+
+    <custom_item>
+      description : "Huawei: HTTPS Server requires SSL policy"
+      info        : "A server SSL policy defines the parameters that an SSL server uses in SSL handshakes, including the public key infrastructure (PKI) domain name, maximum number of sessions that can be saved, timeout period of a saved session, and cipher suite."
+      solution    : "In system view, execute the following command:\n\n http secure-server ssl-policy <policy_name>"
+      reference   : "800-53|SC-17,HIPAA|164.312(e)(2)(ii),ITSG-33|SC-17,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25,PCI-DSS|2.2.3,PCI-DSS|2.3,SANS-CSC|10-4"
+      expect      : "^\s*http secure-server ssl-policy"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"PASSED">
+      description : "Huawei: HTTPS Server is not configured"
+      info        : "If management of HTTP is configured, secure HTTP should be used."
+      reference   : "HIPAA|164.312(e)(1),PCI-DSS|2.2.5,SANS-CSC|10-4"
+    </report>
+  </else>
+</if>
+
+</check_type>

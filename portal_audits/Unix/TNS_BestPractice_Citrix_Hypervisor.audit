@@ -1,0 +1,607 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/07/14 $
+#
+# Description   : This .audit is designed to review the VM configurations from Citrix Hypervisor
+#                 and validate their settings against a comprehensive list of important settings.
+#
+#<ui_metadata>
+#<display_name>TNS Citrix Hypervisor Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Citrix Hypervisor Best Practices</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>citrix,hypervisor,tenable,agent,unix</labels>
+#<variables>
+#  <variable>
+#    <name>NTP_SERVER</name>
+#    <default>192\.168\.0\.1</default>
+#    <description>NTP server address</description>
+#    <info>The IP address of your organization's preferred NTP server.</info>
+#  </variable>
+#  <variable>
+#    <name>LOCAL_NETWORK</name>
+#    <default>192\.168\.0\.1/24</default>
+#    <description>Local network</description>
+#    <info>The IP address and network mask allowed to access the server, as they appear in hosts.allow. This can be input as a regular expression or multiple entries can be separated with commas.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "XenServer is installed"
+      file        : "/etc/redhat-release"
+      regex       : "Citrix Hypervisor release [0-9]+"
+      expect      : "Citrix Hypervisor release [0-9]+"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "TNS_BestPractice_Citrix_Hypervisor.audit"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List VM CPU allocations"
+      info        : "The allocated virtual CPUs (VCPU) should be reviewed. Desired settings depend on workload and operating system type.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe vm-list params=uuid,name-label,VCPUs-max,VCPUs-at-startup,VCPUs-number,VCPUs-params"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List VM memory allocations"
+      info        : "The amount of allocated memory should be reviewed. Minimum and maximum memory size depends on the host and the guest operating system type.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe vm-list params=uuid,name-label,memory-static-min,memory-static-max,memory-dynamic-min,memory-dynamic-max"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List virtual disks"
+      info        : "The list of virtual disks should be reviewed. Maintaining unnecessary disks can deplete the resources of the host system. Disks associated with halted VMs are listed as currently-attached: false.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe vbd-list type=Disk params=vm-name-label,uuid,vdi-uuid,currently-attached"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List running VMs"
+      info        : "Current guest VM status.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe vm-list power-state=running params=uuid,name-label,power-state"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List halted VMs"
+      info        : "Current guest VM status.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe vm-list power-state=halted params=uuid,name-label,power-state"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type         : CMD_EXEC
+      description  : "List non-default VM templates"
+      info         : "The list of custom templates should be reviewed.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference    : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd          : "/usr/bin/xe template-list params=uuid,name-label,other-config"
+      regex        : "base_template_name .+"
+      check_option : CAN_BE_NULL
+      severity     : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Host version"
+      info        : "The current XenServer version should be reviewed.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35,PCI-DSS|6.1,SANS-CSC|2"
+      cmd         : "/usr/bin/xe host-list params=name-label,software-version"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type         : CMD_EXEC
+      description  : "List patches"
+      info         : "The list of patches should be reviewed.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference    : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,PCI-DSS|6.1,SANS-CSC|4,SWIFT-CSCv1|2.2"
+      cmd          : "/usr/bin/xe patch-list"
+      check_option : CAN_BE_NULL
+      severity     : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List crash dumps"
+      info        : "The list of crash dumps should be empty unless an issue is known and under investigation.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|1,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe host-crashdump-list"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List physical storage locations"
+      info        : "The list of physical block devices should be reviewed. These are typically shares where media or virtual disks are stored.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe pbd-list"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List networks"
+      info        : "The list of connected networks should be reviewed.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe network-list params=all"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List VLANs"
+      info        : "The list of VLANs should be reviewed.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe vlan-list params=all"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List bonded NIC groups"
+      info        : "The list of bonded NICs should be reviewed.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe bond-list params=all"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List users"
+      info        : "Users (subjects) should only be present if Active Directory integration is used for authentication.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|7.1.1,SANS-CSC|12"
+      cmd         : "/usr/bin/xe subject-list params=all"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "List security roles"
+      info        : "The users assigned to each role should be reviewed. XenServer roles cannot be added or deleted.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii),PCI-DSS|7.1.1,SANS-CSC|12"
+      cmd         : "/usr/bin/xe role-list params=all"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "External authentication is disabled"
+      info        : "XenServer can integrate with Active Directory and grant AD groups access to XenServer roles. This integration may not be available or desired, for example when integrating with OpenStack. When external authentication is disabled only a single account, root, is supported."
+      solution    : "Run the following command:\n
+
+xe pool-disable-external-auth"
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|8.5.8,SANS-CSC|12,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      cmd         : "/usr/bin/xe host-list params=name-label,uuid,external-auth-type,external-auth-service-name,external-auth-configuration"
+      regex       : "external-auth-type .+"
+      expect      : "^((?!external-auth-type .+ AD).)*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Only allow access to required network services"
+      info        : "Unrestricted access to services running on a XenServer host can expose a host to outside attacks and unauthorized access.  Reduce the risk by configuring the iptables firewall to only allow access from authorized networks.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|1.1.3,PCI-DSS|2.2.2,SANS-CSC|11"
+      cmd         : "/sbin/iptables -nL --line-numbers"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "The hosts.deny file blocks access by default"
+      info        : "Because all addresses are blocked by default only addresses found in hosts.allow are granted access to the server."
+      reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-7(5),CN-L3|7.1.2.2(c),CSF|PR.PT-4,ITSG-33|SC-7(5),NIAv2|GS7b,NIAv2|NS25,PCI-DSS|1.2,SANS-CSC|3"
+      file        : "/etc/hosts.deny"
+      regex       : "^[\\s]*ALL[\\s]*:"
+      expect      : "^[\\s]*ALL[\\s]*:[\\s]*ALL[\\s]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "The hosts.allow file limits access to the local network"
+      info        : "The addresses listed are allowed to access all services on the server."
+      reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-7(5),CN-L3|7.1.2.2(c),CSF|PR.PT-4,ITSG-33|SC-7(5),NIAv2|GS7b,NIAv2|NS25,PCI-DSS|1.3,SANS-CSC|3"
+      file        : "/etc/hosts.allow"
+      regex       : "^[\\s]*ALL[\\s]*:"
+# Note: Variable @LOCAL_NETWORK@ replaced with "192\\.168\\.0\\.1/24" in field "expect".
+      expect      : "^[\\s]*ALL[\\s]*:[\\s]*localhost,[\\s]+192\\.168\\.0\\.1/24"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Identify a network interface to be used for storage access"
+      info        : "Network traffic for storage should be segregated from normal VM and management traffic to limit access and ensure reliable performance. Documenting this expectation makes it more likely to be followed."
+      solution    : "Run the following command using the uuid of the dedicated storage physical interface (pif):\n
+
+xe pif-param-set uuid=<pif_uuid> other-config:management_purpose='storage'"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|1,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe pif-list management=false params=uuid,network-name-label,IP-configuration-mode,IP,other-config"
+      regex       : "other-config .+"
+      expect      : "management_purpose: storage"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Use a static IP on the storage network interface"
+      info        : "A static IP should be assigned to the storage NIC so communications will not be interrupted during address renewal."
+      solution    : "Run the following command using the uuid of the dedicated storage physical interface (pif):\n
+
+xe pif-reconfigure-ip uuid=<pif_uuid> mode=static ip=<ip_address> netmask=<netmask> gateway=<gaateway> dns=<dns>"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe pif-list other-config:management_purpose=storage params=uuid,network-name-label,IP-configuration-mode,IP"
+      regex       : "IP-configuration-mode .+"
+      expect      : "[Ss]tatic"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Disallow unplug detection on the storage network interface"
+      info        : "A dedicated storage NIC does not require unplug detection."
+      solution    : "Run the following command using the uuid of the dedicated storage physical interface (pif):\n
+
+xe pif-param-set uuid=<pif_uuid> disallow-unplug=true"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe pif-list other-config:management_purpose=storage params=uuid,network-name-label,disallow-unplug"
+      regex       : "disallow-unplug .+"
+      expect      : "true"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Use a static IP on the management network interface"
+      info        : "A static IP should be assigned to the management NIC so communications will not be interrupted during address renewal."
+      solution    : "Run the following command using the uuid of the management physical interface (pif):\n
+
+xe pif-reconfigure-ip uuid=<pif_uuid> mode=static ip=<ip_address> netmask=<netmask> gateway=<gaateway> dns=<dns>"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe pif-list management=true params=uuid,device,IP-configuration-mode,IP"
+      regex       : "IP-configuration-mode .+"
+      expect      : "[Ss]tatic"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "All network interfaces are operating in full-duplex mode"
+      info        : "An interface in full-duplex mode can handle more network traffic, improving service availability and the speed of management actions such as migration and backups.
+
+    http://support.citrix.com/article/CTX117568"
+      solution    : "By default interface speed and duplex mode are automatically negotiated. Before setting these manually, ensure the switch or other device the interface is connected to can support the desired settings. Reconfiguring the management interface requires console access, because SSH connections may be lost. To reconfigure an interface run this command, substituting your desired speed and duplex mode:\n
+
+xe pif-param-set uuid=<pif_uuid> other-config:ethtool-autoneg='off' other-config:ethtool-speed='<100|1000>' other-config-duplex='<half|full>'"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe pif-list params=uuid,device,IP,speed,duplex"
+      regex       : "duplex .+"
+      expect      : "[Ff]ull"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Disable promiscuous mode on all network interfaces"
+      info        : "In promiscuous mode all packets received will be processed by the host or VM, which could expose confidential information."
+      solution    : "Run the following command for each physical interface (pif), especially those that will host VM guests:\n
+
+xe pif-param-set uuid=<pif-uuid> other-config:promiscuous='off'"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe pif-list params=uuid,network-name-label,other-config"
+      regex       : "other-config .+"
+      expect      : "promiscuous: off"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Enable QoS on all VM guests"
+      info        : "Quality of Service limits can mitigate denial of service attacks and ensure management access to the host. Though this can also be set with vSwitch, that method is deprecated in 6.2 and will not be available in the future."
+      solution    : "For each VM guest interface (vif) set the quality of service algorithm and parameters, then unplug and replug the vif. To do so run the following commands:\nxe vif-param-set uuid=<vif-uuid> qos_algorithm_type=ratelimit\nxe vif-param-set uuid=<vif-uuid> qos_algorithm_params:kbps=100\nxe vif-unplug uuid=<vif-uuid>; xe vif-plug uuid=<vif-uuid>"
+      reference   : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,PCI-DSS|2.2.3,SANS-CSC|3"
+      cmd         : "/usr/bin/xe vif-list params=uuid,qos_algorithm_type,qos_algorithm_params"
+      regex       : "qos_algorithm_type .+"
+      expect      : "ratelimit"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Enable port locking by default on the VM guest network"
+      info        : "Port locking prevents ARP and IP spoofing by unknown or untrusted VM guests. It limits their ability to pretend they have a MAC or IP address that was not assigned to them. This setting is the default for the network. If this is set to locked then each VM must be configured with a list of valid IPv4 and IPv6 addresses. A VM that tries to use an address that is not on its allowed list will not be able to send or receive network traffic."
+      solution    : "Set the default locking mode for the VM guest network by running the following command:\n
+
+xe network-param-set uuid=<network-uuid> default-locking-mode=locked\n
+NOTE: Any VM on this network must have an allowed list of IPv4 and IPv6 addresses or it will not be able to send or receive network traffic. See the XenServer 6.2 Administrator's Guide for more information."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,SANS-CSC|3"
+      cmd         : "/usr/bin/xe network-list params=uuid,name-label,bridge,default-locking-mode,other-config"
+      regex       : "default-locking-mode .+"
+      expect      : "locked"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Restrict allowed IPv4 addresses used by each VM guest"
+      info        : "Port locking prevents ARP and IP spoofing by VM guests. Without it, one guest could impersonate another on the host. This setting lists the allowed IP addresses available for the VM using this virtual interface. If the network default-locking-mode is set to 'locked', a VM that tries to use an address that is not on its allowed list will not be able to send or receive network traffic."
+      solution    : "Set the list of allowed addresses for a virtual interface by running the following commands:\n
+
+xe vif-param-set uuid=<vif-uuid> ipv4-allowed=<comma separated list of ipv4-addresses>\n
+NOTE: This setting is only effective if the network default-locking-mode or vif locking-mode is set to 'locked'."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,SANS-CSC|3"
+      cmd         : "/usr/bin/xe vif-list params=uuid,vm-name-label,ipv4-allowed,locking-mode"
+      regex       : "ipv4-allowed (SRW): .+"
+      expect      : "ipv4-allowed (SRW): \d"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Restrict allowed IPv6 addresses used by each VM guest"
+      info        : "Port locking prevents ARP and IP spoofing by VM guests. Without it, one guest could impersonate another on the host. This setting lists the allowed IP addresses available for the VM using this virtual interface. If the network default-locking-mode is set to 'locked', a VM that tries to use an address that is not on its allowed list will not be able to send or receive network traffic."
+      solution    : "Set the list of allowed addresses for a virtual interface by running the following commands:\n
+
+xe vif-param-add uuid=<vif-uuid> ipv6-allowed=<comma separated list of ipv6-addresses>\n
+NOTE: This setting is only effective if the network default-locking-mode or vif locking-mode is set to 'locked'."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,SANS-CSC|3"
+      cmd         : "/usr/bin/xe vif-list params=uuid,vm-name-label,ipv6-allowed,locking-mode"
+      regex       : "ipv6-allowed (SRW): .+"
+      expect      : "ipv6-allowed (SRW): \d"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Enable remote syslog"
+      info        : "Security log information could be modified or lost if the host is compromised or fails. Send syslog messages to a remote host."
+      solution    : "Run the following commands:\nxe host-param-set uuid=<host_uuid> logging:syslog_destination=<hostname or IP>\nxe host-syslog-reconfigure uuid=<host_uuid>"
+      reference   : "800-171|3.3.8,800-53|AU-9,CSF|PR.PT-1,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,PCI-DSS|10.5.3,SANS-CSC|14"
+      cmd         : "/usr/bin/xe host-list params=uuid,name-label,logging"
+      regex       : "logging .+"
+      expect      : "syslog_destination:[\\s]*[a-zA-Z0-9.:]+(;|$)"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Administrative actions are logged"
+      info        : "Administrators can make significant changes to a system and their actions must be logged."
+      solution    : "This is not a configurable setting. If it fails consider initiating incident response."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      cmd         : "/usr/bin/xe audit-log-get filename | tail -1"
+      regex       : "task.create.+"
+      expect      : "audit-log-get into file"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Host is enabled"
+      info        : "Enabled hosts can run VM guests."
+      solution    : "A host may be disabled for maintenance, or it may indicate an abandoned host which could be removed. To enable the host run the following command:\n
+
+xe host-enable uuid=<host_uuid>"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|1,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe host-list params=name-label,uuid,enabled,address"
+      regex       : "enabled .+"
+      expect      : "true"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "High availability is enabled"
+      info        : "Multiple hosts can be joined to a resource pool to provide redundancy and improve availability of the services provided by the VM guests."
+      solution    : "Add at least one other compatible XenServer host to the pool, configure shared storage, and then run this command:\n
+
+xe pool-ha-enable"
+      reference   : "800-53|CP-9(6),CSF|PR.IP-4,ITSG-33|CP-9(6),NESA|T2.2.4,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe pool-list params=uuid,name-label,ha-enabled"
+      regex       : "ha-enabled .+"
+      expect      : "true"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Auto-start is not enabled"
+      info        : "Auto-start directs the host to start VM guests when the host is restarted or powered on. In XenServer 6.x, the auto-start functionality was removed from the GUI because it interfered with high availability (HA) and produced unexpected results. The feature can be safely enabled in a standalone host from the command line.
+
+    http://support.citrix.com/article/CTX133910"
+      solution    : "Disable auto-poweron at the pool level by running this command:\nxe pool-param-set uuid=<pool_uuid> other-config:auto_poweron=false\nSee the article linked below to enable auto_poweron in a standalone host."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|1,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/xe pool-list params=uuid,name-label,other-config"
+      regex       : "other-config .+"
+      expect      : "^((?!auto_poweron: true).)*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Snapshots are not present"
+      info        : "Snapshots can consume system resources, cause performance issues, and may be reverted unintentionally causing data loss. If snapshots are not required or actively used they should be removed."
+      solution    : "Delete the snapshot by running the following command, using the uuid of the snapshot:\n
+
+xe snapshot-destroy uuid=<snapshot_uuid>"
+      reference   : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,PCI-DSS|2.2.3,SANS-CSC|1"
+      cmd         : "/usr/bin/xe snapshot-list"
+      not_expect  : "uuid"
+    </custom_item>
+
+    <custom_item>
+      type         : CMD_EXEC
+      description  : "Passwords stored in 'secrets' are not visible"
+      info         : "The secrets list stores passwords that are required for remote storage connections or other purposes. These passwords may be visible in clear-text to anyone able to log into the host.
+
+    http://blog.403labs.com/post/57428499719/revealing-xenserver-storage-repository-secrets"
+      solution     : "Use generic, least-privileged accounts that only have access to the storage repositories. Never mount storage repositories with a privileged Active Directory account."
+      reference    : "800-171|3.5.2,800-53|IA-5,CSF|PR.AC-1,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|NS26c,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|5.4,TBA-FIISB|36.2.5,TBA-FIISB|37.1.6"
+      cmd          : "/usr/bin/xe secret-list"
+      regex        : "value .+"
+      not_expect   : "value"
+      check_option : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : CMD_EXEC
+      description  : "Review accounts used to mount remote storage"
+      info         : "The list of accounts used to connect to remote storage should be reviewed. The account names are visible to anyone who can log into the host.
+
+    NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference    : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NESA|T5.2.1,NESA|T5.2.4,NIAv2|AM27,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2.3,SANS-CSC|3"
+      cmd          : "/usr/bin/xe pbd-list"
+      regex        : "username:"
+      check_option : CAN_BE_NULL
+      severity     : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Install a trusted CA certificate on the pool"
+      info        : "Using a certificate on the pool allows encrypted communications with the pool master through SSL. This check verifies that a certificate is installed on the pool. It does not verify whether the issuer is trusted.
+
+    http://www.citrix.com/support/security-compliance/common-criteria.html"
+      solution    : "Copy the certificate from a public or private CA to the pool master host. The certificate must be in Privacy Enhanced Mail (PEM) format. To install the certificate run this command:\n
+
+xe pool-certificate-install filename=<ca_certificate_name.pem>\n
+For more information see the Common Criteria Evaluated Configuration Guide for Citrix XenServer 6.0.2."
+      reference   : "800-53|SC-17,ITSG-33|SC-17,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25,PCI-DSS|4.1,SANS-CSC|3"
+      cmd         : "/usr/bin/xe pool-certificate-list"
+      regex       : ".+\.pem"
+      expect      : ".+\.pem"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "XAPI SSL certificate is in default location"
+      info        : "The SSL certificate location for XAPI is identified in /etc/xensource/xapi-ssl.conf. If the default location is not used other checks may not be valid."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|4.1,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      file        : "/etc/xensource/xapi-ssl.conf"
+      regex       : "cert = .+"
+      expect      : "/etc/xensource/xapi-ssl\.pem"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Install a trusted certificate in place of the default self-signed SSL certificate"
+      info        : "A certificate from a trusted CA allows for secure identification of the XenServer host to XAPI clients such as XenCenter.
+
+    http://www.citrix.com/support/security-compliance/common-criteria.html"
+      solution    : "Replace the default certificate for the host XAPI service, located at /etc/xensource/xapi-ssl.pem, and restart. For more information see the Common Criteria Evaluated Configuration Guide for Citrix XenServer 6.0.2."
+      reference   : "800-171|3.13.15,800-53|SC-23(5),PCI-DSS|4.1,SANS-CSC|3"
+      cmd         : "/usr/bin/openssl verify -CAfile /etc/xensource/xapi-ssl.pem /etc/xensource/xapi-ssl.pem"
+      regex       : ".+\.pem: .+"
+      expect      : ".+\.pem: OK"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "NTP client configured"
+      info        : "An accurate clock is essential for log analysis and correlation with other devices. A valid configuration file for the client system's ntpd must exist at /etc/ntp.conf."
+      reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,SANS-CSC|14"
+      file        : "/etc/ntp.conf"
+      regex       : "^[\\s]*server[\\s]"
+# Note: Variable @NTP_SERVER@ replaced with "192\\.168\\.0\\.1" in field "expect".
+      expect      : "^[\\s]*server[\\s]+192\\.168\\.0\\.1[\\s]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Enable only necessary and secure services, protocols, daemons - 'lwsmd'"
+      info        : "If Likewise (Active Directory integration) is not required then turn this service off."
+      solution    : "systemctl disable lwsmd"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|11,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/systemctl is-enabled lwsmd | /usr/bin/awk '{print} END {if(NR==0) print \"disabled\" }'"
+      expect      : "disabled"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Enable only necessary and secure services, protocols, daemons - 'sshd'"
+      info        : "If SSH is not required then turn this service off."
+      solution    : "systemctl disable sshd"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|11,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/systemctl is-enabled sshd | /usr/bin/awk '{print} END {if(NR==0) print \"disabled\" }'"
+      expect      : "disabled"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Enable only necessary and secure services, protocols, daemons - 'snapwatchd'"
+      info        : "Unintended VM snapshots can degrade performance and use storage resources. If snapshot support is not required then turn this service off."
+      solution    : "systemctl disable snapwatchd"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|11,SWIFT-CSCv1|2.3"
+      cmd         : "/usr/bin/systemctl is-enabled snapwatchd | /usr/bin/awk '{print} END {if(NR==0) print \"disabled\" }'"
+      expect      : "disabled"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Ensure IP forwarding is disabled"
+      info        : "Disable IP forwarding to prevent incoming packets from being forwarded."
+      solution    : "Add net.ipv4.ip_forward=0 to /etc/sysctl.conf"
+      cmd         : "/usr/sbin/sysctl net.ipv4.ip_forward"
+      expect      : "^[\\s]*net\\.ipv4\\.ip_forward[\\s]*=[\\s]*0[\\s]*$"
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "TNS_BestPractice_Citrix_Hypervisor.audit"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

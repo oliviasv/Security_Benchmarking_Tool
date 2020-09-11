@@ -1,0 +1,993 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.5 $
+# $Date: 2020/05/06 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Microsoft SharePoint 2016 Benchmark v1.1.0
+#
+#               https://workbench.cisecurity.org/files/2031
+#
+#<ui_metadata>
+#<display_name>CIS Microsoft SharePoint 2016 OS v1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Microsoft SharePoint 2016</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/2031</link>
+#</spec>
+#<labels>windows,cis,microsoft,sharepoint,sharepoint_2016</labels>
+#<benchmark_refs>LEVEL,CSCv6</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>VIRTUAL_SERVER_ID</name>
+#    <default>2</default>
+#    <description>Virtual Server ID</description>
+#    <info>The unique ID for your site. Found under Site>Advanced Settings.</info>
+#  </variable>
+#  <variable>
+#    <name>FARM_SVC_ACCT</name>
+#    <default>farmsvcaccount</default>
+#    <description>SharePoint farm service account</description>
+#    <info>The name of the Active Directory account used to run SharePoint services.</info>
+#  </variable>
+#  <variable>
+#    <name>DOM_SP_SETUP_ACCT</name>
+#    <default>domainsharepointsetupaccount</default>
+#    <description>Domain SharePoint setup account</description>
+#    <info>The name of the Active Directory domain account used to setup SharePoint.</info>
+#  </variable>
+#  <variable>
+#    <name>INETPUB_ROOT</name>
+#    <default>c:\inetpub\wwwroot</default>
+#    <description>Inetpub Root Directory</description>
+#    <info>The root directory for all Inetpub sites.</info>
+#  </variable>
+#  <variable>
+#    <name>SHAREPOINT_URL</name>
+#    <default>http://sharepoint.yoursite.com</default>
+#    <description>SharePoint URL</description>
+#    <info>The URL to your SharePoint site.</info>
+#  </variable>
+#  <variable>
+#    <name>SHAREPOINT_ZONE</name>
+#    <default>Default</default>
+#    <description>SharePoint Zone</description>
+#    <info>The type of zone for your SharePoint site.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"MS Sharepoint 2016">
+
+<file_acl:"SharePointEmailws">
+  <user:"Administrators">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+  <user:"System">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+  <user:"ALL APPLICATION PACKAGES">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+
+  <user:"ALL RESTRICTED APPLICATION PACKAGES">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+
+  <user:"@wss_admin_wpg">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "create files / write data" | "create folders / append data" | "delete" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+# Note: Variable @FARM_SVC_ACCT@ replaced with "farmsvcaccount" in field "<user".
+  <user:"farmsvcaccount">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions"
+  </user>
+</file_acl>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "1.1 Ensure access to SharePointEmailws.asmx is limited to only the server farm account"
+  info        : "Restrict access to the Microsoft SharePoint Directory Management Service by securing the file associated with this service, which is SharePointEmailws.asmx. Only the SharePoint server farm account requires access.
+Rationale:
+SharePoint 2016 includes an internal service, the Microsoft SharePoint Directory Management Service, for creating e-mail distribution groups. When you configure e-mail integration, you have the option to enable the Directory Management Service feature, which lets users create distribution lists. When users create a SharePoint group and they select the option to create a distribution list, the Microsoft SharePoint Directory Management Service creates the corresponding Active Directory dist ribution list in the Active Directory environment. Creating distribution lists in Active Directory should be limited to only this account."
+  solution    : "Navigate to the directory %CommonProgramFiles%\Microsoft Shared\Web Server Extensions\16\ISAPI
+1. Find the SharePointEmailws.asmx file used by the Microsoft SharePoint Directory Management Service in the following
+2. Right-click on the File and view the Properties.
+3. On the Security tab verify that only the WSS_RESTRICTED_WPG has access to modify the file."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1NS,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+  value_type  : FILE_ACL
+  value_data  : "SharePointEmailws"
+  file        : "%COMMONPROGRAMFILES%\Microsoft Shared\web server extensions\16\ISAPI\SharePointEmailws.asmx"
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "1.2 Ensure that the SharePoint Central Administration Site is TLS-enabled - HTTPS"
+  info            : "Transport Layer Security (TLS) provides protection when communicating over the internet. Traffic is encrypted for portions of information transportation. Ensure that the Central Administration site is configured to be used with TLS.
+Rationale:
+The SharePoint Central Administration site allows an administrator to manage settings for the Web server and virtual servers. TLS protects this critical data by encrypting the traffic that is transmitted over the network."
+  solution        : "An SSL certificate must be acquired before enabling TLS. For more information about SSL certificates, see related topics in IIS Help.
+The Central Administration site must also be first configured to use port 443 and HTTPS. To configure this, execute the following Windows PowerShell command:
+Set-SPCentralAdministration -Port <port> -SecureSocketsLayer
+NOTE: If the server certificate is for an FQDN update the AAM URL of the Central Administration web site:
+Set-SPAlternateUrl -Identity https://servername:443 -Url https://fully.qualified.domain.name:443 -Zone Default
+Navigate to Internet Information Services (IIS) Manager.
+1. Locate the SharePoint Central Administration v4 from the Sites category and verify that it is configured with an HTTPS binding.
+2. Locate the SharePoint Central Administration v4 from the Sites category.
+3. Double click on the Actions pane, in the Edit Site section.
+4. Click the Bindings link.
+5. In the Site Bindings dialog, select the HTTPS binding and click Edit.
+6. In the Edit Site Binding dialog, ensure that the Port, Hostname and SSL Certificate settings fields accordingly."
+  reference       : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1NS,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "https"
+  check_type      : CHECK_REGEX
+  powershell_args : "Get-WebBinding -name 'SharePoint Central Administration v4' -protocol https | Format-List"
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "1.2 Ensure that the SharePoint Central Administration Site is TLS-enabled - Port 443"
+  info            : "Transport Layer Security (TLS) provides protection when communicating over the internet. Traffic is encrypted for portions of information transportation. Ensure that the Central Administration site is configured to be used with TLS.
+Rationale:
+The SharePoint Central Administration site allows an administrator to manage settings for the Web server and virtual servers. TLS protects this critical data by encrypting the traffic that is transmitted over the network."
+  solution        : "An SSL certificate must be acquired before enabling TLS. For more information about SSL certificates, see related topics in IIS Help.
+The Central Administration site must also be first configured to use port 443 and HTTPS. To configure this, execute the following Windows PowerShell command:
+Set-SPCentralAdministration -Port <port> -SecureSocketsLayer
+NOTE: If the server certificate is for an FQDN update the AAM URL of the Central Administration web site:
+Set-SPAlternateUrl -Identity https://servername:443 -Url https://fully.qualified.domain.name:443 -Zone Default
+Navigate to Internet Information Services (IIS) Manager.
+1. Locate the SharePoint Central Administration v4 from the Sites category and verify that it is configured with an HTTPS binding.
+2. Locate the SharePoint Central Administration v4 from the Sites category.
+3. Double click on the Actions pane, in the Edit Site section.
+4. Click the Bindings link.
+5. In the Site Bindings dialog, select the HTTPS binding and click Edit.
+6. In the Edit Site Binding dialog, ensure that the Port, Hostname and SSL Certificate settings fields accordingly."
+  reference       : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1NS,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : ":443:"
+  check_type      : CHECK_REGEX
+  powershell_args : "Get-WebBinding -name 'SharePoint Central Administration v4' -protocol https | Format-List"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_IIS_APPCMD
+  description : "1.3 Ensure specific whitelisted IP addresses, IP address ranges, and/or domains are set"
+  info        : "Access to the SharePoint web application should be restricted to a certain group of users. Typically, this is done through restricting IP addresses to selectively allow known and approved user populations.
+Rationale:
+Restricting access to the SharePoint site minimizes the risks due to exposure of the application to unknown user populations. Risks including loss of confidentiality and integrity of stored data could be drastically reduced.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Start Internet Information Services (IIS) Manager.
+1. Locate the SharePoint Central Administration v4 in the Connections pane.
+2. Double-click IP Address and Domain Restrictions in the list of features.
+3. Click Add Allow Entry....
+4. Add the single IP address or group of addresses for whitelisting."
+  reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-7(5),CN-L3|7.1.2.2(c),CSCv6|14,CSF|PR.PT-4,ITSG-33|SC-7(5),LEVEL|1NS,NIAv2|GS7b,NIAv2|NS25"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+  value_type  : POLICY_TEXT
+  value_data  : "^[\s]+<add[\s]+ipAddress=.*"
+  appcmd_args : 'list config "SharePoint Central Administration v4" /section:system.webServer/security/ipSecurity'
+  check_type  : CHECK_REGEX
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "1.4 Ensure that the underlying Internet Information Services (IIS) Authentication module is set to use Kerberos as its Auth Provider"
+  info            : "The Kerberos protocol is a more secure protocol than NTLM and is based on ticketing. In this scheme, a user provides a valid user name and password to an authentication server. Then, the authentication server grants the user a ticket. The ticket can be used on the network to request network resources.
+Rationale:
+The NTLM protocol has a number of vulnerabilities where a malicious attacker can use a pass the hash attack to gain access to user credentials. The Kerberos protocol is a more secure protocol based on a ticketing system and is recommended."
+  solution        : "Navigate to the Inetpub\Adminscripts folder using a Command Prompt window on the server that is running IIS
+1. Enter the command cd Drive:\inetpub\adminscripts in the command prompt window.
+Note In this command, Drive is the drive where Microsoft Windows is installed.
+2. Enter the command cscript adsutil.vbs get w3svc/##/root/NTAuthenticationProviders in the command prompt window.
+Note In this command, ## is the virtual server ID number. The virtual server ID number of the Default Web site in IIS is 1.
+3. Enter the command cscript adsutil.vbs set w3svc/##/root/NTAuthenticationProviders Negotiate,NTLM
+Note In this command, ## is the virtual server ID number.
+4. Enter the following command in the command prompt window iisreset to reset IIS.
+Impact:
+A malicious attacker could exploit vulnerabilities in old NTLM protocols and gain access to user and administrative credentials.
+Default Value:
+NTLM"
+  reference       : "800-171|3.13.11,800-53|SC-13,CSCv6|16.9,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1NS,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : 'NTAuthenticationProviders[\\s]*:[\\s]*\\(STRING\\)[\\s]*"Negotiate,NTLM"'
+  check_type      : CHECK_REGEX
+# Note: Variable @VIRTUAL_SERVER_ID@ replaced with "2" in field "powershell_args".
+  powershell_args : "cscript %SystemDrive%\inetpub\AdminScripts\adsutil.vbs get w3svc/2/root/NTAuthenticationProviders | Select-String NTAuthenticationProviders"
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "2.1 Ensure 'Block File Types' is configured to match the enterprise blacklist"
+  info                    : "A common tactic of malware is to identify the type of malicious code protection software running on the system and deactivate it. Malicious code includes viruses, worms, Trojan horses, and Spyware.
+Rationale:
+Malicious code protection software must be protected to prevent a non-privileged user or malicious piece of software from disabling the protection mechanism.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution                : "Navigate to Central Administration.
+1. Click Security, and then click Define blocked file type.
+2. To change the web application, click the link next to Web Application: and then click Change Web Application.
+3. In the Select Web Application dialog, click an app.
+4. On the Blocked File Types page to add a file to block, type a file extension (with the period), one per line.
+5. Add all file types listed in the enterprise blacklist.
+6. Repeat check for each web application."
+  reference               : "800-171|3.13.13,800-53|SC-18(3),CSCv6|8,CSF|DE.CM-5,ITSG-33|SC-18(3),LEVEL|1S,NIAv2|NS26f"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'get-spwebapplication|foreach-object {$_.Name;$_.blockedfileextensions;write-host \\"-----\\"}'
+  severity                : MEDIUM
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "2.2 Ensure the SharePoint farm service account (database access account) is configured with the minimum privileges for the local server."
+  info                    : "The SharePoint farm service account (database access account) must be configured with the minimum privileges for the local server.
+Rationale:
+Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+This policy limits the Farm Account privileges in AD. However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the Database Access account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools."
+  solution                : "1. On the server(s) where the SharePoint software is installed, navigate to Server Manager > Local Users and Groups.
+2. Select the Member of tab and ensure this account is only a member of the WSS_RESTRICTED_WPG, WSS_ADMIN_WPG, and WSS_WPG groups.
+3. Select the other tabs in this area to ensure there are no other services or permissions are configured for this account."
+  reference               : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSCv6|5.1,CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,LEVEL|1S,NESA|T5.2.1,NESA|T5.2.2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @FARM_SVC_ACCT@ replaced with "farmsvcaccount" in field "powershell_args".
+  powershell_args         : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_UserAccount.Domain=\'$env:userdomain\',Name=\'farmsvcaccount\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'Administrators\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'WSS_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'WSS_ADMIN_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'WSS_RESTRICTED_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:computername\',Name=\'Administrators\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:computername\',Name=\'WSS_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:computername\',Name=\'WSS_ADMIN_WPG\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:computername\',Name=\'WSS_RESTRICTED_WPG\'`\\"\\" | Select-Object PartComponent,GroupComponent | Format-List'
+  value_data              : ""
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "2.3 Ensure the SharePoint setup account is configured with the minimum privileges in Active Directory."
+  info                    : "The SharePoint setup account must be configured with the minimum privileges in Active Directory.
+Rationale:
+Separation of duties is a prevalent Information Technology control implemented at different layers of the information system including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires the person accountable for approving an action not be the same person who is tasked with implementing the action.
+This requirement is intended to limit exposure due to user accounts being used to operate from within a privileged account or role. Limiting the access and permissions of privileged accounts to the minimum required, reduces exposure if the account is compromised and provides forensic history of activity when operating from these accounts.
+This policy limits the setup account privileges in AD. However, default permissions for this account are configured by the SharePoint Products Configuration Wizard during product installation. This account is referred to during the installation as the 'Database Access' account. By default, the account is used as the service account for the SharePoint Timer Service and the SharePoint Central Administration Web Site Application Pool. These settings should not be changed. Furthermore, this account should not be used as the service account for non-privileged services, applications, or application pools.
+NOTE: The setup account does need to be a member of the local Administrators group on the SharePoint server for installation and configuration."
+  solution                : "1. Navigate to Active Directory Users and Computers > Users.
+2. Double click on the setup user account to view the account properties.
+3. Select the Members of tab and remove and group that is not Domain Users.
+4. Select the other tabs in this area to verify no other services or permissions are configured for this account."
+  reference               : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|5.1,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1NS,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @DOM_SP_SETUP_ACCT@ replaced with "domainsharepointsetupaccount" in field "powershell_args".
+  powershell_args         : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_UserAccount.Domain=\'$env:userdomain\',Name=\'domainsharepointsetupaccount\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'Domain Users\'`\\"\\" | Select-Object PartComponent,GroupComponent | Format-List'
+  value_data              : ""
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "2.4 Ensure SharePoint provides the ability to prohibit the transfer of unsanctioned information in accordance with security policy."
+  info                    : "SharePoint must provide the ability to prohibit the transfer of unsanctioned information in accordance with security policy.
+Rationale:
+The application enforces approved authorizations for controlling the flow of information within the system and between interconnected systems in accordance with applicable policy.
+Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to that information.
+Specific examples of flow control enforcement can be found in boundary protection devices (e.g., proxies, gateways, guards, encrypted tunnels, firewalls, and routers) employing rule sets or establishing configuration settings restricting information system services, providing a packet-filtering capability based on header information or message-filtering capability based on content (e.g., using key word searches or document characteristics).
+Actions to support this requirement include, but are not limited to checking all transferred information for malware, implementing dirty word list searches on transferred information, and applying the same protection measures to metadata (e.g., security attributes) that is applied to the information payload."
+  solution                : "An IRM must be enabled in SharePoint. The Windows Rights Management Services (RMS) (or a comparable IRM product) can either be located through Active Directory or specified."
+  reference               : "800-171|3.1.1,800-53|SC-16,CSCv6|14,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|SC-16,LEVEL|1NS,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "IrmRMSEnabled[\s]*:[\s]*True"
+  check_type              : CHECK_REGEX
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSEnabled -ne 1} | Select-Object IrmRMSEnabled | Format-List'
+</custom_item>
+
+<report type:"WARNING">
+  description : "2.7 Ensure a separate organizational unit (OU) in Active Directory exists for SharePoint 2016 objects."
+  info        : "SharePoint 2016 includes an internal service, the Microsoft SharePoint Directory Management Service, for creating e-mail distribution groups. When you configure e-mail integration, you have the option to enable the Directory Management Service feature, which lets users create distribution lists. When users create a SharePoint group and they select the option to create a distribution list, the Microsoft SharePoint Directory Management Service creates the corresponding Active Directory distribution list in the Active Directory environment.
+Rationale:
+The recommendation is to set up a separate organizational unit (OU) in Active Directory for SharePoint 2016 objects. Only this OU should allow write access to the account that is used by the Microsoft SharePoint Directory Management Service.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "1. Open Active Directory Users and Computers on a domain controller within the Active Directory domain used for SharePoint.
+2. Validate there is a separate OU created for use only with SharePoint 2016 objects, if there is not a separate OU create one.
+3. Modify the separate OU so that only the account used for the Microsoft SharePoint Directory Management Servers has write access to that OU."
+  reference   : "CSCv6|16,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "2.8 Ensure the SharePoint Central Administration site is not accessible from Extranet or Internet connections"
+  info                    : "The SharePoint central administration site should be configured so that its ports and interfaces are not accessible to untrusted external or internet connections.
+Rationale:
+The central administration site is a critical component to the management of the SharePoint platform, allowing administrators to perform a variety of administration tasks, including creating and managing SharePoint Web Applications, Site Collections and Service Applications. Minimizing unnecessary exposure to this site would certainly help mitigate risks to the SharePoint platform.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution                : "* On the system where your SharePoint platform is installed, open a command-line window and type the following command:
+cd %CommonProgramFiles%\Microsoft Shared\Web Server Extensions\16\bin
+
+* Determine the current port number for the Central Administration Web site, by typing the following command:
+
+stsadm -o getadminport
+
+* Configure your firewall so that the SharePoint system and the identified port is not exposed to external connections."
+  reference               : "800-171|3.13.1,800-53|SC-7(11),CSCv6|9.4,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),LEVEL|1NS,NIAv2|GS7c,TBA-FIISB|31.3"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "Manual Review Required"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication -IncludeCentralAdministration | Where-Object {$_.IsAdministrationWebApplication} | select Url | Format-List'
+  severity                : MEDIUM
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "2.10 Ensure that the SharePoint Online Web Part Gallery component is configured with limited access"
+  info                    : "For each SharePoint web application, the platform should be configured to prevent users from accessing the Online Web Part Gallery.
+Rationale:
+Web parts are reusable components that render sections of a SharePoint Web page. The available web parts are displayed in the Web Parts Gallery, which is a collection of web parts located on the internet. The Online Gallery could contain Web Parts from unknown third parties, which could increase the risk of a malicious code execution attack. Preventing users from accessing the Online Web Part Gallery decreases the system's attack surface."
+  solution                : "Login to Central Administration.
+Navigate to Security > Manage Web Part Security
+For each web application in the web application section, perform the following:
+* Select the correct web application in the web application section.
+* Select the 'Prevents users from accessing the Online Web Part Gallery, and helps to
+improve security and performance' option in the Online Web Part Gallery section."
+  reference               : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSCv6|14,CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication | Where-Object {$_.AllowAccessToWebPartCatalog -eq 1} | select DisplayName,AllowAccessToWebPartCatalog | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "3.1 Ensure a secondary SharePoint site collection administrator has been defined on each site collection."
+  info                    : "A secondary SharePoint site collection administrator must be defined when creating a new site collection.
+Rationale:
+If a site reaches its maximum size, users will be denied access until an administrator fixes the problem. Having a secondary administrator reduces the risk of having a Denial-of-Service on a site. If the site reaches its maximum size, the secondary administrator can fix the problem if the primary administrator is not available. In some situations, having a secondary site administrator could be inappropriate for reasons of control or confidentiality.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution                : "1. Log on to SharePoint Central Administration as a member of the Farm Administration Group.
+2. In Central Administration, click Application Management.
+3. On the Site Collection Administrators page, click the arrow next to the site collection name, and then select Change Site Collection if the site collection you want is not already selected.
+4. Select the URL of the site collection, and then click OK. If the site collection is not listed, click the arrow next to the web application name, click Change Web Application, select the name of the web application that contains the site collection, select the URL of the site collection, and then click OK.
+5. In the secondary site collection administrator area, either type the name of the user whom you want to add by using the format <domain>\<username> or select the user by using the address book.
+6. Click OK"
+  reference               : "800-171|3.5.3,800-53|IA-2(1),800-53|SC-5,CN-L3|7.1.2.7(b),CSCv6|5,CSF|DE.CM-1,CSF|PR.AC-1,CSF|PR.DS-4,ITSG-33|IA-2(1),ITSG-33|SC-5,LEVEL|1S,NESA|T3.3.1,NESA|T5.4.2,NIAv2|AM36,NIAv2|GS10c,NIAv2|GS8e,NIAv2|VL3c,SWIFT-CSCv1|1.2"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "Manual Review Required"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : "Get-SPSite | foreach-object {$_.RootWeb.SiteAdministrators} | select @{name='Url';expr={$_.ParentWeb.Url}}, LoginName, Email|format-list"
+  severity                : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "3.2 Ensure SharePoint implements an information system isolation boundary that minimizes the number of non-security functions."
+  info            : "Review the SharePoint server configuration to ensure an information system isolation boundary that minimizes the number of non-security functions included within the boundary containing security functions are implemented.
+Rationale:
+The information system isolates security functions from non-security functions by means of an isolation boundary (implemented via partitions and domains) controlling access to and protecting the integrity of, the hardware, software, and firmware that perform those security functions. The information system maintains a separate execution domain (e.g., address space) for each executing process.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "1. In the server hosting the farm's Central Administration website Open 'IIS Manager'.
+2. Expand Sites tree view and right-click the web application named SharePoint Central Administration.
+3. Select Edit Bindings ....
+4. Change the site is bound to an out-of-band (OOB) IP address."
+  reference       : "800-171|3.13.2,800-171|3.13.5,800-53|SC-7(13),CN-L3|8.1.10.6(h),CSCv6|11.7,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(13),LEVEL|1NS,NIAv2|GS7d,SWIFT-CSCv1|3.1"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "Manual Review Required"
+  powershell_args : "Import-Module Webadministration; Get-ChildItem -Path 'IIS:\Sites'"
+  severity        : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "3.3 Ensure SharePoint implements security functions as a layered structure minimizing interactions between layers of the design."
+  info        : "SharePoint must implement security functions as a layered structure minimizing interactions between layers of the design and avoiding any dependence by lower layers on the functionality or correctness of higher layers.
+Rationale:
+The information system isolates security functions from nonsecurity functions by means of an isolation boundary (implemented via partitions and domains) controlling access to, and protecting the integrity of, the hardware, software, and firmware that perform those security functions. The information system maintains a separate execution domain (e.g., address space) for each executing process.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Move Central Administration servers to an isolated section of the network."
+  reference   : "CSCv6|11.7,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "3.4 Ensure SharePoint identifies data type, specification, and usage when transferring information between different security domains."
+  info                    : "SharePoint must identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied.
+Rationale:
+Information flow control regulates where information is allowed to travel within an information system and between information systems (as opposed to who is allowed to access the information) and without explicit regard to subsequent accesses to that information.
+Flow control is based on the characteristics of the information and/or the information path. Applications providing flow control must identify data type, specification, and usage when transferring information between different security domains so policy restrictions may be applied.
+A security domain is defined as a domain implementing a security policy and administered by a single authority.
+Data type, specification, and usage includes using file naming to reflect the type of data being transferred and limiting data transfer based on file type."
+  solution                : "1. In Central Administration, click on Security.
+2. On the Security page, in the Information policy list, click Configure information rights management.
+3. Ensure Do not use IRM on this server is not selected."
+  reference               : "800-171|3.1.1,800-53|SC-16,CSCv6|14,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ITSG-33|SC-16,LEVEL|1NS,NESA|T1.3.2,NESA|T1.3.3,NESA|T4.2.1"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "IrmRMSEnabled[\s]*:[\s]*True"
+  check_type              : CHECK_REGEX
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | Select-Object -ExpandProperty IrmSettings | Where-Object {$_.IrmRMSEnabled -ne 1} | Select-Object IrmRMSEnabled | Format-List'
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "3.5 Ensure that SharePoint specific malware (i.e. anti-virus) protection software is integrated and configured - Scan on upload"
+  info                    : "SharePoint-specific malware (i.e. anti-virus) protection software must be integrated and configured.
+Rationale:
+Configuring anti-virus settings ensures documents will be scanned for viruses upon download from and upload to the SharePoint server. Anti-virus settings are not configured by default, therefore leaving the documents downloaded from or uploaded to SharePoint open to potential malware."
+  solution                : "1. Log on to the Central Administration website.
+2. Navigate to Operations > Security Configuration.
+3. Select Anti-virus.
+4. SharePoint specific malware (i.e. anti-virus) protection software must be integrated and configured for each of the following:
+o Scan documents on upload.
+o Scan documents on download.
+o Attempt to clean infected documents."
+  reference               : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSCv6|8.1,CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,LEVEL|1S,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | select -ExpandProperty AntivirusSettings | Where-Object {$_.UploadScanEnabled -ne 1} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "3.5 Ensure that SharePoint specific malware (i.e. anti-virus) protection software is integrated and configured - Scan on download"
+  info                    : "SharePoint-specific malware (i.e. anti-virus) protection software must be integrated and configured.
+Rationale:
+Configuring anti-virus settings ensures documents will be scanned for viruses upon download from and upload to the SharePoint server. Anti-virus settings are not configured by default, therefore leaving the documents downloaded from or uploaded to SharePoint open to potential malware."
+  solution                : "1. Log on to the Central Administration website.
+2. Navigate to Operations > Security Configuration.
+3. Select Anti-virus.
+4. SharePoint specific malware (i.e. anti-virus) protection software must be integrated and configured for each of the following:
+o Scan documents on upload.
+o Scan documents on download.
+o Attempt to clean infected documents."
+  reference               : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSCv6|8.1,CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,LEVEL|1S,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | select -ExpandProperty AntivirusSettings | Where-Object {$_.DownloadScanEnabled -ne 1} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "3.5 Ensure that SharePoint specific malware (i.e. anti-virus) protection software is integrated and configured - Attempt to clean"
+  info                    : "SharePoint-specific malware (i.e. anti-virus) protection software must be integrated and configured.
+Rationale:
+Configuring anti-virus settings ensures documents will be scanned for viruses upon download from and upload to the SharePoint server. Anti-virus settings are not configured by default, therefore leaving the documents downloaded from or uploaded to SharePoint open to potential malware."
+  solution                : "1. Log on to the Central Administration website.
+2. Navigate to Operations > Security Configuration.
+3. Select Anti-virus.
+4. SharePoint specific malware (i.e. anti-virus) protection software must be integrated and configured for each of the following:
+o Scan documents on upload.
+o Scan documents on download.
+o Attempt to clean infected documents."
+  reference               : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSCv6|8.1,CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,LEVEL|1S,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : '[Microsoft.SharePoint.Administration.SPWebService]::ContentService | select -ExpandProperty AntivirusSettings | Where-Object {$_.CleaningEnabled -ne 1} | Format-List'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "3.6 Ensure that SharePoint is configured with 'Strict' browser file handling settings"
+  info                    : "SharePoint must prevent the execution of prohibited mobile code.
+Rationale:
+Decisions regarding the utilization of mobile code within organizational information systems need to include evaluations that help determine the potential for the code to cause damage to the system if used maliciously.
+Mobile code technologies include, for example, Java, JavaScript, ActiveX, PDF, Postscript, Shockwave movies, Flash animations, and VBScript. Usage restrictions and implementation guidance apply to both the selection and use of mobile code installed on organizational servers and mobile code downloaded and executed on individual workstations.
+Applications can prevent the execution of prohibited mobile code by leveraging architectures that provide a virtual execution environment sometimes referred to as a 'sandbox'. The mobile code is executed within this isolated environment apart from the host's indigenous operating environment that allows for mobile code capability restrictions and helps to prevent malicious code from accessing system resources and data.
+The application must prevent the execution of prohibited mobile code."
+  solution                : "1. Navigate to Central Administration website.
+2. Click Manage Web Applications.
+3. For each Web Application in the Farm:
+* Click on the Web Application to configure.
+* Click on the drop-down box below General Settings.
+* Click on General Settings in the drop down box.
+* Under Browser File Handling, select Strict."
+  reference               : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|2,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication | where-object {$_.BrowserFileHandling -notmatch \\"strict\\"}|select {$_.name,$_.BrowserFileHandling}'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_IIS_APPCMD
+  description : "3.7 Ensure that SharePoint is set to reject or delay network traffic generated above traffic volume thresholds - maxConnections"
+  info        : "SharePoint must reject or delay, as defined by the organization, network traffic generated above configurable traffic volume thresholds.
+Rationale:
+It is critical when a system is at risk of failing to process audit logs as required; actions are automatically taken to mitigate the failure or risk of failure.
+One method used to thwart the auditing system is for an attacker to attempt to overwhelm the auditing system with large amounts of irrelevant data. Consequently, either audit logs are being overwritten or disk space is being exhausted. In such cases, activity is either being erased from the logs or not recorded at all due to the lack of disk space.
+In many system configurations, the disk space allocated to the auditing system is separate from the disks allocated for the operating system; therefore, this may not result in a system outage.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Access the Internet Information Service Manager on the appropriate SharePoint server.
+1. For each site IIS site subject to user traffic, select the site.
+2. Click Advanced Settings.
+3. Expand Connection Limits.
+4. Ensure the following settings possess a value:
+* Connection Time-Out
+* Maximum Bandwidth
+* Maximum Concurrent Connections
+5. Repeat steps for each site subject to user traffic."
+  reference   : "800-53|SC-5,CSCv6|9,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|1NS,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+  value_type  : POLICY_TEXT
+  value_data  : 'Manual Review Required'
+  appcmd_args : 'list sites /text:limits.maxConnections'
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_IIS_APPCMD
+  description : "3.7 Ensure that SharePoint is set to reject or delay network traffic generated above traffic volume thresholds - connectionTimeout"
+  info        : "SharePoint must reject or delay, as defined by the organization, network traffic generated above configurable traffic volume thresholds.
+Rationale:
+It is critical when a system is at risk of failing to process audit logs as required; actions are automatically taken to mitigate the failure or risk of failure.
+One method used to thwart the auditing system is for an attacker to attempt to overwhelm the auditing system with large amounts of irrelevant data. Consequently, either audit logs are being overwritten or disk space is being exhausted. In such cases, activity is either being erased from the logs or not recorded at all due to the lack of disk space.
+In many system configurations, the disk space allocated to the auditing system is separate from the disks allocated for the operating system; therefore, this may not result in a system outage.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Access the Internet Information Service Manager on the appropriate SharePoint server.
+1. For each site IIS site subject to user traffic, select the site.
+2. Click Advanced Settings.
+3. Expand Connection Limits.
+4. Ensure the following settings possess a value:
+* Connection Time-Out
+* Maximum Bandwidth
+* Maximum Concurrent Connections
+5. Repeat steps for each site subject to user traffic."
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|9,ITSG-33|AC-12,LEVEL|1NS,NIAv2|NS49"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+  value_type  : POLICY_TEXT
+  value_data  : 'Manual Review Required'
+  appcmd_args : 'list sites /text:limits.ConnectionTimeout'
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_IIS_APPCMD
+  description : "3.7 Ensure that SharePoint is set to reject or delay network traffic generated above traffic volume thresholds - maxBandwidth"
+  info        : "SharePoint must reject or delay, as defined by the organization, network traffic generated above configurable traffic volume thresholds.
+Rationale:
+It is critical when a system is at risk of failing to process audit logs as required; actions are automatically taken to mitigate the failure or risk of failure.
+One method used to thwart the auditing system is for an attacker to attempt to overwhelm the auditing system with large amounts of irrelevant data. Consequently, either audit logs are being overwritten or disk space is being exhausted. In such cases, activity is either being erased from the logs or not recorded at all due to the lack of disk space.
+In many system configurations, the disk space allocated to the auditing system is separate from the disks allocated for the operating system; therefore, this may not result in a system outage.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Access the Internet Information Service Manager on the appropriate SharePoint server.
+1. For each site IIS site subject to user traffic, select the site.
+2. Click Advanced Settings.
+3. Expand Connection Limits.
+4. Ensure the following settings possess a value:
+* Connection Time-Out
+* Maximum Bandwidth
+* Maximum Concurrent Connections
+5. Repeat steps for each site subject to user traffic."
+  reference   : "800-53|SC-5,CSCv6|9,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|1NS,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+  value_type  : POLICY_TEXT
+  value_data  : 'Manual Review Required'
+  appcmd_args : 'list sites /text:limits.maxBandwidth'
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "3.8 Ensure that On-Premise SharePoint servers is configured without OneDrive redirection linkages."
+  info                    : "Disable OneDrive Redirection for On-Premise SharePoint servers
+Rationale:
+OneDrive Redirection allows users and organizations to redirect their SharePoint sites to the cloud which may potentially increase the risk exposure to any sensitive information."
+  solution                : "1. Navigate to the Central Administration Menu in SharePoint.
+2. Click on Configure OneDrive and Site links.
+3. Remove any URLs in the My Site URL field."
+  reference               : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|13,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : ""
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPO365LinkSettings | Select MySiteHostUrl | Format-Table -hidetableheaders'
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "3.9 Ensure that SharePoint application servers are protected by a reverse proxy"
+  info        : "A reverse proxy is server component that sits between the internet and the web servers. It accepts HTTP requests, provides various services, and forwards the requests to one or many servers.
+Rationale:
+Having a point at which one can inspect, transform and route HTTP requests before they reach the SharePoint web servers provides significant benefits. A reverse proxy can hide the topology and characteristics of the back-end SharePoint servers by removing the need for direct internet access. A reverse proxy can be placed in an internet facing DMZ, and hide the SharePoint web servers inside a non-public subnet.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Implement a reverse proxy to process all HTTP requests and route them to the SharePoint servers.
+Impact:
+A malicious attacker can directly attack a SharePoint server that is placed in the DMZ."
+  reference   : "CSCv6|12,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+</report>
+
+<report type:"WARNING">
+  description : "3.10 Ensure SharePoint database servers are segregated from application server and placed in a secure zone."
+  info        : "Segregating the SharePoint database server from the application server provides a layered defense architecture.
+Rationale:
+A layered defense architecture provides additional security and reduces the attack vector of an environment. When the SharePoint database server is segregated from the application server only specific ports can be opened from the application server to the database server reducing the attack vector and access to the critical data stored on the SharePoint database.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Review the SharePoint server architecture and move the SharePoint database server in a secure network zone. Only open the specific ports required from the application server to the database server.
+Impact:
+A malicious actor could gain access to the SharePoint database server and extract the sensitive information stored in the database."
+  reference   : "CSCv6|9.5,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+</report>
+
+<report type:"WARNING">
+  description : "3.11 Ensure that the SharePoint Central Administration interface is not hosted in the DMZ."
+  info        : "The SharePoint Central Administration site should not be installed onto the network DMZ, which is exposed to external internet connections.
+Rationale:
+SharePoint installed Central Administrator is a powerful management tool used to administer the farm. This server should be installed on a trusted network segment. This server should also be used to run services rather than user-oriented web applications.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "For environments requiring an Internet-facing capability, remove the SharePoint Central Administration application server upon which Central Administration is installed from the DMZ.
+On the existing farm remove the Central Administration website by:
+1. Run the SharePoint configuration wizard.
+2. Select Do not disconnect from the server farm.
+3. Select Yes, I want to remove the website from this machine.
+4. Select OK."
+  reference   : "CSCv6|12,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+</report>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "4.1 Ensure SharePoint displays an approved system use notification message or banner before granting access to the system."
+  info            : "SharePoint web applications must display an approved system use notification message or banner before granting access.
+Rationale:
+Applications are required to display an approved system use notification message or banner before granting access to the system providing privacy and security notices consistent with applicable federal laws, Executive Orders, directives, policies, regulations, standards, and guidance.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Configure all SharePoint web applications to display the authorized warning banner text at session start. There are many ways to ensure that a warning banner text is shown to the user when using the web application. The following is only one such method of doing so.
+For each existing SharePoint site or web application:
+1. Verify that a global.asax file exists in each SharePoint web application root directory.
+2. Create a back-up on the global.asax file in a safe location.
+3. Create a banner page resource file within the web application directories, created to display the authorized warning banner text and redirects the user back to the web application afterwards.
+4. Modify the web application global.asax file to add a Session_Start method that redirects the user to the banner page resource created from step 3.
+
+The created banner page resource should successfully display the banner upon the start of a new session and redirect the user to the web application afterwards."
+  reference       : "800-171|3.1.9,800-53|AC-8,CSCv6|16,ITSG-33|AC-8,LEVEL|1S,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "Manual Review Required"
+# Note: Variable @INETPUB_ROOT@ replaced with "c:\\inetpub\\wwwroot" in field "powershell_args".
+  powershell_args : "$output = (get-childitem -recurse c:\\inetpub\\wwwroot -include global.asax | select-string Session_Start); foreach-object { if(!$output){ $result='Session_Start not found in any global.asax files' } else { $result=$output }; $result };"
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "4.2 Ensure claims-based authentication is used for all web applications and zones of a SharePoint 2016 farm"
+  info                    : "Claims-based authentication enables systems and applications to authenticate a user without requiring the user to disclose more personal information than necessary. SharePoint continues to offer support for both claims and classic authentication modes. Claims-based identity is an identity model in SharePoint that includes features such as authentication across users of Windows-based systems and systems that are not Windows-based, multiple authentication types, stronger real-time authentication, a wider set of principal types, and delegation of user identity between applications.
+When a user signs in to SharePoint, the user's token is validated and then used to sign in to SharePoint. The user's token is a security token issued by a claims provider. When you build claims-aware applications, the user presents an identity to the application as a set of claims. One claim could be the user's name, another might be an email address. The external identity system is configured to give your application all the information that it needs about the user with each request, along with cryptographic assurance that the identity data received by the application comes from a trusted source.
+Rationale:
+Claims-based identity allows you to factor out the authentication logic from individual applications. Instead of the application determining who the user is, it receives claims that identify the user.
+In software, this bundle of claims is called a security token. Each security token is signed by the issuer who created it. A claims-based application considers users to be authenticated if they present a valid, signed security token from a trusted issuer which is a lot more secure than classic authentication."
+  solution                : "1. Navigate to Central Administration website.
+2. Click on Manage web applications.
+3. Click on the site you're planning to verify Claims Based Authentication.
+4. Under Web Applications tab click on the Authentication Providers icon.
+5. Under the small window pop-up verify if the default value is set to Windows.
+6. Create a PowerShell (.ps1) file and paste the following code into it:
+$setcba = Get-SPWebApplication 'http://<YourSiteURL>'
+$setcba.UseClaimsAuthentication = 1;
+$setcba.Update()
+7. Save the Code as SetClaimsBasedAuthentication.ps1 on the SharePoint server.
+8. Execute the PowerShell script from the SharePoint Management Shell using the following command ./SetClaimsBasedAuthentication.ps1
+Default Value:
+Default value is set to Windows."
+  reference               : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSCv6|16.9,CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|1S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "True"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @SHAREPOINT_URL@ replaced with "http://sharepoint.yoursite.com" in field "powershell_args".
+  powershell_args         : '$site = get-spwebapplication "http://sharepoint.yoursite.com"; $site.UseClaimsAuthentication'
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "4.3 Ensure Windows Authentication uses Kerberos and not the NT Lan Manager (NTLM) authentication protocol"
+  info                    : "If Windows Authentication mechanisms are used on SharePoint, the system should be configured to use the Kerberos authentication protocol rather than the NT Lan Manager (NTLM) equivalent.
+Rationale:
+There are a few factors in which Kerberos is superior to NTLM authentication and is indeed preferred. First, Kerberos offers faster authentication because it does not require multiple servers and components to complete authentication tasks, as in the case of NTLM authentication. Second, Kerberos offers mutual authentication. Kerberos can authenticate the client to the server and importantly, also the server to the client."
+  solution                : "1. Launch Central Administration.
+2. Click on Application Management then Manage web applications.
+3. In Authentication Providers click each available zone.
+4. Under Authentication Providers - Zone popup check Integrated Windows authentication
+and select Negotiate (Kerberos)."
+  reference               : "800-171|3.13.11,800-53|SC-13,CSCv6|16.9,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1NS,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "False"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @SHAREPOINT_URL@ replaced with "http://sharepoint.yoursite.com" in field "powershell_args".
+# Note: Variable @SHAREPOINT_ZONE@ replaced with "Default" in field "powershell_args".
+  powershell_args         : 'Get-SPAuthenticationProvider -WebApplication http://sharepoint.yoursite.com -Zone Default | Select DisableKerberos | Format-Table -HideTableHeaders'
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "4.4 Ensure Anonymous authentication is denied"
+  info                    : "SharePoint web applications should be configured to disallow anonymous authentication, which would allow users to authenticate and use the applications without confirming their identity.
+Rationale:
+Allowing anonymous authentication to SharePoint web applications will nullify the effectiveness of the authentication control. Furthermore, any activity performed in the anonymous session would also not be linkable to a particular account. Such linkages are often critical in post-incident investigations and audits."
+  solution                : "1. Navigate to Central Administration website.
+2. Click on Manage web applications.
+3. Click the web application name.
+4. Click the Authentication Providers button in the Web Applications ribbon.
+5. Click each Zone, and uncheck Enable anonymous access.
+6. Repeat for each web application."
+  reference               : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSCv6|16,CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|1NS,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "False"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+# Note: Variable @SHAREPOINT_URL@ replaced with "http://sharepoint.yoursite.com" in field "powershell_args".
+# Note: Variable @SHAREPOINT_ZONE@ replaced with "Default" in field "powershell_args".
+  powershell_args         : 'Get-SPAuthenticationProvider -WebApplication http://sharepoint.yoursite.com -Zone Default | Select AllowAnonymous | Format-Table -HideTableHeaders'
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "5.1 Ensure that auditable events and diagnostic tracking settings within SharePoint is consistent with the organization's security plans"
+  info                    : "SharePoint must allow designated organizational personnel to select which auditable events are to be audited by specific components of the system.
+Rationale:
+Audit records can be generated from various components within the information system, such as network interfaces, hard disks, modems, etc. From an application perspective, certain specific application functionalities may be audited as well.
+The list of audited events is the set of events for which audits are to be generated. This set of events is typically a subset of the list of all events for which the system is capable of generating audit records (i.e., auditable events, time stamps, source and destination addresses, user/process identifiers, event descriptions, success/fail indications, filenames involved, and access control or flow control rules invoked).
+Organizations may define the organizational personnel accountable for determining which application components shall provide auditable events.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution                : "Navigate to Central Administration.
+1. Click Monitoring.
+2. Click Configure Diagnostic Logging.
+
+Configure the event categories and trace levels to match those defined by the organization's system security plan."
+  reference               : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|6,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "Manual Review Required"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPDiagnosticConfig'
+  severity                : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "5.2 Ensure that remote sessions for accessing security functions and security-relevant information are audited"
+  info        : "Remote access to SharePoint security functions (e.g., user management, audit log management, etc.) and security relevant information requires the activity be audited by the organization.
+Rationale:
+Any remote administrative or security related access to the SharePoint farm must be audited in order to track system activity, assist in diagnosing system issues and provide evidence needed for forensic investigations post security incident. It is also important to verify and validate the security controls that are in place on the platform.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To configure audit settings at the site collection level for each site collection level subject to auditing per organizational requirements:
+Navigate to Site Collection Administration:
+1. Click on Settings.
+2. Click on Site Settings.
+3. Click Site collection audit settings.
+4. Select the events that are required to be audited.
+5. Click OK."
+  reference   : "CSCv6|6.1,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2031"
+</report>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "6.2 Ensure SharePoint is configured with HTTPS connections"
+  info                    : "By default, communication between Web servers and service applications within a farm takes place by using HTTP with a binding to TCP 32843. Configurations should be changed to enable SSL/TLS based HTTPS connections with a binding to TCP port 32844 instead.
+Rationale:
+Forcing communication over HTTPS TCP 32844 hardens the communication between service applications will help to secure the communications against potential compromise
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution                : "On the Service Applications page in Central Administration, select the service application, and then click Publish."
+  reference               : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSCv6|9,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  value_data              : "Manual Review Required"
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPServiceHostConfig; Get-SPServiceApplication | Select DisplayName | Format-Table'
+  severity                : MEDIUM
+</custom_item>
+
+<custom_item>
+  type                    : AUDIT_POWERSHELL
+  description             : "6.3 Ensure that SharePoint user sessions are terminated upon user logoff and when the idle time limit is exceeded"
+  info                    : "The SharePoint platform should be configured with a user session idle time limit of 15 minutes.
+Rationale:
+Whenever a SharePoint user sessions is started, a unique session ID and other session information are generated. Such information can be used be a malicious user to hijack the session. By terminating sessions upon user logoff and idle time limit, the underlying session information is invalidated. Therefore, the potential for the session to be hijacked is removed."
+  solution                : "Review the SharePoint server configuration to ensure user sessions are terminated upon user logoff, and when idle time limit is exceeded.
+Navigate to Central Administration website.
+Click Application Management.
+Click Manage Web Applications.
+Repeat the following steps for each web application:
+* Select the Web Application.
+* Click General Settings in the Web Application ribbon.
+* In the Web Page Security Validation section, verify that Security Validation is: is set to On and that the Security Validation Expires: setting is set to 15 minutes"
+  reference               : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|3.1,ITSG-33|AC-12,LEVEL|1NS,NIAv2|NS49"
+  see_also                : "https://workbench.cisecurity.org/files/2031"
+  value_type              : POLICY_TEXT
+  powershell_console_file : "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16\Config\Powershell\Registration\Psconsole.Psc1"
+  powershell_args         : 'Get-SPWebApplication | Where-Object {$_.FormDigestSettings.Enabled -eq $false -Or $_.FormDigestSettings.Expires -eq $false -Or $_.FormDigestSettings.Timeout.minutes -gt 15} | select DisplayName,Url,{$_.FormDigestSettings.Enabled},{$_.FormDigestSettings.Expires},{$_.FormDigestSettings.Timeout.Minutes} | Format-List'
+  value_data              : ""
+  powershell_option       : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "7.1 Ensure that the MaxZoneParts setting for Web Part limits is set to 100."
+  info            : "Limit the number of web parts in SharePoint to 100.
+Rationale:
+A user can create too many personal views. With personal views, SharePoint actually adds each view as a web part on the page. If a user has 10 personal views, there are actually 10 web parts on the page. 9 of those web parts are hidden depending on the personal view selected. When SharePoint reaches the default maximum of 50 web parts on the page, it will throw an error.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Navigate to the IIS Manager on the Web Front End (WFE) servers
+1. Click on the Sites folder.
+2. Highlight the site (web application).
+3. On the right-hand navigation bar, Click on Explore.
+4. Open the web.config file with Notepad.
+5. Find the following phrase: <WebPartLimits MaxZoneParts='50' PropertySize='1048576'/>.
+6. Change the value for MaxZoneParts from 50 to 100.
+7. Save the file.
+8. Open a command prompt as Administrator and type in iisreset to restart IIS.
+9. Repeat for the remaining Web Front End servers.
+Impact:
+SharePoint will throw errors if the number of web parts is not limited.
+Default Value:
+50 web parts per page"
+  reference       : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|18,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "Manual Review Required"
+# Note: Variable @INETPUB_ROOT@ replaced with "c:\\inetpub\\wwwroot" in field "powershell_args".
+  powershell_args : "$output = (get-childitem -recurse c:\\inetpub\\wwwroot -include web.config | select-string MaxZoneParts); foreach-object { if(!$output){ $result='MaxZoneParts not found in any web.config files' } else { $result=$output }; $result };"
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "7.2 Ensure that the SafeControls list is set to the minimum set of controls needed for your sites"
+  info            : "The Safe Controls list contains the names of controls and Web Parts, specific to your SharePoint site, that server administrators can designate as safe for use on any .aspx page within a site. This list is part of the Web.config file in your Web application root.
+Rationale:
+A fundamental assumption of the Windows SharePoint Services technology is that 'untrusted users' can upload and create ASPX pages within the system on which Windows SharePoint Services is running. These users should be prevented from adding server-side code within ASPX pages, but there should be a list of approved controls that those untrusted users can use. One way to provide these controls is to create a Safe Controls list.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "1. Copy the <YourWebPartName>.dll assembly in the project's Bin directory to the Bin directory in your Web application root directory. For example: C:\inetpub\wwwroot\wss\VirtualDirectories\80\.
+2. Locate the Web.config file in your application root directory and open it for editing.
+3. Add the following safe-control entry for your custom assembly to the Web.config file:
+
+<SafeControl Assembly='<YourWebPartName>, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null' Namespace='<YourWebPartNamespace>' TypeName='*' Safe='True' AllowRemoteDesigner='True'/>
+<YourWebPartName> is the name of the Web Part that is being deployed.
+<YourWebPartNamespace> is the namespace that is associated with your Web Part.
+Impact:
+Malicious users can upload and create ASPX pages."
+  reference       : "800-171|3.13.13,800-53|SC-18,CSCv6|18,CSF|DE.CM-5,ITSG-33|SC-18,LEVEL|1S,NIAv2|NS26a,NIAv2|NS26d,NIAv2|SU3"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "Manual Review Required"
+# Note: Variable @INETPUB_ROOT@ replaced with "c:\\inetpub\\wwwroot" in field "powershell_args".
+  powershell_args : "$output = (get-childitem -recurse c:\\inetpub\\wwwroot -include web.config | select-string SafeControl); foreach-object { if(!$output){ $result='SafeControl not found in any web.config files' } else { $result=$output }; $result };"
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "7.3 Ensure compilation or scripting of database pages via the PageParserPaths elements is not allowed"
+  info            : "Allowing compilation or scripting of database pages via the 'PageParserPaths' elements can lead to disclosure of compilation error messages containing server info and source code exposed to the user.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Do not allow compilation or scripting of database pages via the PageParserPaths elements in Web.Config file
+Impact:
+Information Disclosure of server path, Operating system info and source code to the user by compilation error messages.
+Default Value:
+By default, the tag in application wab.config file is empty."
+  reference       : "800-53|SI-11,CSCv6|18,ITSG-33|SI-11,LEVEL|1S"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "Manual Review Required"
+# Note: Variable @INETPUB_ROOT@ replaced with "c:\\inetpub\\wwwroot" in field "powershell_args".
+  powershell_args : "$output = (get-childitem -recurse c:\\inetpub\\wwwroot -include web.config | select-string PageParserPath); foreach-object { if(!$output){ $result='PageParserPath not found in any web.config files' } else { $result=$output }; $result };"
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "7.4 Ensure the SharePoint CallStack and AllowPageLevelTrace 'SafeMode' parameters are set to false - CallStack"
+  info            : "The CallStack and PageLevelTrace parameters are used when debugging a problem and displays detailed additional information.
+Rationale:
+The detailed additional information provided by the CallStack and PageLevelTrace parameters can be used by a malicious actor to gain sensitive information about the system parameters and application.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Locate the Web.configfile in your application root directory and edit it.
+Edit the following SafeMode entry in the Web.config file:
+1. Edit parameter CallStack='false'.
+2. Edit parameter AllowPageLevelTrace='false'.
+3. Close the Web.config file and save it.
+Impact:
+System sensitive information can be compromised."
+  reference       : "800-53|SI-11,CSCv6|18.5,ITSG-33|SI-11,LEVEL|1S"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "Manual Review Required"
+# Note: Variable @INETPUB_ROOT@ replaced with "c:\\inetpub\\wwwroot" in field "powershell_args".
+  powershell_args : "$output = (get-childitem -recurse c:\\inetpub\\wwwroot -include web.config | select-string CallStack); foreach-object { if(!$output){ $result='CallStack not found in any web.config files' } else { $result=$output }; $result };"
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "7.4 Ensure the SharePoint CallStack and AllowPageLevelTrace 'SafeMode' parameters are set to false - AllowPageLevelTrace"
+  info            : "The CallStack and PageLevelTrace parameters are used when debugging a problem and displays detailed additional information.
+Rationale:
+The detailed additional information provided by the CallStack and PageLevelTrace parameters can be used by a malicious actor to gain sensitive information about the system parameters and application.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Locate the Web.configfile in your application root directory and edit it.
+Edit the following SafeMode entry in the Web.config file:
+1. Edit parameter CallStack='false'.
+2. Edit parameter AllowPageLevelTrace='false'.
+3. Close the Web.config file and save it.
+Impact:
+System sensitive information can be compromised."
+  reference       : "800-53|SI-11,CSCv6|18.5,ITSG-33|SI-11,LEVEL|1S"
+  see_also        : "https://workbench.cisecurity.org/files/2031"
+  value_type      : POLICY_TEXT
+  value_data      : "Manual Review Required"
+# Note: Variable @INETPUB_ROOT@ replaced with "c:\\inetpub\\wwwroot" in field "powershell_args".
+  powershell_args : "$output = (get-childitem -recurse c:\\inetpub\\wwwroot -include web.config | select-string AllowPageLevelTrace); foreach-object { if(!$output){ $result='AllowPageLevelTrace not found in any web.config files' } else { $result=$output }; $result };"
+  severity        : MEDIUM
+</custom_item>
+
+</group_policy>
+</check_type>

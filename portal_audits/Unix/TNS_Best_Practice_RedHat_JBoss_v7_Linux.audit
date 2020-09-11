@@ -1,0 +1,842 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.5 $
+# $Date: 2020/07/14 $
+#
+#<ui_metadata>
+#<display_name>TNS Best Practice JBoss 7 Linux</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>TNS Best Practice JBoss 7 Linux</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>jboss,jboss_7,agent,unix</labels>
+#<variables>
+#  <variable>
+#    <name>JBOSS_INSTALL_DIR</name>
+#    <default>/opt/jboss</default>
+#    <description>JBoss install Directory</description>
+#    <info>JBoss install Directory</info>
+#  </variable>
+#  <variable>
+#    <name>SERVER_XML</name>
+#    <default>/opt/jboss/standalone/configuration/standalone-full.xml</default>
+#    <description>server.xml full file path</description>
+#    <info>server.xml full file path</info>
+#  </variable>
+#  <variable>
+#    <name>JBOSS_USER</name>
+#    <default>jboss</default>
+#    <description>JBoss user</description>
+#    <info>JBoss user for process and log permissions</info>
+#  </variable>
+#  <variable>
+#    <name>JBOSS_GROUP</name>
+#    <default>jboss</default>
+#    <description>JBoss group</description>
+#    <info>JBoss group for process and log permissions</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DIR</name>
+#    <default>/var/log/jboss</default>
+#    <description>JBoss Log directory</description>
+#    <info>JBoss Log directory</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DIR_MASK</name>
+#    <default>177</default>
+#    <description>JBoss Log Dir Permissions Mask</description>
+#    <info>JBoss Log Dir Permissions Mask</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CHECK
+      description : "JBoss is installed"
+# Note: Variable @JBOSS_INSTALL_DIR@ replaced with "/opt/jboss" in field "file".
+      file        : "/opt/jboss/jboss-modules.jar"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "TNS_Best_Practice_RedHat_JBoss_v7_Linux.audit from TNS Best Practice JBoss 7 Linux"
+      info        : "Nessus has identified that JBoss 7 is installed."
+    </report>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "1 - Remove or Disable Example Content - ExampleDS"
+      info        : "Although it can be a good idea to keep some example content in a test environment, to check if the server is running correctly, it is not a good practice in production.
+
+Removing the samples will prevent an external client seeing what version of the AS you are running and will also prevent the AS instance being affected by future security bugs on this content."
+      solution    : "Delete the example datasource shipped with the default configuration:
+
+  <datasource jndi-name=\"java:jboss/datasources/ExampleDS\" pool-name=\"ExampleDS\" enabled=\"true\" use-java-context=\"true\">"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"not(//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='datasources']//*[local-name()='datasource'][@pool-name = 'ExampleDS']) or (//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='datasources']//*[local-name()='datasource'][@pool-name = 'ExampleDS']/@enabled = 'false')\">"
+      xsl_stmt    : "Passed - ExampleDS config not found or disabled"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - ExampleDS config found and not removed or disabled"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "2 - Remove or Disable Example Content - enable-welcome-root"
+      info        : "Although it can be a good idea to keep some example content in a test environment, to check if the server is running correctly, it is not a good practice in production.
+
+Removing the samples will prevent an external client seeing what version of the AS you are running and will also prevent the AS instance being affected by future security bugs on this content."
+      solution    : "Disable or remove the welcome-content directory by placing \"false\" as a value on enable-welcome-root
+
+  <virtual-server name=\"default-host\" enable-welcome-root=\"false\">"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"not(//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='virtual-server']/@enable-welcome-root) or (//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='virtual-server']/@enable-welcome-root = 'false')\">"
+      xsl_stmt    : "Passed - enable-welcome-root config not found or disabled"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - enable-welcome-root config found and not removed or disabled"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "3 - Audit Logging - Handler"
+      info        : "It is good practice to log the actions on the org.jboss.security class. This category includes all the security related actions on the particular instance of the AS (authentication, failures, administrative changes ..).
+
+It is good to keep these events in a separate file for easy classification and analysis."
+      solution    : "Insert a new handler into the logging subsystem:
+
+  <profile>
+    <subsystem ....>
+      <periodic-rotating-file-handler name=\"....\">
+        logging actions
+      </periodic-rotating-file-handler>
+    </subsystem>
+  </profile>"
+      reference   : "800-53|AU-11,CSF|PR.PT-1,ITSG-33|AU-11,NESA|M5.2.3,NESA|T3.6.2,NIAv2|SM7"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='periodic-rotating-file-handler']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='periodic-rotating-file-handler']\">"
+      xsl_stmt    : "Passed - Periodic Rotating File Handler found, Name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - Periodic Rotating File Handler not found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "3 - Audit Logging - Logger"
+      info        : "It is good practice to log the actions on the org.jboss.security class. This category includes all the security related actions on the particular instance of the AS (authentication, failures, administrative changes ..).
+
+It is good to keep these events in a separate file for easy classification and analysis.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Create a new category and reference the handler needed:
+
+  <profile>
+    <subsystem ....>
+      <logger ....>
+        <handlers>
+          <handler name=\"....\" />
+        </handlers>
+      </logger>
+    </subsystem>
+  </profile>"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"(//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='logger']//*[local-name()='handlers']//*[local-name()='handler']) or (//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='root-logger']//*[local-name()='handlers']//*[local-name()='handler'])\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='logger']//*[local-name()='handlers']//*[local-name()='handler']\">"
+      xsl_stmt    : "Handler found, Name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='root-logger']//*[local-name()='handlers']//*[local-name()='handler']\">"
+      xsl_stmt    : "Handler found, Name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "No Handlers found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "4 - Send logs to a remote server"
+      info        : "Sending logs to a remote location is an excellent way to increase security (preventing log tampering) and improve your application error analysis. Jboss supports a syslog handler designed for this purpose."
+      solution    : "Add the syslog handler in your logging subsystem:
+
+  <profile>
+    <subsystem ....>
+      <syslog-handler name=\"....\">
+        ....
+      </syslog>
+    </subsystem>
+  </profile>"
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='syslog-handler']//*[local-name()='server-address']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='syslog-handler']\">"
+      xsl_stmt    : "Passed - Syslog handler found, Name: <xsl:value-of select=\"@name\"/>, Server Address: <xsl:value-of select=\"*[local-name()='server-address']/@value\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - No Syslog handlers found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "5 - Granular Log Levels"
+      info        : "If your application is handling sensitive data or you are regulated by any data security compliance, you may want to reduce the log level of the sensitive classes of your application to avoid logging sensitive data on production system.
+
+If your log file is for some reason compromised, the attacker may reach sensitive data stored in the logs if the class log level is not set up properly.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Review all <logger ...> entries and their levels to match requirements."
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='logger']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='logger']\">"
+      xsl_stmt    : "Logger handler found, Category: <xsl:value-of select=\"@category\"/>, Level: <xsl:value-of select=\"*[local-name()='level']/@name\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - No Syslog handlers found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "6 - Run your Instance as non privileged user"
+      info        : "This is a global requirement for any mission-critical application, your AS 7 instance should never run as root account in a secure environment."
+      solution    : "Please refer to your operating system documentation to understand how to run AS7 as non privileged user."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+      cmd         : "ps aux | grep '[j]boss' | grep root"
+      not_expect  : "root"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "7 - File system permissions of log files"
+      info        : "In order to prevent modifications to your log files, you can restrict the OS permissions to only be readable/writable by the JBoss user."
+      solution    : "In order to change the location of your log files you can use this Java property at startup jboss.domain.log.dir and set a different log directory (I.E. /var/log/jboss)
+
+-Djboss.domain.log.dir=/var/log/jboss/"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @LOG_DIR@ replaced with "/var/log/jboss" in field "file".
+      file        : "/var/log/jboss/*"
+# Note: Variable @JBOSS_USER@ replaced with "jboss" in field "owner".
+      owner       : "jboss"
+# Note: Variable @LOG_DIR_MASK@ replaced with "177" in field "mask".
+      mask        : "177"
+# Note: Variable @JBOSS_GROUP@ replaced with "jboss" in field "group".
+      group       : "jboss"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "8 - Secure Datasources"
+      info        : "In order to secure your datasources, it is good practice is associate them with a security domain.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Configure security domains with needed requirements."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='security-domains']//*[local-name()='security-domain']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='security-domains']//*[local-name()='security-domain']\">"
+      xsl_stmt    : "Security Domain found, Name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "No Security Domains found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "9 - Deployment Scanner"
+      info        : "The deployment scanner scans the file system where your AS instance is running to automatically deploy any new application copied in your deploy directory. If it is not needed, the deployment scanner must be disabled in order to prevent unauthorized files being deployed."
+      solution    : "Configure the scan-interval parameter as -1 , this will configure the deployment scanner to only allow deployments from console or at instance startup."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='deployment-scanner']/@scan-interval = '-1'\">"
+      xsl_stmt    : "Passed - Deployment Scanner Interval set to -1"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - Deployment Scanner Interval set to <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='deployment-scanner']/@scan-interval\"/>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "10 - Enable SSL Connector"
+      info        : "Enabling the SSL connector for the web subsystem will encrypt everything that is using that particular port"
+      solution    : "Configure the the SSL connector for the web subsystem:
+
+  <subsystem ....>
+    <connector name=\"https\" protocol=\"HTTP/1.1\" scheme=\"https\" socket-binding=\"https\" secure=\"true\" .... >
+      <ssl name=\"ssl\" .... />
+    </connector>
+  </subsystem>"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='connector']/@scheme = 'https'\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='connector'][@scheme = 'https']\">"
+      xsl_stmt    : "Passed - SSL Connector found, Name: <xsl:value-of select=\"@name\"/>, Scheme: <xsl:value-of select=\"@scheme\"/>, Socket Binding: <xsl:value-of select=\"@socket-binding\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - No SSL Connectors found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "11 - JSP Regeneration"
+      info        : "If you do not need automatic regeneration of JSP pages, set up the Web Subsystem to not regenerate the content automatically. This can prevent someone injecting code in your JSP resources and compiling them without your knowledge."
+      solution    : "The 'Development' value set to false will prevent JSP resources being automatically generated and force a restart in order to implement the changes.
+
+  <connector>
+    ....
+  </connector>
+  <virtual-server name=\"....\" enable-welcome-root=\"false\">
+    ....
+  </virtual-server>
+  <configuration>
+   <jsp-configuration development=\"false\"/>
+  </configuration>"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='configuration']//*[local-name()='jsp-configuration']/@development = 'false'\">"
+      xsl_stmt    : "Passed - JSP Regeneration is set to 'false'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - JSP Regeneration is set to <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='configuration']//*[local-name()='jsp-configuration']/@development\"/>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "12 - Remove and mask informational headers - JSP Configuration"
+      info        : "When a resource is requested from the Web Connector via HTTP, the response contains headers with information about the server which generated the response.
+
+  This information can help an attacker to quickly identify which version you are running and consequently tune the attack attempts specifically for your software instance."
+      solution    : "In order to hide or mask these headers we can set up the web subsystem with the following:
+
+  <subsystem xmlns=\"urn:jboss:domain:web:1.1\" default-virtual-server=\"example.com\" native=\"false\">
+    <connector>
+      ....
+    </connector>
+    <virtual-server name=\"example.com\" enable-welcome-root=\"false\">
+      ....
+    </virtual-server>
+    <configuration>
+      <jsp-configuration x-powered-by=\"false\"/>
+    </configuration>
+  </subsystem>"
+      reference   : "800-53|SC-30,ITSG-33|SC-30"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='configuration']//*[local-name()='jsp-configuration']/@x-powered-by = 'false'\">"
+      xsl_stmt    : "Passed - x-powered-by is set to 'false'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - x-powered-by is set to <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='configuration']//*[local-name()='jsp-configuration']/@x-powered-by\"/>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "12 - Remove and mask informational headers - Server Property Override"
+      info        : "When a resource is requested from the Web Connector via HTTP, the response contains headers with information about the server which generated the response.
+
+  This information can help an attacker to quickly identify which version you are running and consequently tune the attack attempts specifically for your software instance."
+      solution    : "You should mask the 'Server:' value in the header. By default this header shows the version of our servlet container.
+
+In order to remove it we can set up a global property in this way:
+
+<system-properties>
+  ....
+  <property name=\"org.apache.coyote.http11.Http11Protocol.SERVER\" value=\"SuperSecureServer\"/>
+  ....
+</system-properties>"
+      reference   : "800-53|SC-30,ITSG-33|SC-30"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='system-properties']//*[local-name()='property']/@name = 'org.apache.coyote.http11.Http11Protocol.SERVER'\">"
+      xsl_stmt    : "Passed - system-properties Server value is found and set to '<xsl:value-of select=\"//*[local-name()='server']//*[local-name()='system-properties']//*[local-name()='property'][@name = 'org.apache.coyote.http11.Http11Protocol.SERVER']/@value\"/>'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - system-properties Server value is not found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "13 - Disable stacktrace in response body"
+      info        : "Stacktraces in response bodies are useful for quick debugging in development and test environments. However in production, showing stracktraces can leak sensitive information to the client."
+      solution    : "To disable this particular functionality, the display-source-fragment directive must be set to false.
+
+<subsystem xmlns=\"urn:jboss:domain:web:1.1\" ... >
+   ....
+<configuration>
+  <jsp-configuration display-source-fragment=\"false\"/>
+</configuration>
+   ....
+</subsystem>"
+      reference   : "800-53|SI-11,ITSG-33|SI-11"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='configuration']//*[local-name()='jsp-configuration']/@display-source-fragment = 'false'\">"
+      xsl_stmt    : "Passed - display-source-fragment is set to 'false'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - display-source-fragment is set to <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='configuration']//*[local-name()='jsp-configuration']/@display-source-fragment\"/>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "14 - SSL Encryption - Modify WSDL Address"
+      info        : "Define the secure WSDL port leveraging on the Web Subsystem ssl connector."
+      solution    : "<modify-wsdl-address> needs to be set to true in order for the Webservices subsystem to change all the http:// links in your WSDL file to https://, and instruct the client to go only to the secure version of your resources."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='modify-wsdl-address'] = 'true'\">"
+      xsl_stmt    : "Passed - modify-wdsl-address is set to 'true'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - modify-wdsl-address is set to <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='modify-wsdl-address']\"/>"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "14 - SSL Encryption - WSDL Secure Port"
+      info        : "Define the secure WSDL port leveraging on the Web Subsystem ssl connector."
+      solution    : "<wsdl-secure-port> must be a secure SSL connector port."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='wsdl-secure-port']\">"
+      xsl_stmt    : "Passed - wsdl-secure-port is set to '<xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='wsdl-secure-port']\"/>'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - wsdl-secure-port not found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "15 - Authentication"
+      info        : "To create a security domain for your Webservices endpoints, you can use different login modules.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Please consult the Security subsystem configuration (https://docs.jboss.org/author/display/AS72/Security+subsystem+configuration) for more detailed information."
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='security-domains']//*[local-name()='security-domain']//*[local-name()='authentication']//*[local-name()='login-module']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='security-domains']//*[local-name()='security-domain']//*[local-name()='authentication']//*[local-name()='login-module']\">"
+      xsl_stmt    : "Login module found, Code: <xsl:value-of select=\"@code\"/>"
+      xsl_stmt    : "<xsl:for-each select=\"*[local-name()='module-option']\">"
+      xsl_stmt    : "--Module Option, Name: <xsl:value-of select=\"@name\"/>, Value: <xsl:value-of select=\"@value\"/>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "No Security Domains found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "16 - ORB Subsystem - Initializers On"
+      info        : "The AS 7 ORB implementation can be secured by enabling SSL encryption in the JacORB subsystem."
+      solution    : "To enable this in JacORB setup the tags security-domain and security:
+
+  <subsystem xmlns=\"urn:jboss:domain:jacorb:1.1\">
+  <orb>
+    <initializers security=\"on\" transactions=\"spec\"/>
+  </orb>
+  <security support-ssl=\"on\" security-domain=\"ssl-domain\"/>
+  </subsystem>"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='orb']//*[local-name()='initializers'][@security = 'on']\">"
+      xsl_stmt    : "Passed - orb initializers security is set to 'on'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - orb initializers security is set to 'off' or not found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "16 - ORB Subsystem - Security-Domain Set"
+      info        : "The AS 7 ORB implementation can be secured by enabling SSL encryption in the JacORB subsystem."
+      solution    : "To enable this in JacORB setup the tags security-domain and security:
+
+  <subsystem xmlns=\"urn:jboss:domain:jacorb:1.1\">
+  <orb>
+    <initializers security=\"on\" transactions=\"spec\"/>
+  </orb>
+  <security support-ssl=\"on\" security-domain=\"ssl-domain\"/>
+  </subsystem>"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='security']/@security-domain\">"
+      xsl_stmt    : "Passed - orb security domain is found '<xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='security']/@security-domain\"/>'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - orb security domain not found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "17 - Setup a security domain"
+      info        : "Like the other subsystems, the messaging subsystem can be linked to a security-domain in order to delegate encryption or authentication settings."
+      solution    : "Reference the name of your security domain after the <hornetq-server> element
+
+  <subsystem xmlns=\"urn:jboss:domain:messaging:1.1\">
+    <hornetq-server>
+        <security-domain>mysecuritydomain</security-domain>
+        ...
+    </hornetq-server>
+  </subsystem>"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='hornetq-server']//*[local-name()='security-domain']\">"
+      xsl_stmt    : "Passed - hornetq-server security domain found, name '<xsl:value-of select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='hornetq-server']//*[local-name()='security-domain']\"/>'"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Failed - hornetq-server security domain not found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "18 - Role Based Authentication per queue"
+      info        : "In order to have  role based authentication inside our queue server you need to setup HornetQ with these directives.
+
+You can restrict the access to particular queue (read/write) or even prevent the creation, deletion of new queues, with a basic role based access control.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Set the security-setting parameters to match needed requirements:
+
+  <subsystem xmlns=\"urn:jboss:domain:messaging:1.1\">
+    <hornetq-server>
+      <security-settings>
+        <security-setting match=\"#\">
+            <permission type=\"send\" roles=\"MyRole\"/>
+            <permission type=\"consume\" roles=\"MyRole\"/>
+            <permission type=\"createNonDurableQueue\" roles=\"MyRole\"/>
+            <permission type=\"deleteNonDurableQueue\" roles=\"MyRole\"/>
+        </security-setting>
+      </security-settings>
+    </hornetq-server>
+  </subsystem>"
+      reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='hornetq-server']//*[local-name()='security-settings']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='hornetq-server']//*[local-name()='security-settings']\">"
+      xsl_stmt    : "hornetq-server security settings found, match '<xsl:value-of select=\"*[local-name()='security-setting']/@match\"/>'"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='security-setting']//*[local-name()='permission']\">"
+      xsl_stmt    : "--permission type: '<xsl:value-of select=\"@type\"/>', roles: '<xsl:value-of select=\"@roles\"/>'"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "No hornetq-server security settings found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "19 - Cluster Authentication"
+      info        : "If a messaging cluster is used, authentication must be in place to prevent unauthorized nodes joining the cluster pool.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Setup you password in the <hornetq-server> element:
+
+  <hornetq-server>
+    ....
+    <cluster-user>myuser</cluster-user>
+    <cluster-password>${jboss.messaging.cluster.password:mypass}</cluster-password>
+  </hornetq-server>"
+      reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='hornetq-server']//*[local-name()='security-settings']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='hornetq-server']//*[local-name()='security-settings']\">"
+      xsl_stmt    : "hornetq-server security settings found, match '<xsl:value-of select=\"*[local-name()='security-setting']/@match\"/>'"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='security-setting']//*[local-name()='permission']\">"
+      xsl_stmt    : "--permission type: '<xsl:value-of select=\"@type\"/>', roles: '<xsl:value-of select=\"@roles\"/>'"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "No hornetq-server security settings found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "20 - Enable Encryption"
+      info        : "The ENCRYPT protocol uses a keystore in order to encrypt the communication layer of all the other protocols below it.
+
+Before configuring the AS, you must create another keystore to use specifically in JGroups.
+
+Unfortunately, JGroups does not support the keystores generated with the standard JDK keytool. You must create your custom keystore with a java file called KeyStoreGenerator which is included in the demo package of JGroups.
+
+java -cp /your/path/to/jboss/modules/system/layers/base/org/jgroups/main/JGroups-version.jar org.jgroups.demos.KeyStoreGenerator --alg AES --size 128 --storeName FILENAME --storePass PASSWORD --alias MyKey
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Include the ENCRYPT protocol in the standalone-full-ha of your JBoss AS instance:
+
+
+  <stack name=\"udp\">
+    ....
+    <transport type=\"UDP\" socket-binding=\"jgroups-udp\" diagnostics-socket-binding=\"jgroups-diagnostics\"/>
+      <protocol type=\"ENCRYPT\">
+          <property name=\"encrypt_entire_message\">true</property>
+          <property name=\"sym_init\">128</property>
+          <property name=\"sym_algorithm\">AES/ECB/PKCS5Padding</property>
+          <property name=\"asym_init\">512</property>
+          <property name=\"asym_algorithm\">RSA</property>
+          <property name=\"keyPassword\">YOURKEYSTOREPASSWORD</property>
+          <property name=\"keyStoreName\">path/to/keystore</property>
+          <property name=\"alias\">MyKey</property>
+          <property name=\"storePassword\">YOURTRUSTSTOREPASSWORD</property>
+       </protocol>
+     ....
+     </transport>
+   </stack>
+
+  You can move the ENCRYPT element up and down trough the protocols stack, this will configure the subsystem to encrypt only the protocols below the ENCRYPT element."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://docs.jboss.org/author/display/AS72/Hardening+Guidelines"
+# Note: Variable @SERVER_XML@ replaced with "/opt/jboss/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/opt/jboss/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='stack']//*[local-name()='protocol'][@type = 'ENCRYPT']\">"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='server']//*[local-name()='profile']//*[local-name()='subsystem']//*[local-name()='stack']//*[local-name()='protocol'][@type = 'ENCRYPT']\">"
+      xsl_stmt    : "Stack protocol ENCRYPT settings found"
+      xsl_stmt    : "<xsl:for-each select=\"//*[local-name()='property']\">"
+      xsl_stmt    : "--property name: '<xsl:value-of select=\"@name\"/>', value: '<xsl:value-of select=\".\"/>'"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:for-each>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "No protocol ENCRYPT settings found"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ".*"
+      expect      : "Manual Review Required"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "TNS_Best_Practice_RedHat_JBoss_v7_Linux.audit from TNS Best Practice JBoss 7 Linux"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

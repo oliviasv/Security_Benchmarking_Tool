@@ -1,0 +1,797 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.7 $
+# $Date: 2020/07/14 $
+#
+# description : This .audit file contains various check for general best practice
+#               settings for a BIND DNS Server installation
+#
+#<ui_metadata>
+#<display_name>BIND - TNS BIND Best Practices Audit v1.0.0</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>BIND - TNS BIND Best Practices Audit</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>bind,dns,agent,unix</labels>
+#<variables>
+#  <variable>
+#    <name>NAMED_CONF</name>
+#    <default>/etc/named.conf</default>
+#    <description>Configuration file location</description>
+#    <info>The location of the BIND configuration file.</info>
+#  </variable>
+#  <variable>
+#    <name>BIND_VERSION</name>
+#    <default>9.[5-9]</default>
+#    <description>Acceptable version of BIND</description>
+#    <info>The versions of BIND that are allowed to be installed in the environment.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<report type:"WARNING">
+  description : "1 - Name Server Roles and Architecture"
+  info        : "DNS name servers are a foundational part of your network architecture. How many name servers you need and what roles they should play depends on your organization network architecture. The following is a list of the roles for Domain Name Servers:
+
+Master Authoritative Only
+A master name server is a master or authoritative name server for one or more domains.The master name server is the source of authority where administrators will make their DNS record changes.
+
+Slave Authoritative Only
+A slave name server is a name server that is authoritative for the domains, but receives all information and updates via zone transfers from a master name server or sometimes from another slave name server.
+
+Caching Only
+A caching only name server is not authoritative for any domain, but provides DNS service for other clients and systems, and will perform recursive DNS queries on behalf of its clients, and will cache answers to improve performance.
+
+Forwarder
+A forwarder name server is one that forwards queries to another name server to do the work of looking up the answer. The goal is to aggregate the work in order to make better usage of large caches, or sometimes to save on network bandwidth.
+
+Rationale:
+
+There are wide varieties of mixed roles that are possible, but not necessarily recommended. Any authoritative name server will also cache answers, and caching name servers may be authoritative for domains. It is also possible to have multiple master name servers and to mix master and slave by having a name server act as a master for some domains while acting as a slave for others. Simplicity in your architecture should be a leading goal. Mixing name server roles is not recommended for most situations. There are specific threats and mitigating controls for each role, and by mixing these roles, you may be aggregating the risks and preventing a wise separation of services. For example, external slave name servers have the highest threat level, and therefore should have the least information, the least functionality, and most stringent security configuration. While the internal caching name servers should not be exposed to external traffic as, a compromise or a poisoned cache on these servers would constitute an external attack on your internal clients. Likewise, your internal authoritative name servers typically contain sensitiveinformation that should not be exposed to external queries, or even the external responses that the internal caching name server will be receiving. Separating these roles significantlymitigates these threats.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Design and document your DNS architecture, including the specific roles for each DNS server, the major security controls in place, and what networks will be able to query each server. Also, consider what sub-domains will be used and managed, how e-mail will be delivered, and how any updates will be performed."
+</report>
+
+<report type:"WARNING">
+  description : "2 - Utilize a Split-Horizon Architecture"
+  info        : "Running a Split-Horizon DNS architecture refers to running authoritative DNS servers and services for external DNS queries separate from the internal authoritative DNS servers, which answer all queries originating from within the organization. The external servers are configured to provide only a limited amount of information for the services needed for communication with external clients and services. Typically, the information published in the externally available DNS is the minimal needed for the Internet services such as mail, web and gateway systems such as VPNs. The separate internal DNS service typically provides a more rich information set typically needed by internal clients.
+
+Rationale:
+
+The two goals of Split-Horizon are to:
+1. Minimize the amount and type of externally available information.
+2. Physical and logical separation of external and internal DNS services.
+
+Separating the external and internal DNS servers in this manner adheres to a defense-indepth approach that limits the potential damage and impact should the external name server be compromised, since it does not service internal clients, nor does it have information on the internal systems and services.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Implement Split-Horizon Architecture to separate external and internal DNS services."
+</report>
+
+<report type:"WARNING">
+  description : "3 - Slave DNS servers"
+  info        : "Slave DNS servers are set up to replicate the master servers data. The Slave, along with the master, is also authoritative for its domain, but it gets all of the domain data from the master. Slaves are updated from the master when the version of the domain data changes.
+
+Rationale:
+
+Every DNS architecture should have at least two name servers; a master and one or more slave name servers. There is no easy formula to calculate the number of name servers needed, as it depends on several factors, including; the number of sub-domains, the volume of requests and the geographical distribution of the traffic. For Internet-facing DNS services, at least one slave name server should be geographically remote from the master and connected via a different Internet connection to mitigate DoS attacks, to increase reliability, and to better distribute the DNS traffic. Many ISPs provide inexpensive name server services. Ask about the location and connectivity of the services, and look for one that is remote from your master, as well as reliable and secure. Also, consider getting a remote dedicated server that can be secured and administered remotely by your staff. For large organizations there are several companies specializing in globally distributed and high relability DNS services. Likewise, your internal clients and servers should be configured to query multiple caching and/or forwarding name servers for increased reliability. These redundant name servers should be an integral portion of your network's architecture for reliability and performance and that places a priority on the DNS security.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Verify appropriate slave DNS servers are in use for each external and internal master name server. For the external Internet DNS servers an independent Internet connection or independent ISP hosted DNS service should be used."
+</report>
+
+<report type:"WARNING">
+  description : "4 - Validate Name Registration Security"
+  info        : "The Name Registration process is where you register your domain and name server so you are part of the DNS system. There are many authorized name registration providers available, and the security of your name registration depends on their process for authenticating  registration change requests.
+
+Rationale:
+
+If an attacker can take control of your name registration, then there is no need for her to compromise, spoof or otherwise subvert your DNS services, when she can have all of the DNS requests redirected to the DNS servers of her choice. In the past, name registration changes could be easily spoofed by sending an e-mail from the proper address. These days most registrars have raised the bar somewhat by requiring a response via e-mail, or they require that an administrator log onto a web site with a password. Most registrars also have fallback processes in place for handling cases where the contact e-mail is not working. It is highly recommended that you check with your registrar and review the authentication process, including alternative authentication options. In the balance between ease of use and reliable authentication, most registrars seem to heavily favor the ease of use. Many registrars also provide stronger authentication controls which are not required by default, but that are available upon request. Also consider who is registering the domain. If an organization commissions a site through a third party it should ensure that the registration is assigned to someone within the organization, rather than the commissioned party.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Verify and document what security controls are in place for changes to your DNS registration and who is authorized to make changes. Also, regularly check the results of a whois query and verify that the information are correct."
+</report>
+
+<report type:"WARNING">
+  description : "5 - Secure DNS service operating platform"
+  info        : "The need for a hardened system is critical to the reliability of the DNS service. This system should be dedicated to running the minimum services required to support DNS.
+
+Rationale:
+
+Since your organization's DNS security is critical to the network services your organization depends on, it needs a dedicated security hardened system with minimal services running.You must also verify that the system is fully patched to prevent attackers from taking advantage of known vulnerabilities in other services.If you combine your DNS server with other services running on the same system, you are aggregating the risk of compromise associated with the additional services.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Harden the operating system, physical location and hardware according to your organization security policies. Run the BIND scoring tool and evaluate the results. All unnecessary services should be disabled, especially high-risk services such as web, mail, FTP, RPC services and file shares such as NFS and SMB."
+</report>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "6 - Verify Security of Forwarding Partners"
+  info        : "Forwarding queries to another name server allows the name service work to be aggregated and may improve performance if a name server is able to take advantage of the cache of an up-stream name server. This may also be a security weakness by relying on servers outside the organization's control and security policies.
+
+Rationale:
+
+One thing to consider when forwarding DNS requests is how secure the server is that is set up as the forwarder. A common recommendation is to use an ISP provided name service that is intended to help performance, and simplify network configuration. However, the down-stream name servers inherit the risk of the name server to which they forward queries. If the up-stream name server is compromised, or has its cache poisoned, then all the name servers that rely on it share the same fate. Forwarding is not necessarily a bad practice, but you need to evaluate the security and risk of the name servers to which you are forwarding queries. If these name servers are not under your organization's control, then evaluating their security can be difficult unless the provider specifically understands security as an integral and very necessary part of its service. In addition, you should be aware that if your forwarders are BIND version 4 or 8 servers, this may leave you vulnerable to the DNS cache poisoning attacks discussed in the next section on BIND versions.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Verify your DNS architecture forwards queries only to trustworthy DNS servers and verify the security of those servers against appropriate security standards."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*forwarders"
+  expect      : "forwarders"
+  severity    : MEDIUM
+  reference   : "800-53|SC-20,ITSG-33|SC-20"
+</custom_item>
+
+<report type:"WARNING">
+  description : "7 - Secure installation on Solaris."
+  info        : "BIND 9 is available and supported by default in the Solaris Operating System.
+
+Rationale:
+
+SUN provides support for the Solaris 10 OS and should be used for maintaining the core applications like BIND.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "The software is found in the package, SUNWbind, and the Solaris 10 Service Management Facility ('SMF') service manifest for the BIND service is available in the SUNWbindr package. Both of these packages must be installed in order to be able to configure and run the DNS server service. The SMF Fault Management Resource Identifier ('FMRI') for the BIND service is svc:/network/dns/server:default. It is with this handle (or a suitable abbreviation such as dns/server) that one will be able to configure and manage the DNS server service using SMF."
+</report>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "8 - Run BIND as a non-root user"
+  info        : "To start BIND in Linux you must execute it as the root user. For Solaris, this is not necessary as it can be started as any user with the appropriate privileges for proper operation. BIND has the ability to change users, allowing it to drop the root privileges
+
+Rationale:
+
+The reason for configuring BIND to run as a non-root user is to limit the impact in case a future vulnerability is discovered and exploited. This is a common practice, which implements the principal of least privilege. This principle states that an entity, such as a service or user, should be granted only those specific privileges necessary to perform authorized actions. The server will still need to be started as root, but it should be configured to give up the root privilege after listening on port 53. The user named runs as needs to be created if it does not already exist and needs appropriate access to the DNS configuration and data files. Many systems including Red Hat Linux will come with a named user already created. Usage of the user and group id of 53 in the examples is arbitrary but is intended to be easier to recognize as it matches the listening port number."
+  solution    : "Create named user and group if it does not already exist. Using a shell of /dev/null is best practice.
+if ! id named; then
+groupadd -g 53 named
+useradd -m -u 53 -g 53 -c 'BIND named' -d /var/named -s /dev/null \ named
+fi 2>/dev/null
+In Solaris, consider using roleadd(1M) to create the named account instead of using useradd(1M). Creating the account as a role adds protections should a password ever be installed: (1) the account still cannot be accessed remotely - even with a correct password and (2) roles can only be assumed by those users who have been granted access.
+Also, usermod(1m) dictates that UID's 0 through 99 are reserved for the operating systems use, therefore the use of the UID 53 will produce an error. To correct this, you should choose a UID that is outside of its reserved range. Also, it recommended that /dev/null not be used as a shell. Instead, the Solaris 10 benchmark recommends that the shell be set to /usr/bin/false, and the account be set to locked (passwd -l) or non-login (passwd -N).
+if ! id named; then
+groupadd -g 153 named
+roleadd -m -u 153 -g 153 -c 'BIND named' -d /var/named -s \ /usr/bin/false named
+passwd -l named
+fi 2>/dev/null
+In Linux, add or verify that -u named option is included in the rc startup script. For
+example, the rc script is /etc/rc.d/init.d/named and should contain the line 'daemon /usr/sbin/$PROG -u named ${OPTIONS};'
+Red Hat / Fedora Core Linux with Bastille
+If you use the Bastille-Linux security hardening, the script will ask, if it detects BIND is installed, 'Would you like to chroot named and set it to run as a non-root user?'
+Answering Yes to this question can help automate this step as well as the chroot process, however you still need to verify all of the permissions and verify that the chroot directory contains the necessary devices, directories and files.
+Solaris 10
+Solaris 10 uses a different approach to configure the BIND service to run as a non-root user. It should first be noted however, that the BIND service in Solaris 10 is already configured to run with significantly reduced privileges. This is accomplished with Solaris 10 privileges(5) and configured using SMF. To see what privileges are granted to BIND at service startup, use the following command:
+$ svcprop -p start/privileges dns/server basic,!proc_session,!proc_info,!file_link_any,net_privaddr, file_dac_read,file_dac_search,sys_resource
+Essentially, this means that even if the UID of the BIND service is still 0 ('root'), it will not start with all of root's privileges. Instead, it will only be granted the proc_fork, proc_exec, net_privaddr, file_dac_read, file_dac_search, and sys_resource privileges. proc_fork and proc_exec come from the basic privilege listed above. Certainly, this is already a significant reduction in the privilege set granted to the BIND service. Further, during the testing for this article, a simple configuration was created that only used proc_fork and net_privaddr. As a rule, you may be able to further reduce the default set of privileges depending on your configuration and requirements. To see more detailed information about the privileges, see privileges(5). To change the UID used to start the BIND service, use the svccfg(1M) command to configure the service as follows (assuming the named account and group have been created in a manner similar to that described above). Note that these steps only change the UID used by the process and does not impact the privileges that have been defined in the start/privileges property.
+# svccfg -s dns/server:default setprop start/user = named # svccfg -s dns/server:default setprop start/group = named # svcadm refresh dns/server
+There is one additional step that must be taken to successfully start the server. Depending on your configuration you may need to adjust some file paths or even file ownership or permissions to ensure that the named account can read or write files as appropriate (since the service is no longer starting as root at all). For example, an options flag must be added to the /etc/named.conf file to direct the pid-file parameter to a location writable by the named user or group. This is necessary since the named service is no longer starting as root and therefore will not be able to write to /var/run. Technically speaking, the pidfile is no longer used in Solaris since SMF is used to manage service administration, including restarts. For a more detailed example describing how to configure SMF services to start with reduced privileges, see the Sun BluePrint titled 'Limiting Service Privileges in the Solaris 10 Operating System', available from: http://www.sun.com/blueprints/0505/819- 2680.pdf. Once these changes have been made, the service can be started using the command:
+# svcadm enable dns/server
+The status of the dns/server service can be verified using the following commands:
+# svcs dns/server
+STATE STIME FMRI
+online 18:43:01 svc:/network/dns/server:default
+# pcred `pgrep named`
+5842: e/r/suid=53 e/r/sgid=53
+# ppriv -S `pgrep named`
+5842: /usr/sbin/named
+flags = <none
+E: file_dac_read,file_dac_search,net_privaddr,proc_exec,proc_fork,sys_resourc
+I: file_dac_read,file_dac_search,net_privaddr,proc_exec,proc_fork,sys_resourc
+P: file_dac_read,file_dac_search,net_privaddr,proc_exec,proc_fork,sys_resource
+L: zone
+
+If you are interested in fine tuning which privileges you want Solaris to grant each service, more information can be found in the BluePrint titled 'Privilege Debugging in the Solaris 10 Operating System' found at http://www.sun.com/blueprints/0206/819-5507.pdf"
+  file        : "/etc/rc.d/init.d/named"
+  regex       : "^[\\s]*[^#/]*[\\s]*daemon[\\s]*"
+  expect      : "/usr/sbin/['\"\$]*named['\"]*[\\s]+-u[\\s]+named[\\s]+"
+  reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),NESA|T5.1.1"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "9 - Isolate BIND via chroot or Solaris Zones"
+  info        : "The chroot command allows you to create a running environment that can be severely limited from the rest of the operating system. The chroot command does this by running a command with the root file structure replaced by a given sub-directory. When this is done, the command executed by chroot no longer has access to the entire file structure but is limited to the given sub-directory. It should be noted that chroot-ing is not a completely sound security measure. Chrooting was not originally designed to be used for security.
+
+Rationale:
+
+Use the chroot command to further limit potential damage from a successful exploit, the server should be running in an isolated compartment such as a chroot-ed jail or a Solaris 10 zone. This way the daemon will be restricted in terms of what it can see or do. For example, in a chroot-ed jail, the service will not have access to the full file system, but instead a minimal file system with just the necessary data, libraries and devices."
+  solution    : "Create the chroot directories. Details on the directories usage and permissions are important and are provided in section Restricting BIND Access. It is possible that some systems may also require some run time libraries within the chroot file hierarchy. Typically, BIND 9 does not require extra libraries as it performs the chroot(2) call later in the startup process. Check your system's dynamic linking man pages (such as ld and ldd) for additional information.
+mkdir -p -m 750 /var/named/chroot
+cd /var/named/chroot
+mkdir -p -m 750 etc dev var/named/data var/run var/log var/tmp
+Create the necessary devices such as /dev/null, /dev/zero and /dev/random using the proper major and minor device numbers for your platform. Using the command ls-al will show you what the major and minor numbers are for each file. A long listing of /dev/null, /dev/zero and /dev/random will provide the required major and minor device numbers for your platform. You should also create a syslog socket for logging by adding an option such as '-a /var/named/chroot/dev/log' to your syslogd command line.
+ls -al /dev/null /dev/zero /dev/random mknod dev/null c ? ?
+mknod dev/random c ? ?
+mknod dev/zero c ? ?
+chown root:named dev/null dev/zero dev/random chmod ug=rw,o= dev/null dev/zero dev/random cp /etc/named.conf etc/
+cp /etc/localtime etc/
+Edit /etc/named.conf file to match the created paths for chroot directory /var/named, /var/named/data and /var/run/. Also, copy the appropriate zone files referenced in your named.conf file."
+  file        : "/etc/sysconfig/named"
+  regex       : "^[\\s]*[^#/]*[\\s]*ROOTDIR[\\s]*="
+  expect      : "ROOTDIR[\\s]*=[\\s]*['\"]*/var/named/chroot['\"]*"
+  reference   : "800-171|3.13.3,800-53|SC-2,ITSG-33|SC-2,NESA|T3.4.1,NIAv2|SS15b"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : RPM_CHECK
+  description : "10 - RedHat bind-chroot Rpm"
+  info        : "RedHat Linux systems have a bind-chroot RPM containing a directory environment for running BIND in a chroot-ed file system. This is implemented by installing the RPMs below or even checking off BIND during the install process.
+
+Rationale:
+
+Use the chroot command to further limit potential damage from a successful exploit, the server should be running in an isolated compartment such as a chroot-ed jail or a Solaris zone. This way the daemon will be restricted in terms of what it can see or do"
+  solution    : "1. Install the following RPM's are installed:
+- bind
+- bind-chroot
+- bind-libs
+- bind-utils
+2. Directory permissions should be hardened, as they are not secure by default.
+3. A syslog socket needs to be created. Add '-a /var/named/chroot/dev/log' to SYSLOGD_OPTIONS in /etc/sysconfig/syslog. See section 5.3 for details on configuring named to use syslog. If a local log file is to be used, create a /var/log directory in /var/named/chroot.
+4. Add 'ROOTDIR=/var/named/chroot' to /etc/sysconfig/named"
+  rpm         : "bind-chroot-0.0.0-0"
+  operator    : "gt"
+  required    : YES
+  reference   : "800-171|3.4.8,800-53|CM-7(5),CSCv6|2.2,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : CMD_EXEC
+  description : "11 - Set permissions on BIND chroot-ed directories"
+  info        : "The following actions are specific to chroot-ed BIND directories and have been tested on both the build from source instructions given, and the Red Hat bind-chroot RPM.
+
+Rationale:
+
+The permissions set for the chroot are a bit more restrictive than those outlined in beginning of this section, as other access is mostly zero (no access). However since other users have no need to read the BIND chrooted directories, it is a prudent application of the principle of least privilege
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Check that no parent directories to the chroot are writable by the named user. The following command will check every parent directory except /. Any writable directories need to be corrected. If the command echo's the directory names without reporting any directories as writable, then the permissions are ok.
+cd $ROOTDIR
+su -m named -c 'D=$PWD; while [ '$D' != '/' ]; do echo $D; test -w $D && echo $D is writable.; D=`dirname $D`; done'
+First, set the ownership and permissions on the chroot directory.
+chown root:named $ROOTDIR
+chmod u=rwx,g=rx,o= $ROOTDIR.
+Change everything to be owned by root, read-only by named, no access for other.
+cd $ROOTDIR
+chown -R root:named etc var
+chmod -R g-w,o= etc var
+chown root:named dev proc
+chmod g,o=rx dev
+chmod a=rx proc
+Next, add the minimal write access to the necessary directories and any files in the directories. Create and chmod the slave directory only if slave zones are configured. Likewise only create and chmod g+w the ddns directory only if dynamic updates are configured.
+chmod -R g+w var/run/named var/tmp var/log var/named/data
+chmod -R g+w var/named/slaves
+chmod -R g+w var/named/ddns"
+  cmd         : "find / -user named -type d -perm -222"
+  regex       : ".*"
+  severity    : MEDIUM
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "12 - Restrict BIND Access with SELinux - SELINUX"
+  info        : "The Security Enhanced Linux (SELinux) project started by the NSA provides targeted mandatory access controls, which may be used to restrict BIND to minimal access. SELinux is included in the RedHat Enterprise and Fedora Core installation options. Make sure you have the latest versions of following RPM's, or install them if needed.
+
+Rationale:
+
+Latest version of RPM's ensure bugs and securty vulnerability are patched enhancing the performance of the system."
+  solution    : "Make sure you have the latest versions of following RPM's, or install them as needed.
+- libselinux-devel
+- libselinux
+- selinux-policy-targeted
+- selinux-policy-targeted-sources
+- selinux-doc
+- checkpolicy"
+  file        : "/etc/selinux/config"
+  regex       : "^[\\s]*[^#/]*[\\s]*SELINUX[\\s]*="
+  expect      : "SELINUX[\\s]*=[\\s]*enforcing"
+  reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-3(3),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(3),NESA|T5.5.4,NESA|T7.5.3"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "12 - Restrict BIND Access with SELinux - SELINUXTYPE"
+  info        : "The Security Enhanced Linux (SELinux) project started by the NSA provides targeted mandatory access controls, which may be used to restrict BIND to minimal access. SELinux is included in the RedHat Enterprise and Fedora Core installation options. Make sure you have the latest versions of following RPM's, or install them if needed.
+
+Rationale:
+
+Latest version of RPM,s ensure bugs and securty vulnerability are patched enhancing the performance of the system."
+  solution    : "Make sure you have the latest versions of following RPM's, or install them as needed.
+- libselinux-devel
+- libselinux
+- selinux-policy-targeted
+- selinux-policy-targeted-sources
+- selinux-doc
+- checkpolicy"
+  file        : "/etc/selinux/config"
+  regex       : "^[\\s]*[^#/]*[\\s]*SELINUXTYPE[\\s]*="
+  expect      : "SELINUXTYPE[\\s]*=[\\s]*targeted"
+  reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-3(3),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(3),NESA|T5.5.4,NESA|T7.5.3"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : CMD_EXEC
+  description : "12 - Restrict BIND Access with SELinux - named_disable_trans"
+  info        : "The Security Enhanced Linux (SELinux) project started by the NSA provides targeted mandatory access controls, which may be used to restrict BIND to minimal access. SELinux is included in the RedHat Enterprise and Fedora Core installation options. Make sure you have the latest versions of following RPM's, or install them if needed.
+
+Rationale:
+
+Latest version of RPM,s ensure bugs and securty vulnerability are patched enhancing the performance of the system."
+  solution    : "Make sure you have the latest versions of following RPM's, or install them as needed.
+- libselinux-devel
+- libselinux
+- selinux-policy-targeted
+- selinux-policy-targeted-sources
+- selinux-doc
+- checkpolicy"
+  cmd         : "/usr/sbin/getsebool named_disable_trans"
+  expect      : "[\\s]+off$"
+  reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-3(3),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(3),NESA|T5.5.4,NESA|T7.5.3"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : CMD_EXEC
+  description : "12 - Restrict BIND Access with SELinux - named_write_master_zones"
+  info        : "The Security Enhanced Linux (SELinux) project started by the NSA provides targeted mandatory access controls, which may be used to restrict BIND to minimal access. SELinux is included in the RedHat Enterprise and Fedora Core installation options. Make sure you have the latest versions of following RPM's, or install them if needed.
+
+Rationale:
+
+Latest version of RPM,s ensure bugs and securty vulnerability are patched enhancing the performance of the system."
+  solution    : "Make sure you have the latest versions of following RPM's, or install them as needed.
+- libselinux-devel
+- libselinux
+- selinux-policy-targeted
+- selinux-policy-targeted-sources
+- selinux-doc
+- checkpolicy"
+  cmd         : "/usr/sbin/getsebool named_write_master_zones"
+  expect      : "[\\s]+off$"
+  reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-3(3),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(3),NESA|T5.5.4,NESA|T7.5.3"
+</custom_item>
+
+<custom_item>
+  system      : "SunOS"
+  type        : FILE_CHECK
+  description : "13 - Restrict BIND Access Within Solaris - named ownership"
+  info        : "The following instructions outline the changes that must be made to run the BIND service as a non-root account, named, within a Solaris 10 zone. REW
+
+Rationale:
+
+The changes discussed below are needed in order to permit the named account to write configuration, log or other related files. Note that when run within a Solaris 10 zone, the BIND service, by default, will not be able to write to any files or directories under /usr, /lib, /sbin, or /platform as their directory trees are mounted read-only from the global zone. Further restrictions are implemented using standard Unix permissions and ACLs. The changes noted below apply specifically to BIND directories and files."
+  solution    : "Adjust the BIND configuration file, /etc/named.conf, to ensure that it does not refer to directories that are not writable by the named account.
+It is recommended that directories be created under the /var/named hierarchy (similar to what is accomplished in the chroot case). Therefore, references to /var/log/named.log would become /var/named/log/named.log and references to /var/log/secure.log would become /var/named/log/secure.log.
+# mkdir -p /var/named/data.
+# mkdir -p /var/named/log."
+  file        : "/var/named"
+  owner       : "root"
+  group       : "named"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  system      : "SunOS"
+  type        : FILE_CHECK
+  description : "13 - Restrict BIND Access Within Solaris - named permissions"
+  info        : "The following instructions outline the changes that must be made to run the BIND service as a non-root account, named, within a Solaris 10 zone. REW
+
+Rationale:
+
+The changes discussed below are needed in order to permit the named account to write configuration, log or other related files. Note that when run within a Solaris 10 zone, the BIND service, by default, will not be able to write to any files or directories under /usr, /lib, /sbin, or /platform as their directory trees are mounted read-only from the global zone. Further restrictions are implemented using standard Unix permissions and ACLs. The changes noted below apply specifically to BIND directories and files."
+  solution    : "Adjust the BIND configuration file, /etc/named.conf, to ensure that it does not refer to directories that are not writable by the named account.
+It is recommended that directories be created under the /var/named hierarchy (similar to what is accomplished in the chroot case). Therefore, references to /var/log/named.log would become /var/named/log/named.log and references to /var/log/secure.log would become /var/named/log/secure.log.
+# mkdir -p /var/named/data.
+# mkdir -p /var/named/log."
+  file        : "/var/named"
+  mask        : "027"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  system      : "SunOS"
+  type        : FILE_CHECK
+  description : "13 - Restrict BIND Access Within Solaris - data permissions"
+  info        : "The following instructions outline the changes that must be made to run the BIND service as a non-root account, named, within a Solaris 10 zone. REW
+
+Rationale:
+
+The changes discussed below are needed in order to permit the named account to write configuration, log or other related files. Note that when run within a Solaris 10 zone, the BIND service, by default, will not be able to write to any files or directories under /usr, /lib, /sbin, or /platform as their directory trees are mounted read-only from the global zone. Further restrictions are implemented using standard Unix permissions and ACLs. The changes noted below apply specifically to BIND directories and files."
+  solution    : "Adjust the BIND configuration file, /etc/named.conf, to ensure that it does not refer to directories that are not writable by the named account.
+It is recommended that directories be created under the /var/named hierarchy (similar to what is accomplished in the chroot case). Therefore, references to /var/log/named.log would become /var/named/log/named.log and references to /var/log/secure.log would become /var/named/log/secure.log.
+# mkdir -p /var/named/data.
+# mkdir -p /var/named/log."
+  file        : "/var/named/data"
+  mask        : "007"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  system      : "SunOS"
+  type        : FILE_CHECK
+  description : "13 - Restrict BIND Access Within Solaris - log permissions"
+  info        : "The following instructions outline the changes that must be made to run the BIND service as a non-root account, named, within a Solaris 10 zone. REW
+
+Rationale:
+
+The changes discussed below are needed in order to permit the named account to write configuration, log or other related files. Note that when run within a Solaris 10 zone, the BIND service, by default, will not be able to write to any files or directories under /usr, /lib, /sbin, or /platform as their directory trees are mounted read-only from the global zone. Further restrictions are implemented using standard Unix permissions and ACLs. The changes noted below apply specifically to BIND directories and files."
+  solution    : "Adjust the BIND configuration file, /etc/named.conf, to ensure that it does not refer to directories that are not writable by the named account.
+It is recommended that directories be created under the /var/named hierarchy (similar to what is accomplished in the chroot case). Therefore, references to /var/log/named.log would become /var/named/log/named.log and references to /var/log/secure.log would become /var/named/log/secure.log.
+# mkdir -p /var/named/data.
+# mkdir -p /var/named/log."
+  file        : "/var/named/log"
+  mask        : "007"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  system      : "SunOS"
+  type        : FILE_CHECK
+  description : "13 - Restrict BIND Access Within Solaris - tmp permissions"
+  info        : "The following instructions outline the changes that must be made to run the BIND service as a non-root account, named, within a Solaris 10 zone. REW
+
+Rationale:
+
+The changes discussed below are needed in order to permit the named account to write configuration, log or other related files. Note that when run within a Solaris 10 zone, the BIND service, by default, will not be able to write to any files or directories under /usr, /lib, /sbin, or /platform as their directory trees are mounted read-only from the global zone. Further restrictions are implemented using standard Unix permissions and ACLs. The changes noted below apply specifically to BIND directories and files."
+  solution    : "Adjust the BIND configuration file, /etc/named.conf, to ensure that it does not refer to directories that are not writable by the named account.
+It is recommended that directories be created under the /var/named hierarchy (similar to what is accomplished in the chroot case). Therefore, references to /var/log/named.log would become /var/named/log/named.log and references to /var/log/secure.log would become /var/named/log/secure.log.
+# mkdir -p /var/named/data.
+# mkdir -p /var/named/log."
+  file        : "/var/named/tmp"
+  mask        : "007"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "14 - Hide BIND Version String"
+  info        : "The version string contains the version of BIND that is running.
+
+Rationale:
+
+Additional information hiding or obscurity can be provided by preventing the version information being returned to TXT queries to the pseudo-domain 'version.bind' in the chaos class."
+  solution    : "Place the following in the global options of named.conf:
+options {
+version 'None'; . . . }"
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*version[\\s]+['\"]None['\"][\\s]*"
+  expect      : "version"
+  reference   : "800-53|SC-30(5),NIAv2|GS8f,NIAv2|NS1,NIAv2|NS28"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "15 - Restrict Recursive Queries"
+  info        : "A recursive DNS query is your typical DNS query from a client. It places the burden of finding the answer on the DNS server which will recursively query other DNS servers authoritative for the domains, until it gets the answer which is then returned to the client. Typically, the DNS server will then cache the answer to that query until its time-to-live expires in order to provide a quick answer to future queries for the same name. BIND can be configured to restrict fulfillment of recursive lookups to only authorized network segments and hosts. This is made possible by the allow-recusion option. It is recommended that this option be utilized to restrict access to the server's recursive lookup capabilities.
+
+Rationale:
+
+If the allow-recursion is not properly configured, malicious entities may abuse this capability for asymmetric load based denial of service attacks, associate the DNS server with SPAM campaigns, or increase the probability of poisoning the server's cache."
+  solution    : "Insert the following either into the global options or to every zone section
+allow-recursion { localhost; trusted_clients };"
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*allow-recursion[\\s]+"
+  expect      : "^[\\s]*[^#/]*[\\s]*allow-recursion[\\s]+{[\\s]+localhost;[\\s]+trusted_clients[\\s]+}"
+  reference   : "800-53|SC-20,ITSG-33|SC-20,NESA|T4.5.1"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "16 - Restrict Query Origins"
+  info        : "BIND can be configured to limit restrict access to its query services. This is made possible by the allow-query option. It is recommended that this option be utilized to restrict access to the server's query services.
+It is also recommended that caching-only servers limit all queries to only the expected internal networks by adding ACL's to define the allowed local networks and restrict recursive queries. Note: that localhost and localnets are BIND predefined ACLs, and should not be used for new ACL names.
+
+Rationale:
+
+Using allow-query in conjunction with an ACL of trusted clients will prevent unauthorized access to name services content. Additionally, the exposure of vulnerabilities present in BIND's query handlers is reduced by this configuration as requests originating from untrusted entities will be rejected before the request is fully parsed by named."
+  solution    : "1. Create ACLs for the local networks in named.conf
+acl 'local' { 127.0.0.1; };
+acl 'mynets' { 10.1.2.0/24; 10.1.3.0/24; 10.1.4.0/24; }; . . .
+2. 2. Add the following to the named.conf global options:
+options { . . . allow-query { local; mynets; }; . . . }"
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*allow-query[\\s]+"
+  expect      : "^[\\s]*[^#/]*[\\s]*allow-query[\\s]+{[\\s]+local;[\\s]+mynets;[\\s]+}"
+  reference   : "800-53|SC-20,ITSG-33|SC-20,NESA|T4.5.1"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "17 - Restrict Access to Cache"
+  info        : "BIND can be configured to restrict access to its resolver cache. This is made possible by the allow-query-cache option. It is recommended that this option be utilized to restrict access to the server's cache.
+
+Rationale:
+
+Using allow-query-cache in conjunction with an ACL of trusted clients will prevent unauthorized access to cached content. Additionally, the exposure of vulnerabilities present in BIND's query handlers is reduced by this configuration as requests originating from untrusted entities will be rejected before the request is fully parsed by named"
+  solution    : "1. Set up an ACL in named.conf containing clients that are allowed to query the cache.
+2. Set allow-query-cache and allow-recursion in the global options of named.conf"
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*allow-query-cache[\\s]+"
+  expect      : "^[\\s]*[^#/]*[\\s]*allow-query-cache[\\s]+{[\\s]+trusted;[\\s]+}"
+  reference   : "800-53|SC-20,ITSG-33|SC-20,NESA|T4.5.1"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "18 - Do not use BIND9 Views for split horizons"
+  info        : "The views feature of BIND 9, allows BIND to present different information and restrictions for the same zone depending on the IP address of the client. They could be used to have an internal 'view' with detailed information and an external 'view' with minimal information presented depending on the source IP address of the request.
+
+Rationale:
+
+Using BIND views causes all services to run on one server and places trust in the source IP address which can be spoofed. Therefore using views to split internal vs. external DNS is not recommended."
+  solution    : "Although the restrictions on recursion and queries can be done with a view, using the allow-query and allow-recursion options is the recommended approach."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*view[\\s]+"
+  expect      : "view"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<report type:"WARNING">
+  description : "19 - dnssec-keygen Algorithms"
+  info        : "The TSIG key is created using the dnssec-keygen tool that is included with BIND.
+
+Rationale:
+
+If zone transfers or dynamic updates are allowed, generate TSIG keys to authenticate the servers, one for each host-to-host trust relationship. Use of the MD5 hash is not recommended because it has been shown to be weaker than expected.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "1. Use dnssec-keygen to generate the key using an algorithm from the SHA-2 family.
+2. You should name the key using the names of the two hosts to avoid confusion.
+3. Do NOT use the HMACMD5 algorithm."
+</report>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "20 - Include TSIG key in named.conf"
+  info        : "Use the include option to add the generated key into named.conf.
+
+Rationale:
+
+Although the key configuration may be done directly in the named.conf file, putting it in a separate file will limit the number of times it needs to be viewed. It is essential that this secret be protected properly by having limited file permissions (same as the named.conf), and to be protected in transit to the other DNS server.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "1. Ensure that the file is placed in the appropriate chroot-ed directory on each system.
+2. Use the include option to have BIND import the key when started on each server.
+3. Verify that the files permissions are limited."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*include[\\s]+['\"].*(?<!\\.key)['\"]"
+  expect      : "include"
+  severity    : MEDIUM
+  reference   : "800-53|SC-20,ITSG-33|SC-20"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "21 - Restrict Zone-Transfers"
+  info        : "A zone transfer, or AXFR request, is a mechanism commonly used by DNS deployments to replicate zone information from master/primary servers to slave/secondary servers. BIND can be configured to respond only to AXFR requests that originate from a predefined server. This is made possible by the allow-transfer option in named.conf. It is recommended that the fulfillment of zone transfer requests be reserved for only predefined slave/secondary servers.
+
+Rationale:
+
+A zone transfer is not something you want most systems to be able to request, as it would give out the entire list of resource records. There should be very few systems besides the slave name servers that need to be able to perform a zone transfer for your domains. Allow-transfer specifies who can request a zone transfer. Restrictions should not be made using IP address, but rather by using TSIG keys.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "1. Add a similar configuration to named.conf on the master server.
+2. Configure each slave to include its keys and add a statement to named.conf so that the slave will sign its communications to the master."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*allow-transfer[\\s]+"
+  expect      : "allow-transfer"
+  severity    : MEDIUM
+  reference   : "800-53|SC-20,ITSG-33|SC-20"
+</custom_item>
+
+<report type:"WARNING">
+  description : "22 - Use Update Policy"
+  info        : "Dynamic updates are used to automate the updating of zones. Dynamic updates are typically used with DHCP, however updates may include deleting or adding any resource records of a zone except the SOA and NS records. Allowing other systems to make permanent updates to your zones is of course not allowed by default, and needs to be carefully restricted.
+
+Rationale:
+
+The usage of the 'allow-update' option with IP addresses is discouraged as the source address of the UDP packet can be forged and could lead to a compromise of data. Due to this, 'allow-update' should not be used. If it is found to be necessary to use 'allow-update,' the use of TSIG authentication is encouraged as well as 'allow-update forwarding' to specify which slaves to accept updates from. Again, this configuration is strongly discouraged as it allows compromised slave servers to push updates to the master.
+
+Instead of the 'allow-update' option, use 'update policy' to grant 'A' record updates to the dynamically updated sub-domain for the host specific TSIG key.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "1. Add a similar statement to a server's zone statement using the appropriate TSIG key for the target.
+2. Include a server statement"
+</report>
+
+<report type:"WARNING">
+  description : "23 - Enable GSS-TSIG"
+  info        : "BIND 9.5.0 introduced support for the proprietary GSS-TSIG algorithm that is used by Microsoft's DNS solution. It is recommended that GSS-TSIG be utilized to integrate service with Microsoft DNS whenever possible.
+
+Rationale:
+
+GSS-TSIG provides support for authenticated transactions between BIND and Windows DHCP servers. This use of this mechanism reduces the probability of an attacker compromising the integrity of the DNS cache.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "1. GSS-TSIG can be enable in BIND through the use of the following options in named.conf:
+2. Create the Kerberos key and include it in a key statement and use the key in the zone statements:"
+</report>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "24 - Disable dnssec-accept-expired option"
+  info        : "Introduced in BIND 9.4, the dnssec-accept-expired option allows named to accept expired Signed RRSets (RRSIGs).
+
+Rationale:
+
+Accepting expired RRSIGs may increase the server's exposure to replay attacks."
+  solution    : "If present, remove the dnssec-accept-expired option from named.conf."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*dnssec-accept-expired"
+  expect      : "dnssec-accept-expired"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "25 - Ignore erroneous or unwanted traffic"
+  info        : "BIND can be configured to ignore requests originating from specified network segments. This is accomplished by implementing the blackhole option in named.conf. It is recommended that this feature be implemented to ignore requests that originate outside of expected network segments.
+
+Rationale:
+
+By ignoring traffic that originates from unexpected locations, the server's exposure to malicious entities is reduced.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Add a blackhole option for multicast and link local addresses, and all private RFC 1918 addresses that are not being used."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*blackhole"
+  expect      : "blackhole"
+  severity    : MEDIUM
+  reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : CMD_EXEC
+  description : "26 - Ensure revision current"
+  info        : "Over time, patches will be released to resolve defects in BIND. It is recommended that such patches be applied.
+
+Rationale:
+
+By ensuring that BIND remains current and patched, the probability of an attacker successfully compromising BIND is reduced"
+  solution    : "Update BIND to the most current revision. Institute a patch process that aims to apply security updates within 30 days of their release"
+  cmd         : "/usr/sbin/named -v"
+  regex       : "BIND [0-9.]+"
+# Note: Variable @BIND_VERSION@ replaced with "9.[5-9]" in field "expect".
+  expect      : "BIND 9.[5-9]"
+  reference   : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "27 - Remove Nameserver ID"
+  info        : "RFC 5001 suggested a new EDNS0 option that is able to identify a DNS server with a Nameserver ID tag. NSID is a method to identify servers in an environment where there are multiple DNS servers sharing the same IP address. With the use of load balancing and other IP sharing mechanisms, it can become difficult to discern exactly which name server is responding to a particular query. NSID allows a name server to respond with identifying information. The ability to respond to NSID queries was added in BIND 9.5 to help ease the identification of DNS servers. The payload of the NSID can vary according to the wants and needs of the server's administrator. It can contain any string the administrator likes. It is recommended that NSID support be left off.
+
+Rationale:
+
+Enabling this can allow external parties to obtain information about the configuration and architecture of the DNS server. If it is found to be necessary to enable this service, then the identifying information should be generic. You should not use the server's geographic location, IP address or any other privileged information"
+  solution    : "Use the following in named.conf to explicitly disable NSID support:
+server-id none;"
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*server-id"
+  expect      : "server-id"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<report type:"WARNING">
+  description : "28 - Configure a syslog channel"
+  info        : "Configuring a syslog allows BIND to log any information the administrator sees as important to the health and security of BIND.
+
+Rationale:
+
+Logging is key to monitoring the health and security of the name server and for detecting potential abuse and malicious attacks. Most requests that are invalid or violate an ACL will be logged, so it is important for such logs to come to the attention of the appropriate system administer. Logging is also helpful for debugging your BIND configuration. It is important that you know what kind of logs are going to what channel.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "The name server should be configured with at least two channels, a syslog channel to receive a majority of the messages, and a local file to log with duplicates of logs that may be of interest for security and possibly a second log file to be used for debugging. It is possible to configure more channels for more specific types of information. Configure the default and general categories to log to the local syslog"
+</report>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK
+  description : "29 - Configure a File Channel"
+  info        : "To capture logs to a local file, setup a channel for the file. You may want to consider one log file for security related logs, and a second one with a dynamic severity level to be used as needed for debugging.
+
+Rationale:
+
+Logging security related events allows you to see what is affecting the server and adjust the server to prevent attacks."
+  solution    : "In named.conf, configure a channel for a local security log file with the categories config, dnssec, network, security, updates, xfer-in and xfer-out. The local log file will be within the chroot directory."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*channel[\\s]+"
+  expect      : "channel"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+</custom_item>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "30 - Disable the HTTP Statistics Server"
+  info        : "In the update to BIND 9.5.0 there was a new statistics server included, that is a useful debugging tool in a non-production environment. The HTTP server provides data in XML format about the condition of a BIND 9 server. The statistics server provides the same statistics that are available to the statistics-file dump. This server should be left disabled
+
+Rationale:
+
+The statistics server should NOT be enabled to prevent potential vulnerabilities."
+  solution    : "Leave the statistics server disabled."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*statistics-channels"
+  expect      : "statistics-channels"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<report type:"WARNING">
+  description : "31 - Defend against Denial of Service Attacks"
+  info        : "DNS servers have been prime targets in the past for DoS attacks. Although the effect is not as immediate as DoS attacks against a Web server, DNS servers are often easier to attack. In addition, a DoS attack against a DNS server can have a wider affect by denying effective usage of a wide range of services that depend on DNS.
+
+Rationale:
+
+Attacks on DNS servers can cause a variety of problems, including crashing the server, exhausting resources on the server, and flooding the network with bogus traffic
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Although there are no 100% solutions for DoS attacks, the usual risk mitigations also apply.
+1. Security hardening of the server, including DoS mitigation configurations recommended in the appropriate Unix or Linux Hardnening guide
+2. Install redundant distributed DNS servers externally and internally.
+3. Add filtering controls on the firewalls and routers in front of the DNS servers to eliminate many forms of unwanted traffic."
+</report>
+
+<custom_item>
+  system      : "Linux"
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "32 - Do not define a static source port"
+  info        : "BIND can be configured to reuse the same source port when communicating with other DNS servers. This capability is made possible through the query-source option. It is recommended that this option not be used.
+
+Rationale:
+
+Enabling the query-source option will increase the probability of an attacker successfully poisoning the DNS cache."
+  solution    : "Ensure the query-source option in not present in named.conf."
+# Note: Variable @NAMED_CONF@ replaced with "/etc/named.conf" in field "file".
+  file        : "/etc/named.conf"
+  regex       : "^[\\s]*[^#/]*[\\s]*query-source"
+  expect      : "query-source"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+</check_type>

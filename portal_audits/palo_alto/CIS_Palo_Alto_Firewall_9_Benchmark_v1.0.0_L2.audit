@@ -1,0 +1,1072 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/06/02 $
+#
+# Description : This .audit is based on the CIS Palo Alto Firewall 9 Benchmark v1.0.0
+#               https://workbench.cisecurity.org/files/2692
+#
+#<ui_metadata>
+#<display_name>CIS Palo Alto Firewall 9 Benchmark L2 v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Palo Alto Firewall 9 L2</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>palo_alto</labels>
+#<benchmark_refs>LEVEL,CSCv6,CSCv7</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SNMP_SERVER</name>
+#    <default>10.0.0.2</default>
+#    <description>Log Server</description>
+#    <info>Host address of the sytem log server for the target to send logs to.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Palo_Alto">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "Check for Palo Alto version 9"
+      api_request_type : "op"
+      request          : "<show><system><info></info></system></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:value-of select=\"/response/result/system/sw-version\"/>"
+      regex            : ".*"
+      expect           : "^[\s]*9\..*"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.1.1.2 SNMPv3 traps should be configured - host"
+      info             : "SNMP v3 can be used for remote logging, and is the recommended protocol in higher security situations as it fully supports encryption of logs.
+
+Rationale:
+
+Sending all system logs to a remote host is recommended to provide protected, long term storage and archiving. This also places a copy of the logs in a second location, in case the primary (on the firewall) logs are compromised. Storing logs on a remote host also allows for more flexible log searches and log processing, as well as many methods of triggering events or scripts based on specific log events or combinations of events. Finally, remote logging provides many organizations with the opportunity to combine logs from disparate infrastructure in a SIEM (Security Information and Event Management) system.
+
+Logging to an external system is also usually required by most regulatory frameworks."
+      solution         : "Navigate to Device > Server Profiles > SNMP Trap
+Choose Add
+Assign a Name to the Profile, and specify version V3. Choose Add, and assign a server name in the Name field, add an IP address or FQDN in the SNMP Manager field. Edit the Password fields as appropriate for your server.
+Repeat if multiple Syslog destinations are required.
+Navigate to Device > Log Settings
+Under System, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under Configuration, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under User-ID, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under HIP Match (Host Information Profile), add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under IP-Tag, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+
+Impact:
+
+Failure to properly store and archive logs for critical infrastructure leaves an organization without the tools required to establish trends in events or activity, or to retrospectively analyze security or operational events beyond the log timespan stored on the firewall. Not having remote logs also puts many organizations outside of compliance with many regulatory frameworks. Finally, not logging to a remote host leaves organizations without recourse in the event of a compromise of logs on the primary device. It is imperative that organizations log critical infrastructure appropriately, store and archive these logs in a central location, and have a robust set of tools to analyze logs both in real time and after the fact. Not encrypting log data as it transits the network allows an attacker to mount a 'MiTM' (Monkey in the Middle) attack, which allows them to intercept and/or modify logs as they transit from the source to the destination.
+
+Default Value:
+
+By default no external logging is defined
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - Forward Traps to an SNMP Manager' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/monitoring/snmp-monitoring-and-traps/forward-traps-to-an-snmp-manager#"
+      reference        : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSCv6|14.2,CSCv6|6.2,CSCv6|6.3,CSCv6|6.5,CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+# Note: Variable @SNMP_SERVER@ replaced with "10.0.0.2" in field "xsl_stmt".
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/shared/log-settings/snmptrap/entry/version/v3/server/entry/manager='10.0.0.2'\">"
+      xsl_stmt         : "Passed - snmp v3 server found"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - snmp v3 server not found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : "(Passed|Failed)"
+      expect           : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.1.1.2 SNMPv3 traps should be configured - configuration"
+      info             : "SNMP v3 can be used for remote logging, and is the recommended protocol in higher security situations as it fully supports encryption of logs.
+
+Rationale:
+
+Sending all system logs to a remote host is recommended to provide protected, long term storage and archiving. This also places a copy of the logs in a second location, in case the primary (on the firewall) logs are compromised. Storing logs on a remote host also allows for more flexible log searches and log processing, as well as many methods of triggering events or scripts based on specific log events or combinations of events. Finally, remote logging provides many organizations with the opportunity to combine logs from disparate infrastructure in a SIEM (Security Information and Event Management) system.
+
+Logging to an external system is also usually required by most regulatory frameworks."
+      solution         : "Navigate to Device > Server Profiles > SNMP Trap
+Choose Add
+Assign a Name to the Profile, and specify version V3. Choose Add, and assign a server name in the Name field, add an IP address or FQDN in the SNMP Manager field. Edit the Password fields as appropriate for your server.
+Repeat if multiple Syslog destinations are required.
+Navigate to Device > Log Settings
+Under System, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under Configuration, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under User-ID, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under HIP Match (Host Information Profile), add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under IP-Tag, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+
+Impact:
+
+Failure to properly store and archive logs for critical infrastructure leaves an organization without the tools required to establish trends in events or activity, or to retrospectively analyze security or operational events beyond the log timespan stored on the firewall. Not having remote logs also puts many organizations outside of compliance with many regulatory frameworks. Finally, not logging to a remote host leaves organizations without recourse in the event of a compromise of logs on the primary device. It is imperative that organizations log critical infrastructure appropriately, store and archive these logs in a central location, and have a robust set of tools to analyze logs both in real time and after the fact. Not encrypting log data as it transits the network allows an attacker to mount a 'MiTM' (Monkey in the Middle) attack, which allows them to intercept and/or modify logs as they transit from the source to the destination.
+
+Default Value:
+
+By default no external logging is defined
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - Forward Traps to an SNMP Manager' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/monitoring/snmp-monitoring-and-traps/forward-traps-to-an-snmp-manager#"
+      reference        : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSCv6|14.2,CSCv6|6.2,CSCv6|6.3,CSCv6|6.5,CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"(/response/result/config/shared/log-settings/config/match-list/entry/send-snmptrap) and (/response/result/config/shared/log-settings/config/match-list/entry/filter='All Logs')\">"
+      xsl_stmt         : "<xsl:value-of select=\"/response/result/config/shared/log-settings/config/match-list/entry\"/>"
+      xsl_stmt         : "Passed - snmptrap entry with filter setting set to 'All Logs' found"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - snmptrap entry with filter setting set to 'All Logs' not found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : "(Passed|Failed)"
+      expect           : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.1.1.2 SNMPv3 traps should be configured - user-id"
+      info             : "SNMP v3 can be used for remote logging, and is the recommended protocol in higher security situations as it fully supports encryption of logs.
+
+Rationale:
+
+Sending all system logs to a remote host is recommended to provide protected, long term storage and archiving. This also places a copy of the logs in a second location, in case the primary (on the firewall) logs are compromised. Storing logs on a remote host also allows for more flexible log searches and log processing, as well as many methods of triggering events or scripts based on specific log events or combinations of events. Finally, remote logging provides many organizations with the opportunity to combine logs from disparate infrastructure in a SIEM (Security Information and Event Management) system.
+
+Logging to an external system is also usually required by most regulatory frameworks."
+      solution         : "Navigate to Device > Server Profiles > SNMP Trap
+Choose Add
+Assign a Name to the Profile, and specify version V3. Choose Add, and assign a server name in the Name field, add an IP address or FQDN in the SNMP Manager field. Edit the Password fields as appropriate for your server.
+Repeat if multiple Syslog destinations are required.
+Navigate to Device > Log Settings
+Under System, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under Configuration, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under User-ID, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under HIP Match (Host Information Profile), add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under IP-Tag, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+
+Impact:
+
+Failure to properly store and archive logs for critical infrastructure leaves an organization without the tools required to establish trends in events or activity, or to retrospectively analyze security or operational events beyond the log timespan stored on the firewall. Not having remote logs also puts many organizations outside of compliance with many regulatory frameworks. Finally, not logging to a remote host leaves organizations without recourse in the event of a compromise of logs on the primary device. It is imperative that organizations log critical infrastructure appropriately, store and archive these logs in a central location, and have a robust set of tools to analyze logs both in real time and after the fact. Not encrypting log data as it transits the network allows an attacker to mount a 'MiTM' (Monkey in the Middle) attack, which allows them to intercept and/or modify logs as they transit from the source to the destination.
+
+Default Value:
+
+By default no external logging is defined
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - Forward Traps to an SNMP Manager' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/monitoring/snmp-monitoring-and-traps/forward-traps-to-an-snmp-manager#"
+      reference        : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSCv6|14.2,CSCv6|6.2,CSCv6|6.3,CSCv6|6.5,CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"(/response/result/config/shared/log-settings/userid/match-list/entry/send-snmptrap) and (/response/result/config/shared/log-settings/userid/match-list/entry/filter='All Logs')\">"
+      xsl_stmt         : "<xsl:value-of select=\"/response/result/config/shared/log-settings/userid/match-list/entry\"/>"
+      xsl_stmt         : "Passed - snmptrap entry with filter setting set to 'All Logs' found"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - snmptrap entry with filter setting set to 'All Logs' not found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : "(Passed|Failed)"
+      expect           : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.1.1.2 SNMPv3 traps should be configured - hip match"
+      info             : "SNMP v3 can be used for remote logging, and is the recommended protocol in higher security situations as it fully supports encryption of logs.
+
+Rationale:
+
+Sending all system logs to a remote host is recommended to provide protected, long term storage and archiving. This also places a copy of the logs in a second location, in case the primary (on the firewall) logs are compromised. Storing logs on a remote host also allows for more flexible log searches and log processing, as well as many methods of triggering events or scripts based on specific log events or combinations of events. Finally, remote logging provides many organizations with the opportunity to combine logs from disparate infrastructure in a SIEM (Security Information and Event Management) system.
+
+Logging to an external system is also usually required by most regulatory frameworks."
+      solution         : "Navigate to Device > Server Profiles > SNMP Trap
+Choose Add
+Assign a Name to the Profile, and specify version V3. Choose Add, and assign a server name in the Name field, add an IP address or FQDN in the SNMP Manager field. Edit the Password fields as appropriate for your server.
+Repeat if multiple Syslog destinations are required.
+Navigate to Device > Log Settings
+Under System, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under Configuration, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under User-ID, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under HIP Match (Host Information Profile), add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under IP-Tag, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+
+Impact:
+
+Failure to properly store and archive logs for critical infrastructure leaves an organization without the tools required to establish trends in events or activity, or to retrospectively analyze security or operational events beyond the log timespan stored on the firewall. Not having remote logs also puts many organizations outside of compliance with many regulatory frameworks. Finally, not logging to a remote host leaves organizations without recourse in the event of a compromise of logs on the primary device. It is imperative that organizations log critical infrastructure appropriately, store and archive these logs in a central location, and have a robust set of tools to analyze logs both in real time and after the fact. Not encrypting log data as it transits the network allows an attacker to mount a 'MiTM' (Monkey in the Middle) attack, which allows them to intercept and/or modify logs as they transit from the source to the destination.
+
+Default Value:
+
+By default no external logging is defined
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - Forward Traps to an SNMP Manager' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/monitoring/snmp-monitoring-and-traps/forward-traps-to-an-snmp-manager#"
+      reference        : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSCv6|14.2,CSCv6|6.2,CSCv6|6.3,CSCv6|6.5,CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"(/response/result/config/shared/log-settings/hipmatch/match-list/entry/send-snmptrap) and (/response/result/config/shared/log-settings/hipmatch/match-list/entry/filter='All Logs')\">"
+      xsl_stmt         : "<xsl:value-of select=\"/response/result/config/shared/log-settings/hipmatch/match-list/entry\"/>"
+      xsl_stmt         : "Passed - snmptrap entry with filter setting set to 'All Logs' found"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - snmptrap entry with filter setting set to 'All Logs' not found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : "(Passed|Failed)"
+      expect           : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.1.1.2 SNMPv3 traps should be configured - ip-tag"
+      info             : "SNMP v3 can be used for remote logging, and is the recommended protocol in higher security situations as it fully supports encryption of logs.
+
+Rationale:
+
+Sending all system logs to a remote host is recommended to provide protected, long term storage and archiving. This also places a copy of the logs in a second location, in case the primary (on the firewall) logs are compromised. Storing logs on a remote host also allows for more flexible log searches and log processing, as well as many methods of triggering events or scripts based on specific log events or combinations of events. Finally, remote logging provides many organizations with the opportunity to combine logs from disparate infrastructure in a SIEM (Security Information and Event Management) system.
+
+Logging to an external system is also usually required by most regulatory frameworks."
+      solution         : "Navigate to Device > Server Profiles > SNMP Trap
+Choose Add
+Assign a Name to the Profile, and specify version V3. Choose Add, and assign a server name in the Name field, add an IP address or FQDN in the SNMP Manager field. Edit the Password fields as appropriate for your server.
+Repeat if multiple Syslog destinations are required.
+Navigate to Device > Log Settings
+Under System, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under Configuration, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under User-ID, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under HIP Match (Host Information Profile), add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+Under IP-Tag, add an entry. Define a Name and a Filter setting. Under Forward Methods, add a SNMP Profile in the SNMP section. Ensure that at least one of the Log Settings Configuration entries has its Filter setting at All Logs
+
+Impact:
+
+Failure to properly store and archive logs for critical infrastructure leaves an organization without the tools required to establish trends in events or activity, or to retrospectively analyze security or operational events beyond the log timespan stored on the firewall. Not having remote logs also puts many organizations outside of compliance with many regulatory frameworks. Finally, not logging to a remote host leaves organizations without recourse in the event of a compromise of logs on the primary device. It is imperative that organizations log critical infrastructure appropriately, store and archive these logs in a central location, and have a robust set of tools to analyze logs both in real time and after the fact. Not encrypting log data as it transits the network allows an attacker to mount a 'MiTM' (Monkey in the Middle) attack, which allows them to intercept and/or modify logs as they transit from the source to the destination.
+
+Default Value:
+
+By default no external logging is defined
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - Forward Traps to an SNMP Manager' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/monitoring/snmp-monitoring-and-traps/forward-traps-to-an-snmp-manager#"
+      reference        : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSCv6|14.2,CSCv6|6.2,CSCv6|6.3,CSCv6|6.5,CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"(/response/result/config/shared/log-settings/iptag/match-list/entry/send-snmptrap) and (/response/result/config/shared/log-settings/iptag/match-list/entry/filter='All Logs')\">"
+      xsl_stmt         : "<xsl:value-of select=\"/response/result/config/shared/log-settings/iptag/match-list/entry\"/>"
+      xsl_stmt         : "Passed - snmptrap entry with filter setting set to 'All Logs' found"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - snmptrap entry with filter setting set to 'All Logs' not found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : "(Passed|Failed)"
+      expect           : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.2.5 Ensure valid certificate is set for browser-based administrator interface  - Authentication Profile"
+      info             : "In most cases, a browser HTTPS interface is used to administer the Palo Alto appliance. The certificate used to secure this session should satisfy the following criteria:
+
+A valid certificate from a trusted source should be used. While a certificate from a trusted Public Certificate Authority is certainly valid, one from a trusted Private Certificate Authority is absolutely acceptable for this purpose.
+
+The certificate should have a valid date. It should not have a 'to' date in the past (it should not be expired), and should not have a 'from' date in the future.
+
+The certificate should use an acceptable cipher and encryption level.
+
+Rationale:
+
+If a certificate that is self-signed, expired, or otherwise invalid is used for the browser HTTPS interface, administrators in most cases will not be able to tell if their session is being eavesdropped on or injected into by a 'Man in the Middle' attack.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Create or acquire a certificate that meets the stated criteria and set it:
+Navigate to Device > Certificate Management > Certificates
+Import an appropriate Certificate for your administrative session, from a trusted Certificate Authority.
+Navigate to Device > Certificate Management > SSL/TLS Service Profile
+Choose or import the certificate you want to use for the web based administrative session.
+Navigate to Device > Setup > Management > General Settings > SSL/TLS Service Profile
+Choose the Service Profile that you have configured
+
+Impact:
+
+If the default self-signed certificate is used, an administrator will not be able to clearly tell if their HTTPS session is being hijacked or not. Using a trusted certificate ensures that the session is both encrypted and trusted.
+
+Default Value:
+
+A self-signed certificate is installed by default for the administrative interface.
+
+References:
+
+'How to Configure a Certificate for Secure Web GUI Access' - https://live.paloaltonetworks.com/t5/Configuration-Articles/How-to-configure-a-certificate-for-secure-web-gui-access/ta-p/68653
+
+'PAN-OS Administrator's Guide 9.0 (English) - Best Practices for Securing Administrative Access': https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/getting-started/best-practices-for-securing-administrative-access.html#
+
+Notes:
+
+Verify that the clock is both accurate and reliable on both the Palo Alto and on the administrative workstations before setting the SSL/TLS Service Profile. Inaccurate or mismatched clocks will result in certificate errors and can result in loss of HTTPS administrative access."
+      reference        : "800-53|IA-2(12),CSCv6|11.4,CSCv6|14.2,CSCv6|16.13,CSCv6|3.4,CSCv7|14.4,CSCv7|16.5,CSF|PR.AC-1,LEVEL|2NS"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/devices/entry/deviceconfig/system/certificate-profile\">"
+      xsl_stmt         : "Authentication Profile: <xsl:value-of select=\"/response/result/config/devices/entry/deviceconfig/system/certificate-profile\"/>"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "No authentication profile found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.2.5 Ensure valid certificate is set for browser-based administrator interface  - Certificate Profiles"
+      info             : "In most cases, a browser HTTPS interface is used to administer the Palo Alto appliance. The certificate used to secure this session should satisfy the following criteria:
+
+A valid certificate from a trusted source should be used. While a certificate from a trusted Public Certificate Authority is certainly valid, one from a trusted Private Certificate Authority is absolutely acceptable for this purpose.
+
+The certificate should have a valid date. It should not have a 'to' date in the past (it should not be expired), and should not have a 'from' date in the future.
+
+The certificate should use an acceptable cipher and encryption level.
+
+Rationale:
+
+If a certificate that is self-signed, expired, or otherwise invalid is used for the browser HTTPS interface, administrators in most cases will not be able to tell if their session is being eavesdropped on or injected into by a 'Man in the Middle' attack.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Create or acquire a certificate that meets the stated criteria and set it:
+Navigate to Device > Certificate Management > Certificates
+Import an appropriate Certificate for your administrative session, from a trusted Certificate Authority.
+Navigate to Device > Certificate Management > SSL/TLS Service Profile
+Choose or import the certificate you want to use for the web based administrative session.
+Navigate to Device > Setup > Management > General Settings > SSL/TLS Service Profile
+Choose the Service Profile that you have configured
+
+Impact:
+
+If the default self-signed certificate is used, an administrator will not be able to clearly tell if their HTTPS session is being hijacked or not. Using a trusted certificate ensures that the session is both encrypted and trusted.
+
+Default Value:
+
+A self-signed certificate is installed by default for the administrative interface.
+
+References:
+
+'How to Configure a Certificate for Secure Web GUI Access' - https://live.paloaltonetworks.com/t5/Configuration-Articles/How-to-configure-a-certificate-for-secure-web-gui-access/ta-p/68653
+
+'PAN-OS Administrator's Guide 9.0 (English) - Best Practices for Securing Administrative Access': https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/getting-started/best-practices-for-securing-administrative-access.html#
+
+Notes:
+
+Verify that the clock is both accurate and reliable on both the Palo Alto and on the administrative workstations before setting the SSL/TLS Service Profile. Inaccurate or mismatched clocks will result in certificate errors and can result in loss of HTTPS administrative access."
+      reference        : "800-53|SC-17,CSCv6|11.4,CSCv6|14.2,CSCv6|16.13,CSCv6|3.4,CSCv7|14.4,CSCv7|16.5,ITSG-33|SC-17,LEVEL|2NS,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/shared/certificate-profile/entry\">"
+      xsl_stmt         : "<xsl:for-each select=\"/response/result/config/shared/certificate-profile/entry\">"
+      xsl_stmt         : "Certificate Profile name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "No certificate profiles found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.2.5 Ensure valid certificate is set for browser-based administrator interface - Certificates"
+      info             : "In most cases, a browser HTTPS interface is used to administer the Palo Alto appliance. The certificate used to secure this session should satisfy the following criteria:
+
+A valid certificate from a trusted source should be used. While a certificate from a trusted Public Certificate Authority is certainly valid, one from a trusted Private Certificate Authority is absolutely acceptable for this purpose.
+
+The certificate should have a valid date. It should not have a 'to' date in the past (it should not be expired), and should not have a 'from' date in the future.
+
+The certificate should use an acceptable cipher and encryption level.
+
+Rationale:
+
+If a certificate that is self-signed, expired, or otherwise invalid is used for the browser HTTPS interface, administrators in most cases will not be able to tell if their session is being eavesdropped on or injected into by a 'Man in the Middle' attack.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Create or acquire a certificate that meets the stated criteria and set it:
+Navigate to Device > Certificate Management > Certificates
+Import an appropriate Certificate for your administrative session, from a trusted Certificate Authority.
+Navigate to Device > Certificate Management > SSL/TLS Service Profile
+Choose or import the certificate you want to use for the web based administrative session.
+Navigate to Device > Setup > Management > General Settings > SSL/TLS Service Profile
+Choose the Service Profile that you have configured
+
+Impact:
+
+If the default self-signed certificate is used, an administrator will not be able to clearly tell if their HTTPS session is being hijacked or not. Using a trusted certificate ensures that the session is both encrypted and trusted.
+
+Default Value:
+
+A self-signed certificate is installed by default for the administrative interface.
+
+References:
+
+'How to Configure a Certificate for Secure Web GUI Access' - https://live.paloaltonetworks.com/t5/Configuration-Articles/How-to-configure-a-certificate-for-secure-web-gui-access/ta-p/68653
+
+'PAN-OS Administrator's Guide 9.0 (English) - Best Practices for Securing Administrative Access': https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/getting-started/best-practices-for-securing-administrative-access.html#
+
+Notes:
+
+Verify that the clock is both accurate and reliable on both the Palo Alto and on the administrative workstations before setting the SSL/TLS Service Profile. Inaccurate or mismatched clocks will result in certificate errors and can result in loss of HTTPS administrative access."
+      reference        : "800-53|SC-17,CSCv6|11.4,CSCv6|14.2,CSCv6|16.13,CSCv6|3.4,CSCv7|14.4,CSCv7|16.5,ITSG-33|SC-17,LEVEL|2NS,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/shared/certificate/entry\">"
+      xsl_stmt         : "<xsl:for-each select=\"/response/result/config/shared/certificate/entry\">"
+      xsl_stmt         : "Certificate name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "No certificates found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.6.3 Ensure that the Certificate Securing Remote Access VPNs is Valid - GlobalProtect Gateways"
+      info             : "The Certificate used to secure Remote Access VPNs should satisfy the following criteria:
+
+It should be a valid certificate from a trusted source. In almost cases this means a trusted Public Certificate Authority, as in most cases remote access VPN users will not have access to any Private Certificate Authorities for Certificate validation.
+
+The certificate should have a valid date. It should not have a 'to' date in the past (it should not be expired), and should not have a 'from' date in the future.
+
+The key length used to encrypt the certificate should be 2048 bits or more.
+
+The hash used to sign the certificate should be SHA-2 or better.
+
+When the Certificate is applied, the TLS version should be 1.1 or higher (1.2 is recommended)
+
+Rationale:
+
+If presented with a certificate error, the end user in most cases will not be able to tell if their session is using a self-signed or expired certificate, or if their session is being eavesdropped on or injected into by a 'Man in the Middle' attack. This means that self-signed or invalid certificates should never be used for VPN connections.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Create a CSR and install a certificate from a public CA (Certificate Authority) here:
+Navigate to Device > Certificate Management > Certificates
+Apply a valid certificate to the HTTPS portal:
+Navigate to Network > GlobalProtect > Portals > Portal Configuration > Authentication > SSL/TLS Profile
+Apply a valid certificate to the GlobalProtect Gateway:
+Navigate to Network > GlobalProtect > Gateways > Authentication > SSL/TLS Service Profile
+Configure the Service Profile to use the correct certificate
+Ensure that the Minimum TLS version is set to 1.1 or 1.2 (1.2 is recommended).
+
+Impact:
+
+Not using a trusted Certificate, issued by a trusted Public Certificate Authority means that clients establishing VPN sessions will always see an error indicating an untrusted Certificate. This means that they will have no method of validating if their VPN session is being hijacked by a 'Monkey in the Middle' (MitM) attack. It also 'trains' them to bypass certificate warnings for other services, making MitM attacks easier for those other services as well.
+
+Default Value:
+
+Not configured
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - GlobalProtect Certificate Best Practices' - https://docs.paloaltonetworks.com/globalprotect/9-0/globalprotect-admin/get-started/enable-ssl-between-globalprotect-components/globalprotect-certificate-best-practices.html
+
+'PAN-OS Administrator's Guide 9.0 (English) - Deploy Server Certificates to the GlobalProtect Components' - https://docs.paloaltonetworks.com/globalprotect/9-0/globalprotect-admin/get-started/enable-ssl-between-globalprotect-components/deploy-server-certificates-to-the-globalprotect-components.html#"
+      reference        : "800-53|SC-17,CSCv6|14.2,CSCv7|14.4,ITSG-33|SC-17,LEVEL|2NS,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/devices/entry/vsys/entry/global-protect/global-protect-gateway/entry\">"
+      xsl_stmt         : "<xsl:for-each select=\"/response/result/config/devices/entry/vsys/entry/global-protect/global-protect-gateway/entry\">"
+      xsl_stmt         : "GlobalProtect Gateway name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "No GlobalProtect Gateways found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.6.3 Ensure that the Certificate Securing Remote Access VPNs is Valid - Certificates"
+      info             : "The Certificate used to secure Remote Access VPNs should satisfy the following criteria:
+
+It should be a valid certificate from a trusted source. In almost cases this means a trusted Public Certificate Authority, as in most cases remote access VPN users will not have access to any Private Certificate Authorities for Certificate validation.
+
+The certificate should have a valid date. It should not have a 'to' date in the past (it should not be expired), and should not have a 'from' date in the future.
+
+The key length used to encrypt the certificate should be 2048 bits or more.
+
+The hash used to sign the certificate should be SHA-2 or better.
+
+When the Certificate is applied, the TLS version should be 1.1 or higher (1.2 is recommended)
+
+Rationale:
+
+If presented with a certificate error, the end user in most cases will not be able to tell if their session is using a self-signed or expired certificate, or if their session is being eavesdropped on or injected into by a 'Man in the Middle' attack. This means that self-signed or invalid certificates should never be used for VPN connections.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Create a CSR and install a certificate from a public CA (Certificate Authority) here:
+Navigate to Device > Certificate Management > Certificates
+Apply a valid certificate to the HTTPS portal:
+Navigate to Network > GlobalProtect > Portals > Portal Configuration > Authentication > SSL/TLS Profile
+Apply a valid certificate to the GlobalProtect Gateway:
+Navigate to Network > GlobalProtect > Gateways > Authentication > SSL/TLS Service Profile
+Configure the Service Profile to use the correct certificate
+Ensure that the Minimum TLS version is set to 1.1 or 1.2 (1.2 is recommended).
+
+Impact:
+
+Not using a trusted Certificate, issued by a trusted Public Certificate Authority means that clients establishing VPN sessions will always see an error indicating an untrusted Certificate. This means that they will have no method of validating if their VPN session is being hijacked by a 'Monkey in the Middle' (MitM) attack. It also 'trains' them to bypass certificate warnings for other services, making MitM attacks easier for those other services as well.
+
+Default Value:
+
+Not configured
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - GlobalProtect Certificate Best Practices' - https://docs.paloaltonetworks.com/globalprotect/9-0/globalprotect-admin/get-started/enable-ssl-between-globalprotect-components/globalprotect-certificate-best-practices.html
+
+'PAN-OS Administrator's Guide 9.0 (English) - Deploy Server Certificates to the GlobalProtect Components' - https://docs.paloaltonetworks.com/globalprotect/9-0/globalprotect-admin/get-started/enable-ssl-between-globalprotect-components/deploy-server-certificates-to-the-globalprotect-components.html#"
+      reference        : "800-53|SC-17,CSCv6|14.2,CSCv7|14.4,ITSG-33|SC-17,LEVEL|2NS,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/shared/certificate/entry\">"
+      xsl_stmt         : "<xsl:for-each select=\"/response/result/config/shared/certificate/entry\">"
+      xsl_stmt         : "Certificate name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "No certificates found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "1.6.3 Ensure that the Certificate Securing Remote Access VPNs is Valid - GlobalProtect Portals"
+      info             : "The Certificate used to secure Remote Access VPNs should satisfy the following criteria:
+
+It should be a valid certificate from a trusted source. In almost cases this means a trusted Public Certificate Authority, as in most cases remote access VPN users will not have access to any Private Certificate Authorities for Certificate validation.
+
+The certificate should have a valid date. It should not have a 'to' date in the past (it should not be expired), and should not have a 'from' date in the future.
+
+The key length used to encrypt the certificate should be 2048 bits or more.
+
+The hash used to sign the certificate should be SHA-2 or better.
+
+When the Certificate is applied, the TLS version should be 1.1 or higher (1.2 is recommended)
+
+Rationale:
+
+If presented with a certificate error, the end user in most cases will not be able to tell if their session is using a self-signed or expired certificate, or if their session is being eavesdropped on or injected into by a 'Man in the Middle' attack. This means that self-signed or invalid certificates should never be used for VPN connections.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Create a CSR and install a certificate from a public CA (Certificate Authority) here:
+Navigate to Device > Certificate Management > Certificates
+Apply a valid certificate to the HTTPS portal:
+Navigate to Network > GlobalProtect > Portals > Portal Configuration > Authentication > SSL/TLS Profile
+Apply a valid certificate to the GlobalProtect Gateway:
+Navigate to Network > GlobalProtect > Gateways > Authentication > SSL/TLS Service Profile
+Configure the Service Profile to use the correct certificate
+Ensure that the Minimum TLS version is set to 1.1 or 1.2 (1.2 is recommended).
+
+Impact:
+
+Not using a trusted Certificate, issued by a trusted Public Certificate Authority means that clients establishing VPN sessions will always see an error indicating an untrusted Certificate. This means that they will have no method of validating if their VPN session is being hijacked by a 'Monkey in the Middle' (MitM) attack. It also 'trains' them to bypass certificate warnings for other services, making MitM attacks easier for those other services as well.
+
+Default Value:
+
+Not configured
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - GlobalProtect Certificate Best Practices' - https://docs.paloaltonetworks.com/globalprotect/9-0/globalprotect-admin/get-started/enable-ssl-between-globalprotect-components/globalprotect-certificate-best-practices.html
+
+'PAN-OS Administrator's Guide 9.0 (English) - Deploy Server Certificates to the GlobalProtect Components' - https://docs.paloaltonetworks.com/globalprotect/9-0/globalprotect-admin/get-started/enable-ssl-between-globalprotect-components/deploy-server-certificates-to-the-globalprotect-components.html#"
+      reference        : "800-53|SC-17,CSCv6|14.2,CSCv7|14.4,ITSG-33|SC-17,LEVEL|2NS,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/devices/entry/vsys/entry/global-protect/global-protect-portal/entry\">"
+      xsl_stmt         : "<xsl:for-each select=\"/response/result/config/devices/entry/vsys/entry/global-protect/global-protect-portal/entry\">"
+      xsl_stmt         : "GlobalProtect Portal name: <xsl:value-of select=\"@name\"/>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "No GlobalProtect Portals found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "2.1 Ensure that IP addresses are mapped to usernames - Zones"
+      info             : "Configure appropriate settings to map IP addresses to usernames. Mapping userids to IP addresses is what permits the firewall to create rules based on userids and groups rather than IP addresses and subnets, as well as log events by userids rather than IP addresses or DNS names. The specifics of how to achieve IP-to-username mapping is highly dependent on the environment. It can be enabled by integrating the firewall with a domain controller, Exchange server, captive portal, Terminal Server, User-ID Agent, XML API, or syslog data from a variety of devices.
+
+Rationale:
+
+Understanding which user is involved in a security incident allows appropriate personnel to move quickly between the detection and reaction phases of incident response. In environments with either short DHCP lease times, or where users may move frequently between systems, the ability to analyze or report, or alert on events based on user accounts or user groups is a tremendous advantage. For forensics tasks when DHCP lease information may not be available, the Source User information may be the only way to tie together related data.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "To Set User-ID Agents:
+Navigate to Device > User Identification > User-ID Agents
+Set the Name, IP Address and Port of the User-ID Agent'
+Enable User Identification for each monitored zone that will have user accounts:
+Navigate to Network > Zone, for each relevant zone enable User Identification
+To Set Terminal Services Agents:
+Navigate to Device > Terminal Services Agents
+Set the Name, IP Address and Port of the Terminal Services Agent
+Enable User Identification for each monitored zone that will have Terminal Servers:
+Navigate to Network > Zone, enable User Identification
+
+References:
+
+'Best Practices for Securing User-ID Deployments' - https://live.paloaltonetworks.com/docs/DOC-7912
+
+'How to Configure Group Mapping settings?' - https://live.paloaltonetworks.com/docs/DOC-4994
+
+'PAN-OS Administrator's Guide 9.0 (English) - User-ID' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/user-id
+
+https://paloaltonetworks.com/content/dam/paloaltonetworks-com/en_US/assets/pdf/tech-briefs/techbrief-user-id.pdf"
+      reference        : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|16,CSCv6|16.10,CSCv6|6.5,CSCv7|16,CSCv7|16.13,CSCv7|6.2,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:for-each select=\"/response/result/config/devices/entry/vsys/entry/zone/entry\">"
+      xsl_stmt         : "Zone - <xsl:value-of select=\"@*\"/>, Enable User Identification - <xsl:value-of select=\"enable-user-identification\"/>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "<xsl:if test=\"count(/response/result/config/devices/entry/vsys/entry/zone/entry) = 0\">"
+      xsl_stmt         : "No Network Zone Policies found"
+      xsl_stmt         : "</xsl:if>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "2.1 Ensure that IP addresses are mapped to usernames - User ID Agents"
+      info             : "Configure appropriate settings to map IP addresses to usernames. Mapping userids to IP addresses is what permits the firewall to create rules based on userids and groups rather than IP addresses and subnets, as well as log events by userids rather than IP addresses or DNS names. The specifics of how to achieve IP-to-username mapping is highly dependent on the environment. It can be enabled by integrating the firewall with a domain controller, Exchange server, captive portal, Terminal Server, User-ID Agent, XML API, or syslog data from a variety of devices.
+
+Rationale:
+
+Understanding which user is involved in a security incident allows appropriate personnel to move quickly between the detection and reaction phases of incident response. In environments with either short DHCP lease times, or where users may move frequently between systems, the ability to analyze or report, or alert on events based on user accounts or user groups is a tremendous advantage. For forensics tasks when DHCP lease information may not be available, the Source User information may be the only way to tie together related data.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "To Set User-ID Agents:
+Navigate to Device > User Identification > User-ID Agents
+Set the Name, IP Address and Port of the User-ID Agent'
+Enable User Identification for each monitored zone that will have user accounts:
+Navigate to Network > Zone, for each relevant zone enable User Identification
+To Set Terminal Services Agents:
+Navigate to Device > Terminal Services Agents
+Set the Name, IP Address and Port of the Terminal Services Agent
+Enable User Identification for each monitored zone that will have Terminal Servers:
+Navigate to Network > Zone, enable User Identification
+
+References:
+
+'Best Practices for Securing User-ID Deployments' - https://live.paloaltonetworks.com/docs/DOC-7912
+
+'How to Configure Group Mapping settings?' - https://live.paloaltonetworks.com/docs/DOC-4994
+
+'PAN-OS Administrator's Guide 9.0 (English) - User-ID' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/user-id
+
+https://paloaltonetworks.com/content/dam/paloaltonetworks-com/en_US/assets/pdf/tech-briefs/techbrief-user-id.pdf"
+      reference        : "800-171|3.5.5,800-171|3.5.6,800-53|IA-4,CN-L3|7.1.2.7(b),CSCv6|16,CSCv6|16.10,CSCv6|6.5,CSCv7|16,CSCv7|16.13,CSCv7|6.2,CSF|PR.AC-1,ITSG-33|IA-4,LEVEL|2S,NESA|T5.5.2,SWIFT-CSCv1|5"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/devices/entry/vsys/entry/user-id-agent/entry\">"
+      xsl_stmt         : "<xsl:for-each select=\"/response/result/config/devices/entry/vsys/entry/user-id-agent/entry\">"
+      xsl_stmt         : "UserID Agent Name: <xsl:value-of select=\"@name\"/>, Port: <xsl:value-of select=\"port\"/>, Host: <xsl:value-of select=\"host\"/>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "No User ID Agents found"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "2.2 Ensure that WMI probing is disabled"
+      info             : "Disable WMI probing if it is not required for User-ID functionality in the environment.
+
+Rationale:
+
+WMI probing normally requires a domain administrator account. A malicious user could capture the encrypted password hash for offline cracking or relayed authentication attacks. Relying on other forms of user identification, such as using UserID Agents or security log monitoring, mitigates this risk.
+
+In addition, it is easy to mis-configure this feature such that it is enabled on untrusted interfaces. This can result in a domain administrator account and the associated password hash being sent to untrusted hosts on the internet, where malicious users can then capture that hash for offline cracking."
+      solution         : "Navigate to Device > User Identification > User Mapping > Palo Alto Networks User ID Agent Setup.
+Set Enable Probing so it is unchecked.
+
+Impact:
+
+While this removes the exposure of having the WMI user account password being compromised, it also reduces the effectiveness of user identification during operation of the firewall (applying rules and policies). This trade-off should be weighed carefully for all installations.
+
+Default Value:
+
+Not configured
+
+References:
+
+'R7-2014-16: Palo Alto Networks User-ID Credential Exposure' - https://blog.rapid7.com/2014/10/14/palo-alto-networks-userid-credential-exposure/
+
+'Best Practices for Securing User-ID Deployments' - https://live.paloaltonetworks.com/docs/DOC-7912
+
+'PAN-OS Administrator's Guide 9.0 (English) - Client Probing' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/user-id/user-id-concepts/user-mapping/client-probing"
+      reference        : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|16,CSCv6|6.5,CSCv6|9.1,CSCv7|16,CSCv7|6.2,CSCv7|9.2,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"not(//user-id-collector/setting/enable-probing) or (//user-id-collector/setting/enable-probing = 'no')\">"
+      xsl_stmt         : "Passed - 'Enable Probing' is turned off"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - 'Enable Probing' is turned on"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : "(Passed|Failed)"
+      expect           : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "4.2 Ensure 'Applications and Threats Update Schedule' is set to download and install updates at daily or shorter intervals"
+      info             : "The CA Certificate used for in-line HTTP Man in the Middle should be trusted by target users. For SSL Forward Proxy configurations, there are classes of users that need to be considered.
+
+1: Users that are members of the organization, users of machines under control of the organization. For these people and machines, ensure that the CA Certificate is in one of the Trusted CA certificate stores. This is easily done in Active Directory, using Group Policies for instance. A MDM (Mobile Device Manager) can be used to accomplish the same task for mobile devices such as telephones or tablets. Other central management or orchestration tools can be used for Linux or 'IoT' (Internet of Things) devices.
+
+2: Users that are not member of the organization - often these are classed as 'Visitors' in the policies of the organization. If a public CA Certificate is a possibility for your organization, then that is one approach. A second approach is to not decrypt affected traffic - this is easily done, but leaves the majority of 'visitor' traffic uninspected and potentially carrying malicious content. The final approach, and the one most commonly seen, is to use the same certificate as is used for the hosting organization. In this last case, visitors will see a certificate warning, but the issuing CA will be the organization that they are visiting.
+
+Rationale:
+
+Using a self-signed certificate, or any certificate that generates a warning in the browser, means that members of the organization have no method of determining if they are being presented with a legitimate certificate, or an attacker's 'man in the middle' certificate. It also very rapidly teaches members of the organization to bypass all security warnings of this type."
+      solution         : "Set the CA Certificate(s):
+Navigate to Device > Certificate Management > Certificates. Import the appropriate CA Certificates from any internal Certificate Authorities.
+Alternatively, generate a self-signed certificate for an internal CA on the firewall, and then import the root certificate for that CA into the trusted CA list of target clients. In an Active Directory environment this can be facilitated using a Group Policy.
+Set the Certificate Profile needed for the SSL Forward Proxy:
+
+Navigate to Device > Certificate Management > Certificate Profile.
+
+Set the decryption profile to include the settings described in the SSL Forward Proxy guidance in this document
+
+Default Value:
+
+Decryption is not enabled by default.
+
+References:
+
+'How to Implement and Test SSL Decryption' - https://live.paloaltonetworks.com/t5/Configuration-Articles/How-to-Implement-and-Test-SSL-Decryption/ta-p/59719
+
+'PAN-OS Administrator's Guide 9.0 (English) - Decryption (English)' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/decryption.html#
+
+'SSL Certificates Resource List on Configuring and Troubleshooting' - https://live.paloaltonetworks.com/t5/Management-Articles/SSL-certificates-resource-list/ta-p/53068
+
+'Certificates' - http://palo-alto.wikia.com/wiki/Certificates"
+      reference        : "800-171|3.14.2,800-171|3.14.4,800-53|SI-3(2),CN-L3|7.1.3.6(a),CSCv6|12,CSCv6|12.5,CSCv7|12,CSCv7|12.10,CSCv7|12.9,CSF|DE.CM-4,ITSG-33|SI-3(2),LEVEL|2S,SWIFT-CSCv1|2.2,TBA-FIISB|49.4"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/devices/entry/deviceconfig/system/update-schedule/threats/recurring/every-30-mins/action='download-and-install'\">"
+      xsl_stmt         : "Passed - Applications and Threats Update Schedule is set to 'Every 30 Minutes' and 'Download and Install'"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/devices/entry/deviceconfig/system/update-schedule/threats/recurring/daily/action='download-and-install'\">"
+      xsl_stmt         : "Passed - Applications and Threats Update Schedule is set to 'Daily' and 'Download and Install'"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:when test=\"/response/result/config/devices/entry/deviceconfig/system/update-schedule/threats/recurring/hourly/action='download-and-install'\">"
+      xsl_stmt         : "Passed - Applications and Threats Update Schedule is set to 'Hourly' and 'Download and Install'"
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - Applications and Threats Update Schedule is not set to 'Every 30 Minutes', 'Daily', or 'Hourly' and/or 'Download and Install'"
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      regex            : "(Passed|Failed)"
+      expect           : "Passed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "6.17 Ensure that a Zone Protection Profile with tuned Flood Protection settings enabled for all flood types is attached to all untrusted zones"
+      info             : "Enable all Flood Protection options in the Zone Protection Profile attached to all untrusted zones. The Alert, Activate, and Maximum settings for Flood Protection depend highly on the environment and device used. Perform traffic analysis on the specific environment and firewall to determine accurate thresholds. Do not rely on default values to be appropriate for an environment.
+
+Setting these values for all interfaces is an approach that should be considered by many organizations, as traffic floods can result from internal testing or malware as well.
+
+Rationale:
+
+Without flood protection, it may be possible for an attacker, through the use of a botnet or other means, to overwhelm network resources. Flood protection does not completely eliminate this risk; rather, it provides a layer of protection. Without a properly configured zone protection profile applied to untrusted interfaces, the protected / trusted networks are susceptible to large number of attacks. While many of these involve denial of service, some of these attacks are designed to evade IPS systems (fragmentation attacks for instance) or to evade basic firewall protections (source routing and record route attacks)."
+      solution         : "In the GUI:
+Navigate to Network > Network Profiles > Zone Protection > Flood Protection.
+Set all settings to 'enabled' with at least the default values.
+Navigate to Network > Zones, select each untrusted zone in turn, and set the Zone Protection Profile.
+
+Impact:
+
+Not configuring and applying a Network Zone Protection Profile leaves an organization exposed to common attacks and reconnaissance from untrusted networks.
+
+Not configuring a Zone Protection Profile for internal networks leaves an organization vulnerable to malware, software or hardware causes of traffic flooding from internal sources.
+
+Default Value:
+
+Not Configured
+
+References:
+
+'Understanding DoS Protection' - https://live.paloaltonetworks.com/docs/DOC-5078
+
+'Threat Prevention Deployment Tech Note' - https://live.paloaltonetworks.com/docs/DOC-3094
+
+'What are the Differences between DoS Protection and Zone Protection?' - https://live.paloaltonetworks.com/docs/DOC-4501
+
+PANOS 9.0 Admin Guide - Network Profiles / Zone Protection / Flood Protection : https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-web-interface-help/network/network-network-profiles/network-network-profiles-zone-protection/flood-protection.html#"
+      reference        : "800-53|SC-5,CSCv7|12,CSCv7|13.3,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|2S,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "<xsl:for-each select=\"//devices/entry/network/profiles/zone-protection-profile/entry\">"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"flood/icmp/enable='yes'\">"
+      xsl_stmt         : "Passed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has ICMP flood protection enabled."
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has ICMP flood protection disabled."
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"flood/icmpv6/enable='yes'\">"
+      xsl_stmt         : "Passed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has ICMPv6 flood protection enabled."
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has ICMPv6 flood protection disabled."
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"flood/other-ip/enable='yes'\">"
+      xsl_stmt         : "Passed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has Other IP flood protection enabled."
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has Other IP flood protection disabled."
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      xsl_stmt         : "<xsl:choose>"
+      xsl_stmt         : "<xsl:when test=\"flood/udp/enable='yes'\">"
+      xsl_stmt         : "Passed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has UDP flood protection enabled."
+      xsl_stmt         : "</xsl:when>"
+      xsl_stmt         : "<xsl:otherwise>"
+      xsl_stmt         : "Failed - Zone Protection Profile '<xsl:value-of select=\"@name\"/>' has UDP flood protection disabled."
+      xsl_stmt         : "</xsl:otherwise>"
+      xsl_stmt         : "</xsl:choose>"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "<xsl:if test=\"count(//devices/entry/network/profiles/zone-protection-profile/entry) = 0\">"
+      xsl_stmt         : "Failed - No Zone Protection Profiles found"
+      xsl_stmt         : "</xsl:if>"
+      regex            : "(Passed|Failed)"
+      not_expect       : "Failed"
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "7.1 Ensure application security policies exist when allowing traffic from an untrusted zone to a more trusted zone"
+      info             : "When permitting traffic from an untrusted zone, such as the Internet or guest network, to a more trusted zone, such as a DMZ segment, create security policies specifying which specific applications are allowed.
+
+**Enhanced Security Recommendation: ** Require specific application policies when allowing any traffic, regardless of the trust level of a zone. Do not rely solely on port permissions. This may require SSL interception, and may also not be possible in all environments.
+
+Rationale:
+
+To avoid unintentionally exposing systems and services, rules allowing traffic from untrusted zones to trusted zones should be as specific as possible. Application-based rules, as opposed to service/port rules, further tighten what traffic is allowed to pass. Similarly, traffic from trusted to untrusted networks should have a security policy set, with application-based rules. A 'catch-all' rule that allows all applications will also allow malware traffic. The goal should be to understand both inbound and outbound traffic, permit what is known, and block all other traffic.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Navigate to Policies > Security.
+For all Security Policies that transit from a less trusted to a more trusted interface, set the Application and Service values to match the exposed application. For instance, for a web server exposed to the internet from a DMZ:
+Source tab: Zone set to OUTSIDE / Address set to Any
+Destination tab: Zone set to DMZ / Address set to [DMZ Host Object]
+Application tab: set to web-browsing
+Service/URL Category tab: set Service to ether:
+
+application-default
+or:
+
+service-http and/or service-https
+
+**Enhanced Security Recommendation: **
+Set these values for Policies on all Interfaces, for traffic in all directions. For each Security Policy, set the Application and Service values to match the exposed application.
+
+Impact:
+
+Setting application based rules on both inbound and outbound traffic ensures that the traffic on the protocol and port being specified is actually the application that you expect. For outbound traffic, the days of 'we trust our users' is well past us, that statement also implies that we trust the malware on the user workstations, which is obviously not the case.
+For traffic from trusted to less trusted interfaces, the applications should be characterized over time, with the end goal being that all applications in in the rules, and a final 'block all' rule is in place. Not having this goal gives both attackers and malware the leeway they need to accomplish their goals.
+Trusting only Port permissions to control traffic exposes an organization to 'tunneling' style attacks that can exfiltrate data or facilitate Command and Control (C2) sessions.
+
+Default Value:
+
+Not Configured
+
+References:
+
+'PAN-OS Administrator's Guide 9.0 (English) - Security Policies / Applications and Usage ' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-web-interface-help/policies/policies-security/applications-and-usage.html#"
+      reference        : "800-171|3.13.1,800-53|SC-7(11),CSCv6|14,CSCv7|14,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),LEVEL|2S,NIAv2|GS7c,TBA-FIISB|31.3"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "Verify application security policy exists for traffic from untrusted to trusted zones"
+      xsl_stmt         : "<xsl:for-each select=\"//rulebase/security/rules/entry\">"
+      xsl_stmt         : "Security policy: '<xsl:value-of select=\"@name\"/>'"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "<xsl:if test=\"count(//rulebase/security/rules/entry) = 0\">"
+      xsl_stmt         : "No Security Policies found"
+      xsl_stmt         : "</xsl:if>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type             : AUDIT_XML
+      description      : "8.3 Ensure that the Certificate used for Decryption is Trusted"
+      info             : "The CA Certificate used for in-line HTTP Man in the Middle should be trusted by target users. For SSL Forward Proxy configurations, there are classes of users that need to be considered.
+
+1: Users that are members of the organization, users of machines under control of the organization. For these people and machines, ensure that the CA Certificate is in one of the Trusted CA certificate stores. This is easily done in Active Directory, using Group Policies for instance. A MDM (Mobile Device Manager) can be used to accomplish the same task for mobile devices such as telephones or tablets. Other central management or orchestration tools can be used for Linux or 'IoT' (Internet of Things) devices.
+
+2: Users that are not member of the organization - often these are classed as 'Visitors' in the policies of the organization. If a public CA Certificate is a possibility for your organization, then that is one approach. A second approach is to not decrypt affected traffic - this is easily done, but leaves the majority of 'visitor' traffic uninspected and potentially carrying malicious content. The final approach, and the one most commonly seen, is to use the same certificate as is used for the hosting organization. In this last case, visitors will see a certificate warning, but the issuing CA will be the organization that they are visiting.
+
+Rationale:
+
+Using a self-signed certificate, or any certificate that generates a warning in the browser, means that members of the organization have no method of determining if they are being presented with a legitimate certificate, or an attacker's 'man in the middle' certificate. It also very rapidly teaches members of the organization to bypass all security warnings of this type.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution         : "Set the CA Certificate(s):
+Navigate to Device > Certificate Management > Certificates. Import the appropriate CA Certificates from any internal Certificate Authorities.
+Alternatively, generate a self-signed certificate for an internal CA on the firewall, and then import the root certificate for that CA into the trusted CA list of target clients. In an Active Directory environment this can be facilitated using a Group Policy.
+Set the Certificate Profile needed for the SSL Forward Proxy:
+
+Navigate to Device > Certificate Management > Certificate Profile.
+
+Set the decryption profile to include the settings described in the SSL Forward Proxy guidance in this document
+
+Default Value:
+
+Decryption is not enabled by default.
+
+References:
+
+'How to Implement and Test SSL Decryption' - https://live.paloaltonetworks.com/t5/Configuration-Articles/How-to-Implement-and-Test-SSL-Decryption/ta-p/59719
+
+'PAN-OS Administrator's Guide 9.0 (English) - Decryption (English)' - https://docs.paloaltonetworks.com/pan-os/9-0/pan-os-admin/decryption.html#
+
+'SSL Certificates Resource List on Configuring and Troubleshooting' - https://live.paloaltonetworks.com/t5/Management-Articles/SSL-certificates-resource-list/ta-p/53068
+
+'Certificates' - http://palo-alto.wikia.com/wiki/Certificates"
+      reference        : "800-53|SC-17,CSCv6|12,CSCv6|12.5,CSCv7|12,CSCv7|12.10,CSCv7|12.9,ITSG-33|SC-17,LEVEL|2NS,NESA|T7.4.2,NIAv2|CY10,NIAv2|CY12,NIAv2|CY5a,NIAv2|SS25"
+      see_also         : "https://workbench.cisecurity.org/files/2692"
+      api_request_type : "op"
+      request          : "<show><config><merged></merged></config></show>"
+      xsl_stmt         : "<xsl:template match=\"/\">"
+      xsl_stmt         : "Verify that the Decryption certificate is trusted"
+      xsl_stmt         : "<xsl:for-each select=\"//vsys/entry/rulebase/decryption/rules/entry[type/ssl-forward-proxy]\">"
+      xsl_stmt         : "Decryption Profile '<xsl:value-of select=\"@name\"/>' is set to type 'SSL Forward Proxy'"
+      xsl_stmt         : "</xsl:for-each>"
+      xsl_stmt         : "<xsl:if test=\"count(//vsys/entry/rulebase/decryption/rules/entry[type/ssl-forward-proxy])=0\">"
+      xsl_stmt         : "No Decryption Profiles using 'SSL Forward Proxy' found"
+      xsl_stmt         : "</xsl:if>"
+      regex            : ".*"
+      expect           : "Manual Review Required"
+      severity         : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Palo Alto software version 9 not found."
+      info        : "The target host is not running Palo Alto software version 9 or higher.
+
+      NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/2692"
+    </report>
+  </else>
+</if>
+
+</check_type>

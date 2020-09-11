@@ -1,0 +1,371 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.19 $
+# $Date: 2020/04/17 $
+#
+# Description    : This audit file implements the Level 2 checks from the CIS Google
+#                Android 4 Benchmark v. 1.0.0.
+#
+#                https://workbench.cisecurity.org/files/465
+#
+# NOTE            : Some queries in this .audit require site-specific data to be known to the query in order to function properly.
+#                 Please note the following queries and edit their values accordingly.
+#
+#<ui_metadata>
+#<display_name>MobileIron - CIS Google Android 4 v1.0.0 L2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MobileIron - CIS Google Android 4 L2</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/465</link>
+#</spec>
+#<labels>mdm,mobileiron,cis,android</labels>
+#<variables>
+#  <variable>
+#    <name>SAMSUNG_SAFE_DEVICE</name>
+#    <default>Yes</default>
+#    <description>Samsung SAFE Device Support</description>
+#    <info>Should Samsung SAFE Device Policies be evaluated?</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"MDM" mdm_type:MOBILEIRON>
+
+<report type:"PASSED">
+  description : "MobileIron - CIS Google Android 4 Benchmark v1.0.0 - Level 2"
+  see_also    : "https://workbench.cisecurity.org/files/465"
+</report>
+
+# 1 User Interface Settings
+## 1.1 System Settings
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description    : "MobileIron - WIFI Configurations Exist"
+      type           : CONFIGURATION_INFO
+      json_transform : '"WIFI Configuration : \([.[]|select (.appType=="WIFI")] | length | . > 0 )"'
+      regex          : "WIFI Configuration :"
+      expect         : "WIFI Configuration : true"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description    : "MobileIron - 1.1.5 Remove Entries in 'Wi-Fi'"
+      info           : "This control determines whether the device will forget Wi-Fi networks with which it has previously associated. It is recommended that networks be forgotten after use in use.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "From the MobileIron console, open the Policies and Configs -> Configurations view. Under the WiFi Policy verify that all configured SSIDs are authorized."
+      reference      : "800-171|3.1.18,800-53|AC-19,CSF|PR.AC-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,LEVEL|2NS"
+      see_also       : "https://workbench.cisecurity.org/files/465"
+      type           : CONFIGURATION_INFO
+      json_transform : '.[] | select (.appType =="WIFI") |
+                  "SSID: \(.name // "None")"'
+      regex          : "SSID:"
+      expect         : "SSID: None"
+      match_all      : YES
+      severity       : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"PASSED">
+      description : "MobileIron - 1.1.5 Remove Entries in 'Wi-Fi'"
+      info        : "This control determines whether the device will forget Wi-Fi networks with which it has previously associated. It is recommended that networks be forgotten after use in use."
+      info        : "No WIFI Configuration policies were found."
+      solution    : "From the MobileIron console, open the Policies and Configs -> Configurations view. Under the WiFi Policy verify that all configured SSIDs are authorized."
+      reference   : "LEVEL|2NS"
+      see_also    : "https://workbench.cisecurity.org/files/465"
+    </report>
+  </else>
+</if>
+
+<custom_item>
+  description    : "MobileIron - 1.1.7 Disable 'Wi-Fi'"
+  info           : "The device can be configured to participate in Wi-Fi networks. It is recommended that Wi-Fi be disabled when not needed or where security is paramount.
+If Wi-Fi is turned off on a device with cellular data service, connections to the Internet will occur via the cellular data network, when available. Applications such as the built-in Android browser, Gmail, Google Voice, Maps, News & Weather, and the Android Market can be run over a cellular data network connection, but there may be a limit on the maximum download size of items for certain apps."
+  solution       : "From the MobileIron console, open the Policies and Configs -> Policies view. Under the Lockdown Policy verify that Wi-Fi is set to disabled."
+  reference      : "800-171|3.1.18,800-171|3.4.6,800-171|3.4.7,800-53|AC-19,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.AC-3,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|7-5,SWIFT-CSCv1|2.3"
+  see_also       : "https://workbench.cisecurity.org/files/465"
+  type           : FULL_PROFILE_INFO
+  json_transform : '.[]|select(.active=="true")|select(.profileType=="LOCKDOWN")|
+                "Policy: " + .policyName + " - WiFi Enabled = \(.policyRules.LOCKDOWN_WIFI // "Not Defined")"'
+  regex          : "WiFi Enabled ="
+  expect         : "WiFi Enabled = Off"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "MobileIron - 1.1.8 Disable 'Bluetooth'"
+  info           : "Bluetooth allows devices to connect wirelessly to headsets, car kits, and other accessories for various Bluetooth profile functionality. It is recommended that Bluetooth be disabled when not in use."
+  solution       : "From the MobileIron console, open the Policies and Configs -> Policies view. Under the Lockdown Policy verify that Bluetooth is set to disabled."
+  reference      : "800-171|3.1.18,800-171|3.4.6,800-171|3.4.7,800-53|AC-19,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.AC-3,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|7-9,SWIFT-CSCv1|2.3"
+  see_also       : "https://workbench.cisecurity.org/files/465"
+  type           : FULL_PROFILE_INFO
+  json_transform : '.[]|select(.active=="true")|select(.profileType=="LOCKDOWN")|
+                "Policy: " + .policyName + " - Bluetooth Enabled = \(.policyRules.LOCKDOWN_BLUETOOTH // "Not Defined")"'
+  regex          : "Bluetooth Enabled ="
+  expect         : "Bluetooth Enabled = Off"
+  match_all      : YES
+</custom_item>
+
+<report type:"WARNING">
+  description : "MobileIron - 1.1.9 Disable 'Location Services'"
+  info        : "Location Services allows applications such as Maps and Internet websites to gather and use data indicating the user's location. The user's approximate location is determined using available information from cellular network data, local Wi-Fi networks (if the user has Wi-Fi turned on), and GPS as available. If the user turns off Location Services, the user will be prompted to turn it back on again the next time an application tries to use this feature. It is recommended that location services be disabled when not required."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "On the Android device,
+1. Tap the globe Browser icon.
+2. Press the Menu button.
+3. Tap Settings.
+4. Tap Privacy & security.
+5. Scroll to Location
+6. Uncheck 'Enable location.'
+7. Press the Home button.
+8. Press the Menu button.
+9. Tap System settings.
+10. Scroll to Personal section.
+11. Tap Location services.
+12. Uncheck Google's location service
+13. Uncheck GPS satellites."
+  reference   : "800-53|CM-7,LEVEL|2NS,PCI-DSS|2.2.2"
+  see_also    : "https://workbench.cisecurity.org/files/465"
+</report>
+
+<report type:"WARNING">
+  description : "MobileIron - 1.1.10 Enable 'Airplane Mode'"
+  info        : "This control determines whether all of the devices receivers and transceivers can receive and transmit radio signals. This option is called Airplane Mode ('Flight Mode' on some phones). When Airplane Mode is enabled, no phone, GPS, radio, Wi-Fi, or Bluetooth signals are emitted from or received by the device. The recommended setting is enabled when these capabilities are unnecessary."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "On the Android device,
+1. Press the Menu button.
+2. Tap System settings.
+3. Scroll to Wireless & networks.
+4. Tap More... if present
+5. Check 'Airplane Mode.'"
+  reference   : "800-53|CM-6,LEVEL|2NS,PCI-DSS|2.2.4"
+  see_also    : "https://workbench.cisecurity.org/files/465"
+</report>
+
+<custom_item>
+  description    : "MobileIron - 1.1.12 Disable 'Notifications'"
+  info           : "This control determines whether notifications are displayed on screen when the device is locked. The recommended setting is disabled."
+  solution       : "From the MobileIron console, open the Policies and Configs -> Policies view. Under the Lockdown Policy verify that Lockscreen Widgets is set to disabled."
+  reference      : "800-171|3.1.18,800-171|3.4.6,800-171|3.4.7,800-53|AC-19,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.AC-3,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.4,SWIFT-CSCv1|2.3"
+  type           : FULL_PROFILE_INFO
+  json_transform : '.[]|select(.active=="true")|select(.profileType=="LOCKDOWN")|
+                "Policy: " + .policyName + " - Lockscreen Widgets Enabled = \(.policyRules.LOCKDOWN_LOCKSCREEN_WIDGETS // "Not Defined")"'
+  regex          : "Lockscreen Widgets Enabled ="
+  expect         : "Lockscreen Widgets Enabled = Off"
+  match_all      : YES
+</custom_item>
+
+<report type:"WARNING">
+  description : "MobileIron - 1.1.18 Limit the 'number of messages' for 'Text message limit'"
+  info        : "This control limits the number of messages saved per thread of text messages. When the limit is reached older messages are deleted if 'Delete old messages' is enabled. The recommended setting is 100 or less messages saved."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "On the Android device,
+1. Tap Message icon.
+2. Press Menu button.
+3. Tap Settings.
+4. Check Delete old messages.
+5. Tap Text message limit.
+6. Scroll to 100
+7. Tap Set."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/465"
+</report>
+
+<report type:"WARNING">
+  description : "MobileIron - 1.1.19 Limit the 'number of messages' for 'Multimedia message limit'"
+  info        : "This control limits the number of messages saved per thread of multimedia messages. When the limit is reached older messages are deleted if 'Delete old messages' is enabled. The recommended setting is 20 or less messages saved."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "On the Android device,
+1. Tap Message icon.
+2. Press Menu button.
+3. Tap Settings.
+4. Check Delete old messages.
+5. Tap Multimedia message limit.
+6. Scroll to 20 messages
+7. Tap Set."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/465"
+</report>
+
+## 1.2 Browser Settings
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description    : "Android - Samsung SAFE Devices Supported"
+      type           : FULL_PROFILE_INFO
+# Note: Variable @SAMSUNG_SAFE_DEVICE@ replaced with "Yes" in field "json_transform".
+      json_transform : '.[]|select(.active=="true")|select(.profileType=="SECURITY")|
+                  "Samsung SAFE Device Support: Yes"'
+      regex          : "Samsung SAFE Device Support:"
+      expect         : "Samsung SAFE Device Support: Yes"
+      match_all      : YES
+    </custom_item>
+
+    <custom_item>
+      description    : "Android - Samsung SAFE Browser Configurations Exist"
+      type           : CONFIGURATION_INFO
+      json_transform : '"BROWSER Configuration : \([.[]|select (.appType=="BROWSER")] | length | . > 0 )"'
+      regex          : "BROWSER Configuration :"
+      expect         : "BROWSER Configuration : True"
+      match_all      : YES
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description    : "MobileIron - 1.2.1 Disable JavaScript - 'Samsung SAFE'"
+      info           : "This control determines whether JavaScript programming code is allowed run in the browser. The recommended setting is disabled."
+      solution       : "From the MobileIron console, open the Policies and Configs -> Configurations view. Under the Samsung Browser Policy verify that Javascript is not checked."
+      reference      : "800-171|3.1.18,800-171|3.4.6,800-171|3.4.7,800-53|AC-19,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.AC-3,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SWIFT-CSCv1|2.3"
+      see_also       : "https://workbench.cisecurity.org/files/465"
+      type           : CONFIGURATION_INFO
+      json_transform : '.[] | select (.appType =="BROWSER") |
+                  "Configuration: " + .name + " - JavaScript Enabled = \(.properties.JAVASCRIPT // "Not Defined")"'
+      regex          : "JavaScript Enabled ="
+      expect         : "JavaScript Enabled = False"
+      match_all      : YES
+    </custom_item>
+
+    <custom_item>
+      description    : "MobileIron - 1.2.4 Disable 'Accept Cookies' - 'Samsung SAFE'"
+      info           : "This control determines whether the device browser will accept and store HTTP cookies sent by websites the user accesses. The recommended setting is disabled."
+      solution       : "From the MobileIron console, open the Policies and Configs -> Configurations view. Under the Samsung Browser Policy verify that Cookies is not checked."
+      reference      : "800-171|3.1.18,800-171|3.4.6,800-171|3.4.7,800-53|AC-19,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.AC-3,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.6.2.1,ITSG-33|AC-19,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SWIFT-CSCv1|2.3"
+      see_also       : "https://workbench.cisecurity.org/files/465"
+      type           : CONFIGURATION_INFO
+      json_transform : '.[] | select (.appType =="BROWSER") |
+                  "Configuration: " + .name + " - Accept Cookies = \(.properties.COOKIES // "Not Defined")"'
+      regex          : "Accept Cookies ="
+      expect         : "Accept Cookies = False"
+      match_all      : YES
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "MobileIron - 1.2.6 Disable 'plug-ins' - 'Samsung SAFE'"
+      info        : "This control determines whether plug-ins are allowed run in the browser. The recommended setting is disabled."
+      info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "On the Android device,
+1. Tap the globe Browser icon.
+2. Press the Menu button.
+3. Tap Settings.
+4. Tap Advanced.
+5. Tap Enable plug-ins.
+6. Select Off."
+      reference   : "800-53|CM-6,LEVEL|2NS,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/465"
+    </report>
+  </then>
+
+  <else>
+    <report type:"PASSED">
+      description : "MobileIron - 1.2.1 Disable JavaScript - 'Samsung SAFE'"
+      info        : "This control determines whether JavaScript programming code is allowed run in the browser. The recommended setting is disabled."
+      info        : "Note: No Samsung Browser Configurations were found."
+      solution    : "From the MobileIron console, open the Policies and Configs -> Configurations view. Under the Samsung Browser Policy verify that Javascript is not checked."
+      reference   : "800-53|CM-6,LEVEL|2NS,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/465"
+    </report>
+
+    <report type:"PASSED">
+      description : "MobileIron - 1.2.4 Disable 'Accept Cookies' - 'Samsung SAFE'"
+      info        : "This control determines whether the device browser will accept and store HTTP cookies sent by websites the user accesses. The recommended setting is disabled."
+      info        : "Note: No Samsung Browser Configurations were found."
+      solution    : "From the MobileIron console, open the Policies and Configs -> Configurations view. Under the Samsung Browser Policy verify that Cookies is not checked."
+      reference   : "800-53|CM-6,LEVEL|2NS,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/465"
+    </report>
+
+    <report type:"PASSED">
+      description : "MobileIron - 1.2.6 Disable 'plug-ins' - 'Samsung SAFE'"
+      info        : "This control determines whether plug-ins are allowed run in the browser. The recommended setting is disabled."
+      info        : "Note: No Samsung Browser Configurations were found."
+      solution    : "On the Android device,
+1. Tap the globe Browser icon.
+2. Press the Menu button.
+3. Tap Settings.
+4. Tap Advanced.
+5. Tap Enable plug-ins.
+6. Select Off."
+      reference   : "800-53|CM-6,LEVEL|2NS,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/465"
+    </report>
+  </else>
+</if>
+
+# 2 Microsoft Exchange ActiveSync Policy Settings
+## 2.1 Password Settings
+
+<custom_item>
+  description    : "MobileIron - 2.1.2 Enable 'Require alphanumeric value'"
+  info           : "This control determines if new passwords are required to satisfy a certain level of complexity. The recommended settings are enable alpha-numeric device password."
+  solution       : "From the MobileIron console, open the Policies and Configs -> Policies view. Under the Security Policy verify that Password Type is set to Alphanumeric."
+  reference      : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|8.2.3,SANS-CSC|16-8,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also       : "https://workbench.cisecurity.org/files/465"
+  type           : FULL_PROFILE_INFO
+  json_transform : '.[]|select(.active=="true")|select(.profileType=="SECURITY")|
+                "Policy: " + .policyName + " - Passcode Type = \(.policyRules.SECURITY_PWD_TYPE // "Not Defined")"'
+  regex          : "Passcode Type ="
+  expect         : "Passcode Type = Alphanumeric"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "MobileIron - 2.1.4 Set the 'minimum number of character sets'"
+  info           : "This control determines if new passwords are required to satisfy a certain level of complexity. The recommended setting is the minimum device password complexity is set to 1 or more characters."
+  solution       : "From the MobileIron console, open the Policies and Configs -> Policies view. Under the Security Policy verify that Minimum Number of Complex Characters is set to 1 or more."
+  reference      : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|8.2.3,SANS-CSC|16-8,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also       : "https://workbench.cisecurity.org/files/465"
+  type           : FULL_PROFILE_INFO
+  json_transform : '.[]|select(.active=="true")|select(.profileType=="SECURITY")|
+                "Policy: " + .policyName + " - Minimum Complex Characters = \(.policyRules.SECURITY_PWD_MIN_COMPLEX_CHAR // "Not Defined")"'
+  regex          : "Minimum Complex Characters ="
+  expect         : "Minimum Complex Characters = [1-9]"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "MobileIron - 2.1.7 Set the 'number of days' for 'maximum password age'"
+  info           : "This control defined how many days a user can use the same password before it expires. The recommended state for this setting is 90 days or less."
+  solution       : "From the MobileIron console, open the Policies and Configs -> Policies view. Under the Security Policy verify that Maximum Password Age is set to 90 or less."
+  reference      : "800-171|3.5.10,800-171|3.5.7,800-171|3.5.8,800-171|3.5.9,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,PCI-DSSv3.1|8.2.4,PCI-DSSv3.2|8.2.4,PCI-DSS|8.2.4,SANS-CSC|16-8,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+  see_also       : "https://workbench.cisecurity.org/files/465"
+  type           : FULL_PROFILE_INFO
+  json_transform : '.[]|select(.active=="true")|select(.profileType=="SECURITY")|
+                "Policy: " + .policyName + " - Maximum Passcode Age = \(.policyRules.SECURITY_PWD_MAX_AGE // "Not Defined")"'
+  regex          : "Maximum Passcode Age ="
+  expect         : "Maximum Passcode Age = ([1-9]|[1-8][0-9]|90)"
+  match_all      : YES
+</custom_item>
+
+<custom_item>
+  description    : "MobileIron - 2.1.8 Set the 'number of passwords' for 'password history'"
+  info           : "This control defines the number of unique passwords a user must leverage before a previously used password can be reused. The recommended state for this setting is 24 or more passwords remembered."
+  solution       : "From the MobileIron console, open the Policies and Configs -> Policies view. Under the Security Policy verify that Password History is set to 24 or more."
+  reference      : "800-171|3.5.8,800-53|IA-5(1),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|AM22c,PCI-DSSv3.1|8.2.5,PCI-DSSv3.2|8.2.5,PCI-DSS|8.2.5,SANS-CSC|12-9,SANS-CSC|16-8,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.3"
+  see_also       : "https://workbench.cisecurity.org/files/465"
+  type           : FULL_PROFILE_INFO
+  json_transform : '.[]|select(.active=="true")|select(.profileType=="SECURITY")|
+                "Policy: " + .policyName + " - Maximum Passcode History = \(.policyRules.SECURITY_PWD_HISTORY // "Not Defined")"'
+  regex          : "Maximum Passcode History ="
+  expect         : "Maximum Passcode History = (2[4-9]|[3-9][0-9])"
+  match_all      : YES
+</custom_item>
+
+</check_type>

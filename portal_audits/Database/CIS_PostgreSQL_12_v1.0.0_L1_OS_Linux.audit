@@ -1,0 +1,824 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/04/22 $
+#
+# Description   : This document implements the security configuration as recommended by the
+#                 CIS PostgreSQL 12 Benchmark
+#
+#<ui_metadata>
+#<display_name>CIS PostgreSQL 12 OS v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS PostgreSQL 12 OS v1.0.0</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/2536</link>
+#</spec>
+#<labels>CIS,postgres</labels>
+#<benchmark_refs>LEVEL,CSCv6,CSCv7</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>PG_CONF_FILE</name>
+#    <default>/var/lib/pgsql/12/data/postgresql.conf</default>
+#    <description>postgresql.conf</description>
+#    <info>full path to postgresql.conf</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<report type:"PASSED">
+  description : "CIS_PostgreSQL_12_v1.0.0_L1_OS_Linux.audit from CIS PostgreSQL 12 Benchmark v1.0.0"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+</report>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "1.1 Ensure packages are obtained from authorized repositories"
+  info        : "When obtaining and installing software packages (typically via dnf), it's imperative that packages are sourced only from valid and authorized repositories. For PostgreSQL, the canonical repositories are the official PostgreSQL YUM repository (yum.postgresql.org) and the official PostgreSQL APT repository (apt.postgresql.org).
+
+Rationale:
+
+Being open source, PostgreSQL packages are widely available across the internet through RPM aggregators and providers. However, using invalid or unauthorized sources for packages can lead to implementing untested, defective, or malicious software.
+
+Many organizations choose to implement a local software repository within their organization. Care must be taken to ensure that only valid and authorized packages are downloaded and installed into such local repositories.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Alter the configured repositories so they only include valid and authorized sources of packages.
+
+As an example of adding an authorized repository, we will install the PGDG repository RPM from 'yum.postgresql.org' (note that because of a change in the way packaging is handled in RHEL 8, we also need to disable the PostgreSQL module):
+
+# whoami
+root
+# dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+Last metadata expiration check: 0:01:35 ago on Fri 04 Oct 2019 01:19:37 PM EDT.
+[snip]
+Installed:
+  pgdg-redhat-repo-42.0-5.noarch
+
+Complete!
+# dnf -qy module disable postgresql
+#
+
+Verify the repository has been added and is enabled:
+
+# whoami
+root
+# dnf repolist all | grep enabled:
+AppStream                     CentOS-8 - AppStream                enabled: 4,928
+BaseOS                        CentOS-8 - Base                     enabled: 2,713
+extras                        CentOS-8 - Extras                   enabled:     3
+pgdg10                        PostgreSQL 10 for RHEL/CentOS 8 - x enabled:   504
+pgdg11                        PostgreSQL 11 for RHEL/CentOS 8 - x enabled:   526
+pgdg12                        PostgreSQL 12 for RHEL/CentOS 8 - x enabled:   377
+pgdg94                        PostgreSQL 9.4 for RHEL/CentOS 8 -  enabled:   184
+pgdg95                        PostgreSQL 9.5 for RHEL/CentOS 8 -  enabled:   322
+pgdg96                        PostgreSQL 9.6 for RHEL/CentOS 8 -  enabled:   482
+
+References:
+
+https://wiki.centos.org/PackageManagement/Yum/
+
+https://www.centos.org/docs/5/html/5.2/Deployment_Guide/s1-yum-yumconf-repository.html
+
+https://en.wikipedia.org/wiki/Yum_(software)
+
+https://www.howtoforge.com/creating_a_local_yum_repository_centos
+
+https://yum.postgresql.org
+
+https://apt.postgresql.org"
+  reference   : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSCv6|2,CSCv7|2.1,CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,LEVEL|1NS,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/bin/yum repolist all | /usr/bin/grep enabled"
+  expect      : "MANUAL_REVIEW"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "1.2 Ensure Installation of Binary Packages"
+  info        : "The PostgreSQL packages are installed on the Operating System from valid source.
+
+Rationale:
+
+Standard Linux distributions, although possessing the requisite packages, often do not have PostgreSQL pre-installed. The installation process includes installing the binaries and the means to generate a data cluster too. Package installation should include both the server and client packages. Contribution modules are optional depending upon one's architectural requirements (they are recommended though).
+
+From a security perspective, it's imperative to verify the PostgreSQL binary packages are sourced from a valid software repository. For a complete listing of all PostgreSQL binaries available via configured repositories inspect the output from dnf provides '*libpq.so'.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "If the version of PostgreSQL installed is not 12.x, the packages may be uninstalled using this command:
+
+$ whoami
+root
+$ dnf remove $(rpm -qa|grep postgres)
+
+The next recommendation '1.3 Ensure Installation of Community Packages' describes how to explicitly choose which version of PostgreSQL to install, regardless of Linux distribution association.
+
+Impact:
+
+If the PostgreSQL version shipped as part of the default binary installation associated with your Linux distribution satisfies your requirements, this may be adequate for development and testing purposes. However, for production instances it's generally recommended to install the latest stable release of PostgreSQL."
+  reference   : "800-171|3.14.1,800-53|SI-2,CSCv6|2,CSCv7|2.1,CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,LEVEL|1NS,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/bin/yum info $(/usr/bin/rpm -qa | /usr/bin/grep postgres) | /usr/bin/egrep '^Name|^Version|^From'"
+  expect      : "MANUAL_REVIEW"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "1.3 Ensure Installation of Community Packages"
+  info        : "Adding, and installing, the PostgreSQL community packages to the host's package repository.
+
+Rationale:
+
+It's an unfortunate reality that Linux distributions do not always have the most up-to-date versions of PostgreSQL. Disadvantages of older releases include: missing bug patches, no access to highly desirable contribution modules, no access to 3rd party projects that are complimentary to PostgreSQL, and no upgrade path migrating from one version of PostgreSQL to the next. The worst set of circumstances is to be limited to a version of the RDBMS that has reached its end-of-life.
+
+From a security perspective, it's imperative that Postgres Community Packages are only obtained from the official website https://yum.postgresql.org/. Being open source, the Postgres packages are widely available over the internet via myriad package aggregators and providers. Obtaining software from these unofficial sites risks installing defective, corrupt, or downright malicious versions of PostgreSQL.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "The following example adds the PGDG repository RPM for PostgreSQL, configures dnf to prefer the PGDG packages for version 12, and installs the client-server-contributions rpms to the host where you want to install the RDBMS.
+
+Using a web browser, go to http://yum.postgresql.org and navigate to the repo download link for your OS and version. Copy the URL to the repo file, and then tell dnf to install it:
+
+# whoami
+root
+# dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+Last metadata expiration check: 0:01:35 ago on Fri 04 Oct 2019 01:19:37 PM EDT.
+[snip]
+Installed:
+  pgdg-redhat-repo-42.0-5.noarch
+
+Complete!
+# dnf -qy module disable postgresql
+#
+
+Now, configure dnf to prefer the PGDG packages for version 12:
+
+# cd /etc/yum.repos.d
+# for i in AppStream Base Extras
+do
+echo 'exclude=postgresql*' >> CentOS-$i.repo
+done
+
+Finally, install the PostgreSQL packages:
+
+# whoami
+root
+# dnf -y groupinstall 'PostgreSQL Database Server 12 PGDG'
+Dependencies resolved.
+[snip]
+Installed:
+  postgresql12-12.0-1PGDG.rhel8.x86_64
+  postgresql12-contrib-12.0-1PGDG.rhel8.x86_64
+  postgresql12-libs-12.0-1PGDG.rhel8.x86_64
+  postgresql12-server-12.0-1PGDG.rhel8.x86_64
+  python2-2.7.15-22.module_el8.0.0+32+017b2cba.x86_64
+  python2-libs-2.7.15-22.module_el8.0.0+32+017b2cba.x86_64
+  python2-pip-9.0.3-13.module_el8.0.0+32+017b2cba.noarch
+  python2-setuptools-39.0.1-11.module_el8.0.0+32+017b2cba.noarch
+  libicu-60.2-7.el8.x86_64
+  libxslt-1.1.32-3.el8.x86_64
+
+Complete!
+
+Note: The above-mentioned example is referenced as an illustration only. Package names and versions may differ.
+
+References:
+
+https://www.postgresql.org/
+
+https://www.postgresql.org/support/versioning/
+
+https://www.postgresql.org/developer/roadmap/
+
+https://yum.postgresql.org/repopackages.php"
+  reference   : "800-171|3.14.1,800-53|SI-2,CSCv6|18.1,CSCv7|18.3,CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,LEVEL|1NS,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/bin/yum info $(/usr/bin/rpm -qa | /usr/bin/grep postgres) | /usr/bin/egrep '^Name|^Version|^From'"
+  expect      : "MANUAL_REVIEW"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "1.4 Ensure systemd Service Files Are Enabled"
+  info        : "Confirm, and correct if necessary, the PostgreSQL systemd service is enabled.
+
+Rationale:
+
+Enabling the systemd service on the OS ensures the database service is active when a change of state occurs as in the case of a system startup or reboot."
+  solution    : "Irrespective of package source, PostgreSQL services can be identified because it typically includes the text string 'postgresql'. PGDG installs do not automatically register the service as a 'want' of the default systemd target. Multiple instances of PostgreSQL services often distinguish themselves using a version number.
+
+# whoami
+root
+# systemctl enable postgresql-12
+Created symlink /etc/systemd/system/multi-user.target.wants/postgresql-12.service -> /usr/lib/systemd/system/postgresql-12.service.
+# systemctl list-dependencies multi-user.target | grep -i postgres
+- postgresql-12.service
+#
+
+
+References:
+
+https://linuxcommand.org/man_pages/runlevel8.html
+
+https://linuxcommand.org/man_pages/chkconfig8.html
+
+https://www.tldp.org/LDP/sag/html/run-levels-intro.html"
+  reference   : "800-171|3.4.2,800-53|CM-6,CSCv6|18,CSCv7|5.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "var=$(/usr/bin/systemctl get-default) | /usr/bin/systemctl list-dependencies $var | /usr/bin/grep -i postgres"
+  expect      : "^.*postgresql-12.service[\\s]*"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "1.5 Ensure Data Cluster Initialized Successfully"
+  info        : "First time installs of PostgreSQL requires the instantiation of the database cluster. A database cluster is a collection of databases that are managed by a single server instance.
+
+Rationale:
+
+For the purposes of security, PostgreSQL enforces ownership and permissions of the data-cluster such that:
+
+An initialized data-cluster is owned by the UNIX account that created it.
+
+The data-cluster cannot be accessed by other UNIX user-accounts.
+
+The data-cluster cannot be created or owned by root
+
+The PostgreSQL process cannot be invoked by root nor any UNIX user account other than the owner of the data cluster.
+
+Incorrectly instantiating the data-cluster will result in a failed installation.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Attempting to instantiate a data cluster to an existing non-empty directory will fail:
+
+# whoami
+root
+# PGSETUP_INITDB_OPTIONS='-k' /usr/pgsql-12/bin/postgresql-12-setup initdb
+Data directory is not empty!
+
+In the case of a cluster instantiation failure, one must delete/remove the entire data cluster directory and repeat the initdb command:
+
+# whoami
+root
+# rm -rf ~postgres/12
+# PGSETUP_INITDB_OPTIONS='-k' /usr/pgsql-12/bin/postgresql-12-setup initdb
+Initializing database ... OK"
+  reference   : "800-171|3.1.1,800-53|AC-3(4),CSCv6|14.4,CSCv7|14.6,CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(4),LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/pgsql-12/bin/postgresql-12-check-db-dir ~postgres/12/data | echo $?"
+  expect      : "^0$"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "2.1 Ensure the file permissions mask is correct"
+  info        : "Files are always created using a default set of permissions. File permissions can be restricted by applying a permissions mask called the umask. The postgres user account should use a umask of 077 to deny file access to all user accounts except the owner.
+
+Rationale:
+
+The Linux OS defaults the umask to 002, which means the owner and primary group can read and write the file, and other accounts are permitted to read the file. Not explicitly setting the umask to a value as restrictive as 077 allows other users to read, write, or even execute files and scripts created by the postgres user account. The alternative to using a umask is explicitly updating file permissions after file creation using the command line utility chmod (a manual and error prone process that is not advised)."
+  solution    : "Depending upon the postgres user's environment, the umask is typically set in the initialization file .bash_profile, but may also be set in .profile or .bashrc. To set the umask, add the following to the appropriate profile file:
+
+$ whoami
+postgres
+$ cd ~
+$ ls -ld .{bash_profile,profile,bashrc}
+ls: cannot access .profile: No such file or directory
+ls: cannot access .bashrc: No such file or directory
+-rwx------. 1 postgres postgres 267 Aug 14 12:59 .bash_profile
+$ echo 'umask 077' >> .bash_profile
+$ source .bash_profile
+$ umask
+0077
+
+Default Value:
+
+0022"
+  reference   : "800-171|3.1.1,800-53|AC-3(4),CSCv6|14.4,CSCv7|14.6,CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(4),LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/bin/grep -i 'umask' /var/lib/pgsql/.bash_profile /var/lib/pgsql/.profile /var/lib/pgsql/.bashrc"
+  expect      : "[Uu][Mm][Aa][Ss][Kk] [0-7]+77"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "2.2 Ensure the PostgreSQL pg_wheel group membership is correct"
+  info        : "The group pg_wheel is explicitly created on a host where the PostgreSQL server is installed. Membership in this group enables an ordinary user account to gain 'superuser' access to a database cluster by using the sudo command (See 'Ensure sudo is configured correctly' later in this benchmark). Only user accounts authorized to have superuser access should be members of the pg_wheel group.
+
+Rationale:
+
+Users with unauthorized membership in the pg_wheel group can assume the privileges of the owner of the PostgreSQL RDBMS and administer the database, as well as accessing scripts, files, and other executables they should not be able to access.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "If the pg_wheel group does not exist, use the following command to create it:
+
+$ whoami
+root
+$ groupadd pg_wheel && getent group pg_wheel
+pg_wheel:x:502:
+
+Note: that your system's group number may not be 502. That's OK.
+
+Adding the postgres user to the newly created group is done by issuing:
+
+$ whoami
+root
+$ gpasswd -a postgres pg_wheel
+Adding user postgres to group pg_wheel
+$ # verify membership
+$ awk -F':' '/pg_wheel/{print $4}' /etc/group
+postgres
+
+Removing a user account from the 'pg_wheel' group is achieved by executing the following command:
+
+$ whoami
+root
+$ gpasswd -d pg_wheel postgres
+Removing user postgres from group pg_wheel
+$ # verify the user was removed
+$ awk -F':' '/pg_wheel/{print $4}' /etc/group
+$
+
+References:
+
+https://man7.org/linux/man-pages/man1/groups.1.html
+
+https://man7.org/linux/man-pages/man8/getent.1.html
+
+https://man7.org/linux/man-pages/man8/gpasswd.1.html
+
+https://man7.org/linux/man-pages/man8/useradd.8.html
+
+https://en.wikipedia.org/wiki/Wheel_%28Unix_term%29"
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSCv6|14.4,CSCv7|14.6,CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,LEVEL|1S,NESA|T5.2.1,NESA|T5.2.2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/bin/awk -F':' '/pg_wheel/{print $4}' /etc/group | /usr/bin/awk '{print} END {if (NR == 0 || $1 == \"\") print \"pass\" ; else print \"fail\"}'"
+  expect      : "^pass$"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.1 Ensure sudo is configured correctly - /etc/sudoers"
+  info        : "It is common to have more than one authorized individual administering the PostgreSQL service at the Operating System level. It is also quite common to permit login privileges to individuals on a PostgreSQL host who otherwise are not authorized to access the server's data cluster and files. Administering the PostgreSQL data cluster, as opposed to its data, is to be accomplished via a localhost login of a regular UNIX user account. Access to the postgres superuser account is restricted in such a manner as to interdict unauthorized access. sudo satisfies the requirements by escalating ordinary user account privileges as the PostgreSQL RDBMS superuser.
+
+Rationale:
+
+Without sudo, there would not be capabilities to strictly control access to the superuser account and to securely and authoritatively audit its use."
+  solution    : "As superuser root, execute the following commands:
+
+# echo '%pg_wheel ALL= /bin/su - postgres' > /etc/sudoers.d/postgres
+# chmod 600 /etc/sudoers.d/postgres
+
+This grants any Operating System user that is a member of the pg_wheel group to use sudo su - postgres to become the postgres user.
+
+Ensure that all Operating System user's that need such access are members of the group as detailed earlier in this benchmark.
+
+References:
+
+https://www.sudo.ws/man/1.8.15/sudo.man.html
+
+https://www.sudo.ws/man/1.8.17/visudo.man.html"
+  reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSCv6|5.8,CSCv7|4.3,CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii),LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  file        : "/etc/sudoers"
+  regex       : "^pg_wheel"
+  expect      : "^pg_wheel[\\s]+ALL=[\\s]+/bin/su[\\s]+-[\\s]+postgres"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.1 Ensure sudo is configured correctly - /etc/sudoers.d/postgres"
+  info        : "It is common to have more than one authorized individual administering the PostgreSQL service at the Operating System level. It is also quite common to permit login privileges to individuals on a PostgreSQL host who otherwise are not authorized to access the server's data cluster and files. Administering the PostgreSQL data cluster, as opposed to its data, is to be accomplished via a localhost login of a regular UNIX user account. Access to the postgres superuser account is restricted in such a manner as to interdict unauthorized access. sudo satisfies the requirements by escalating ordinary user account privileges as the PostgreSQL RDBMS superuser.
+
+Rationale:
+
+Without sudo, there would not be capabilities to strictly control access to the superuser account and to securely and authoritatively audit its use."
+  solution    : "As superuser root, execute the following commands:
+
+# echo '%pg_wheel ALL= /bin/su - postgres' > /etc/sudoers.d/postgres
+# chmod 600 /etc/sudoers.d/postgres
+
+This grants any Operating System user that is a member of the pg_wheel group to use sudo su - postgres to become the postgres user.
+
+Ensure that all Operating System user's that need such access are members of the group as detailed earlier in this benchmark.
+
+References:
+
+https://www.sudo.ws/man/1.8.15/sudo.man.html
+
+https://www.sudo.ws/man/1.8.17/visudo.man.html"
+  reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSCv6|5.8,CSCv7|4.3,CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii),LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  file        : "/etc/sudoers.d/postgres"
+  regex       : "%pg_wheel"
+  expect      : "%pg_wheel[\\s]+ALL=[\\s]+/bin/su[\\s]+-[\\s]+postgres"
+</custom_item>
+
+<report type:"WARNING">
+  description : "5.1 Ensure login via 'local' UNIX Domain Socket is configured correctly"
+  info        : "A remote host login, via ssh, is arguably the most secure means of remotely accessing and administering the PostgreSQL server. Connecting with the psql client, via UNIX DOMAIN SOCKETS, using the peer authentication method is the most secure mechanism available for local connections. Provided a database user account of the same name of the UNIX account has already been defined in the database, even ordinary user accounts can access the cluster in a similarly highly secure manner.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Creation of a database account that matches the local account allows PEER authentication:
+
+$ psql -c 'CREATE ROLE user1 WITH LOGIN;'
+CREATE ROLE
+
+Execute the following as the UNIX user account, the default authentication rules should now permit the login:
+$ su - user1
+$ whoami
+user1
+$ psql -d postgres
+psql (10.6)
+Type 'help' for help.
+
+postgres=>
+
+As per the host-based authentication rules in $PGDATA/pg_hba.conf, all login attempts via UNIX DOMAIN SOCKETS are processed on the line beginning with local.
+This is the minimal rule that must be in place allowing PEER connections:
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             postgres                                peer
+
+More traditionally, a rule like the following would be used to allow any local PEER connection:
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     peer
+
+Once edited, the server process must reload the authentication file before it can take effect. Improperly configured rules cannot update i.e. the old rules remain in place. The PostgreSQL logs will report the outcome of the SIGHUP:
+
+postgres=# select pg_reload_conf();
+ pg_reload_conf
+----------------
+ t
+(1 row)
+
+The following examples illustrate other possible configurations. The resultant 'rule' of success/failure depends upon the first matching line:
+
+# allow postgres user logins
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             postgres                                peer
+
+# allow all local users
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     peer
+
+# allow all local users only if they are connecting to a db named the same as their username
+# e.g. if user 'bob' is connecting to a db named 'bob'
+# TYPE  DATABASE        USER                                    METHOD
+local   samerole        all                                     peer
+
+# allow only local users who are members of the 'rw' role in the db
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             +rw                                     peer"
+  reference   : "CSCv6|3.4,CSCv7|4.5,LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+</report>
+
+<report type:"WARNING">
+  description : "5.2 Ensure login via \"host\" TCP/IP Socket is configured correctly"
+  info        : "A large number of authentication METHODs are available for hosts connecting using TCP/IP sockets, including:
+- trust
+- reject
+- md5
+- scram-sha-256
+- password
+- gss
+- sspi
+- ident
+- pam
+- ldap
+- radius
+- cert
+METHODs trust, password, and ident are not to be used for remote logins. METHOD md5 is the most popular and can be used in both encrypted and unencrypted sessions,however, it is vulnerable to packet replay attacks. It is recommended that scram-sha-256 be used instead of md5.
+Use of the gss, sspi, pam, ldap, radius, and cert METHODs, while more secure than md5, are dependent upon the availability of external authenticating processes/services and thus are not covered in this benchmark.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Confirm a login attempt has been made by looking for a logged error message detailing the nature of the authenticating failure. In the case of failed login attempts, whether encrypted or unencrypted, check the following:
+
+- The server should be sitting on a port exposed to the remote connecting host i.e. NOT ip address 127.0.0.1
+listen_addresses = '*'
+
+- An authenticating rule must exist in the file pg_hba.conf
+This example permits only encrypted sessions for the postgres role and denies all unencrypted session for the postgres role:
+
+# TYPE    DATABASE           USER            ADDRESS           METHOD
+hostssl    all             postgres         0.0.0.0/0          scram-sha-256
+hostnossl  all             postgres         0.0.0.0/0          reject
+
+The following examples illustrate other possible configurations. The resultant 'rule\' of success/failure depends upon the first matching line.
+
+# allow 'postgres' user only from 'localhost/loopback' connections
+# and only if you know the password
+# TYPE    DATABASE        USER            ADDRESS               METHOD
+host      all             postgres        127.0.0.1/32          scram-sha-256
+
+# allow users to connect remotely only to the database named after them,
+# with the correct user password:
+# (accepts both SSL and non-SSL connections)
+# TYPE    DATABASE        USER            ADDRESS               METHOD
+host      samerole        all             0.0.0.0/0             scram-sha-256
+
+# allow only those users who are a member of the 'rw' role to connect
+# only to the database named after them, with the correct user password:
+# (accepts both SSL and non-SSL connections)
+# TYPE    DATABASE        USER            ADDRESS               METHOD
+host      samerole        +rw             0.0.0.0/0             scram-sha-256
+
+Default Value:
+
+The availability of the different password-based authentication methods depends on how a user's password on the server is encrypted (or hashed, more accurately). This is controlled by the configuration parameter password_encryption at the time the password is set. If a password was encrypted using the scram-sha-256 setting, then it can be used for the authentication methods scram-sha-256 and password (but password transmission will be in plain text in the latter case). The authentication method specification md5 will automatically switch to using the scram-sha-256 method in this case, as explained above, so it will also work. If a password was encrypted using the md5 setting, then it can be used only for the md5 and password authentication method specifications (again, with the password transmitted in plain text in the latter case). (Previous PostgreSQL releases supported storing the password on the server in plain text. This is no longer possible.) To check the currently stored password hashes, see the system catalog pg_authid.
+To upgrade an existing installation from md5 to scram-sha-256, after having ensured that all client libraries in use are new enough to support SCRAM, set password_encryption = 'scram-sha-256' in postgresql.conf, reload the postmaster, make all users set new passwords, and change the authentication method specifications in pg_hba.conf to scram-sha-256."
+  reference   : "CSCv6|14.2,CSCv7|14.4,LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+</report>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "6.7 Ensure FIPS 140-2 OpenSSL Cryptography Is Used - fips_enabled"
+  info        : "Install, configure, and use OpenSSL on a platform that has a NIST certified FIPS 140-2 installation of OpenSSL. This provides PostgreSQL instances the ability to generate and validate cryptographic hashes to protect unclassified information requiring confidentiality and cryptographic protection, in accordance with the data owner's requirements.
+
+Rationale:
+
+Federal Information Processing Standard (FIPS) Publication 140-2 is a computer security standard developed by a U.S. Government and industry working group for validating the quality of cryptographic modules. Use of weak, or untested, encryption algorithms undermine the purposes of utilizing encryption to protect data. PostgreSQL uses OpenSSL for the underlying encryption layer.
+
+The database and application must implement cryptographic modules adhering to the higher standards approved by the federal government since this provides assurance they have been tested and validated. It is the responsibility of the data owner to assess the cryptography requirements in light of applicable federal laws, Executive Orders, directives, policies, regulations, and standards.
+
+For detailed information, refer to NIST FIPS Publication 140-2, Security Requirements for Cryptographic Modules. Note that the product's cryptographic modules must be validated and certified by NIST as FIPS-compliant. The security functions validated as part of FIPS 140-2 for cryptographic modules are described in FIPS 140-2 Annex A. Currently only Red Hat Enterprise Linux is certified as a FIPS 140-2 distribution of OpenSSL. For other operating systems, users must obtain or build their own FIPS 140-2 OpenSSL libraries."
+  solution    : "Configure OpenSSL to be FIPS compliant. PostgreSQL uses OpenSSL for cryptographic modules. To configure OpenSSL to be FIPS 140-2 compliant, see the official RHEL Documentation. Below is a general summary of the steps required:
+
+To switch the system to FIPS mode in RHEL 8:
+
+# fips-mode-setup --enable
+Setting system policy to FIPS
+FIPS mode will be enabled.
+Please reboot the system for the setting to take effect.
+
+Restart your system to allow the kernel to switch to FIPS mode:
+
+# reboot
+
+After the restart, you can check the current state of FIPS mode:
+
+# fips-mode-setup --check
+FIPS mode is enabled.
+
+References:
+
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening#switching-the-system-to-fips-mode_using-the-system-wide-cryptographic-policies
+
+https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp1758.pdf
+
+https://csrc.nist.gov/publications/fips"
+  reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSCv7|14.4,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/bin/cat /proc/sys/crypto/fips_enabled"
+  expect      : "^1$"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "6.7 Ensure FIPS 140-2 OpenSSL Cryptography Is Used - openssl version"
+  info        : "Install, configure, and use OpenSSL on a platform that has a NIST certified FIPS 140-2 installation of OpenSSL. This provides PostgreSQL instances the ability to generate and validate cryptographic hashes to protect unclassified information requiring confidentiality and cryptographic protection, in accordance with the data owner's requirements.
+
+Rationale:
+
+Federal Information Processing Standard (FIPS) Publication 140-2 is a computer security standard developed by a U.S. Government and industry working group for validating the quality of cryptographic modules. Use of weak, or untested, encryption algorithms undermine the purposes of utilizing encryption to protect data. PostgreSQL uses OpenSSL for the underlying encryption layer.
+
+The database and application must implement cryptographic modules adhering to the higher standards approved by the federal government since this provides assurance they have been tested and validated. It is the responsibility of the data owner to assess the cryptography requirements in light of applicable federal laws, Executive Orders, directives, policies, regulations, and standards.
+
+For detailed information, refer to NIST FIPS Publication 140-2, Security Requirements for Cryptographic Modules. Note that the product's cryptographic modules must be validated and certified by NIST as FIPS-compliant. The security functions validated as part of FIPS 140-2 for cryptographic modules are described in FIPS 140-2 Annex A. Currently only Red Hat Enterprise Linux is certified as a FIPS 140-2 distribution of OpenSSL. For other operating systems, users must obtain or build their own FIPS 140-2 OpenSSL libraries."
+  solution    : "Configure OpenSSL to be FIPS compliant. PostgreSQL uses OpenSSL for cryptographic modules. To configure OpenSSL to be FIPS 140-2 compliant, see the official RHEL Documentation. Below is a general summary of the steps required:
+
+To switch the system to FIPS mode in RHEL 8:
+
+# fips-mode-setup --enable
+Setting system policy to FIPS
+FIPS mode will be enabled.
+Please reboot the system for the setting to take effect.
+
+Restart your system to allow the kernel to switch to FIPS mode:
+
+# reboot
+
+After the restart, you can check the current state of FIPS mode:
+
+# fips-mode-setup --check
+FIPS mode is enabled.
+
+References:
+
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening#switching-the-system-to-fips-mode_using-the-system-wide-cryptographic-policies
+
+https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp1758.pdf
+
+https://csrc.nist.gov/publications/fips"
+  reference   : "800-171|3.13.11,800-53|SC-13,CSCv6|14.2,CSCv7|14.4,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/usr/bin/openssl version"
+  expect      : "fips"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "7.3 Ensure WAL archiving is configured and functional - archive_command"
+  info        : "Write Ahead Log (WAL) Archiving, or Log Shipping, is the process of sending transaction log files from the PRIMARY host either to one or more STANDBY hosts or to be archived on a remote storage device for later use, e.g. PITR. There are several utilities that can copy WALs including, but not limited to, cp, scp, sftp, and rynsc. Basically, the server follows a set of runtime parameters which defines when the WAL should be copied using one of the aforementioned utilities.
+
+Rationale:
+
+Unless the server has been correctly configured, one runs the risk of sending WALs in an unsecured, unencrypted fashion."
+  solution    : "Change parameters and restart the server as required.
+
+Note: SSH public keys must be generated and installed as per industry standards.
+
+References:
+
+https://www.postgresql.org/docs/12/static/runtime-config-wal.html#RUNTIME-CONFIG-WAL-ARCHIVING
+
+https://linux.die.net/man/1/ssh-keygen
+
+https://linux.die.net/man/1/rsync"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|14.2,CSCv7|14.4,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+# Note: Variable @PG_CONF_FILE@ replaced with "/var/lib/pgsql/12/data/postgresql.conf" in field "file".
+  file        : "/var/lib/pgsql/12/data/postgresql.conf"
+  regex       : "^archive_command"
+  expect      : "^archive_command = \'.*ssh"
+  required    : YES
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "7.3 Ensure WAL archiving is configured and functional - archive_mode"
+  info        : "Write Ahead Log (WAL) Archiving, or Log Shipping, is the process of sending transaction log files from the PRIMARY host either to one or more STANDBY hosts or to be archived on a remote storage device for later use, e.g. PITR. There are several utilities that can copy WALs including, but not limited to, cp, scp, sftp, and rynsc. Basically, the server follows a set of runtime parameters which defines when the WAL should be copied using one of the aforementioned utilities.
+
+Rationale:
+
+Unless the server has been correctly configured, one runs the risk of sending WALs in an unsecured, unencrypted fashion."
+  solution    : "Change parameters and restart the server as required.
+
+Note: SSH public keys must be generated and installed as per industry standards.
+
+References:
+
+https://www.postgresql.org/docs/12/static/runtime-config-wal.html#RUNTIME-CONFIG-WAL-ARCHIVING
+
+https://linux.die.net/man/1/ssh-keygen
+
+https://linux.die.net/man/1/rsync"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|14.2,CSCv7|14.4,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+# Note: Variable @PG_CONF_FILE@ replaced with "/var/lib/pgsql/12/data/postgresql.conf" in field "file".
+  file        : "/var/lib/pgsql/12/data/postgresql.conf"
+  regex       : "^archive_mode"
+  expect      : "^archive_mode[\\s]+=[\\s]+on"
+  required    : YES
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "7.3 Ensure WAL archiving is configured and functional - /var/lib/pgsql/WAL"
+  info        : "Write Ahead Log (WAL) Archiving, or Log Shipping, is the process of sending transaction log files from the PRIMARY host either to one or more STANDBY hosts or to be archived on a remote storage device for later use, e.g. PITR. There are several utilities that can copy WALs including, but not limited to, cp, scp, sftp, and rynsc. Basically, the server follows a set of runtime parameters which defines when the WAL should be copied using one of the aforementioned utilities.
+
+Rationale:
+
+Unless the server has been correctly configured, one runs the risk of sending WALs in an unsecured, unencrypted fashion."
+  solution    : "Change parameters and restart the server as required.
+
+Note: SSH public keys must be generated and installed as per industry standards.
+
+References:
+
+https://www.postgresql.org/docs/12/static/runtime-config-wal.html#RUNTIME-CONFIG-WAL-ARCHIVING
+
+https://linux.die.net/man/1/ssh-keygen
+
+https://linux.die.net/man/1/rsync"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSCv6|14.2,CSCv7|14.4,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+# Note: Variable @PG_CONF_FILE@ replaced with "/var/lib/pgsql/12/data/postgresql.conf" in field "file".
+  file        : "/var/lib/pgsql/12/data/postgresql.conf"
+  regex       : "/var/lib/pgsql/WAL"
+  expect      : "^.*:/var/lib/pgsql/WAL/.*"
+  required    : YES
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "8.3 Ensure the backup and restore tool, 'pgBackRest', is installed and configured"
+  info        : "pgBackRest aims to be a simple, reliable backup and restore system that can seamlessly scale up to the largest databases and workloads. Instead of relying on traditional backup tools like tar and rsync, pgBackRest implements all backup features internally and uses a custom protocol for communicating with remote systems. Removing reliance on tar and rsync allows for better solutions to database-specific backup challenges. The custom remote protocol allows for more flexibility and limits the types of connections that are required to perform a backup which increases security.
+
+Rationale:
+
+The native PostgreSQL backup facility pg_dump provides adequate logical backup operations but does not provide for Point In Time Recovery (PITR). The PostgreSQL facility pg_basebackup performs physical backup of the database files and does provide for PITR, but it is constrained by single threading. Both of these methodologies are standard in the PostgreSQL ecosystem and appropriate for particular backup/recovery needs. pgBackRest offers another option with much more robust features and flexibility.
+
+pgBackRest is open source software developed to perform efficient backups on PostgreSQL databases that measure in tens of terabytes and greater. It supports per file checksums, compression, partial/failed backup resume, high-performance parallel transfer, asynchronous archiving, tablespaces, expiration, full/differential/incremental, local/remote operation via SSH, hard-linking, restore, backup encryption, and more. pgBackRest is written in C and Perl and does not depend on rsync or tar but instead performs its own deltas which gives it maximum flexibility. Finally, pgBackRest provides an easy to use internal repository listing backup details accessible via the pgbackrest info command, as illustrated below.
+
+$ pgbackrest info
+
+stanza: proddb01
+
+status: ok
+
+
+
+db (current)
+
+  wal archive min/max (12.0-1): 000000010000000000000012 / 000000010000000000000017
+
+
+
+      full backup: 20190603-153106F
+
+          timestamp start/stop: 2019-06-03 15:31:06 / 2019-06-03 15:31:49
+
+          wal start/stop: 000000010000000000000012 / 000000010000000000000012
+
+          database size: 29.4MB, backup size: 29.4MB
+
+          repository size: 3.4MB, repository backup size: 3.4MB
+
+
+
+      diff backup: 20190603-153106F_20181002-173109D
+
+          timestamp start/stop: 2019-06-03 17:31:09 / 2019-06-03 17:31:19
+
+          wal start/stop: 000000010000000000000015 / 000000010000000000000015
+
+          database size: 29.4MB, backup size: 2.6MB
+
+          repository size: 3.4MB, repository backup size: 346.8KB
+
+          backup reference list: 20190603-153106F
+
+
+
+      incr backup: 20190603-153106F_20181002-183114I
+
+          timestamp start/stop: 2019-06-03 18:31:14 / 2019-06-03 18:31:22
+
+          wal start/stop: 000000010000000000000017 / 000000010000000000000017
+
+          database size: 29.4MB, backup size: 8.2KB
+
+          repository size: 3.4MB, repository backup size: 519B
+
+          backup reference list: 20190603-153106F, 20190603-153106F_20190603-173109D
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "pgBackRest is not installed nor configured for PostgreSQL by default, but instead is maintained as a GitHub project. Fortunately, it is a part of the PGDG repository and can be easily installed:
+
+$ whoami
+root
+$ dnf -y install pgbackrest
+Last metadata expiration check: 0:00:19 ago on Tue 29 Oct 2019 12:30:51 PM EDT.
+Dependencies resolved.
+[snip]
+Installed:
+  pgbackrest-2.18-1.rhel8.x86_64                          perl-DBD-Pg-3.7.4-2.module_el8.0.0+74+7e750437.x86_64
+  perl-DBI-1.641-2.module_el8.0.0+66+fe1eca09.x86_64      perl-Data-Dump-1.23-7.el8.noarch
+  perl-Digest-HMAC-1.03-17.el8.noarch                     perl-File-Listing-6.04-17.el8.noarch
+  perl-HTML-Parser-3.72-14.el8.x86_64                     perl-HTML-Tagset-3.20-33.el8.noarch
+  perl-HTTP-Cookies-6.04-2.el8.noarch                     perl-HTTP-Date-6.02-18.el8.noarch
+  perl-HTTP-Message-6.18-1.el8.noarch                     perl-HTTP-Negotiate-6.01-19.el8.noarch
+  perl-IO-HTML-1.001-10.el8.noarch                        perl-LWP-MediaTypes-6.02-14.el8.noarch
+  perl-NTLM-1.09-17.el8.noarch                            perl-Net-HTTP-6.17-2.el8.noarch
+  perl-TimeDate-1:2.30-13.el8.noarch                      perl-Try-Tiny-0.30-2.el8.noarch
+  perl-WWW-RobotRules-6.02-18.el8.noarch                  perl-XML-LibXML-1:2.0132-2.el8.x86_64
+  perl-XML-NamespaceSupport-1.12-4.el8.noarch             perl-XML-SAX-1.00-1.el8.noarch
+  perl-XML-SAX-Base-1.09-4.el8.noarch                     perl-libwww-perl-6.34-1.el8.noarch
+
+Complete!
+
+Once installed, pgBackRest must be configured for things like stanza name, backup location, retention policy, logging, etc. Please consult the configuration guide.
+
+If employing pgBackRest for your backup/recovery solution, ensure the repository, base backups, and WAL archives are stored on a reliable file system separate from the database server. Further, the external storage system where backups resided should have limited access to only those system administrators as necessary. Finally, as with any backup/recovery solution, stringent testing must be conducted. A backup is only good if it can be restored successfully.
+
+References:
+
+https://pgbackrest.org/
+
+https://github.com/pgbackrest/pgbackrest
+
+https://www.postgresql.org/docs/12/static/app-pgdump.html
+
+https://www.postgresql.org/docs/12/static/app-pgbasebackup.html"
+  reference   : "800-171|3.8.9,800-53|CP-9,CSCv6|10,CSCv7|10.1,CSCv7|10.2,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,LEVEL|1NS,NESA|M5.2.3,NESA|T2.2.4"
+  see_also    : "https://workbench.cisecurity.org/files/2536"
+  cmd         : "/bin/pgbackrest info"
+  expect      : "MANUAL_REVIEW"
+  severity    : MEDIUM
+</custom_item>
+
+</check_type>

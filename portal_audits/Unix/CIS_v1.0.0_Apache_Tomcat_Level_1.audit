@@ -1,0 +1,927 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.25 $
+# $Date: 2020/07/14 $
+#
+# Description	: This .audit is designed against the CIS Security Configuration
+# 	  Benchmark For Apache Tomcat 5.5/6.0 Version 1.0.0 December 12th, 2009.
+#
+# NOTE          : The audits contained in this document audit are for Level 1 items
+# 			  of the CIS Apache Tomcat 5.5/6.0 Benchmark version 1.0.0 and are
+# 				  specific to Apache Tomcat version 6.0.x.
+#
+# NOTE			: In order for the .audit to run correctly the CATALINA_HOME item
+# 			  will need to be changed to the absolute path to your Tomcat
+# 			  installation directory.
+#
+#<ui_metadata>
+#<display_name>CIS Apache Tomcat5.5/6.0 L1 v1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Apache Tomcat5.5/6.0 L1</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>unix,cis,apache,tomcat,agent</labels>
+#<variables>
+#  <variable>
+#    <name>CATALINA_HOME</name>
+#    <default>/usr/share/tomcat6</default>
+#    <description>Catalina home</description>
+#    <info>The absolute path to your Tomcat installation directory. It should not end in a slash.</info>
+#  </variable>
+#  <variable>
+#    <name>CATALINA_BASE</name>
+#    <default>/tomcat_instance1</default>
+#    <description>Catalina base</description>
+#    <info>The absolute path to your Tomcat base directory. If you are running multiple instances of Tomcat you should set CATALINA_BASE to the instance directory and CATALINA_HOME to the common Tomcat installation whose files will be shared between instances.</info>
+#  </variable>
+#  <variable>
+#    <name>WEB_APP_DIR</name>
+#    <default>yourappname</default>
+#    <description>Web application directory</description>
+#    <info>The path to your web application directory from within CATALINA_HOME.</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_PORT</name>
+#    <default>443</default>
+#    <description>SSL port number</description>
+#    <info>The SSL port for your Sensitive Connector(s).</info>
+#  </variable>
+#  <variable>
+#    <name>SECURE_LOG_DIR</name>
+#    <default>/var/logs</default>
+#    <description>Log directory</description>
+#    <info>The path to where your logs are kept on the system.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Tomcat found"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "java -cp /usr/share/tomcat6/lib/catalina.jar org.apache.catalina.util.ServerInfo | /bin/egrep 'version'"
+      expect      : "Tomcat"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_v1.0.0_Apache_Tomcat_Level_1.audit Level 1"
+    </report>
+
+#
+## 1.3 Remove Extraneous Resources
+#
+
+    <custom_item>
+      system        : "Linux"
+      type          : CMD_EXEC
+      description   : "1.3.2 Disable Unused Connectors"
+      info          : "The default installation of Tomcat includes connectors with default settings. These are traditionally set up for convenience. It is best to remove these connectors and develop connectors from scratch, only enabling exactly what is needed.
+
+ NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd           : "/bin/cat /usr/share/tomcat6/conf/server.xml | /bin/egrep '^ +<Connector port=\"[0-9]+\"'"
+      expect        : ""
+      required      : NO
+      dont_echo_cmd : YES
+      severity      : MEDIUM
+    </custom_item>
+
+#
+## 1.4 Limit Platform Information Leaks
+#
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.4.5 Disable client facing Stack Traces (Check if error-page has an exception-type defined)"
+      info        : "When a runtime error occurs during request processing, Apache Tomcat will display debugging information to the requestor. It is recommended that such debug information be withheld from the requestor."
+      reference   : "800-53|SI-11,CSCv6|18.5,ITSG-33|SI-11,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/egrep '<error-page>' -A 3 /usr/share/tomcat6/conf/web.xml | /bin/egrep '<exception-type>java\.lang\.Throwable<\/exception-type>' -o"
+      expect      : "<exception-type>java\.lang\.Throwable<\/exception-type>"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.4.5 Disable client facing Stack Traces (Check if error-page has an location defined)"
+      info        : "When a runtime error occurs during request processing, Apache Tomcat will display debugging information to the requestor. It is recommended that such debug information be withheld from the requestor."
+      reference   : "800-53|SI-11,CSCv6|18.5,ITSG-33|SI-11,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/egrep '<error-page>' -A 3 /usr/share/tomcat6/conf/web.xml | /bin/egrep '<location>.*<\/location>' -o"
+      expect      : "<location>.+<\/location>"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.4.5 Disable client facing Stack Traces (Additional checks may be required)"
+      info        : "When a runtime error occurs during request processing, Apache Tomcat will display debugging information to the requestor. It is recommended that such debug information be withheld from the requestor."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: If any files are reported they have do not have an error-page configured."
+      reference   : "800-53|SI-11,CSCv6|18.5,ITSG-33|SI-11,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/find /usr/share/tomcat6 -name web.xml -exec bash -c 'if test -f {}; then /bin/cat {} | /bin/egrep -q \"<error-page>\"; if test $? -gt 0; then echo {};fi; fi' \\;"
+      expect      : ""
+    </custom_item>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK
+          description : "1.4.6 Turn off TRACE (Check if allowTrace is listed for any connectors)."
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+          file        : "/usr/share/tomcat6/conf/server.xml"
+          regex       : "allowTrace"
+          expect      : "allowTrace"
+          required    : YES
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "1.4.6 Turn off TRACE (verify if allowTrace is set to false)"
+          info        : "The HTTP TRACE verb provides debugging and diagnostics information for a given request."
+          reference   : "800-53|SI-11,CSCv6|18.5,ITSG-33|SI-11,LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+          cmd         : "/bin/egrep '<Connector port=' -A 5 /usr/share/tomcat6/conf/server.xml | /bin/egrep 'allowTrace=\".*\"' -o| /bin/awk -F= '{print $2}'"
+          expect      : "\"[Ff][Aa][Ll][Ss][Ee]\""
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "1.4.6 Turn off TRACE (verify if allowTrace is set to false)"
+          info        : "The HTTP TRACE verb provides debugging and diagnostics information for a given request.
+
+          NOTE: No Connector was found to have allowTrace value in the server.xml configuration file."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/261"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.4.6 Turn off TRACE (check web.xml configuration files)"
+      info        : "The HTTP TRACE verb provides debugging and diagnostics information for a given request."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: If any files reported have allowTrace set to true."
+      reference   : "800-53|SI-11,CSCv6|18.5,ITSG-33|SI-11,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/find /usr/share/tomcat6 -name web.xml -exec bash -c 'if test -f {}; then /bin/cat {} | /bin/egrep -q \"^[\\\s\\\t]*<servlet-name>[Gg][Ee][Tt][Tt][Rr][Aa][Cc][Ee]<\\\/servlet-name>\"; if test $? -lt 1; then echo {};fi; fi' \\;"
+      expect      : ""
+    </custom_item>
+
+#
+## 1.5 Protect the Shutdown Port
+#
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "1.5.1 Set a nondeterministic Shutdown command value."
+      info        : "Tomcat listens on TCP port 8005 to accept shutdown requests. By connecting to this port and sending the SHUTDOWN command, all applications within Tomcat are halted. The shutdown port is not exposed to the netowrk as it is bound to the loopback interface. It is recommended that a nondeterministic value be set for the shutdown attribute in $CATALINA_HOME/conf/server.xml."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/server.xml"
+      regex       : "^[\\s\\t]*<Server port=\"[0-9]+\" shutdown=\"[Ss][Hh][Uu][Tt][Dd][Oo][Ww][Nn]\">"
+      expect      : "<Server port=\"[0-9]+\" shutdown=\"[Ss][Hh][Uu][Tt][Dd][Oo][Ww][Nn]\">"
+    </custom_item>
+
+#
+## 1.6 Protect Tomcat Configurations
+#
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.1 Restrict access to $CATALINA_HOME"
+      info        : "$CATALINA_HOME is the environment variable which holds the path to the root Tomcat directory. It is important to protect access to this in order to protect the Tomcat binaries and libraries from unauthorized modification. It is recommended that the ownership of $CATALINA_HOME be tomcat_admin:tomcat. It is also recommended that the permissions on $CATALINA_HOME prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w)."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.2 Restrict access to $CATALINA_BASE"
+      info        : "$CATALINA_BASE is the environment variable that specifies the base directory which most relative paths are resolved. $CATALINA_BASE is usually used when there are multiple instances of Tomcat running. It is important to protect access to this in order to protect the Tomcat-related binaries and libraries from unauthorized modification. It is recommended that the ownership of $CATALINA_BASE be tomcat_admin:tomcat. It is also recommended that the permissions on $CATALINA_BASE prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w)."
+      info        : "NOTE: CATALINA_BASE needs to be the absolute path to your Tomcat base directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_BASE@ replaced with "/tomcat_instance1" in field "file".
+      file        : "/tomcat_instance1"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.3 Restrict access to Tomcat configuration directory"
+      info        : "The Tomcat $CATALINA_HOME/conf/ directory contains Tomcat configuration files. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on this directory prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w)."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.4 Restrict access to Tomcat logs directory"
+      info        : "The Tomcat $CATALINA_HOME/logs/ directory contains Tomcat logs. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on this directory prevent read, write, and execute for the world (o-rwx)."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/logs"
+      owner       : "tomcat_admin"
+      mask        : "007"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.5 Restrict access to Tomcat temp directory"
+      info        : "The Tomcat $CATALINA_HOME/temp/ directory is used by Tomcat to persist temporary information to disk. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on this directory prevent read, write, and execute for the world (o-rwx)."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/temp"
+      owner       : "tomcat_admin"
+      mask        : "007"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.6 Restrict access to Tomcat binaries directory"
+      info        : "The Tomcat $CATALINA_HOME/bin/ directory contains executables that are part of the Tomcat run-time. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on $CATALINA_HOME prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w)."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/bin"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.7 Restrict access to Tomcat web application directory"
+      info        : "The Tomcat $CATALINA_HOME/webapps directory contains web applications that are deployed through Tomcat. It is recommended that the ownership of this directory be tomcat_admin:tomcat. It is also recommended that the permissions on $CATALINA_HOME/webapps prevent read, write, and execute for the world (o-rwx) and prevent write access to the group (g-w)."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/webapps"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.8 Restrict access to Tomcat catalina.policy"
+      info        : "The catalina.policy file is used to configure security policies for Tomcat. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/catalina.policy"
+      owner       : "tomcat_admin"
+      mask        : "077"
+      file_type   : "f"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.9 Restrict access to Tomcat catalina.properties"
+      info        : "catalina.properties is a Java properties files that contains settings for Tomcat including class loader information, security package lists, and performance properties. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/catalina.properties"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "f"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.10 Restrict access to Tomcat context.xml"
+      info        : "The context.xml file is loaded by all web applications and sets certain configuration options. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/context.xml"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "f"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.11 Restrict access to Tomcat logging.properties"
+      info        : "logging.properties is a Tomcat files that specifies the logging configuration. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/logging.properties"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "f"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.12 Restrict access to Tomcat server.xml"
+      info        : "server.xml contains Tomcat servlet definitions and configurations. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/server.xml"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "f"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.13 Restrict access to Tomcat tomcat-users.xml"
+      info        : "tomcat-users.xml contains authentication information for Tomcat applications. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/tomcat-users.xml"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "f"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.6.14 Restrict access to Tomcat web.xml"
+      info        : "web.xml is a Tomcat configuration file that stores application configuration settings. It is recommended that access to this file has the proper permissions to properly protect from unauthorized changes."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/web.xml"
+      owner       : "tomcat_admin"
+      mask        : "027"
+      file_type   : "f"
+      group       : "tomcat"
+    </custom_item>
+
+#
+## 1.8 Connector Security
+#
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.8.2 Ensure SSLEnabled is set to True for Sensitive Connectors"
+      info        : "The SSLEnabled setting determines if SSL is enabled for a specific Connector. It is recommended that SSL be utilized for any Connector that sends or receives sensitive information, such as authentication credentials or personal information."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1NS,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/egrep '<Listener className=\"org.apache.catalina.core.AprLifecycleListener\"' -A 4 /usr/share/tomcat6/conf/server.xml | /bin/egrep 'SSLEngine=\"[A-Za-z]+\"' -o | /bin/awk -F= '{print $2}' | /bin/sed s/\\\"//g"
+      expect      : "[Oo][Nn]"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.8.2 Ensure SSLEnabled is set to True for Sensitive Connectors(verify SSLEnabled is set to true)"
+      info        : "The SSLEnabled setting determines if SSL is enabled for a specific Connector. It is recommended that SSL be utilized for any Connector that sends or receives sensitive information, such as authentication credentials or personal information."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: SSL_PORT needs to be changed to the SSL Port for your Sensitive Connector(s)."
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1NS,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "cmd".
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/egrep '<Connector port=\"443\"' -A 4 /usr/share/tomcat6/conf/server.xml | /bin/egrep 'SSLEnabled=\"[A-Za-z]+\"' -o | /bin/awk -F= '{print $2}' | /bin/sed s/\\\"//g"
+      expect      : "[Tt][Rr][Uu][Ee]"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.8.3 Ensure scheme is set accurately"
+      info        : "The scheme attribute is used to indicate to callers of request.getScheme() which scheme is in use by the Connector. Ensure the scheme attribute is set to http for Connectors operating over HTTP. Ensure the scheme attribute is set to https for Connectors operating of HTTPS."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: SSL_PORT needs to be changed to the SSL Port for your Sensitive Connector(s)."
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "cmd".
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/egrep '<Connector port=\"443\"' -A 4 /usr/share/tomcat6/conf/server.xml | /bin/egrep 'scheme=\"[A-Za-z]+\"' -o | /bin/awk -F= '{print $2}' | /bin/sed s/\\\"//g"
+      expect      : "[Hh][Tt][Tt][Pp][Ss]"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.8.4 Ensure secure is set to true only for SSL-enabled Connectors (verify secure is set to true)"
+      info        : "The secure attribute is used to convey Connector security status to applications operating over the Connector. This is typically achieved by calling request.isSecure(). Ensure the secure attribute is only set to true for Connectors operating with the SSLEnabled attribute set to true."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: SSL_PORT needs to be changed to the SSL Port for your Sensitive Connector(s)."
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "cmd".
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/egrep '<Connector port=\"443\"' -A 4 /usr/share/tomcat6/conf/server.xml | /bin/egrep 'secure=\"[A-Za-z]+\"' -o | /bin/awk -F= '{print $2}' | /bin/sed s/\"//g"
+      expect      : "[Tt][Rr][Uu][Ee]"
+    </custom_item>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "1.8.5 Ensure sslProtocol is set to TLS for Secure Connectors (verify SSLEnabled is set for connector)"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "cmd".
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+          cmd         : "/bin/egrep '<Connector port=\"443\"' -A 4 /usr/share/tomcat6/conf/server.xml | /bin/egrep 'SSLEnabled=\"[A-Za-z]+\"' -o | /bin/awk -F= '{print $2}' | /bin/sed s/\"//g"
+          expect      : "[Tt][Rr][Uu][Ee]"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "1.8.5 Ensure sslProtocol is set to TLS for Secure Connectors (verify sslProtocol is set to TLS)"
+          info        : "The sslProtocol setting determines which protocol Tomcat will use to protect traffic. It is recommended that sslProtocol attribute be set to TLS."
+          info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+          info        : "NOTE: SSL_PORT needs to be changed to the SSL Port for your Sensitive Connector(s)."
+          reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+          see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @SSL_PORT@ replaced with "443" in field "cmd".
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+          cmd         : "/bin/egrep '<Connector port=\"443\"' -A 4 /usr/share/tomcat6/conf/server.xml | /bin/egrep 'sslProtocol=\"[A-Za-z]+\"' -o | /bin/awk -F= '{print $2}'| /bin/sed s/\"//g"
+          expect      : "[Tt][Ll][Ss]"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "1.8.5 Ensure sslProtocol is set to TLS for Secure Connectors (verify sslProtocol is set to TLS)"
+          info        : "The sslProtocol setting determines which protocol Tomcat will use to protect traffic. It is recommended that sslProtocol attribute be set to TLS."
+          info        : "SSLEnabled was not found enabled for the any connectors in the server.xml configuration file."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/261"
+        </report>
+      </else>
+    </if>
+
+#
+## 1.9 Establish and Protect Logging Facilities
+#
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if org.apache.juli.FileHandler exists in web application)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/usr/share/tomcat6/yourappname/WEB-INF/classes/logging.properties"
+      regex       : "handlers[\\s\\t]*=[\\s\\t]*.*org\.apache\.juli\.FileHandler"
+      expect      : "handlers[\\s\\t]*=[\\s\\t]*.*org\.apache\.juli\.FileHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if org.apache.juli.FileHandler logging is enabled in web application)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/usr/share/tomcat6/yourappname/WEB-INF/classes/logging.properties"
+      regex       : "org\.apache\.juli\.FileHandler\.level[\\s\\t]*=[\\s\\t]*(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+      expect      : "org\.apache\.juli\.FileHandler\.level[\\s\\t]*=[\\s\\t]*(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if java.util.logging.ConsoleHandler exists in web application)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/usr/share/tomcat6/yourappname/WEB-INF/classes/logging.properties"
+      regex       : "handlers[\\s\\t]*=[\\s\\t]*.*java\.util\.logging\.ConsoleHandler"
+      expect      : "handlers[\\s\\t]*=[\\s\\t]*.*java\.util\.logging\.ConsoleHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if java.util.logging.ConsoleHandler logging is enabled in web application)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "file".
+      file        : "/usr/share/tomcat6/yourappname/WEB-INF/classes/logging.properties"
+      regex       : "java\.util\.logging\.ConsoleHandler\.level\\s=\\s(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+      expect      : "java\.util\.logging\.ConsoleHandler\.level\\s=\\s(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if org.apache.juli.FileHandler exists inin default)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/logging.properties"
+      regex       : "handlers[\\s\\t]*=[\\s\\t]*.*org\.apache\.juli\.FileHandler"
+      expect      : "handlers[\\s\\t]*=[\\s\\t]*.*org\.apache\.juli\.FileHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if org.apache.juli.FileHandler logging is enabled inin default)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/logging.properties"
+      regex       : "org\.apache\.juli\.FileHandler\.level[\\s\\t]*=[\\s\\t]*(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+      expect      : "org\.apache\.juli\.FileHandler\.level[\\s\\t]*=[\\s\\t]*(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if java.util.logging.ConsoleHandler exists inin default)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/logging.properties"
+      regex       : "handlers[\\s\\t]*=[\\s\\t]*.*java\.util\.logging\.ConsoleHandler"
+      expect      : "handlers[\\s\\t]*=[\\s\\t]*.*java\.util\.logging\.ConsoleHandler"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.2 Specify file handler in logging.properties (check if java.util.logging.ConsoleHandler logging is enabled inin default)"
+      info        : "Handlers specify where log messages are sent. Console handlers send log messages to the Java console and File handlers specify logging to a file."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|1S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/logging.properties"
+      regex       : "java\.util\.logging\.ConsoleHandler\.level[\\s\\t]*=[\\s\\t]*(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+      expect      : "java\.util\.logging\.ConsoleHandler\.level[\\s\\t]*=[\\s\\t]*(SEVERE|WARNING|INFO|CONFIG|FINE|FINER|FINEST|ALL)"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.9.4 Ensure directory in context.xml is a secure location - configuration"
+      info        : "The directory attribute tells Tomcat where to store logs. It is recommended that the location pointed to by the directory attribute is secured."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      info        : "NOTE: SECURE_LOG_DIR should be changed to the location where your logs are kept on the system."
+      reference   : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "cmd".
+      cmd         : "/bin/egrep '^ *[^<!-\-]*<Valve' -A 2 /usr/share/tomcat6/yourappname/META_INF/context.xml |/bin/egrep 'org\.apache\.catalina\.valves\.FastCommonAccessLogValve' -A 3 | /bin/egrep 'directory=\"(.+)\"' -o | /bin/awk -F= '{print $2}' | /bin/sed s/\"//g"
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/logs" in field "expect".
+      expect      : "/var/logs"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.9.4 Ensure directory in context.xml is a secure location - permissions"
+      info        : "The directory attribute tells Tomcat where to store logs. It is recommended that the location pointed to by the directory attribute is secured."
+      info        : "NOTE: SECURE_LOG_DIR should be changed to the location where your logs are kept on the system."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/logs" in field "file".
+      file        : "/var/logs"
+      owner       : "tomcat_admin"
+      mask        : "007"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.9.5 Ensure pattern in context.xml is correct"
+      info        : "The pattern setting informs Tomcat what information should be logged. At a minimum, enough information to uniquely identify a request, what was requested, where the requested originated from, and when the request occurred should be logged."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-3,CN-L3|7.1.2.3(a),CN-L3|7.1.2.3(b),CN-L3|7.1.3.3(a),CN-L3|8.1.4.3(b),CSCv6|6.2,CSF|PR.PT-1,ITSG-33|AU-3,LEVEL|1S,NESA|T3.6.2,NIAv2|AM34a,NIAv2|AM34b,NIAv2|AM34c,NIAv2|AM34d,NIAv2|AM34e,NIAv2|AM34f,NIAv2|AM34g,PCI-DSSv3.1|10.3,PCI-DSSv3.2|10.3,SWIFT-CSCv1|6.4"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "cmd".
+      cmd         : "/bin/egrep '^ *[^<!-\-]*<Valve' -A 2 /usr/share/tomcat6/yourappname/context.xml |/bin/egrep 'org\.apache\.catalina\.valves\.FastCommonAccessLogValve' -A 5 | /bin/egrep 'pattern=\".+\"' -o | /bin/awk -F= '{print $2}' | /bin/sed s/\"//g"
+      expect      : "%t %H cookie:%\{SESSIONID\}c request:%\{SESSIONID\}r %m %U %s %q %r"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.6 Ensure directory in logging.properties is a secure location (check log directory location)"
+      info        : "The directory attribute tells Tomcat where to store logs. The directory value should be a secure location with restricted access."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      info        : "NOTE: SECURE_LOG_DIR needs to be changed to the path to your secure log location."
+      reference   : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/logging.properties"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "regex".
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/logs" in field "regex".
+      regex       : "yourappname\.org\.apache\.juli\.FileHandler\.directory[\\s\\t]*=[\\s\\t]*/var/logs"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "expect".
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/logs" in field "expect".
+      expect      : "yourappname\.org\.apache\.juli\.FileHandler\.directory[\\s\\t]*=[\\s\\t]*/var/logs"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.9.6 Ensure directory in logging.properties is a secure location (check prefix application name)"
+      info        : "The directory attribute tells Tomcat where to store logs. The directory value should be a secure location with restricted access."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: WEB_APP_DIR needs to be changed to the path to your web applications directory."
+      reference   : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/conf/logging.properties"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "regex".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "regex".
+      regex       : "yourappname\.org\.apache\.juli\.FileHandler\.prefix[\\s\\t]*=[\\s\\t]*yourappname"
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "expect".
+# Note: Variable @WEB_APP_DIR@ replaced with "yourappname" in field "expect".
+      expect      : "yourappname\.org\.apache\.juli\.FileHandler\.prefix[\\s\\t]*=[\\s\\t]*yourappname"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "1.9.6 Ensure directory in logging.properties is a secure location (check application log directory is secure)"
+      info        : "The directory attribute tells Tomcat where to store logs. The directory value should be a secure location with restricted access."
+      info        : "NOTE: SECURE_LOG_DIR should be changed to the location where your application logs are kept on the system."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @SECURE_LOG_DIR@ replaced with "/var/logs" in field "file".
+      file        : "/var/logs"
+      owner       : "tomcat_admin"
+      mask        : "077"
+      file_type   : "d"
+      group       : "tomcat"
+    </custom_item>
+
+#
+## 1.10 Configure Catalina Policy
+#
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.10.1 Restrict runtime access to sensitive packages"
+      info        : "package.access grants or revokes access to listed packages during runtime. It is recommended that application access to certain packages be restricted."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      info        : "NOTE: Nessus did not perform this check as it requires a manual review of the outputted packages that have access."
+      info        : "NOTE: Review the reported packages to ensure only required packages are enabled."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/egrep 'package\.access[\s\t]*=[\s\t]*(.*)' /usr/share/tomcat6/conf/catalina.properties"
+      expect      : ""
+    </custom_item>
+
+#
+## 1.11 Application Deployment
+#
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.11.1 Starting Tomcat with Security Manager"
+      info        : "Configure application to run in a sandbox using the Security Manager. The Security Manager restricts what classes Tomcat can access thus protecting your server from mistakes, Trojans, and malicious code."
+      info        : "NOTE: This check looks at the $CATALINA_HOME/bin/startup.sh script to determine if -security is enabled when Tomcat is started."
+      info        : "NOTE: If your startup script is located in a different location, adjust this check to account for this."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/bin/startup.sh"
+      regex       : "\-security"
+      expect      : "\-security"
+    </custom_item>
+
+#
+## 1.12 Miscellaneous Configuration Settings
+#
+
+    <report type:"PASSED">
+      description : "1.12.1 Ensure Web content directory is on a separate partition from the Tomcat system files (verify Web content directory)"
+      info        : "Store web content on a separate partition from Tomcat system files."
+      info        : "NOTE: Nessus did not perform this check as it requires manual verification."
+      info        : "NOTE: Verify the Tomcat system files and web content directories are located on separate partitions."
+      info        : "To verify run the following commands and review the output: 'more /etc/init.d/tomcat* | grep $CATALINA_HOME' and  'more /etc/fstab'"
+      reference   : "LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.12.4 Force SSL when accessing the manager application"
+      info        : "Use the transport-guarantee attribute to ensure SSL protection when accessing the manager application."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/webapps/manager/WEB-INF/web.xml"
+      regex       : "<transport-guarantee>CONFIDENTIAL</transport-guarantee>"
+      expect      : "<transport-guarantee>CONFIDENTIAL</transport-guarantee>"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.12.6 Enable strict servlet Compliance"
+      info        : "The STRICT_SERVLET_COMPLIANCE influences Tomcat's behavior in several subtle ways. See the References below for the complete list. It is recommended that STRICT_SERVLET_COMPLIANCE is set to true."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/bin/catalina.sh"
+      regex       : "-Dorg\.apache\.catalina\.STRICT_SERVLET_COMPLIANCE[\\s\\t]*=[\\s\\t]*[Tt][Rr][Uu][Ee]"
+      expect      : "-Dorg\.apache\.catalina\.STRICT_SERVLET_COMPLIANCE[\\s\\t]*=[\\s\\t]*[Tt][Rr][Uu][Ee]"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.12.7 Turn off session facade recycling"
+      info        : "The RECYCLE_FACADES can specify if a new facade will be created for each request. If a new facade is not created there is a potential for information leakage from other sessions."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "file".
+      file        : "/usr/share/tomcat6/bin/catalina.sh"
+      regex       : "-Dorg\.apache\.catalina\.connector\.RECYCLE_FACADES[\\s\\t]*=[\\s\\t]*[Ff][Aa][Ll][Ss][Ee]"
+      expect      : "-Dorg\.apache\.catalina\.connector\.RECYCLE_FACADES[\\s\\t]*=[\\s\\t]*[Ff][Aa][Ll][Ss][Ee]"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.12.14 Do not allow symbolic linking"
+      info        : "Symbolic links allow one application to include the libraries from another. This allows for re-use of code but also allows for potential security issues when applications include libraries from other applications they should not have access to."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/find /usr/share/tomcat6/ -name context.xml -exec bash -c 'if test -f {}; then /bin/cat {} | /bin/egrep -q \"allowLinking=\\\"[Tt][Rr][Uu][Ee]\\\"\"; if test $? -gt 0; then echo {};fi; fi' \\;"
+      expect      : ""
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.12.15 Do not run applications as privileged"
+      info        : "Setting the privileged attribute for an application changes the class loader to the Server class loader instead of the Shared class loader."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/find /usr/share/tomcat6/ -name context.xml -exec bash -c 'if test -f {}; then /bin/cat {} | /bin/egrep -q \"privileged=\\\"[Tt][Rr][Uu][Ee]\\\"\"; if test $? -gt 0; then echo {};fi; fi' \\;"
+      expect      : ""
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.12.16 Do not allow cross context requests"
+      info        : "Setting crossContext to true allows for an application to call ServletContext.getContext to return a dispatcher for another application."
+      info        : "NOTE: CATALINA_HOME needs to be the absolute path to your Tomcat installation directory."
+      reference   : "800-53|SC-39,LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/261"
+# Note: Variable @CATALINA_HOME@ replaced with "/usr/share/tomcat6" in field "cmd".
+      cmd         : "/bin/find /usr/share/tomcat6/ -name context.xml -exec bash -c 'if test -f {}; then /bin/cat {} | /bin/egrep -q \"crossContext=\\\"[Tt][Rr][Uu][Ee]\\\"\"; if test $? -gt 0; then echo {};fi; fi' \\;"
+      expect      : ""
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_v1.0.0_Apache_Tomcat_Level_1.audit Level 1"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/261"
+    </report>
+  </else>
+</if>
+
+</check_type>

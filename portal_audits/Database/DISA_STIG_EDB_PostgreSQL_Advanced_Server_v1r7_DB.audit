@@ -1,0 +1,2084 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/08/20 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA EDB Postgres Advanced Server v1r7 STIG.
+#
+#<ui_metadata>
+#<display_name>EDB PostgreSQL Advanced Server DB Audit v1r7</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>EDB PostgreSQL Advanced Server DB</name>
+#  <version>1.7.0</version>
+#  <link>https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip</link>
+#</spec>
+#<labels>database,disa,edb,postgresql,advanced,server</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>PG_OWNER</name>
+#    <default>enterprisedb</default>
+#    <description>PostgreSQL Owner</description>
+#    <info>User account that PostgreSQL system objects are owned by.</info>
+#  </variable>
+#  <variable>
+#    <name>PG_PORTS</name>
+#    <default>5432|5444</default>
+#    <description>Allowable Ports</description>
+#    <info>Pipe separated list of port numbers allowable for use in the environment.  Recommended to change from the default ports.</info>
+#  </variable>
+#  <variable>
+#    <name>ADMIN_CONN_LIMIT</name>
+#    <default>10</default>
+#    <description>Max connections for Admins</description>
+#    <info>The max number of connections for accounts with super user access.</info>
+#  </variable>
+#  <variable>
+#    <name>USER_CONN_LIMIT</name>
+#    <default>2</default>
+#    <description>Max connections for Users</description>
+#    <info>The max number of connections for accounts with out super user access.</info>
+#  </variable>
+#  <variable>
+#    <name>LABELING_REQUIRED</name>
+#    <default>NO</default>
+#    <description>Is Security Labeling Required</description>
+#    <info>Answer this as YES or NO depending on if security labeling is required.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Database" db_type:"PostgreSQL" version:"1">
+<group_policy:"EDB PostgreSQL Advanced Server v1r5 DB audit">
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-000100 - The EDB Postgres Advanced Server must limit the number of concurrent sessions to an organization-defined number per user for all accounts and/or account types - Administrators"
+  info        : "Database management includes the ability to control the number of users and user sessions utilizing a DBMS. Unlimited concurrent connections to the DBMS could allow a successful Denial of Service (DoS) attack by exhausting connection resources; and a system can also fail or be degraded by an overload of legitimate users. Limiting the number of concurrent sessions per user is helpful in reducing these risks.
+
+This requirement addresses concurrent session control for a single account. It does not address concurrent sessions by a single user via multiple system accounts; and it does not deal with the total number of sessions across all accounts.
+
+The capability to limit the number of concurrent sessions per user must be configured in or added to the DBMS (for example, by use of a logon trigger), when this is technically feasible. Note that it is not sufficient to limit sessions via a web server or application server alone, because legitimate users and adversaries can potentially connect to the DBMS by other means.
+
+The organization will need to define the maximum number of concurrent sessions by account type, by account, or a combination thereof. In deciding on the appropriate number, it is important to consider the work requirements of the various types of users. For example, 2 might be an acceptable limit for general users accessing the database via an application; but 10 might be too few for a database administrator using a database management GUI tool, where each query tab and navigation pane may count as a separate session.
+
+(Sessions may also be referred to as connections or logons, which for the purposes of this requirement are synonyms.)"
+  solution    : "Execute the following SQL as enterprisedb:
+
+SELECT rolname, rolconnlimit FROM pg_roles;
+
+For any roles where rolconnlimit is -1 or larger than the system documentation limits, execute this SQL as enterprisedb:.
+
+ALTER USER <role> WITH CONNECTION LIMIT <desired connection limit>;"
+  reference   : "800-53|AC-10,CAT|II,CCI|CCI-000054,ITSG-33|AC-10,NESA|T5.5.1,Rule-ID|SV-83479r1_rule,STIG-ID|PPS9-00-000100,Vuln-ID|V-68875"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+# Note: Variable @ADMIN_CONN_LIMIT@ replaced with "10" in field "sql_request".
+  sql_request : "SELECT rolname, rolconnlimit FROM pg_roles WHERE rolsuper = true AND (rolconnlimit = -1 OR rolconnlimit > 10);"
+  sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+  sql_expect  : NULL, NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-000100 - The EDB Postgres Advanced Server must limit the number of concurrent sessions to an organization-defined number per user for all accounts and/or account types - Users"
+  info        : "Database management includes the ability to control the number of users and user sessions utilizing a DBMS. Unlimited concurrent connections to the DBMS could allow a successful Denial of Service (DoS) attack by exhausting connection resources; and a system can also fail or be degraded by an overload of legitimate users. Limiting the number of concurrent sessions per user is helpful in reducing these risks.
+
+This requirement addresses concurrent session control for a single account. It does not address concurrent sessions by a single user via multiple system accounts; and it does not deal with the total number of sessions across all accounts.
+
+The capability to limit the number of concurrent sessions per user must be configured in or added to the DBMS (for example, by use of a logon trigger), when this is technically feasible. Note that it is not sufficient to limit sessions via a web server or application server alone, because legitimate users and adversaries can potentially connect to the DBMS by other means.
+
+The organization will need to define the maximum number of concurrent sessions by account type, by account, or a combination thereof. In deciding on the appropriate number, it is important to consider the work requirements of the various types of users. For example, 2 might be an acceptable limit for general users accessing the database via an application; but 10 might be too few for a database administrator using a database management GUI tool, where each query tab and navigation pane may count as a separate session.
+
+(Sessions may also be referred to as connections or logons, which for the purposes of this requirement are synonyms.)"
+  solution    : "Execute the following SQL as enterprisedb:
+
+SELECT rolname, rolconnlimit FROM pg_roles;
+
+For any roles where rolconnlimit is -1 or larger than the system documentation limits, execute this SQL as enterprisedb:.
+
+ALTER USER <role> WITH CONNECTION LIMIT <desired connection limit>;"
+  reference   : "800-53|AC-10,CAT|II,CCI|CCI-000054,ITSG-33|AC-10,NESA|T5.5.1,Rule-ID|SV-83479r1_rule,STIG-ID|PPS9-00-000100,Vuln-ID|V-68875"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+# Note: Variable @USER_CONN_LIMIT@ replaced with "2" in field "sql_request".
+  sql_request : "SELECT rolname, rolconnlimit FROM pg_roles WHERE rolsuper = false AND (rolconnlimit = -1 OR rolconnlimit > 2) AND rolname NOT IN ('pg_signal_backend');"
+  sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+  sql_expect  : NULL, NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "PPS9-00-000800 - The EDB Postgres Advanced Server must enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies."
+  info        : "Authentication with a DoD-approved PKI certificate does not necessarily imply authorization to access the DBMS. To mitigate the risk of unauthorized access to sensitive information by entities that have been issued certificates by DoD-approved PKIs, all DoD systems, including databases, must be properly configured to implement access control policies.
+
+Successful authentication must not automatically give an entity access to an asset or security boundary. Authorization procedures and controls must be implemented to ensure each authenticated entity also has a validated and current authorization. Authorization is the process of determining whether an entity, once authenticated, is permitted to access a specific asset. Information systems use access control policies and enforcement mechanisms to implement this requirement.
+
+Access control policies include identity-based policies, role-based policies, and attribute-based policies. Access enforcement mechanisms include access control lists, access control matrices, and cryptography. These policies and mechanisms must be employed by the application to control access between users (or processes acting on behalf of users) and objects (e.g., devices, files, records, processes, programs, and domains) in the information system.
+
+This requirement is applicable to access control enforcement applications, a category that includes database management systems. If the DBMS does not follow applicable policy when approving access, it may be in conflict with networks or other applications in the information system. This may result in users either gaining or being denied access inappropriately and in conflict with applicable policy.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Use GRANT, REVOKE, ALTER statements to add and remove permissions on server-level securables, bringing them into line with the documented requirements."
+  reference   : "CAT|II,CCI|CCI-000213,Rule-ID|SV-83483r1_rule,STIG-ID|PPS9-00-000800,Vuln-ID|V-68879"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-000900 - The EDB Postgres Advanced Server must protect against a user falsely repudiating having performed organization-defined actions."
+  info        : "Non-repudiation of actions taken is required in order to maintain data integrity. Examples of particular actions taken by individuals include creating information, sending a message, approving information (e.g., indicating concurrence or signing a contract), and receiving a message.
+
+Non-repudiation protects against later claims by a user of not having created, modified, or deleted a particular data item or collection of data in the database.
+
+In designing a database, the organization must define the types of data and the user actions that must be protected from repudiation. The implementation must then include building audit features into the application data tables, and configuring the DBMS' audit tools to capture the necessary audit trail. Design and implementation also must ensure that applications pass individual user identification to the DBMS, even where the application connects to the DBMS with a standard, group account."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit = csv;
+SELECT pg_reload_conf();
+
+or
+
+ALTER SYSTEM SET edb_audit = xml;
+SELECT pg_reload_conf();"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000166,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83485r1_rule,STIG-ID|PPS9-00-000900,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68881"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "csv" || "xml"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001000 - The EDB Postgres Advanced Server must provide audit record generation capability for DoD-defined auditable events within all EDB Postgres Advanced Server/database components."
+  info        : "Without the capability to generate audit records, it would be difficult to establish, correlate, and investigate the events relating to an incident or identify those responsible for one.
+
+Audit records can be generated from various components within the DBMS (e.g., process, module). Certain specific application functionalities may be audited as well. The list of audited events is the set of events for which audits are to be generated. This set of events is typically a subset of the list of all events for which the system is capable of generating audit records.
+
+DoD has defined the list of events for which the DBMS will provide an audit record generation capability as the following:
+
+(i) Successful and unsuccessful attempts to access, modify, or delete privileges, security objects, security levels, or categories of information (e.g., classification levels);
+
+(ii) Access actions, such as successful and unsuccessful logon attempts, privileged activities, or other system-level access, starting and ending time for user access to the system, concurrent logons from different workstations, successful and unsuccessful accesses to objects, all program initiations, and all direct access to the information system; and
+
+(iii) All account creation, modification, disabling, and termination actions.
+
+Organizations may define additional events requiring continuous or ad hoc auditing."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit = csv;
+SELECT pg_reload_conf();
+
+or
+
+ALTER SYSTEM SET edb_audit = xml;
+SELECT pg_reload_conf();"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000169,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83487r1_rule,STIG-ID|PPS9-00-001000,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68883"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "csv" || "xml"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001200 - The EDB Postgres Advanced Server must generate audit records when privileges/permissions are retrieved."
+  info        : "Under some circumstances, it may be useful to monitor who/what is reading privilege/permission/role information. Therefore, it must be possible to configure auditing to do this. DBMSs typically make such information available through views or functions.
+
+This requirement addresses explicit requests for privilege/permission/role membership information. It does not refer to the implicit retrieval of privileges/permissions/role memberships that the DBMS continually performs to determine if any and every action on the database is permitted."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83491r2_rule,STIG-ID|PPS9-00-001200,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68887"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001300 - The EDB Postgres Advanced Server must generate audit records when unsuccessful attempts to retrieve privileges/permissions occur."
+  info        : "Under some circumstances, it may be useful to monitor who/what is reading privilege/permission/role information. Therefore, it must be possible to configure auditing to do this. DBMSs typically make such information available through views or functions.
+
+This requirement addresses explicit requests for privilege/permission/role membership information. It does not refer to the implicit retrieval of privileges/permissions/role memberships that the DBMS continually performs to determine if any and every action on the database is permitted.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83493r2_rule,STIG-ID|PPS9-00-001300,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68889"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001400 - The EDB Postgres Advanced Server must initiate support of session auditing upon startup."
+  info        : "Session auditing is for use when a user's activities are under investigation.
+
+Typically, this DBMS capability would be used in conjunction with comparable monitoring of a user's online session, involving other software components such as operating systems, web servers and front-end user applications. The current requirement, however, deals specifically with the DBMS.
+
+To be sure of capturing all activity during those periods when session auditing is in use, database auditing needs to be in operation for the whole time the DBMS is running."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-001464,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83495r2_rule,STIG-ID|PPS9-00-001400,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68891"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001600 - The EDB Postgres Advanced Server must produce audit records containing sufficient information to establish what type of events occurred."
+  info        : "Information system auditing capability is critical for accurate forensic analysis. Without establishing what type of event occurred, it would be difficult to establish, correlate, and investigate the events relating to an incident or identify those responsible for one.
+
+Audit record content that may be necessary to satisfy the requirement of this policy includes, for example, time stamps, user/process identifiers, event descriptions, success/fail indications, filenames involved, and access control or flow control rules invoked.
+
+Associating event types with detected events in the application and audit logs provides a means of investigating an attack; recognizing resource utilization or capacity thresholds; or identifying an improperly configured application.
+
+Database software is capable of a range of actions on data stored within the database. It is important, for accurate forensic analysis, to know exactly what actions were performed. This requires specific information regarding the event type an audit record is referring to. If event type information is not recorded and stored with the audit record, the record itself is of very limited use."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000130,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83499r2_rule,STIG-ID|PPS9-00-001600,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68895"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001700 - The EDB Postgres Advanced Server must produce audit records containing time stamps to establish when the events occurred."
+  info        : "Information system auditing capability is critical for accurate forensic analysis. Without establishing when events occurred, it is impossible to establish, correlate, and investigate the events relating to an incident.
+
+In order to compile an accurate risk assessment and provide forensic analysis, it is essential for security personnel to know the date and time when events occurred.
+
+Associating the date and time with detected events in the application and audit logs provides a means of investigating an attack; recognizing resource utilization or capacity thresholds; or identifying an improperly configured application.
+
+Database software is capable of a range of actions on data stored within the database. It is important, for accurate forensic analysis, to know exactly when specific actions were performed. This requires the date and time an audit record is referring to. If date and time information is not recorded and stored with the audit record, the record itself is of very limited use."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000131,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83501r2_rule,STIG-ID|PPS9-00-001700,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68897"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001800 - The EDB Postgres Advanced Server must produce audit records containing sufficient information to establish where the events occurred."
+  info        : "Information system auditing capability is critical for accurate forensic analysis. Without establishing where events occurred, it is impossible to establish, correlate, and investigate the events relating to an incident.
+
+In order to compile an accurate risk assessment and provide forensic analysis, it is essential for security personnel to know where events occurred, such as application components, modules, session identifiers, filenames, host names, and functionality.
+
+Associating information about where the event occurred within the application provides a means of investigating an attack; recognizing resource utilization or capacity thresholds; or identifying an improperly configured application."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000132,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83503r2_rule,STIG-ID|PPS9-00-001800,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68899"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-001900 - The EDB Postgres Advanced Server must produce audit records containing sufficient information to establish the sources (origins) of the events - origins of the events."
+  info        : "Information system auditing capability is critical for accurate forensic analysis. Without establishing the source of the event, it is impossible to establish, correlate, and investigate the events relating to an incident.
+
+In order to compile an accurate risk assessment and provide forensic analysis, it is essential for security personnel to know where events occurred, such as application components, modules, session identifiers, filenames, host names, and functionality.
+
+In addition to logging where events occur within the application, the application must also produce audit records that identify the application itself as the source of the event.
+
+Associating information about the source of the event within the application provides a means of investigating an attack; recognizing resource utilization or capacity thresholds; or identifying an improperly configured application."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000133,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83505r2_rule,STIG-ID|PPS9-00-001900,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68901"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-002000 - The EDB Postgres Advanced Server must produce audit records containing sufficient information to establish the outcome (success or failure) of the events."
+  info        : "Information system auditing capability is critical for accurate forensic analysis. Without information about the outcome of events, security personnel cannot make an accurate assessment as to whether an attack was successful or if changes were made to the security state of the system.
+
+Event outcomes can include indicators of event success or failure and event-specific results (e.g., the security state of the information system after the event occurred). As such, they also provide a means to measure the impact of an event and help authorized personnel to determine the appropriate response."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000134,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83507r2_rule,STIG-ID|PPS9-00-002000,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68903"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-002100 - The EDB Postgres Advanced Server must produce audit records containing sufficient information to establish the identity of any user/subject or process associated with the event."
+  info        : "Information system auditing capability is critical for accurate forensic analysis. Without information that establishes the identity of the subjects (i.e., users or processes acting on behalf of users) associated with the events, security personnel cannot determine responsibility for the potentially harmful event.
+
+Identifiers (if authenticated or otherwise known) include, but are not limited to, user database tables, primary key values, user names, or process identifiers."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-001487,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83509r2_rule,STIG-ID|PPS9-00-002100,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-68905"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-002200 - The EDB Postgres Advanced Server must include additional, more detailed, organization-defined information in the audit records for audit events identified by type, location, or subject."
+  info        : "Information system auditing capability is critical for accurate forensic analysis. Reconstruction of harmful events or forensic analysis is not possible if audit records do not contain enough information. To support analysis, some types of events will need information to be logged that exceeds the basic requirements of event type, time stamps, location, source, outcome, and user identity. If additional information is not available, it could negatively impact forensic investigations into user actions or other malicious events.
+
+The organization must determine what additional information is required for complete analysis of the audited events. The additional information required is dependent on the type of information (e.g., sensitivity of the data and the environment within which it resides). At a minimum, the organization must employ either full-text recording of privileged commands or the individual identities of group users, or both. The organization must maintain audit trails in sufficient detail to reconstruct events to determine the cause and impact of compromise.
+
+Examples of detailed information the organization may require in audit records are full-text recording of privileged commands or the individual identities of group account users.
+
+In EnterpriseDB Postgres Plus Advanced Server, the edb_audit_tag can be used to record additional information.  This tag can be set to different values by different sessions (connections), and can be set to new values any number of times.  How to recognize the conditions for producing such audit data has to be determined and coded for as part of application and database design.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Execute the following SQL to set additional detailed information for the audit records in the session:
+
+set edb_audit_tag = '<information>';
+
+Replace <information> with a character string holding the additional data that must be captured.
+
+To set this in a trigger, an example is included below.  Keep in mind that the edb_audit_tag is set for the life of the session, not just the life of the insert command:
+
+CREATE OR REPLACE FUNCTION add_audit_info()
+  RETURNS trigger AS
+$BODY$
+BEGIN
+  SET edb_audit_tag = '<information>';
+  RETURN NEW;
+END;
+$BODY$
+LANGUAGE plpgsql;
+
+CREATE TRIGGER add_audit_info_trigger
+  BEFORE INSERT
+  ON <table>
+  FOR EACH ROW
+  EXECUTE PROCEDURE add_audit_info();"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-3(1),CAT|II,CCI|CCI-000135,CN-L3|7.1.3.3(b),CSF|PR.PT-1,ITSG-33|AU-3(1),Rule-ID|SV-83511r1_rule,STIG-ID|PPS9-00-002200,SWIFT-CSCv1|6.4,Vuln-ID|V-68907"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_tag;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "ManualReviewRequired"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-003210 - EDB Postgres Advanced Server software modules, to include stored procedures, functions and triggers must be monitored to discover unauthorized changes."
+  info        : "If the system were to allow any user to make changes to software libraries, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.
+
+Accordingly, only qualified and authorized individuals must be allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.  Monitoring is required for assurance that the protections are effective.
+
+Unmanaged changes that occur to the logic modules within the database can lead to unauthorized or compromised installations.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Configure an EDB Postgres timed job that automatically checks all system and user-defined procedures, functions and triggers for being modified, and in the event of such changes informs the proper personnel for evaluation and possible action."
+  reference   : "800-171|3.4.3,800-53|CM-3,CAT|II,CCI|CCI-001499,CN-L3|8.1.10.6(g),CSF|DE.CM-1,CSF|DE.CM-7,CSF|PR.IP-1,CSF|PR.IP-3,ISO/IEC-27001|A.12.1.2,ITSG-33|CM-3,NESA|T3.2.3,NESA|T3.3.2,NESA|T7.5.1,NESA|T7.6.1,NESA|T7.6.2,NESA|T7.6.3,NIAv2|CM1,NIAv2|CM1a,NIAv2|CM1b,NIAv2|CM1c,Rule-ID|SV-83531r1_rule,STIG-ID|PPS9-00-003210,Vuln-ID|V-68927"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "select job, what from ALL_JOBS;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "ManualReviewRequired"
+  severity    : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "PPS9-00-003300 - The EDB Postgres Advanced Server software installation account must be restricted to authorized users."
+  info        : "When dealing with change control issues, it should be noted any changes to the hardware, software, and/or firmware components of the information system and/or application can have significant effects on the overall security of the system.
+
+If the system were to allow any user to make changes to software libraries, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.
+
+Accordingly, only qualified and authorized individuals must be allowed access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+DBA and other privileged administrative or application owner accounts are granted privileges that allow actions that can have a great impact on database security and operation. It is especially important to grant privileged access to only those persons who are qualified and authorized to use them.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document, and implement procedures to restrict and track use of the DBMS software installation account."
+  reference   : "CAT|II,CCI|CCI-001499,Rule-ID|SV-83533r1_rule,STIG-ID|PPS9-00-003300,Vuln-ID|V-68929"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-003500 - Database objects (including but not limited to tables, indexes, storage, stored procedures, functions, triggers, links to software external to the EDB Postgres Advanced Server, etc.) must be owned by database/EDB Postgres Advanced Server principals authorized for ownership."
+  info        : "Within the database, object ownership implies full privileges to the owned object, including the privilege to assign access to the owned objects to other subjects. Database functions and procedures can be coded using definer's rights. This allows anyone who utilizes the object to perform the actions if they were the owner. If not properly managed, this can lead to privileged actions being taken by unauthorized individuals.
+
+Conversely, if critical tables or other objects rely on unauthorized owner accounts, these objects may be lost when an account is removed.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Assign ownership of authorized objects to authorized object owner accounts by running this SQL command for each object to be changed:
+
+ALTER <type> <object name> OWNER TO <new owner>;
+
+For example: ALTER TABLE my_table OWNER TO APP_USER;"
+  reference   : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-83537r1_rule,STIG-ID|PPS9-00-003500,SWIFT-CSCv1|2.3,Vuln-ID|V-68933"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+# Note: Variable @PG_OWNER@ replaced with "enterprisedb" in field "sql_request".
+  sql_request : "select owner, schema_name, object_name from sys.all_objects where not lower(owner) = lower('enterprisedb');"
+  sql_types   : POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR
+  sql_expect  : NULL, NULL, NULL
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-003700 - Default, demonstration and sample databases, database objects, and applications must be removed."
+  info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for software products to provide, or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software, demonstrations, or browser plugins not related to requirements or providing a wide array of functionality, not required for every mission, that cannot be disabled.
+
+DBMSs must adhere to the principles of least functionality by providing only essential capabilities.
+
+Demonstration and sample database objects and applications present publicly known attack points for malicious users. These demonstration and sample objects are meant to provide simple examples of coding specific functions and are not developed to prevent vulnerabilities from being introduced to the DBMS and host system.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Remove any unused sample databases from the DBMS.
+
+To remove a database, execute the follow SQL:
+
+DROP DATABASE <database>;"
+  reference   : "800-53|CM-2(6),CAT|II,CCI|CCI-000381,CSCv6|18.6,CSF|PR.DS-7,CSF|PR.IP-1,ITSG-33|CM-2(6),NIAv2|SS4,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-83541r1_rule,STIG-ID|PPS9-00-003700,Vuln-ID|V-68937"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SELECT datname FROM pg_database WHERE datistemplate = false;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-004100 - The EDB Postgres Advanced Server must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments - port"
+  info        : "In order to prevent unauthorized connection of devices, unauthorized transfer of information, or unauthorized tunneling (i.e., embedding of data types within data types), organizations must disable or restrict unused or unnecessary physical and logical ports/protocols/services on information systems.
+
+Applications are capable of providing a wide variety of functions and services. Some of the functions and services provided by default may not be necessary to support essential organizational operations. Additionally, it is sometimes convenient to provide multiple services from a single component (e.g., email and web services); however, doing so increases risk over limiting the services provided by any one component.
+
+To support the requirements and principles of least functionality, the application must support the organizational requirements providing only essential capabilities and limiting the use of ports, protocols, and/or services to only those required, authorized, and approved to conduct official business or to address authorized quality of life issues.
+
+Database Management Systems using ports, protocols, and services deemed unsafe are open to attack through those ports, protocols, and services. This can allow unauthorized access to the database and through the database to other components of the information system."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET port = <port>;
+ALTER SYSTEM SET listen_addresses = <comma separated addresses>;
+
+Execute the following operating system command as root:
+
+systemctl restart ppas-9.5.service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000382,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.2|2.2.2,Rule-ID|SV-83549r1_rule,STIG-ID|PPS9-00-004100,SWIFT-CSCv1|2.3,Vuln-ID|V-68945"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW port;"
+  sql_types   : POLICY_VARCHAR
+# Note: Variable @PG_PORTS@ replaced with "5432|5444" in field "sql_expect".
+  sql_expect  : regex:"^(5432|5444)$"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-004100 - The EDB Postgres Advanced Server must be configured to prohibit or restrict the use of organization-defined functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments - address"
+  info        : "In order to prevent unauthorized connection of devices, unauthorized transfer of information, or unauthorized tunneling (i.e., embedding of data types within data types), organizations must disable or restrict unused or unnecessary physical and logical ports/protocols/services on information systems.
+
+Applications are capable of providing a wide variety of functions and services. Some of the functions and services provided by default may not be necessary to support essential organizational operations. Additionally, it is sometimes convenient to provide multiple services from a single component (e.g., email and web services); however, doing so increases risk over limiting the services provided by any one component.
+
+To support the requirements and principles of least functionality, the application must support the organizational requirements providing only essential capabilities and limiting the use of ports, protocols, and/or services to only those required, authorized, and approved to conduct official business or to address authorized quality of life issues.
+
+Database Management Systems using ports, protocols, and services deemed unsafe are open to attack through those ports, protocols, and services. This can allow unauthorized access to the database and through the database to other components of the information system."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET port = <port>;
+ALTER SYSTEM SET listen_addresses = <comma separated addresses>;
+
+Execute the following operating system command as root:
+
+systemctl restart ppas-9.5.service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000382,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.3,Rule-ID|SV-83549r1_rule,STIG-ID|PPS9-00-004100,SWIFT-CSCv1|2.3,Vuln-ID|V-68945"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW listen_addresses;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : regex:"^(([1-9][0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|localhost|::1|[0-9A-Fa-f:]{4,128}),?)+$"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-004300 - If passwords are used for authentication, the EDB Postgres Advanced Server must store only hashed, salted representations of passwords."
+  info        : "The DoD standard for authentication is DoD-approved PKI certificates.
+
+Authentication based on User ID and Password may be used only when it is not possible to employ a PKI certificate, and requires AO approval.
+
+In such cases, database passwords stored in clear text, using reversible encryption, or using unsalted hashes would be vulnerable to unauthorized disclosure. Database passwords must always be in the form of one-way, salted hashes when stored internally or externally to the DBMS."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET password_encryption = on;
+SELECT pg_reload_conf();"
+  reference   : "800-171|3.5.10,800-53|IA-5(1),CAT|II,CCI|CCI-000196,CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,Rule-ID|SV-83551r1_rule,STIG-ID|PPS9-00-004300,SWIFT-CSCv1|4.1,TBA-FIISB|26.1,Vuln-ID|V-68947"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW password_encryption;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "on"
+</custom_item>
+
+<report type:"WARNING">
+  description : "PPS9-00-004810 - Applications must obscure feedback of authentication information during the authentication process to protect the information from possible exploitation/use by unauthorized individuals."
+  info        : "To prevent the compromise of authentication information, such as passwords and PINs, during the authentication process, the feedback from the information system must not provide any information that would allow an unauthorized user to compromise the authentication mechanism.
+
+Obfuscation of user-provided information when typed into the system is a method used in addressing this risk.
+
+For example, displaying asterisks when a user types in a password or PIN, is an example of obscuring feedback of authentication information.
+
+Database applications may allow for entry of the account name and password as a visible parameter of the application execution command. This practice must be prohibited and disabled to prevent shoulder surfing.
+
+This calls for review of applications, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure or modify applications to prohibit display of passwords in clear text."
+  reference   : "CAT|I,CCI|CCI-000206,Rule-ID|SV-83559r2_rule,STIG-ID|PPS9-00-004810,Vuln-ID|V-68955"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-004820 - When using command-line tools such as psql, users must use a logon method that does not expose the password."
+  info        : "To prevent the compromise of authentication information, such as passwords and PINs, during the authentication process, the feedback from the information system must not provide any information that would allow an unauthorized user to compromise the authentication mechanism.
+
+Obfuscation of user-provided information when typed into the system is a method used in addressing this risk.
+
+For example, displaying asterisks when a user types in a password or PIN, is an example of obscuring feedback of authentication information.
+
+This requirement is applicable when mixed-mode authentication is enabled.  When this is the case, password-authenticated accounts can be created in and authenticated by SQL Server.  Other STIG requirements prohibit the use of mixed-mode authentication except when justified and approved.  This deals with the exceptions.
+
+Psql is part of any PostgreSQL installation.  Other command-line tools may also exist.  These tools can accept a plain-text password, but do offer alternative techniques. Since the typical user of these tools is a database administrator, the consequences of password compromise are particularly serious. Therefore, the use of plain-text passwords must be prohibited, as a matter of practice and procedure.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "For psql, which can accept a plain-text password, and any other essential tool with the same limitation:
+
+1) Document the need for it, who uses it, and any relevant mitigations, and obtain AO approval.
+2) Train all users of the tool in the importance of not using the plain-text password option and in how to keep the password hidden by using the '-P' option."
+  reference   : "CAT|I,CCI|CCI-000206,Rule-ID|SV-83561r1_rule,STIG-ID|PPS9-00-004820,Vuln-ID|V-68957"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-005800 - The EDB Postgres Advanced Server must isolate security functions from non-security functions."
+  info        : "An isolation boundary provides access control and protects the integrity of the hardware, software, and firmware that perform security functions.
+
+Security functions are the hardware, software, and/or firmware of the information system responsible for enforcing the system security policy and supporting the isolation of code and data on which the protection is based.
+
+Developers and implementers can increase the assurance in security functions by employing well-defined security policy models; structured, disciplined, and rigorous hardware and software development techniques; and sound system/security engineering principles.
+
+Database Management Systems typically separate security functionality from non-security functionality via separate databases or schemas. Database objects or code implementing security functionality should not be commingled with objects or code implementing application logic. When security and non-security functionality are commingled, users who have access to non-security functionality may be able to access security functionality.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Remove all application-specific packages that were added to the sys, pg_catalog, information_schema, and dbo schemas."
+  reference   : "CAT|II,CCI|CCI-001084,Rule-ID|SV-83567r1_rule,STIG-ID|PPS9-00-005800,Vuln-ID|V-68963"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-005900 - Database contents must be protected from unauthorized and unintended information transfer by enforcement of a data-transfer policy."
+  info        : "Applications, including DBMSs, must prevent unauthorized and unintended information transfer via shared system resources.
+
+Data used for the development and testing of applications often involves copying data from production. It is important that specific procedures exist for this process, to include the conditions under which such transfer may take place, where the copies may reside, and the rules for ensuring sensitive data are not exposed.
+
+Copies of sensitive data must not be misplaced or left in a temporary location without the proper controls.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Modify any code used for moving data from production to development/test systems to comply with the organization-defined data transfer policy and to ensure copies of production data are not left in unsecured locations."
+  reference   : "CAT|II,CCI|CCI-001090,Rule-ID|SV-83569r1_rule,STIG-ID|PPS9-00-005900,Vuln-ID|V-68965"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : SQL_POLICY
+      description : "Check if sqlprotect.list_protected_users table exists"
+      sql_request : "SELECT table_schema, table_name FROM information_schema.tables WHERE lower(table_schema) = 'sqlprotect' and lower(table_name) = 'list_protected_users';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "sqlprotect", "list_protected_users"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : SQL_POLICY
+      description : "PPS9-00-006200 - The EDB Postgres Advanced Server must check the validity of all data inputs except those specifically identified by the organization."
+      info        : "Invalid user input occurs when a user inserts data or characters into an application's data entry fields and the application is unprepared to process that data. This results in unanticipated application behavior, potentially leading to an application or information system compromise. Invalid user input is one of the primary methods employed when attempting to compromise an application.
+
+With respect to database management systems, one class of threat is known as SQL Injection, or more generally, code injection. It takes advantage of the dynamic execution capabilities of various programming languages, including dialects of SQL. Potentially, the attacker can gain unauthorized access to data, including security settings, and severely corrupt or destroy the database.
+
+Even when no such hijacking takes place, invalid input that gets recorded in the database, whether accidental or malicious, reduces the reliability and usability of the system. Available protections include data types, referential constraints, uniqueness constraints, range checking, and application-specific logic. Application-specific logic can be implemented within the database in stored procedures and triggers, where appropriate.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-001310,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83573r2_rule,STIG-ID|PPS9-00-006200,Vuln-ID|V-68969"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+      sql_request : "SELECT * FROM sqlprotect.list_protected_users;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : "ManualReviewRequired"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "PPS9-00-006200 - The EDB Postgres Advanced Server must check the validity of all data inputs except those specifically identified by the organization."
+      info        : "Invalid user input occurs when a user inserts data or characters into an application's data entry fields and the application is unprepared to process that data. This results in unanticipated application behavior, potentially leading to an application or information system compromise. Invalid user input is one of the primary methods employed when attempting to compromise an application.
+
+With respect to database management systems, one class of threat is known as SQL Injection, or more generally, code injection. It takes advantage of the dynamic execution capabilities of various programming languages, including dialects of SQL. Potentially, the attacker can gain unauthorized access to data, including security settings, and severely corrupt or destroy the database.
+
+Even when no such hijacking takes place, invalid input that gets recorded in the database, whether accidental or malicious, reduces the reliability and usability of the system. Available protections include data types, referential constraints, uniqueness constraints, range checking, and application-specific logic. Application-specific logic can be implemented within the database in stored procedures and triggers, where appropriate."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-001310,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83573r2_rule,STIG-ID|PPS9-00-006200,Vuln-ID|V-68969"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : SQL_POLICY
+      description : "Check if sqlprotect.list_protected_users table exists"
+      sql_request : "SELECT table_schema, table_name FROM information_schema.tables WHERE lower(table_schema) = 'sqlprotect' and lower(table_name) = 'list_protected_users';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "sqlprotect", "list_protected_users"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : SQL_POLICY
+      description : "PPS9-00-006300 - The EDB Postgres Advanced Server and associated applications must reserve the use of dynamic code execution for situations that require it."
+      info        : "With respect to database management systems, one class of threat is known as SQL Injection, or more generally, code injection. It takes advantage of the dynamic execution capabilities of various programming languages, including dialects of SQL. In such cases, the attacker deduces the manner in which SQL statements are being processed, either from inside knowledge or by observing system behavior in response to invalid inputs. When the attacker identifies scenarios where SQL queries are being assembled by application code (which may be within the database or separate from it) and executed dynamically, the attacker is then able to craft input strings that subvert the intent of the query. Potentially, the attacker can gain unauthorized access to data, including security settings, and severely corrupt or destroy the database.
+
+The principal protection against code injection is not to use dynamic execution except where it provides necessary functionality that cannot be utilized otherwise. Use strongly typed data items rather than general-purpose strings as input parameters to task-specific, pre-compiled stored procedures and functions (and triggers).
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-001310,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83575r3_rule,STIG-ID|PPS9-00-006300,Vuln-ID|V-68971"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+      sql_request : "SELECT * FROM sqlprotect.list_protected_users;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : "ManualReviewRequired"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "PPS9-00-006300 - The EDB Postgres Advanced Server and associated applications must reserve the use of dynamic code execution for situations that require it."
+      info        : "With respect to database management systems, one class of threat is known as SQL Injection, or more generally, code injection. It takes advantage of the dynamic execution capabilities of various programming languages, including dialects of SQL. In such cases, the attacker deduces the manner in which SQL statements are being processed, either from inside knowledge or by observing system behavior in response to invalid inputs. When the attacker identifies scenarios where SQL queries are being assembled by application code (which may be within the database or separate from it) and executed dynamically, the attacker is then able to craft input strings that subvert the intent of the query. Potentially, the attacker can gain unauthorized access to data, including security settings, and severely corrupt or destroy the database.
+
+The principal protection against code injection is not to use dynamic execution except where it provides necessary functionality that cannot be utilized otherwise. Use strongly typed data items rather than general-purpose strings as input parameters to task-specific, pre-compiled stored procedures and functions (and triggers).
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-001310,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83575r3_rule,STIG-ID|PPS9-00-006300,Vuln-ID|V-68971"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : SQL_POLICY
+      description : "Check if sqlprotect.list_protected_users table exists"
+      sql_request : "SELECT table_schema, table_name FROM information_schema.tables WHERE lower(table_schema) = 'sqlprotect' and lower(table_name) = 'list_protected_users';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "sqlprotect", "list_protected_users"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : SQL_POLICY
+      description : "PPS9-00-006400 - The EDB Postgres Advanced Server and associated applications, when making use of dynamic code execution, must scan input data for invalid values that may indicate a code injection attack."
+      info        : "With respect to database management systems, one class of threat is known as SQL Injection, or more generally, code injection. It takes advantage of the dynamic execution capabilities of various programming languages, including dialects of SQL. In such cases, the attacker deduces the manner in which SQL statements are being processed, either from inside knowledge or by observing system behavior in response to invalid inputs. When the attacker identifies scenarios where SQL queries are being assembled by application code (which may be within the database or separate from it) and executed dynamically, the attacker is then able to craft input strings that subvert the intent of the query. Potentially, the attacker can gain unauthorized access to data, including security settings, and severely corrupt or destroy the database.
+
+The principal protection against code injection is not to use dynamic execution except where it provides necessary functionality that cannot be utilized otherwise. Use strongly typed data items rather than general-purpose strings as input parameters to task-specific, pre-compiled stored procedures and functions (and triggers).
+
+When dynamic execution is necessary, ways to mitigate the risk include the following, which should be implemented both in the on-screen application and at the database level, in the stored procedures:
+-- Allow strings as input only when necessary.
+-- Rely on data typing to validate numbers, dates, etc. Do not accept invalid values. If substituting other values for them, think carefully about whether this could be subverted.
+-- Limit the size of input strings to what is truly necessary.
+-- If single quotes/apostrophes, double quotes, semicolons, equals signs, angle brackets, or square brackets will never be valid as input, reject them.
+-- If comment markers will never be valid as input, reject them. In SQL, these are -- or /* */
+-- If HTML and XML tags, entities, comments, etc., will never be valid, reject them.
+-- If wildcards are present, reject them unless truly necessary. In SQL these are the underscore and the percentage sign, and the word ESCAPE is also a clue that wildcards are in use.
+-- If SQL key words, such as SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, ESCAPE, UNION, GRANT, REVOKE will never be valid, reject them. Use case-insensitive comparisons when searching for these. Bear in mind that some of these words, particularly Grant (as a person's name), could also be valid input.
+-- If there are range limits on the values that may be entered, enforce those limits.
+-- Institute procedures for inspection of programs for correct use of dynamic coding, by a party other than the developer.
+-- Conduct rigorous testing of program modules that use dynamic coding, searching for ways to subvert the intended use.
+-- Record the inspection and testing in the system documentation.
+-- Bear in mind that all this applies not only to screen input, but also to the values in an incoming message to a web service or to a stored procedure called by a software component that has not itself been hardened in these ways. Not only can the caller be subject to such vulnerabilities; it may itself be the attacker.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-001310,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83577r3_rule,STIG-ID|PPS9-00-006400,Vuln-ID|V-68973"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+      sql_request : "SELECT * FROM sqlprotect.list_protected_users;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : "ManualReviewRequired"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "PPS9-00-006400 - The EDB Postgres Advanced Server and associated applications, when making use of dynamic code execution, must scan input data for invalid values that may indicate a code injection attack."
+      info        : "With respect to database management systems, one class of threat is known as SQL Injection, or more generally, code injection. It takes advantage of the dynamic execution capabilities of various programming languages, including dialects of SQL. In such cases, the attacker deduces the manner in which SQL statements are being processed, either from inside knowledge or by observing system behavior in response to invalid inputs. When the attacker identifies scenarios where SQL queries are being assembled by application code (which may be within the database or separate from it) and executed dynamically, the attacker is then able to craft input strings that subvert the intent of the query. Potentially, the attacker can gain unauthorized access to data, including security settings, and severely corrupt or destroy the database.
+
+The principal protection against code injection is not to use dynamic execution except where it provides necessary functionality that cannot be utilized otherwise. Use strongly typed data items rather than general-purpose strings as input parameters to task-specific, pre-compiled stored procedures and functions (and triggers).
+
+When dynamic execution is necessary, ways to mitigate the risk include the following, which should be implemented both in the on-screen application and at the database level, in the stored procedures:
+-- Allow strings as input only when necessary.
+-- Rely on data typing to validate numbers, dates, etc. Do not accept invalid values. If substituting other values for them, think carefully about whether this could be subverted.
+-- Limit the size of input strings to what is truly necessary.
+-- If single quotes/apostrophes, double quotes, semicolons, equals signs, angle brackets, or square brackets will never be valid as input, reject them.
+-- If comment markers will never be valid as input, reject them. In SQL, these are -- or /* */
+-- If HTML and XML tags, entities, comments, etc., will never be valid, reject them.
+-- If wildcards are present, reject them unless truly necessary. In SQL these are the underscore and the percentage sign, and the word ESCAPE is also a clue that wildcards are in use.
+-- If SQL key words, such as SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, ESCAPE, UNION, GRANT, REVOKE will never be valid, reject them. Use case-insensitive comparisons when searching for these. Bear in mind that some of these words, particularly Grant (as a person's name), could also be valid input.
+-- If there are range limits on the values that may be entered, enforce those limits.
+-- Institute procedures for inspection of programs for correct use of dynamic coding, by a party other than the developer.
+-- Conduct rigorous testing of program modules that use dynamic coding, searching for ways to subvert the intended use.
+-- Record the inspection and testing in the system documentation.
+-- Bear in mind that all this applies not only to screen input, but also to the values in an incoming message to a web service or to a stored procedure called by a software component that has not itself been hardened in these ways. Not only can the caller be subject to such vulnerabilities; it may itself be the attacker.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-001310,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83577r3_rule,STIG-ID|PPS9-00-006400,Vuln-ID|V-68973"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<report type:"WARNING">
+  description : "PPS9-00-006500 - The EDB Postgres Advanced Server must provide non-privileged users with error messages that provide information necessary for corrective actions without revealing information that could be exploited by adversaries."
+  info        : "Any DBMS or associated application providing too much information in error messages on the screen or printout risks compromising the data and security of the system. The structure and content of error messages need to be carefully considered by the organization and development team.
+
+Databases can inadvertently provide a wealth of information to an attacker through improperly handled error messages. In addition to sensitive business or personal information, database errors can provide host names, IP addresses, user names, and other system information not required for troubleshooting but very useful to someone targeting the system.
+
+Carefully consider the structure/content of error messages. The extent to which information systems are able to identify and handle error conditions is guided by organizational policy and operational requirements. Information that could be exploited by adversaries includes, for example, logon attempts with passwords entered by mistake as the username, mission/business information that can be derived from (if not stated explicitly by) information recorded, and personal information, such as account numbers, social security numbers, and credit card numbers.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure custom database code and associated application code not to divulge sensitive information or information useful for system identification in error messages."
+  reference   : "CAT|II,CCI|CCI-001312,Rule-ID|SV-83579r2_rule,STIG-ID|PPS9-00-006500,Vuln-ID|V-68975"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-006600 - The EDB Postgres Advanced Server must reveal detailed error messages only to the ISSO, ISSM, SA and DBA."
+  info        : "If the DBMS provides too much information in error logs and administrative messages to the screen, this could lead to compromise. The structure and content of error messages need to be carefully considered by the organization and development team. The extent to which the information system is able to identify and handle error conditions is guided by organizational policy and operational requirements.
+
+Some default DBMS error messages can contain information that could aid an attacker in, among others things, identifying the database type, host address, or state of the database. Custom errors may contain sensitive customer information.
+
+It is important that detailed error messages be visible only to those who are authorized to view them; that general users receive only generalized acknowledgment that errors have occurred; and that these generalized messages appear only when relevant to the user's task. For example, a message along the lines of, 'An error has occurred. Unable to save your changes. If this problem persists, please contact your help desk' would be relevant. A message such as 'Warning: your transaction generated a large number of page splits' would likely not be relevant.
+
+Administrative users authorized to review detailed error messages typically are the ISSO, ISSM, SA and DBA. Other individuals or roles may be specified according to organization-specific needs, with appropriate approval.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure custom database code and associated application code not to display detailed error messages to those not authorized to view them."
+  reference   : "CAT|II,CCI|CCI-001314,Rule-ID|SV-83581r2_rule,STIG-ID|PPS9-00-006600,Vuln-ID|V-68977"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-006700 - The EDB Postgres Advanced Server must automatically terminate a user session after organization-defined conditions or trigger events requiring session disconnect."
+  info        : "This addresses the termination of user-initiated logical sessions in contrast to the termination of network connections that are associated with communications sessions (i.e., network disconnect). A logical session (for local, network, and remote access) is initiated whenever a user (or process acting on behalf of a user) accesses an organizational information system. Such user sessions can be terminated (and thus terminate user access) without terminating network sessions.
+
+Session termination ends all processes associated with a user's logical session except those batch processes/jobs that are specifically created by the user (i.e., session owner) to continue after the session is terminated.
+
+Conditions or trigger events requiring automatic session termination can include, for example, organization-defined periods of user inactivity, targeted responses to certain types of incidents, and time-of-day restrictions on information system use.
+
+This capability is typically reserved for specific cases where the system owner, data owner, or organization requires additional assurance.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Execute this SQL command in the places where the documentation requires automatic session termination:
+
+SELECT pg_terminate_backend(pid)
+  FROM pg_stat_activity
+ WHERE usename = '<username>'"
+  reference   : "CAT|II,CCI|CCI-002361,Rule-ID|SV-83583r1_rule,STIG-ID|PPS9-00-006700,Vuln-ID|V-68979"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : SQL_POLICY
+      description : "Check if security labeling is required"
+# Note: Variable @LABELING_REQUIRED@ replaced with "NO" in field "sql_request".
+      sql_request : "SELECT lower('NO') as answer;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : "yes"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : SQL_POLICY
+      description : "PPS9-00-006900 - The EDB Postgres Advanced Server must associate organization-defined types of security labels having organization-defined security label values with information in storage."
+      info        : "Without the association of security labels to information, there is no basis for the DBMS to make security-related access-control decisions.
+
+Security labels are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These labels are typically associated with internal data structures (e.g., tables, rows) within the database and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security labels may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security labels are lost when the data is stored, there is the risk of a data compromise.
+
+The mechanism used to support security labeling may be a feature of the DBMS product, a third-party product, or custom application code.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Create a row-level policy for all required tables as defined here:
+
+http://www.enterprisedb.com/docs/en/9.5/oracompat/Database_Compatibility_for_Oracle_Developers_Guide.1.201.html#pID0E0D5J0HA"
+      reference   : "800-53|AC-16,CAT|II,CCI|CCI-002262,CSF|PR.AC-4,ISO/IEC-27001|A.8.2.1,ISO/IEC-27001|A.8.2.2,ITSG-33|AC-16,NESA|T1.3.2,NESA|T1.3.3,NIAv2|SS28,Rule-ID|SV-83585r1_rule,STIG-ID|PPS9-00-006900,Vuln-ID|V-68981"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+      sql_request : "SELECT object_owner, schema_name, object_name, policy_group, policy_name from ALL_POLICIES;"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "ManualReviewRequired", NULL, NULL, NULL, NULL
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"PASSED">
+      description : "PPS9-00-006900 - The EDB Postgres Advanced Server must associate organization-defined types of security labels having organization-defined security label values with information in storage."
+      info        : "Without the association of security labels to information, there is no basis for the DBMS to make security-related access-control decisions.
+
+Security labels are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These labels are typically associated with internal data structures (e.g., tables, rows) within the database and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security labels may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security labels are lost when the data is stored, there is the risk of a data compromise.
+
+The mechanism used to support security labeling may be a feature of the DBMS product, a third-party product, or custom application code."
+      solution    : "Create a row-level policy for all required tables as defined here:
+
+http://www.enterprisedb.com/docs/en/9.5/oracompat/Database_Compatibility_for_Oracle_Developers_Guide.1.201.html#pID0E0D5J0HA"
+      reference   : "800-53|AC-16,CAT|II,CCI|CCI-002262,CSF|PR.AC-4,ITSG-33|AC-16,NESA|T1.3.2,NESA|T1.3.3,NIAv2|SS28,Rule-ID|SV-83585r1_rule,STIG-ID|PPS9-00-006900,Vuln-ID|V-68981"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : SQL_POLICY
+      description : "Check if security labeling is required"
+# Note: Variable @LABELING_REQUIRED@ replaced with "NO" in field "sql_request".
+      sql_request : "SELECT lower('NO') as answer;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : "yes"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : SQL_POLICY
+      description : "PPS9-00-007000 - The EDB Postgres Advanced Server must associate organization-defined types of security labels having organization-defined security label values with information in process."
+      info        : "Without the association of security labels to information, there is no basis for the DBMS to make security-related access-control decisions.
+
+Security labels are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These labels are typically associated with internal data structures (e.g., tables, rows) within the database and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security labels may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security labels are lost when the data is stored, there is the risk of a data compromise.
+
+The mechanism used to support security labeling may be a feature of the DBMS product, a third-party product, or custom application code.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Create a row-level policy for all required tables as defined here:
+
+http://www.enterprisedb.com/docs/en/9.5/oracompat/Database_Compatibility_for_Oracle_Developers_Guide.1.201.html#pID0E0D5J0HA"
+      reference   : "800-53|AC-16,CAT|II,CCI|CCI-002263,CSF|PR.AC-4,ISO/IEC-27001|A.8.2.1,ISO/IEC-27001|A.8.2.2,ITSG-33|AC-16,NESA|T1.3.2,NESA|T1.3.3,NIAv2|SS28,Rule-ID|SV-83587r1_rule,STIG-ID|PPS9-00-007000,Vuln-ID|V-68983"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+      sql_request : "SELECT object_owner, schema_name, object_name, policy_group, policy_name from ALL_POLICIES;"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "ManualReviewRequired", NULL, NULL, NULL, NULL
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"PASSED">
+      description : "PPS9-00-007000 - The EDB Postgres Advanced Server must associate organization-defined types of security labels having organization-defined security label values with information in process."
+      info        : "Without the association of security labels to information, there is no basis for the DBMS to make security-related access-control decisions.
+
+Security labels are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These labels are typically associated with internal data structures (e.g., tables, rows) within the database and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security labels may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security labels are lost when the data is stored, there is the risk of a data compromise.
+
+The mechanism used to support security labeling may be a feature of the DBMS product, a third-party product, or custom application code."
+      solution    : "Create a row-level policy for all required tables as defined here:
+
+http://www.enterprisedb.com/docs/en/9.5/oracompat/Database_Compatibility_for_Oracle_Developers_Guide.1.201.html#pID0E0D5J0HA"
+      reference   : "800-53|AC-16,CAT|II,CCI|CCI-002263,CSF|PR.AC-4,ITSG-33|AC-16,NESA|T1.3.2,NESA|T1.3.3,NIAv2|SS28,Rule-ID|SV-83587r1_rule,STIG-ID|PPS9-00-007000,Vuln-ID|V-68983"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : SQL_POLICY
+      description : "Check if security labeling is required"
+# Note: Variable @LABELING_REQUIRED@ replaced with "NO" in field "sql_request".
+      sql_request : "SELECT lower('NO') as answer;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : "yes"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : SQL_POLICY
+      description : "PPS9-00-007100 - The EDB Postgres Advanced Server must associate organization-defined types of security labels having organization-defined security label values with information in transmission."
+      info        : "Without the association of security labels to information, there is no basis for the DBMS to make security-related access-control decisions.
+
+Security labels are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These labels are typically associated with internal data structures (e.g., tables, rows) within the database and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security labels may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security labels are lost when the data is stored, there is the risk of a data compromise.
+
+The mechanism used to support security labeling may be a feature of the DBMS product, a third-party product, or custom application code.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Create a row-level policy for all required tables as defined here:
+
+http://www.enterprisedb.com/docs/en/9.5/oracompat/Database_Compatibility_for_Oracle_Developers_Guide.1.201.html#pID0E0D5J0HA"
+      reference   : "800-53|AC-16,CAT|II,CCI|CCI-002264,CSF|PR.AC-4,ISO/IEC-27001|A.8.2.1,ISO/IEC-27001|A.8.2.2,ITSG-33|AC-16,NESA|T1.3.2,NESA|T1.3.3,NIAv2|SS28,Rule-ID|SV-83589r1_rule,STIG-ID|PPS9-00-007100,Vuln-ID|V-68985"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+      sql_request : "SELECT object_owner, schema_name, object_name, policy_group, policy_name from ALL_POLICIES;"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "ManualReviewRequired", NULL, NULL, NULL, NULL
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"PASSED">
+      description : "PPS9-00-007100 - The EDB Postgres Advanced Server must associate organization-defined types of security labels having organization-defined security label values with information in transmission."
+      info        : "Without the association of security labels to information, there is no basis for the DBMS to make security-related access-control decisions.
+
+Security labels are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+These labels are typically associated with internal data structures (e.g., tables, rows) within the database and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling or distribution instructions, or support other aspects of the information security policy.
+
+One example includes marking data as classified or FOUO. These security labels may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security labels are lost when the data is stored, there is the risk of a data compromise.
+
+The mechanism used to support security labeling may be a feature of the DBMS product, a third-party product, or custom application code."
+      solution    : "Create a row-level policy for all required tables as defined here:
+
+http://www.enterprisedb.com/docs/en/9.5/oracompat/Database_Compatibility_for_Oracle_Developers_Guide.1.201.html#pID0E0D5J0HA"
+      reference   : "800-53|AC-16,CAT|II,CCI|CCI-002264,CSF|PR.AC-4,ITSG-33|AC-16,NESA|T1.3.2,NESA|T1.3.3,NIAv2|SS28,Rule-ID|SV-83589r1_rule,STIG-ID|PPS9-00-007100,Vuln-ID|V-68985"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<report type:"WARNING">
+  description : "PPS9-00-007400 - The EDB Postgres Advanced Server must prevent non-privileged users from executing privileged functions, to include disabling, circumventing, or altering implemented security safeguards/countermeasures."
+  info        : "Preventing non-privileged users from executing privileged functions mitigates the risk that unauthorized individuals or processes may gain unnecessary access to information or privileges.
+
+System documentation should include a definition of the functionality considered privileged.
+
+Depending on circumstances, privileged functions can include, for example, establishing accounts, performing system integrity checks, or administering cryptographic key management activities. Non-privileged users are individuals that do not possess appropriate authorizations. Circumventing intrusion detection and prevention mechanisms or malicious code protection mechanisms are examples of privileged functions that require protection from non-privileged users.
+
+A privileged function in the DBMS/database context is any operation that modifies the structure of the database, its built-in logic, or its security settings. This would include all Data Definition Language (DDL) statements and all security-related statements. In an SQL environment, it encompasses, but is not necessarily limited to:
+CREATE
+ALTER
+DROP
+GRANT
+REVOKE
+
+There may also be Data Manipulation Language (DML) statements that, subject to context, should be regarded as privileged. Possible examples include:
+
+TRUNCATE TABLE;
+DELETE, or
+DELETE affecting more than n rows, for some n, or
+DELETE without a WHERE clause;
+
+UPDATE or
+UPDATE affecting more than n rows, for some n, or
+UPDATE without a WHERE clause;
+
+any SELECT, INSERT, UPDATE, or DELETE to an application-defined security table executed by other than a security principal.
+
+Depending on the capabilities of the DBMS and the design of the database and associated applications, the prevention of unauthorized use of privileged functions may be achieved by means of DBMS security features, database triggers, other mechanisms, or a combination of these.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Revoke any privileges to privileged functionality by executing the REVOKE command as documented here:
+
+http://www.postgresql.org/docs/current/static/sql-revoke.html"
+  reference   : "CAT|II,CCI|CCI-002235,Rule-ID|SV-83591r1_rule,STIG-ID|PPS9-00-007400,Vuln-ID|V-68987"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-007500 - Execution of software modules (to include stored procedures, functions, and triggers) with elevated privileges must be restricted to necessary cases only."
+  info        : "In certain situations, to provide required functionality, a DBMS needs to execute internal logic (stored procedures, functions, triggers, etc.) and/or external code modules with elevated privileges. However, if the privileges required for execution are at a higher level than the privileges assigned to organizational users invoking the functionality applications/programs, those users are indirectly provided with greater privileges than assigned by organizations.
+
+Privilege elevation must be utilized only where necessary and protected from misuse.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Determine where, when, how, and by what principals/subjects elevated privilege is needed.
+
+Modify the system and the application(s) using the database to ensure privilege elevation is used only as required.
+
+To alter a function to use SECURITY INVOKER instead of SECURITY DEFINER, execute the following SQL:
+
+ALTER FUNCTION <function()> SECURITY INVOKER;"
+  reference   : "800-171|3.1.7,800-53|AC-6(10),CAT|II,CCI|CCI-002233,CSCv6|5.1,CSF|PR.AC-4,Rule-ID|SV-83593r2_rule,STIG-ID|PPS9-00-007500,Vuln-ID|V-68989"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "select proname from pg_proc where prosecdef = true;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "ManualReviewRequired"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-007510 - Execution of software modules (to include stored procedures, functions, and triggers) with elevated privileges must be restricted to necessary cases only."
+  info        : "In certain situations, to provide required functionality, a DBMS needs to execute internal logic (stored procedures, functions, triggers, etc.) and/or external code modules with elevated privileges. However, if the privileges required for execution are at a higher level than the privileges assigned to organizational users invoking the functionality applications/programs, those users are indirectly provided with greater privileges than assigned by organizations.
+
+Privilege elevation must be utilized only where necessary and protected from misuse.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Determine where, when, how, and by what principals/subjects elevated privilege is needed.
+
+Modify the system and the application(s) using the database to ensure privilege elevation is used only as required.
+
+To alter a user to not allow bypassing RLS, execute the following SQL:
+
+ALTER USER <user>  NOBYPASSRLS;"
+  reference   : "800-171|3.1.7,800-53|AC-6(10),CAT|II,CCI|CCI-002233,CSCv6|5.1,CSF|PR.AC-4,Rule-ID|SV-83595r2_rule,STIG-ID|PPS9-00-007510,Vuln-ID|V-68991"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "select rolname from pg_roles where rolbypassrls = true;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "ManualReviewRequired"
+  severity    : MEDIUM
+</custom_item>
+
+<report type:"WARNING">
+  description : "PPS9-00-007700 - The EDB Postgres Advanced Server must utilize centralized management of the content captured in audit records generated by all components of the EDB Postgres Advanced Server."
+  info        : "Without the ability to centrally manage the content captured in the audit records, identification, troubleshooting, and correlation of suspicious behavior would be difficult and could lead to a delayed or incomplete analysis of an ongoing attack.
+
+The content captured in audit records must be managed from a central location (necessitating automation). Centralized management of audit records and logs provides for efficiency in maintenance and management of records, as well as the backup and archiving of those records.
+
+The DBMS may write audit records to database tables, to files in the file system, to other kinds of local repository, or directly to a centralized log management system. Whatever the method used, it must be compatible with off-loading the records to the centralized system.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Install a centralized log collecting tool and configure it as instructed in its documentation.
+
+If using PEM, find the instructions at
+http://www.enterprisedb.com/docs/en/6.0/pemgetstarted/toc.html"
+  reference   : "CAT|II,CCI|CCI-001844,Rule-ID|SV-83597r1_rule,STIG-ID|PPS9-00-007700,Vuln-ID|V-68993"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-007800 - The EDB Postgres Advanced Server must provide centralized configuration of the content to be captured in audit records generated by all components of the EDB Postgres Advanced Server."
+  info        : "If the configuration of the DBMS's auditing is spread across multiple locations in the database management software, or across multiple commands, only loosely related, it is harder to use and takes longer to reconfigure in response to events.
+
+The DBMS must provide a unified tool for audit configuration.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Install a centralized log collecting tool and configure it as instructed in its documentation.
+
+If using PEM, find the instructions at
+http://www.enterprisedb.com/docs/en/6.0/pemgetstarted/toc.html"
+  reference   : "CAT|II,CCI|CCI-001844,Rule-ID|SV-83599r1_rule,STIG-ID|PPS9-00-007800,Vuln-ID|V-68995"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-007900 - The EDB Postgres Advanced Server must allocate audit record storage capacity in accordance with organization-defined audit record storage requirements."
+  info        : "In order to ensure sufficient storage capacity for the audit logs, the DBMS must be able to allocate audit record storage capacity. Although another requirement (SRG-APP-000515-DB-000318) mandates that audit data be off-loaded to a centralized log management system, it remains necessary to provide space on the database server to serve as a buffer against outages and capacity limits of the off-loading mechanism.
+
+The task of allocating audit record storage capacity is usually performed during initial installation of the DBMS and is closely associated with the DBA and system administrator roles. The DBA or system administrator will usually coordinate the allocation of physical drive space with the application owner/installer and the application will prompt the installer to provide the capacity information, the physical location of the disk, or both.
+
+In determining the capacity requirements, consider such factors as: total number of users; expected number of concurrent users during busy periods; number and type of events being monitored; types and amounts of data being captured; the frequency/speed with which audit records are off-loaded to the central log management system; and any limitations that exist on the DBMS's ability to reuse the space formerly occupied by off-loaded records.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Allocate sufficient audit file space to '<postgresql data directory>/edb_audit' to support peak demand."
+  reference   : "CAT|II,CCI|CCI-001849,Rule-ID|SV-83601r1_rule,STIG-ID|PPS9-00-007900,Vuln-ID|V-68997"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "PPS9-00-008100 - The EDB Postgres Advanced Server must provide an immediate real-time alert to appropriate support staff of all audit log failures."
+  info        : "It is critical for the appropriate personnel to be aware if a system is at risk of failing to process audit logs as required. Without a real-time alert, security personnel may be unaware of an impending failure of the audit capability, and system operation may be adversely affected.
+
+The appropriate support staff include, at a minimum, the ISSO and the DBA/SA.
+
+A failure of database auditing will result in either the database continuing to function without auditing or in a complete halt to database operations. When audit processing fails, appropriate personnel must be alerted immediately to avoid further downtime or unaudited transactions
+
+Alerts provide organizations with urgent messages. Real-time alerts provide these messages immediately (i.e., the time from event detection to alert occurs in seconds or less).
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Install PEM and configure audit failure event alerting as documented here: http://www.enterprisedb.com/docs/en/5.0/pemgetstarted/PEM_Getting_Started_Guide.1.28.html
+
+An example for creating an alert that ensure the audit directory does not fill up is included below, using the thin client (browser) PEM interface. Refer also to the Supplemental Procedures document, supplied with this STIG.
+
+Open the PEM web console in a browser
+
+ - Log in
+ - Click on the agent for the machine to be monitored
+   - Select 'Management | Probe Configuration'
+   - Select 'Disk Space' and set the check interval as you like
+   - Select 'Management | Alerting'
+   - Name the definition 'Audit Log Full'
+   - Select Template 'Disk Consumption Percentage'
+   - Set Frequency, Comparison Operator, and Thresholds (1 minute, >,
+95/96/97 for example)
+   - Enter the Mount Point for where the audit log is
+   - Click Notification tab
+   - Click Email all alerts
+   - Click 'Execute Script' on Monitored Server"
+  reference   : "CAT|II,CCI|CCI-001858,Rule-ID|SV-83605r2_rule,STIG-ID|PPS9-00-008100,Vuln-ID|V-69001"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-008600 - The EDB Postgres Advanced Server must produce audit records of its enforcement of access restrictions associated with changes to the configuration of the EDB Postgres Advanced Server or database(s)."
+  info        : "Without auditing the enforcement of access restrictions against changes to configuration, it would be difficult to identify attempted attacks and an audit trail would not be available for forensic investigation for after-the-fact actions.
+
+Enforcement actions are the methods or mechanisms used to prevent unauthorized changes to configuration settings. Enforcement action methods may be as simple as denying access to a file based on the application of file permissions (access restriction). Audit items may consist of lists of actions blocked by access restrictions or changes identified after the fact."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-001814,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83611r2_rule,STIG-ID|PPS9-00-008600,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69007"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<report type:"WARNING">
+  description : "PPS9-00-008800 - The EDB Postgres Advanced Server must require users to re-authenticate when organization-defined circumstances or situations require re-authentication."
+  info        : "The DoD standard for authentication of an interactive user is the presentation of a Common Access Card (CAC) or other physical token bearing a valid, current, DoD-issued Public Key Infrastructure (PKI) certificate, coupled with a Personal Identification Number (PIN) to be entered by the user at the beginning of each session and whenever re-authentication is required.
+
+Without re-authentication, users may access resources or perform tasks for which they do not have authorization.
+
+When applications provide the capability to change security roles or escalate the functional capability of the application, it is critical the user re-authenticate.
+
+In addition to the re-authentication requirements associated with session locks, organizations may require re-authentication of individuals and/or devices in other situations, including (but not limited to) the following circumstances:
+
+(i) When authenticators change;
+(ii) When roles change;
+(iii) When security categories of information systems change;
+(iv) When the execution of privileged functions occurs;
+(v) After a fixed period of time; or
+(vi) Periodically.
+
+Within the DoD, the minimum circumstances requiring re-authentication are privilege escalation and role changes.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Determine the organization-defined circumstances or situations that require re-authentication and ensure that the following SQL is executed in those situations.  To require a single user to re-authenticate, use this SQL:  'select pg_terminate_backend(pid) from pg_stat_activity where user='<username>';'  To require all users to re-authenticate, use this SQL:  'select pg_terminate_backend(pid) from pg_stat_activity where user like '%';'."
+  reference   : "CAT|II,CCI|CCI-002038,Rule-ID|SV-83615r1_rule,STIG-ID|PPS9-00-008800,Vuln-ID|V-69011"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : SQL_POLICY
+      description : "Check if sqlprotect.list_protected_users table exists"
+      sql_request : "SELECT table_schema, table_name FROM information_schema.tables WHERE lower(table_schema) = 'sqlprotect' and lower(table_name) = 'list_protected_users';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "sqlprotect", "list_protected_users"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : SQL_POLICY
+      description : "PPS9-00-009700 - When invalid inputs are received, the EDB Postgres Advanced Server must behave in a predictable and documented manner that reflects organizational and system objectives."
+      info        : "A common vulnerability is unplanned behavior when invalid inputs are received. This requirement guards against adverse or unintended system behavior caused by invalid inputs, where information system responses to the invalid input may be disruptive or cause the system to fail into an unsafe state.
+
+The behavior will be derived from the organizational and system requirements and includes, but is not limited to, notification of the appropriate personnel, creating an audit record, and rejecting invalid input.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-002754,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83627r3_rule,STIG-ID|PPS9-00-009700,Vuln-ID|V-69023"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+      sql_request : "SELECT * FROM sqlprotect.list_protected_users;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : "ManualReviewRequired"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "PPS9-00-009700 - When invalid inputs are received, the EDB Postgres Advanced Server must behave in a predictable and documented manner that reflects organizational and system objectives."
+      info        : "A common vulnerability is unplanned behavior when invalid inputs are received. This requirement guards against adverse or unintended system behavior caused by invalid inputs, where information system responses to the invalid input may be disruptive or cause the system to fail into an unsafe state.
+
+The behavior will be derived from the organizational and system requirements and includes, but is not limited to, notification of the appropriate personnel, creating an audit record, and rejecting invalid input.
+
+This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered."
+      solution    : "Install and configure SQL/Protect as documented here:
+
+http://www.enterprisedb.com/docs/en/9.5/eeguide/Postgres_Plus_Enterprise_Edition_Guide.1.072.html#
+
+Alternatively, implement, document, and maintain another method of checking for the validity of inputs."
+      reference   : "800-53|SI-10,CAT|II,CCI|CCI-002754,CN-L3|8.1.4.4(d),ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-83627r3_rule,STIG-ID|PPS9-00-009700,Vuln-ID|V-69023"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<report type:"WARNING">
+  description : "PPS9-00-009900 - Security-relevant software updates to the EDB Postgres Advanced Server must be installed within the time period directed by an authoritative source (e.g., IAVM, CTOs, DTMs, and STIGs)."
+  info        : "Security flaws with software applications, including database management systems, are discovered daily. Vendors are constantly updating and patching their products to address newly discovered security vulnerabilities. Organizations (including any contractor to the organization) are required to promptly install security-relevant software updates (e.g., patches, service packs, and hot fixes). Flaws discovered during security assessments, continuous monitoring, incident response activities, or information system error handling must also be addressed expeditiously.
+
+Organization-defined time periods for updating security-relevant software may vary based on a variety of factors including, for example, the security category of the information system or the criticality of the update (i.e., severity of the vulnerability related to the discovered flaw).
+
+This requirement will apply to software patch management solutions that are used to install patches across the enclave and also to applications themselves that are not part of that patch management solution. For example, many browsers today provide the capability to install their own patch software. Patch criticality, as well as system criticality, will vary. Therefore, the tactical situations regarding the patch management process will also vary. This means that the time period utilized must be a configurable parameter. Timeframes for application of security-relevant software updates may be dependent upon the Information Assurance Vulnerability Management (IAVM) process.
+
+The application will be configured to check for and install security-relevant software updates within an identified time period from the availability of the update. The specific time period will be defined by an authoritative source (e.g., IAVM, CTOs, DTMs, and STIGs).
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Institute and adhere to policies and procedures to ensure that patches are consistently obtained from EnterpriseDB and applied to the DBMS within the time allowed.
+
+Ensure that a monitored email address is registered as a user on the EDB support portal and is receiving technical alerts."
+  reference   : "CAT|II,CCI|CCI-002605,Rule-ID|SV-83629r1_rule,STIG-ID|PPS9-00-009900,Vuln-ID|V-69025"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010000 - The EDB Postgres Advanced Server must generate audit records when security objects are accessed."
+  info        : "Changes to the security configuration must be tracked.
+
+This requirement applies to situations where security data is retrieved or modified via data manipulation operations, as opposed to via specialized security functionality.
+
+In an SQL environment, types of access include, but are not necessarily limited to:
+SELECT
+INSERT
+UPDATE
+DELETE
+EXECUTE"
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83631r2_rule,STIG-ID|PPS9-00-010000,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69027"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010100 - The EDB Postgres Advanced Server must generate audit records when unsuccessful attempts to access security objects occur."
+  info        : "Changes to the security configuration must be tracked.
+
+This requirement applies to situations where security data is retrieved or modified via data manipulation operations, as opposed to via specialized security functionality.
+
+In an SQL environment, types of access include, but are not necessarily limited to:
+SELECT
+INSERT
+UPDATE
+DELETE
+EXECUTE
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83633r2_rule,STIG-ID|PPS9-00-010100,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69029"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010200 - The DBMS must generate audit records when categories of information (e.g., classification levels/security levels) are accessed."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83635r2_rule,STIG-ID|PPS9-00-010200,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69031"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010300 - Audit records must be generated  when unsuccessful attempts to access categorized information (e.g., classification levels/security levels) occur."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83637r2_rule,STIG-ID|PPS9-00-010300,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69033"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010400 - The EDB Postgres Advanced Server must generate audit records when privileges/permissions are added."
+  info        : "Changes in the permissions, privileges, and roles granted to users and roles must be tracked. Without an audit trail, unauthorized elevation or restriction of individuals' and groups' privileges could go undetected. Elevated privileges give users access to information and functionality that they should not have; restricted privileges wrongly deny access to authorized users.
+
+In an SQL environment, adding permissions is typically done via the GRANT command, or, in the negative, the REVOKE command."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83639r2_rule,STIG-ID|PPS9-00-010400,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69035"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010500 - The EDB Postgres Advanced Server must generate audit records when unsuccessful attempts to add privileges/permissions occur."
+  info        : "Failed attempts to change the permissions, privileges, and roles granted to users and roles must be tracked. Without an audit trail, unauthorized attempts to elevate or restrict individuals' and groups' privileges could go undetected.
+
+In an SQL environment, adding permissions is typically done via the GRANT command, or, in the negative, the REVOKE command.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83641r2_rule,STIG-ID|PPS9-00-010500,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69037"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010800 - The EDB Postgres Advanced Server must generate audit records when security objects are modified."
+  info        : "Changes in the database objects (tables, views, procedures, functions) that record and control permissions, privileges, and roles granted to users and roles must be tracked. Without an audit trail, unauthorized changes to the security subsystem could go undetected. The database could be severely compromised or rendered inoperative."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83643r2_rule,STIG-ID|PPS9-00-010800,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69039"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-010900 - The EDB Postgres Advanced Server must generate audit records when unsuccessful attempts to modify security objects occur."
+  info        : "Changes in the database objects (tables, views, procedures, functions) that record and control permissions, privileges, and roles granted to users and roles must be tracked. Without an audit trail, unauthorized changes to the security subsystem could go undetected. The database could be severely compromised or rendered inoperative.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83645r2_rule,STIG-ID|PPS9-00-010900,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69041"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011000 - Audit records must be generated when categorized information (e.g., classification levels/security levels) is created."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83647r2_rule,STIG-ID|PPS9-00-011000,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69043"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011100 - Audit records must be generated when unsuccessful attempts to create categorized information (e.g., classification levels/security levels) occur."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83649r2_rule,STIG-ID|PPS9-00-011100,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69045"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011200 - The EDB Postgres Advanced Server must generate audit records when privileges/permissions are deleted."
+  info        : "Changes in the permissions, privileges, and roles granted to users and roles must be tracked. Without an audit trail, unauthorized elevation or restriction of individuals' and groups' privileges could go undetected. Elevated privileges give users access to information and functionality that they should not have; restricted privileges wrongly deny access to authorized users.
+
+In an SQL environment, deleting permissions is typically done via the REVOKE command."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83651r2_rule,STIG-ID|PPS9-00-011200,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69047"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011300 - The EDB Postgres Advanced Server must generate audit records when unsuccessful attempts to delete privileges/permissions occur."
+  info        : "Failed attempts to change the permissions, privileges, and roles granted to users and roles must be tracked. Without an audit trail, unauthorized attempts to elevate or restrict individuals' and groups' privileges could go undetected.
+
+In an SQL environment, deleting permissions is typically done via the REVOKE command.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83653r2_rule,STIG-ID|PPS9-00-011300,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69049"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011400 - The EDB Postgres Advanced Server must generate audit records when security objects are deleted."
+  info        : "The removal of security objects from the database/DBMS would seriously degrade a system's information assurance posture. If such an event occurs, it must be logged."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83655r2_rule,STIG-ID|PPS9-00-011400,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69051"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011500 - The EDB Postgres Advanced Server must generate audit records when unsuccessful attempts to delete security objects occur."
+  info        : "The removal of security objects from the database/DBMS would seriously degrade a system's information assurance posture. If such an action is attempted, it must be logged.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83657r2_rule,STIG-ID|PPS9-00-011500,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69053"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011600 - Audit records must be generated when categorized information (e.g., classification levels/security levels) is deleted."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83659r2_rule,STIG-ID|PPS9-00-011600,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69055"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011700 - Audit records must be generated when unsuccessful attempts to delete categorized information (e.g., classification levels/security levels) occur."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83661r2_rule,STIG-ID|PPS9-00-011700,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69057"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011800 - The EDB Postgres Advanced Server must generate audit records when successful logons or connections occur."
+  info        : "For completeness of forensic analysis, it is necessary to track who/what (a user or other principal) logs on to the DBMS."
+  solution    : "Execute the following SQL as enterprisedb:
+
+SHOW edb_audit_connect;
+
+If the result is not 'all' or if the current setting for this requirement has not been noted and approved by the organization in the system documentation, this is a finding.
+
+Fix Text: Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_connect = 'all';
+ALTER SYSTEM SET edb_audit_disconnect = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83663r2_rule,STIG-ID|PPS9-00-011800,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69059"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_connect;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011900 - The EDB Postgres Advanced Server must generate audit records when unsuccessful logons or connection attempts occur."
+  info        : "For completeness of forensic analysis, it is necessary to track failed attempts to log on to the DBMS. While positive identification may not be possible in a case of failed authentication, as much information as possible about the incident must be captured."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_connect = 'all';
+ALTER SYSTEM SET edb_audit_disconnect = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83665r2_rule,STIG-ID|PPS9-00-011900,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69061"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_connect;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012000 - The EDB Postgres Advanced Server must generate audit records for all privileged activities or other system-level access."
+  info        : "Without tracking privileged activity, it would be difficult to establish, correlate, and investigate the events relating to an incident or identify those responsible for one.
+
+System documentation should include a definition of the functionality considered privileged.
+
+A privileged function in this context is any operation that modifies the structure of the database, its built-in logic, or its security settings. This would include all Data Definition Language (DDL) statements and all security-related statements. In an SQL environment, it encompasses, but is not necessarily limited to:
+CREATE
+ALTER
+DROP
+GRANT
+REVOKE
+
+There may also be Data Manipulation Language (DML) statements that, subject to context, should be regarded as privileged. Possible examples in SQL include:
+
+TRUNCATE TABLE;
+DELETE, or
+DELETE affecting more than n rows, for some n, or
+DELETE without a WHERE clause;
+
+UPDATE or
+UPDATE affecting more than n rows, for some n, or
+UPDATE without a WHERE clause;
+
+any SELECT, INSERT, UPDATE, or DELETE to an application-defined security table executed by other than a security principal.
+
+Depending on the capabilities of the DBMS and the design of the database and associated applications, audit logging may be achieved by means of DBMS auditing features, database triggers, other mechanisms, or a combination of these.
+
+Note that it is particularly important to audit, and tightly control, any action that weakens the implementation of this requirement itself, since the objective is to have a complete audit trail of all administrative activity."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83667r2_rule,STIG-ID|PPS9-00-012000,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69063"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012100 - The EDB Postgres Advanced Server must generate audit records when unsuccessful attempts to execute privileged activities or other system-level access occur."
+  info        : "Without tracking privileged activity, it would be difficult to establish, correlate, and investigate the events relating to an incident or identify those responsible for one.
+
+System documentation should include a definition of the functionality considered privileged.
+
+A privileged function in this context is any operation that modifies the structure of the database, its built-in logic, or its security settings. This would include all Data Definition Language (DDL) statements and all security-related statements. In an SQL environment, it encompasses, but is not necessarily limited to:
+CREATE
+ALTER
+DROP
+GRANT
+REVOKE
+
+Note that it is particularly important to audit, and tightly control, any action that weakens the implementation of this requirement itself, since the objective is to have a complete audit trail of all administrative activity.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83669r2_rule,STIG-ID|PPS9-00-012100,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69065"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012200 - The EDB Postgres Advanced Server must generate audit records showing starting and ending time for user access to the database(s) - s."
+  info        : "For completeness of forensic analysis, it is necessary to know how long a user's (or other principal's) connection to the DBMS lasts. This can be achieved by recording disconnections, in addition to logons/connections, in the audit logs.
+
+Disconnection may be initiated by the user or forced by the system (as in a timeout) or result from a system or network failure. To the greatest extent possible, all disconnections must be logged."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_connect = 'all';
+ALTER SYSTEM SET edb_audit_disconnect = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83671r2_rule,STIG-ID|PPS9-00-012200,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69067"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_connect;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012300 - The EDB Postgres Advanced Server must generate audit records when concurrent logons/connections by the same user from different workstations occur."
+  info        : "For completeness of forensic analysis, it is necessary to track who logs on to the DBMS.
+
+Concurrent connections by the same user from multiple workstations may be valid use of the system; or such connections may be due to improper circumvention of the requirement to use the CAC for authentication; or they may indicate unauthorized account sharing; or they may be because an account has been compromised.
+
+(If the fact of multiple, concurrent logons by a given user can be reliably reconstructed from the log entries for other events (logons/connections; voluntary and involuntary disconnections), then it is not mandatory to create additional log entries specifically for this.)"
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_connect = 'all';
+ALTER SYSTEM SET edb_audit_disconnect = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83673r2_rule,STIG-ID|PPS9-00-012300,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69069"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_connect;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012400 - The EDB Postgres Advanced Server must be able to generate audit records when successful accesses to objects occur."
+  info        : "Without tracking all or selected types of access to all or selected objects (tables, views, procedures, functions, etc.), it would be difficult to establish, correlate, and investigate the events relating to an incident, or identify those responsible for one.
+
+In an SQL environment, types of access include, but are not necessarily limited to:
+SELECT
+INSERT
+UPDATE
+DELETE
+EXECUTE"
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83675r2_rule,STIG-ID|PPS9-00-012400,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69071"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012500 - The EDB Postgres Advanced Server must generate audit records when unsuccessful accesses to objects occur."
+  info        : "Without tracking all or selected types of access to all or selected objects (tables, views, procedures, functions, etc.), it would be difficult to establish, correlate, and investigate the events relating to an incident or identify those responsible for one.
+
+In an SQL environment, types of access include, but are not necessarily limited to:
+SELECT
+INSERT
+UPDATE
+DELETE
+EXECUTE
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83677r2_rule,STIG-ID|PPS9-00-012500,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69073"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012600 - The EDB Postgres Advanced Server must generate audit records for all direct access to the database(s) - edb_audit_statement"
+  info        : "In this context, direct access is any query, command, or call to the DBMS that comes from any source other than the application(s) that it supports. Examples would be the command line or a database management utility program. The intent is to capture all activity from administrative and non-standard sources."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+ALTER SYSTEM SET edb_audit_connect = 'all';
+ALTER SYSTEM SET edb_audit_disconnect = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83679r2_rule,STIG-ID|PPS9-00-012600,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69075"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012600 - The EDB Postgres Advanced Server must generate audit records for all direct access to the database(s) - edb_audit_connect"
+  info        : "In this context, direct access is any query, command, or call to the DBMS that comes from any source other than the application(s) that it supports. Examples would be the command line or a database management utility program. The intent is to capture all activity from administrative and non-standard sources."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+ALTER SYSTEM SET edb_audit_connect = 'all';
+ALTER SYSTEM SET edb_audit_disconnect = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83679r2_rule,STIG-ID|PPS9-00-012600,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69075"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_connect;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-012600 - The EDB Postgres Advanced Server must generate audit records for all direct access to the database(s) - edb_audit_disconnect"
+  info        : "In this context, direct access is any query, command, or call to the DBMS that comes from any source other than the application(s) that it supports. Examples would be the command line or a database management utility program. The intent is to capture all activity from administrative and non-standard sources."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+ALTER SYSTEM SET edb_audit_connect = 'all';
+ALTER SYSTEM SET edb_audit_disconnect = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83679r2_rule,STIG-ID|PPS9-00-012600,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69075"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_disconnect;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<report type:"WARNING">
+  description : "PPS9-00-013000 - The EDB Postgres Advanced Server must off-load audit data to a separate log management facility; this must be continuous and in near real time for systems with a network connection to the storage facility and weekly or more often for stand-alone systems."
+  info        : "Information stored in one location is vulnerable to accidental or incidental deletion or alteration.
+
+Off-loading is a common process in information systems with limited audit storage capacity.
+
+The DBMS may write audit records to database tables, to files in the file system, to other kinds of local repository, or directly to a centralized log management system. Whatever the method used, it must be compatible with off-loading the records to the centralized system.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Install PEM and configure the centralized audit manager as documented here: http://www.enterprisedb.com/docs/en/5.0/pemgetstarted/PEM_Getting_Started_Guide.1.32.html#
+
+If another tool other than PEM is used, configure it to meet this requirement."
+  reference   : "CAT|II,CCI|CCI-001851,Rule-ID|SV-83687r1_rule,STIG-ID|PPS9-00-013000,Vuln-ID|V-69083"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011050 - Audit records must be generated when categorized information (e.g., classification levels/security levels) is modified."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83691r2_rule,STIG-ID|PPS9-00-011050,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69087"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "PPS9-00-011150 - Audit records must be generated when unsuccessful attempts to modify categorized information (e.g., classification levels/security levels) occur."
+  info        : "Changes in categorized information must be tracked. Without an audit trail, unauthorized access to protected data could go undetected.
+
+To aid in diagnosis, it is necessary to keep track of failed attempts in addition to the successful ones.
+
+For detailed information on categorizing information, refer to FIPS Publication 199, Standards for Security Categorization of Federal Information and Information Systems, and FIPS Publication 200, Minimum Security Requirements for Federal Information and Information Systems."
+  solution    : "Execute the following SQL as enterprisedb:
+
+ALTER SYSTEM SET edb_audit_statement = 'all';
+SELECT pg_reload_conf();
+
+or
+
+Update the system documentation to note the organizationally approved setting and corresponding justification of the setting for this requirement."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000172,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-83693r2_rule,STIG-ID|PPS9-00-011150,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-69089"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_EDB_PGS_Advanced_Server_V1R7_STIG.zip"
+  sql_request : "SHOW edb_audit_statement;"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : "all"
+</custom_item>
+
+</group_policy>
+</check_type>

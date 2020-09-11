@@ -1,0 +1,768 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.7 $
+# $Date: 2020/07/14 $
+#
+#<ui_metadata>
+#<display_name>TNS Best Practice JBoss 6 Linux</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>TNS Best Practice JBoss 6 Linux</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>jboss,agent,unix</labels>
+#<variables>
+#  <variable>
+#    <name>JBOSS_ADM_REALM_PROP</name>
+#    <default>/root/EAP-6.4.0/standalone/configuration/mgmt-users.properties</default>
+#    <description>admin REALM-users.properties</description>
+#    <info>full path to admin REALM-users.properties file</info>
+#  </variable>
+#  <variable>
+#    <name>JBOSS_ADM_UN</name>
+#    <default>admin</default>
+#    <description>JBOSS admin username</description>
+#    <info>JBOSS admin username</info>
+#  </variable>
+#  <variable>
+#    <name>REALM_USERS_PROP</name>
+#    <default>/root/EAP-6.4.0/standalone/configuration/application-users.properties</default>
+#    <description>Security REALM-users.properties</description>
+#    <info>full path to security REALM-users.properties file</info>
+#  </variable>
+#  <variable>
+#    <name>REALM_ROLES_PROP</name>
+#    <default>/root/EAP-6.4.0/standalone/configuration/application-roles.properties</default>
+#    <description>Security REALM-roles.properties</description>
+#    <info>full path to security REALM-roles.properties file</info>
+#  </variable>
+#  <variable>
+#    <name>SERVER_XML</name>
+#    <default>/root/EAP-6.4.0/standalone/configuration/standalone-full.xml</default>
+#    <description>server.xml full file path</description>
+#    <info>server.xml full file path</info>
+#  </variable>
+#  <variable>
+#    <name>POLICY_FILE</name>
+#    <default>/root/EAP-6.4.0/testpolicy</default>
+#    <description>Policy File for 3.7</description>
+#    <info>Policy File for 3.7</info>
+#  </variable>
+#  <variable>
+#    <name>JBOSS_INSTALL_DIR</name>
+#    <default>/root/EAP-6.4.0</default>
+#    <description>JBoss install Directory</description>
+#    <info>JBoss install Directory</info>
+#  </variable>
+#  <variable>
+#    <name>INSTALL_DIR_MASK</name>
+#    <default>117</default>
+#    <description>JBoss Directory Permissions Mask</description>
+#    <info>JBoss Directory Permissions Mask</info>
+#  </variable>
+#  <variable>
+#    <name>JBOSS_PROC_OWNER</name>
+#    <default>jboss_admin</default>
+#    <description>JBoss process owner</description>
+#    <info>JBoss process owner</info>
+#  </variable>
+#  <variable>
+#    <name>JBOSS_GROUP</name>
+#    <default>jboss_admins</default>
+#    <description>JBoss process owner group</description>
+#    <info>JBoss process owner group</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DIR</name>
+#    <default>/root/EAP-6.4.0/standalone/log</default>
+#    <description>JBoss Log directory</description>
+#    <info>JBoss Log directory</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DIR_MASK</name>
+#    <default>177</default>
+#    <description>JBoss Log Dir Permissions Mask</description>
+#    <info>JBoss Log Dir Permissions Mask</info>
+#  </variable>
+#  <variable>
+#    <name>LOGGING_PROPERTIES</name>
+#    <default>/root/EAP-6.4.0/standalone/configuration/logging.properties</default>
+#    <description>logging.properties full file path</description>
+#    <info>logging.properties full file path</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CHECK
+      description : "JBoss is installed"
+# Note: Variable @JBOSS_INSTALL_DIR@ replaced with "/root/EAP-6.4.0" in field "file".
+      file        : "/root/EAP-6.4.0/jboss-modules.jar"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "TNS_Best_Practice_RedHat_JBoss_v6_Linux.audit"
+    </report>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "1.1 - Password hashing must be enabled within the appropriate login module"
+      info        : "A Security Domain is a set of authentication, authorization, and mapping policies defined in XML and are available to applications at runtime using Java Naming and Directory Interface (JNDI).
+
+Failure to enable password hashing within a login module can result in plain-text exposure client passwords used for authentication."
+      solution    : "Add the following child element to any <application-policy><login-module> in use:
+
+<module-option name=\"hashUserPassword\">true</module-option>"
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='application-policy']//*[local-name()='login-module']//*[local-name()='module-option'][@name='hashUserPassword']/text()\">"
+      xsl_stmt    : "Password Hashing = <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='application-policy']//*[local-name()='login-module']//*[local-name()='module-option'][@name='hashUserPassword']/text()\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Password Hashing = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Password Hashing = "
+      expect      : "Password Hashing = true"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "1.2 - A password hashing algorithm must be defined within the appropriate login module"
+      info        : "A Security Domain is a set of authentication, authorization, and mapping policies defined in XML and are available to applications at runtime using Java Naming and Directory Interface (JNDI). An <application-policy> can be defined in the server profile or in an application deployment descriptor.
+
+By default, a hashing algorithm is not identified for hashing clear-text passwords. It is recommended to use the SHA algorithm or higher whenever possible to prevent collision attacks against captured password hashes."
+      solution    : "Add the following child element to any <application-policy><login-module> in use:
+
+<module-option name=\"hashAlgorithm\">SHA</module-option>"
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='application-policy']//*[local-name()='login-module']//*[local-name()='module-option'][@name='hashAlgorithm']/text()\">"
+      xsl_stmt    : "Password Hashing Alg = <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='application-policy']//*[local-name()='login-module']//*[local-name()='module-option'][@name='hashAlgorithm']/text()\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Password Hashing Alg = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Password Hashing Alg = "
+      expect      : "Password Hashing Alg = SHA"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "1.3 - Strong password policy should be implemented"
+      info        : "Password policy controls should be in line with organizations security policy. Password policy is required to control user password characteristics including password minimum length, maximum length and password ageing.
+
+Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Configure a strong Password policy"
+    </report>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "1.4 - Encrypt Passwords using Vaults"
+      info        : "Vault enables the user to encrypt sensitive strings and store them in an  encrypted keystore. The vault mechanism also manages decryption of the strings for use with security domains, security realms, or other  verification systems
+
+Web applications and other deployments often include clear-text files, such as XML deployment descriptors, which include sensitive  information such as passwords and other sensitive strings. Vault provides an extra layer of security by encrypting sensitive data.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Initialize the Vault and Storing Passwords by executing the vault.sh script in:
+
+/home/jboss-eap-6.0/bin/vault.sh
+The Vault parameters can be initialized as shown in the example below.
+<vault>
+<vault-option name=\"KEYSTORE_URL\" value=\"$
+{jboss.server.config.dir}/vault/vault. Keystore\"/>
+<vault-option name=\"KEYSTORE_PASSWORD\" value=\"MASK-
+3EqTGNvEUm2zBW9JGpulUT\"/>
+<vault-option name=\"KEYSTORE_ALIAS\" value=\"systemprop\"/>
+<vault-option name=\"SALT\" value=\"jboss123\"/>
+<vault-option name=\"ITERATION_COUNT\" value=\"25\"/>
+<vault-option name=\"ENC_FILE_DIR\" value=\"$
+{jboss.server.config.dir}/vault/\"/>
+</vault>"
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='vault']\">"
+      xsl_stmt    : "<xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='KEYSTORE_URL']\"/> KEYSTORE_URL : <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='KEYSTORE_URL']/@value\"/>"
+      xsl_stmt    : " , <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='KEYSTORE_PASSWORD']\"/> KEYSTORE_PASSWORD : <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='KEYSTORE_PASSWORD']/@value\"/>"
+      xsl_stmt    : " , <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='KEYSTORE_ALIAS']\"/> KEYSTORE_ALIAS : <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='KEYSTORE_ALIAS']/@value\"/>"
+      xsl_stmt    : " , <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='SALT']\"/> SALT : <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='SALT']/@value\"/>"
+      xsl_stmt    : " , <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='ITERATION_COUNT']\"/> ITERATION_COUNT : <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='ITERATION_COUNT']/@value\"/>"
+      xsl_stmt    : " , <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='ENC_FILE_DIR']\"/> ENC_FILE_DIR : <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='vault']//*[local-name()='vault-option'][@name='ENC_FILE_DIR']/@value\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Vault = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : ""
+      not_expect  : ".+"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "2.1 - Silent Authentication should be disabled - local element - Management Realm"
+      info        : "Silent Authentication assist local users in running Management CLI scripts without requiring authentication.
+
+Silent Authentication gives access to the local configuration, which also gives the user the ability to add their own user details or otherwise disable security checks. This feature can be exploited to make the system vulnerable for attacks"
+      solution    : "To remove silent authentication with the Management CLI
+1. Remove the local element from the Management Realm.
+2. Remove the local element from the Application Realm."
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='management']//*[local-name()='security-realms']//*[local-name()='security-realm'][@name='ManagementRealm']//*[local-name()='authentication']//*[local-name()='local']\">"
+      xsl_stmt    : "Silent Auth Management Realm = CONFIGURED"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Silent Auth Management Realm = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Silent Auth Management Realm = "
+      expect      : "Silent Auth Management Realm = NOT CONFIGURED"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "2.1 - Silent Authentication should be disabled - local element - Application Realm"
+      info        : "Silent Authentication assist local users in running Management CLI scripts without requiring authentication.
+
+Silent Authentication gives access to the local configuration, which also gives the user the ability to add their own user details or otherwise disable security checks. This feature can be exploited to make the system vulnerable for attacks"
+      solution    : "To remove silent authentication with the Management CLI
+1. Remove the local element from the Management Realm.
+2. Remove the local element from the Application Realm."
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='management']//*[local-name()='security-realms']//*[local-name()='security-realm'][@name='ApplicationRealm']//*[local-name()='authentication']//*[local-name()='local']\">"
+      xsl_stmt    : "Silent Auth Application Realm = CONFIGURED"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Silent Auth Application Realm = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Silent Auth Application Realm = "
+      expect      : "Silent Auth Application Realm = NOT CONFIGURED"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.2 - Assign a JBoss administrator"
+      info        : "There must be one or more competent individuals who are assigned to manage JBoss Enterprise Application Platform, its environment and the security of the information it contains.
+
+Unaware JBoss administrators can completely invalidate a secure JBoss configuration and create numberless problems for JBoss."
+      solution    : "To add a administrator to the system perform the task mentioned below:
+1. Invoke the add-user.sh or add-user.bat script.
+2. Choose to add a Management user.
+3. Choose the realm for the user.
+4. Enter the desired username and password.
+5. Choose whether the user represents a remote JBoss Enterprise Application Platform 6 server instance.
+
+Ensure documentation and procedures exist for routine administrative tasks."
+# Note: Variable @JBOSS_ADM_REALM_PROP@ replaced with "/root/EAP-6.4.0/standalone/configuration/mgmt-users.properties" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/mgmt-users.properties"
+# Note: Variable @JBOSS_ADM_UN@ replaced with "admin" in field "regex".
+      regex       : "admin="
+# Note: Variable @JBOSS_ADM_UN@ replaced with "admin" in field "expect".
+      expect      : "admin="
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "2.3 - Active users should be monitored"
+      info        : "The Administrator should on routine basis check the list of active users on the system and the realm to which they have access
+
+If user access is not monitored then unauthorized user may go undetected. This would make the system prone to attacks owing to malicious access
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Use the whoami command in the management CLI to generate the list the users and the realms to which they access."
+    </report>
+
+    <report type:"WARNING">
+      description : "2.4 - UserRolesLoginModule should be configured"
+      info        : "UserRoleLoginModule is a based login module that consults two Java Properties formatted text files for username to password(\"users.properties\") and username to roles(\"roles.properties\") mapping.
+
+The UserRolesLoginModule enables the mapping of the user to the particular role he/ she is entitled to perform. This would prevent any malicious or unauthorized access.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "In order to enable UserRolesLoginModule we need to
+1. Edit the application's web.xml file  as specified in the example below:
+<security-constraint>
+<auth-constraint>
+  <role-name>JBossAdmin</role-name>
+</auth-constraint>
+</security-constraint>
+<security-role>
+<role-name>JBossAdmin</role-name>
+</security-role
+2. Create users and roles files in EAP
+3. Add the security-domain to jboss-web.xml file as specified in the example below.
+<security-domain>java:/jaas/test</securitydomain>"
+    </report>
+
+    <report type:"WARNING">
+      description : "3.1 - Sensitive information should use SSL encryption"
+      info        : "Secure Sockets Layer (SSL) encrypts network traffic between two systems. Traffic between the two
+systems is encrypted using a two-way key, generated during the handshake phase of the connection
+and known only by those two systems.
+
+Sensitive information being transmitted without strong encryption creates possible exposure for the deployed application and users connecting to it. Plain text transmission of authentication credentials over insecure channels (such as HTTP) exposes credential information to any entity capable of intercepting packets from the connection.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Before you configure  SSL encryption you would have to perform the following task:
+
+1. Set of SSL encryption keys and purchase a SSL encryption certificate from a certificate-signing authority.
+2. Obtain the full directory name and path of the certificate
+3.  Set encryption password for encryption keys.
+
+Next step is to configure the JBoss Web Server to use HTTPS as the process is specified below:
+
+1. Add a new HTTPS connector.
+2. Configure the SSL encryption certificate and keys.
+3. Deploy the application.
+
+On completion of the above process follow steps mentioned below to generate a SSL Encryption Key and Certificate
+
+1. Generate a keystore with public and private keys.
+2. Verify the key.
+3. Generate a certificate signing request.
+4. Test the newly generated certificate signing request.
+5. Import the signed certificate, along with any intermediate certificates"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.2 - Patches should be updated"
+      info        : "Latest Security Patches should be installed.
+
+If the patches are not updated regularly they can be exploited by the intruder to gain malicious access to critical areas
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "To set the latest patches, subscribe to Jboss-watch-list on JBoss Watch Mailing List on the vendor website.
+
+Install and upgrade these patches based on the severity and impact rating as provided by the vendor."
+# Note: Variable @JBOSS_INSTALL_DIR@ replaced with "/root/EAP-6.4.0" in field "cmd".
+      cmd         : "/bin/cat /root/EAP-6.4.0/version.txt"
+      expect      : ".+"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "3.3 - Security realms should be configured - REALM-users.properties exists"
+      info        : "A security realm is a series of mappings between users and passwords, and users and roles.
+
+Security realms are a mechanism for adding authentication and authorization to your EJB and Web applications"
+      solution    : "Each realm is stored in two files on the filesystem:
+REALM-users.properties stores usernames and hashed passwords.
+REALM-users.properties stores user-to-role mappings
+To configure a realm follow the steps specified below :
+Start the jboss-cli.sh or jboss-cli.bat command and connect to the server.
+Create the new security realm itself.
+Create the references to the properties file which will store information about the new
+Role
+
+To add a User to a Security Realm
+1. Run the add-user.sh or add-user.bat command.
+2. Choose whether to add a Management User or Application User.
+3. Choose the realm the user will be added to.
+4. Type the username, password, and roles, when prompted"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @REALM_USERS_PROP@ replaced with "/root/EAP-6.4.0/standalone/configuration/application-users.properties" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/application-users.properties"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "3.3 - Security realms should be configured - REALM-roles.properties exists"
+      info        : "A security realm is a series of mappings between users and passwords, and users and roles.
+
+Security realms are a mechanism for adding authentication and authorization to your EJB and Web applications"
+      solution    : "Each realm is stored in two files on the filesystem:
+REALM-users.properties stores usernames and hashed passwords.
+REALM-users.properties stores user-to-role mappings
+To configure a realm follow the steps specified below :
+Start the jboss-cli.sh or jboss-cli.bat command and connect to the server.
+Create the new security realm itself.
+Create the references to the properties file which will store information about the new
+Role
+
+To add a User to a Security Realm
+1. Run the add-user.sh or add-user.bat command.
+2. Choose whether to add a Management User or Application User.
+3. Choose the realm the user will be added to.
+4. Type the username, password, and roles, when prompted"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @REALM_ROLES_PROP@ replaced with "/root/EAP-6.4.0/standalone/configuration/application-roles.properties" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/application-roles.properties"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "3.4 - Security domains must be configured"
+      info        : "Security domains are recommended to secure production applications
+
+A security domain implements Java Authentication and Authorization Service (JAAS) declarative security. Picketbox is the foundational security framework that provides the authentication, authorization, audit and mapping capabilities to Java applications running in JBoss EAP 6.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Follow the steps mentioned below to configure a security domain.
+Setup Authentication Settings for a Security Domain
+1. Open the security domain's detailed view.
+2. Navigate to the Authentication subsystem configuration.
+3. Click the Add button to add a JAAS authentication module.
+
+Setup Authorization in a Security Domain
+1. Open the security domain's detailed view.
+2. Navigate to the Authorization subsystem configuration.
+3. Click the Add button to add a JAAS authorization policy module.
+
+Setup Security Auditing for a Security Domain
+1. Open the security domain's detailed view.
+2. Navigate to the Auditing subsystem configuration.
+3. Add a provider module.
+
+Setup Security Mapping Settings in a Security Domain
+1. Open the security domain's detailed view.
+2. Navigate to the Mapping subsystem configuration..
+3. Click the Add button to add a security mapping."
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.5 - Security management network interface"
+      info        : "Management network Interface should be secured
+
+Isolate services so that they are accessible only to the clients who need them increases the security of the network."
+      solution    : "1) Stop JBoss EAP 6 by sending an interrupt in the appropriate way for your operating system. If you are running JBoss EAP 6 as a foreground application, the typical way to do this is to press
+Ctrl+C.
+2) Restart JBoss EAP 6, specifying the bind address.
+3) Use the -b command-line switch to start JBoss EAP 6 on a specific interface."
+      cmd         : "ps aux | grep -E '[s]tandalone.sh|[d]omain.sh' |grep '[\-]b .'"
+      expect      : "-b ."
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "3.6 - Use EJB Method Permissions"
+      info        : "The EJB  method permission helps to define the permission to a particular role
+
+Role based permission would prevent any malicious access thereby effecting the integrity of the system
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "The <method-permission> element defines the logical roles that are allowed to access the EJB methods defined by <method> elements."
+    </report>
+
+    <custom_item>
+      type        : FILE_CHECK
+# Note: Variable @POLICY_FILE@ replaced with "/root/EAP-6.4.0/testpolicy" in field "description".
+      description : "3.7 - Write a Java Security Manager Policy for deployed applications - /root/EAP-6.4.0/testpolicy exists"
+      info        : "When configuring application specific security policy, it is recommended to specify  the following element.
+CodeBase : The URL location where the code originates from.
+SignedBy : The alias used in the keystore to reference the signer whose private key was used to sign the code.
+Principals : A list of principal_type/principal_name pairs, which must be present within the executing thread's principal set. The Principals entry is optional. If it is omitted, it signifies 'any principals'.
+Permissions : permission is the access which is granted to the code.
+
+
+Java security Policy allows JBoss administrators to set a secure application based on code locations, permission and credentials"
+      solution    : "Setup a new Java Security Manager Policy
+1. Start policytool.
+Start the policytool tool in one of the following ways.
+A. Red Hat Enterprise Linux : From your GUI or a command prompt, run /usr/bin/policytool.
+B. Microsoft Windows Server Run policytool.exe from your Start menu or from the bin\ of your Java installation. The location can vary.
+2. Create a new policy.
+T o create a new policy, select Add Policy Entry. Add the parameters you need, then click Done.
+3. Edit an existing policy
+Select the policy from the list of existing policies, and select the Edit Policy Entry button. Edit the parameters as needed."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @POLICY_FILE@ replaced with "/root/EAP-6.4.0/testpolicy" in field "file".
+      file        : "/root/EAP-6.4.0/testpolicy"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.7 - Write a Java Security Manager Policy for deployed applications - signedBy"
+      info        : "When configuring application specific security policy, it is recommended to specify  the following element.
+CodeBase : The URL location where the code originates from.
+SignedBy : The alias used in the keystore to reference the signer whose private key was used to sign the code.
+Principals : A list of principal_type/principal_name pairs, which must be present within the executing thread's principal set. T he Principals entry is optional. If it is omitted, it signifies 'any principals'.
+Permissions : permission is the access which is granted to the code.
+
+
+Java security Policy allows JBoss administrators to set a secure application based on code locations, permission and credentials
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Setup a new Java Security Manager Policy
+1. Start policytool.
+Start the policytool tool in one of the following ways.
+A. Red Hat Enterprise Linux : From your GUI or a command prompt, run /usr/bin/policytool.
+B. Microsoft Windows Server Run policytool.exe from your Start menu or from the bin\ of your Java installation. The location can vary.
+2. Create a new policy.
+T o create a new policy, select Add Policy Entry. Add the parameters you need, then click Done.
+3. Edit an existing policy
+Select the policy from the list of existing policies, and select the Edit Policy Entry button. Edit the parameters as needed."
+# Note: Variable @POLICY_FILE@ replaced with "/root/EAP-6.4.0/testpolicy" in field "cmd".
+      cmd         : "grep 'signedBy' /root/EAP-6.4.0/testpolicy"
+      expect      : ".+"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.7 - Write a Java Security Manager Policy for deployed applications - codeBase"
+      info        : "When configuring application specific security policy, it is recommended to specify  the following element.
+CodeBase : The URL location where the code originates from.
+SignedBy : The alias used in the keystore to reference the signer whose private key was used to sign the code.
+Principals : A list of principal_type/principal_name pairs, which must be present within the executing thread's principal set. T he Principals entry is optional. If it is omitted, it signifies 'any principals'.
+Permissions : permission is the access which is granted to the code.
+
+
+Java security Policy allows JBoss administrators to set a secure application based on code locations, permission and credentials
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Setup a new Java Security Manager Policy
+1. Start policytool.
+Start the policytool tool in one of the following ways.
+A. Red Hat Enterprise Linux : From your GUI or a command prompt, run /usr/bin/policytool.
+B. Microsoft Windows Server Run policytool.exe from your Start menu or from the bin\ of your Java installation. The location can vary.
+2. Create a new policy.
+T o create a new policy, select Add Policy Entry. Add the parameters you need, then click Done.
+3. Edit an existing policy
+Select the policy from the list of existing policies, and select the Edit Policy Entry button. Edit the parameters as needed."
+# Note: Variable @POLICY_FILE@ replaced with "/root/EAP-6.4.0/testpolicy" in field "cmd".
+      cmd         : "grep 'codeBase' /root/EAP-6.4.0/testpolicy"
+      expect      : ".+"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "3.7 - Write a Java Security Manager Policy for deployed applications - permission"
+      info        : "When configuring application specific security policy, it is recommended to specify  the following element.
+CodeBase : The URL location where the code originates from.
+SignedBy : The alias used in the keystore to reference the signer whose private key was used to sign the code.
+Principals : A list of principal_type/principal_name pairs, which must be present within the executing thread's principal set. T he Principals entry is optional. If it is omitted, it signifies 'any principals'.
+Permissions : permission is the access which is granted to the code.
+
+
+Java security Policy allows JBoss administrators to set a secure application based on code locations, permission and credentials
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Setup a new Java Security Manager Policy
+1. Start policytool.
+Start the policytool tool in one of the following ways.
+A. Red Hat Enterprise Linux : From your GUI or a command prompt, run /usr/bin/policytool.
+B. Microsoft Windows Server Run policytool.exe from your Start menu or from the bin\ of your Java installation. The location can vary.
+2. Create a new policy.
+T o create a new policy, select Add Policy Entry. Add the parameters you need, then click Done.
+3. Edit an existing policy
+Select the policy from the list of existing policies, and select the Edit Policy Entry button. Edit the parameters as needed."
+# Note: Variable @POLICY_FILE@ replaced with "/root/EAP-6.4.0/testpolicy" in field "cmd".
+      cmd         : "grep 'permission' /root/EAP-6.4.0/testpolicy"
+      expect      : ".+"
+      severity    : MEDIUM
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "3.8 - Ensure JMX access is either secured or disabled."
+      info        : "JMX access must be secured so it is accessible by trusted administrators only. If this condition is not met, the access must be disabled from the deployment.
+
+JMX connectivity allows you to trigger JDK and application management operations. Failure to secure JMX against unauthorized access can quickly lead to system compromise.
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "In order to secure an installation, disable the JMX function. This can be done either by removing the remote connection
+configuration, or removing the JMX subsystem entirely."
+    </report>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "3.9 - Secure remote access"
+      info        : "The remote access should be secured if required or disabled if not required.
+
+Failure to secure against unauthorized access can quickly lead to system compromise. The default access included with JBoss is a well-known attack vector that can be leveraged to load malicious code to be executed on the server.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Remote access must be secured so it is accessible by trusted administrators only. If this condition is not met, the access must be disabled from the deployment."
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='interfaces']\">"
+      xsl_stmt    : "Interfaces = management:<xsl:value-of select=\"//*[local-name()='server']//*[local-name()='interfaces']//*[local-name()='interface'][@name='management']//*[local-name()='inet-address']/@value\"/>"
+      xsl_stmt    : "Interfaces = public:<xsl:value-of select=\"//*[local-name()='server']//*[local-name()='interfaces']//*[local-name()='interface'][@name='public']//*[local-name()='inet-address']/@value\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Interfaces = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Interfaces = "
+      expect      : "Interfaces = NOT CONFIGURED"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "4.1 - Set JBoss file permissions"
+      info        : "All JBoss files within the installation directory should be readable by the JBoss process owner and JBoss administrators only.
+
+To prevent unauthorized modification or disclosure of JBoss configuration settings, access to all JBoss related files  should be restricted to the JBoss process owner and JBoss administrators."
+      solution    : "File permissions should be restricted to READ/WRITE for JBoss process owner and JBoss administrators. Other accounts that may require READ access include version control accounts or process owners for backup software"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @JBOSS_INSTALL_DIR@ replaced with "/root/EAP-6.4.0" in field "file".
+      file        : "/root/EAP-6.4.0/*"
+# Note: Variable @JBOSS_PROC_OWNER@ replaced with "jboss_admin" in field "owner".
+      owner       : "jboss_admin"
+# Note: Variable @INSTALL_DIR_MASK@ replaced with "117" in field "mask".
+      mask        : "117"
+# Note: Variable @JBOSS_GROUP@ replaced with "jboss_admins" in field "group".
+      group       : "jboss_admins"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "4.2 - Restrict modify access on configuration files - domain/configuration"
+      info        : "Only administrators should be able to modify configuration files.
+
+An access control flaw exists if users or processes can view or modify data to which they should not be permitted. This could result in situations ranging from information disclosure to system compromise and could potentially result in the compromise of other systems on the network."
+      solution    : "Server should be protected with permission sets which allow only an application administrator to modify application resource configuration files."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @JBOSS_INSTALL_DIR@ replaced with "/root/EAP-6.4.0" in field "file".
+      file        : "/root/EAP-6.4.0/domain/configuration/*"
+      mask        : "077"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "4.2 - Restrict modify access on configuration files - standalone/configuration"
+      info        : "Only administrators should be able to modify configuration files.
+
+An access control flaw exists if users or processes can view or modify data to which they should not be permitted. This could result in situations ranging from information disclosure to system compromise and could potentially result in the compromise of other systems on the network."
+      solution    : "Server should be protected with permission sets which allow only an application administrator to modify application resource configuration files."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @JBOSS_INSTALL_DIR@ replaced with "/root/EAP-6.4.0" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/*"
+      mask        : "077"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "5.1 - Logging level must be enabled"
+      info        : "Logging must be enabled to record all activities on the system.
+
+Not Enforcing audit logging will result in security incidents go undetected and no evidence will be available for analysis in case of incidents.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "To implement the logging onto the system, the recommended logging level is at (DEBUG).
+The logging levels with their corresponding meanings are specified in appendix 3.2"
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "cmd".
+      cmd         : "grep -E '<logger cat|<level name' /root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "5.2 - JBoss Log File Size - rotate-size"
+      info        : "JBoss Stores its log files in server.log. Low file size for the server.log file can result in events being overwritten. It is important to have a large file size for the log file to maintain all events
+
+Low file size can result in events being overwritten.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "The value in write-attribute should be set to desired value as per RJIL policy to accommodate the larger number of logs"
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='size-rotating-file-handler']\">"
+      xsl_stmt    : "Log Rotation Size = <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='size-rotating-file-handler']//*[local-name()='rotate-size']/@value\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Log Rotation Size = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Log Rotation Size = .*"
+      expect      : "Log Rotation Size = .*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_XML
+      description : "5.2 - JBoss Log File Size - max-backup-index"
+      info        : "JBoss Stores its log files in server.log. Low file size for the server.log file can result in events being overwritten. It is important to have a large file size for the log file to maintain all events
+
+Low file size can result in events being overwritten.
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "The value in write-attribute should be set to desired value as per RJIL policy to accommodate the larger number of logs"
+# Note: Variable @SERVER_XML@ replaced with "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/standalone-full.xml"
+      xsl_stmt    : "<xsl:template match=\"/\">"
+      xsl_stmt    : "<xsl:choose>"
+      xsl_stmt    : "<xsl:when test=\"//*[local-name()='server']//*[local-name()='size-rotating-file-handler']\">"
+      xsl_stmt    : "Log Max Backups = <xsl:value-of select=\"//*[local-name()='server']//*[local-name()='size-rotating-file-handler']//*[local-name()='max-backup-index']/@value\"/>"
+      xsl_stmt    : "</xsl:when>"
+      xsl_stmt    : "<xsl:otherwise>"
+      xsl_stmt    : "Log Max Backups = NOT CONFIGURED"
+      xsl_stmt    : "</xsl:otherwise>"
+      xsl_stmt    : "</xsl:choose>"
+      xsl_stmt    : "</xsl:template>"
+      regex       : "Log Max Backups = .*"
+      expect      : "Log Max Backups = .*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "5.3 - Logs should be stored on a secured directory"
+      info        : "JBoss allows logs to be sent to a specified path. It is recommended to store the output of the log file in a secured directory.
+
+The syslog keeps track of all the logging events of a server. To avoid the loss of the logs on the system it is essential that they be securely stored."
+      solution    : "To set the directory in which the log files need we need to execute the change-file operation with the following syntax.
+/subsystem =logging/file-handler=HANDLER: change-file(file={\"path\"=>\"PATH\", \"relative-to\"=>\"DIR\"})
+Replace PATH with the filename for the file that the log is being written to. Replace DIR with the name of the directory where the file is to be located."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+# Note: Variable @LOG_DIR@ replaced with "/root/EAP-6.4.0/standalone/log" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/log/*"
+# Note: Variable @LOG_DIR_MASK@ replaced with "177" in field "mask".
+      mask        : "177"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "5.4 - Boot Logging should be configured"
+      info        : "The boot log is the record of events that occur while the server is starting up, also these logs should be saved to detect any malicious access.
+
+  Insufficient logging  during startup will result in a lack of an audit trail in the event of an unauthorized access."
+      solution    : "The boot log can be configured by editing the logging.properties and setting appropriate values in the property=value in the log configuration file."
+# Note: Variable @LOGGING_PROPERTIES@ replaced with "/root/EAP-6.4.0/standalone/configuration/logging.properties" in field "file".
+      file        : "/root/EAP-6.4.0/standalone/configuration/logging.properties"
+      regex       : ".*boot\.log\.file="
+      expect      : ".*boot\.log\.file="
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "TNS_Best_Practice_RedHat_JBoss_v6_Linux.audit"
+      info        : "JBoss installation not found
+
+  NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

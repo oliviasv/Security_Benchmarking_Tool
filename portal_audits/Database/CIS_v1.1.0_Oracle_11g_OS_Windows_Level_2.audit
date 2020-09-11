@@ -1,0 +1,1299 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.19 $
+# $Date: 2020/04/22 $
+#
+# Description	: This .audit is designed against the CIS Security Configuration
+# 			  Benchmark For Oracle Database Server 11g version 1.0.1, January 2009.
+# 			  https://workbench.cisecurity.org/files/580
+#
+# NOTE          : The audits contained in this document audit are for Level 2 items
+# 			  of the CIS Oracle Database Server 11g and are specific to the
+# 			  operating system and not the database.
+#
+# NOTE			: Some queries in this .audit require site-specific data to be
+# 			  known to the query in order to function properly.  Please note
+# 			  the following queries and edit their values accordingly.
+#
+#<ui_metadata>
+#<display_name>CIS v1.1.0 Oracle 11g OS Windows Level 2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Oracle 11g OS Windows Level 2</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/580</link>
+#</spec>
+#<labels>windows,cis,oracle,oracle_11g</labels>
+#<variables>
+#  <variable>
+#    <name>HOME_ID</name>
+#    <default>HOME_ID</default>
+#    <description>Oracle User HOME_ID</description>
+#    <info>HKLM\SOFTWARE\ORACLE\{HOME_ID}\USE_SHARED_SOCKET</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_HOME</name>
+#    <default>C:\u01\app\oracle\product\11.2.0\dbhome_1</default>
+#    <description>Oracle Home</description>
+#    <info>The directory where your Oracle installation is located.</info>
+#  </variable>
+#  <variable>
+#    <name>LISTENER_NAME</name>
+#    <default>LISTENER_NAME</default>
+#    <description>secure_protocol_listener_name</description>
+#    <info>listener.ora - 'secure_protocol_listener_name'</info>
+#  </variable>
+#  <variable>
+#    <name>SID</name>
+#    <default>orcl</default>
+#    <description>SID</description>
+#    <info>The SID of the Oracle database.</info>
+#  </variable>
+#  <variable>
+#    <name>INVITED_NODES</name>
+#    <default>192.168.*</default>
+#    <description>Invited Nodes</description>
+#    <info>The list of clients allowed to access the database. Defined in the tcp.invited_nodes value.</info>
+#  </variable>
+#  <variable>
+#    <name>EXCLUDED_NODES</name>
+#    <default>172.30.*</default>
+#    <description>Excluded Nodes</description>
+#    <info>The list of clients denied access the database. Defined in the tcp.excluded_nodes value.</info>
+#  </variable>
+#  <variable>
+#    <name>CERT_DC</name>
+#    <default>dc=us,dc=example,dc=com</default>
+#    <description>Cert Domain Component</description>
+#    <info>This is the domain component used on your Oracle SSL Certificate</info>
+#  </variable>
+#  <variable>
+#    <name>CERT_CN</name>
+#    <default>cn=finance,cn=OracleContext</default>
+#    <description>Cert Common Name</description>
+#    <info>This is the common name used on your Oracle SSL Certificate</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"CIS Oracle 11g Windows">
+
+##
+### 1. Operating System Specific Settings
+##
+
+<custom_item>
+  type        : REGISTRY_SETTING
+  description : "1.12 Windows registry - 'Set USE_SHARED_SOCKET registry value to TRUE'"
+  info        : "Confines client connections to the same port as the listener. This allows connection and firewall management to be performed in a more"
+  info        : "consistent and refined manner."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @HOME_ID@ replaced with "HOME_ID" in field "reg_key".
+  reg_key     : "HKLM\SOFTWARE\ORACLE\HOME_ID"
+  reg_item    : "USE_SHARED_SOCKET"
+  value_data  : "[Tt][Rr][Uu][Ee]"
+  check_type  : CHECK_REGEX
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<report type:"WARNING">
+  description : "1.13 Oracle software owner host account - 'Lock account'"
+  info        : "Locking the user account will deter attackers from leveraging this account in brute force authentication attacks."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it is not recommended for Windows environments."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "1.14 All associated application files - 'Verify permissions'"
+  info        : "Allowing improper access to binaries that directly interface with the Oracle database adds unnecessary risk and increases the attack surface"
+  info        : "of the database."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that all application files have proper ownership and minimal file"
+  info        : "permissions."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## 2. Installation and Patch
+#
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "2.06 listener.ora - 'Use IP addresses rather than hostnames'"
+  info        : "The listener must not be called by the default name as it is commonly known. A distinct name must be selected."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Change {ORACLE_HOME} to the full path of your organization's Oracle directory."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  check_type  : CHECK_REGEX
+  regex       : "[Hh][Oo][Ss][Tt][\s]*="
+  expect      : "[Hh][Oo][Ss][Tt][\s]*=[\s]*([0-9]{1,3}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.([0-9]{1,3}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.([0-9]{1,3}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.([0-9]{1,3}|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "2.10 OEM objects - 'Remove if OEM not used'"
+  info        : "Removing the OEM will reduce the Oracle attack surface."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Change {ORACLE_HOME} to the full path of your organization's Oracle directory."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\bin\dbsnmp"
+  file_option : MUST_NOT_EXIST
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "2.11 listener.ora - 'Change standard ports'"
+  info        : "Standard ports are used in automated attackes and by attackers to verify applications running on a server."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Change {ORACLE_HOME} to the full path of your organization's Oracle directory."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  regex       : "[Pp][Oo][Rr][Tt][\s]*="
+  expect      : "[Pp][Oo][Rr][Tt][\s]*=[\s]*152(1|6)$"
+  check_type  : CHECK_REGEX
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "2.14 Oracle Installation - 'Oracle software owner account name NOT oracle'"
+  info          : "Do not name the Oracle software owner account 'oracle' as it is very well known and can be leveraged by an attacker in a brute force attack."
+  info          : "Level 2, Scorable"
+  see_also      : "https://workbench.cisecurity.org/files/580"
+  wmi_namespace : "root/CIMV2"
+  wmi_request   : "SELECT Name FROM Win32_Account"
+  wmi_attribute : "Name"
+  wmi_key       : "Name"
+  value_type    : POLICY_TEXT
+  value_data    : "oracle"
+  check_type    : CHECK_NOT_EQUAL
+  reference     : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+</custom_item>
+
+<report type:"WARNING">
+  description : "2.15 Oracle Installation - 'Separate users for different components of Oracle'"
+  info        : "The user for the intelligent agent, the listener, and the database must be separated. This setup may cause unknown or unexpected errors and"
+  info        : "should be extensively tested before deployment into production."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it is not recommended for Windows environments."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## 3. Oracle Directory and File Permissions
+#
+#
+## 4. Oracle Parameter Settings
+#
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.12 init.ora - 'sql92_security = TRUE'"
+  info        : "Enforce the requirement that a user must have SELECT privilege on a table in order to be able to execute UPDATE and DELETE statements using"
+  info        : "WHERE clauses on a given table."
+  info        : "WARNING: This will likely result in many applications failing and should not be enabled in production without thorough testing."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Change {ORACLE_HOME} to the full path of your organization's Oracle directory."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\dbs\init.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll]92_[Ss][Ee][Cc][Uu][Rr][Ii][Tt][Yy][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll]92_[Ss][Ee][Cc][Uu][Rr][Ii][Tt][Yy][\s]*=[\s]*[Tt][Rr][Uu][Ee]"
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.13 listener.ora - 'admin_restrictions_listener_name = on'"
+  info        : "This requires the administrator to have write privileges to listener.ora. This setting will cause the listener to refuse set commands that"
+  info        : "alter its parameters without a restart of the listener. Not set and turned off by default."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  check_type  : CHECK_REGEX
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "regex".
+  regex       : "^[\s]*[Aa][Dd][Mm][Ii][Nn]_[Rr][Ee][Ss][Tt][Rr][Ii][Cc][Tt][Ii][Oo][Nn][Ss]_LISTENER_NAME[\s]*="
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "expect".
+  expect      : "^[\s]*[Aa][Dd][Mm][Ii][Nn]_[Rr][Ee][Ss][Tt][Rr][Ii][Cc][Tt][Ii][Oo][Nn][Ss]_LISTENER_NAME[\s]*=[\s]*[Oo][Nn]"
+  reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.16 init.ora - 'o7_dictionary_accessibility = FALSE'"
+  info        : "This is a database initialization parameter that controls access to objects in the SYS schema. Set this to FALSE to prevent users with"
+  info        : "EXECUTE ANY PROCEDURE and SELECT ANY DICTIONARY from accessing objects in the SYS schema. If access to these objects is required, the"
+  info        : "following roles can be assigned, SELECT_CATALOG_ROLE, EXECUTE_CATALOG_ROLE, DELETE_CATALOG_ROLE. If set to TRUE, accounts with 'ANY'"
+  info        : "privileges could get access to objects in the SYS schema. Default setting is FALSE."
+  info        : "Note: In Oracle Applications 11.5.9 and lower, O7_DICTIONARY_ACCESSIBILITY must be set to TRUE.  This is required for proper functioning of"
+  info        : "the application and Oracle does not support setting it to FALSE.  In Apps 11.5.10 and higher, O7_DICTIONARY_ACCESSIBILITY should be set to"
+  info        : "FALSE.  See Oracle Metalink Note ID 216205.1 for more information."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Change {ORACLE_HOME} to the full path of your organization's Oracle directory."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  check_type  : CHECK_REGEX
+  regex       : "[\s]*[Oo]7_[Dd][Ii][Cc][Tt][Ii][Oo][Nn][Aa][Rr][Yy]_[Aa][Cc][Cc][Ee][Ss][Ss][Ii][Bb][Ii][Ll][Ii][Tt][Yy][\s]*="
+  expect      : "[\s]*[Oo]7_[Dd][Ii][Cc][Tt][Ii][Oo][Nn][Aa][Rr][Yy]_[Aa][Cc][Cc][Ee][Ss][Ss][Ii][Bb][Ii][Ll][Ii][Tt][Yy][\s]*=[\s]*[Ff][Aa][Ll][Ss][Ee]"
+  reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii)"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "4.17 spfile<sid>.ora - 'Remove the following from the spfile: dispatches= (PROTOCOL=TCP) (SERVICE=<sid>XDB)'"
+  info        : "This will disable default ports ftp: 2100 and http: 8080. Removing the XDB ports will reduce the attack surface of the Oracle server. It is"
+  info        : "recommended to disable these ports if production usage is not required."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+# Note: Variable @SID@ replaced with "orcl" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\dbs\spfileorcl.ora"
+  check_type  : CHECK_REGEX
+  regex       : "[Dd][Ii][Ss][Pp][Aa][Tt][Cc][Hh][Ee][Rr][Ss][\s]*='"
+# Note: Variable @SID@ replaced with "orcl" in field "expect".
+  expect      : "[Dd][Ii][Ss][Pp][Aa][Tt][Cc][Hh][Ee][Rr][Ss][\s]*=[\s]*'\\(PROTOCOL=TCP\\)[\s]*\\(SERVICE=orclXDB\\)'"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.18 init.ora - 'audit_sys_operations = TRUE'"
+  info        : "Auditing of the users authenticated as the SYSDBA or the SYSOPER provides an oversight of the most privileged of users. It is important that"
+  info        : "the database user should not have access to the system directories where the audits will be recorded.  Ensure this by setting the"
+  info        : "AUDIT_SYS_OPERATIONS to TRUE."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\dbs\init.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Aa][Uu][Dd][Ii][Tt]_[Ss][Yy][Ss]_[Oo][Pp][Ee][Rr][Aa][Tt][Ii][Oo][Nn][Ss][\s]*="
+  expect      : "^[\s]*[Aa][Uu][Dd][Ii][Tt]_[Ss][Yy][Ss]_[Oo][Pp][Ee][Rr][Aa][Tt][Ii][Oo][Nn][Ss][\s]*=[\s]*[Tt][Rr][Uu][Ee]"
+  reference   : "800-171|3.3.8,800-171|3.3.9,800-53|AC-6(7),800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.AC-4,CSF|PR.PT-1,ISO/IEC-27001|A.9.2.5,ITSG-33|AU-9(4),NESA|M1.1.3,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,NESA|T5.1.1,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.18 spfile<sid>.ora - 'audit_sys_operations = TRUE'"
+  info        : "Auditing of the users authenticated as the SYSDBA or the SYSOPER provides an oversight of the most privileged of users. It is important that"
+  info        : "the database user should not have access to the system directories where the audits will be recorded.  Ensure this by setting the"
+  info        : "AUDIT_SYS_OPERATIONS to TRUE."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+# Note: Variable @SID@ replaced with "orcl" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\dbs\spfileorcl.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Aa][Uu][Dd][Ii][Tt]_[Ss][Yy][Ss]_[Oo][Pp][Ee][Rr][Aa][Tt][Ii][Oo][Nn][Ss][\s]*="
+  expect      : "^[\s]*[Aa][Uu][Dd][Ii][Tt]_[Ss][Yy][Ss]_[Oo][Pp][Ee][Rr][Aa][Tt][Ii][Oo][Nn][Ss][\s]*=[\s]*[Tt][Rr][Uu][Ee]"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.19 listener.ora - 'inbound_connect_timeout_listener = 2'"
+  info        : "Allowing inbound connections to hold open half connections consumes database resources and can lead to denial of service. Set the initial"
+  info        : "value low and adjust upward if normal clients are unable to connect within the time allocated."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\listener.ora"
+  check_type  : CHECK_REGEX
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "regex".
+  regex       : "^[\s]*[Ii][Nn][Bb][Oo][Uu][Nn][Dd]_[Cc][Oo][Nn][Nn][Ee][Cc][Tt]_[Tt][Ii][Mm][Ee][Oo][Uu][Tt]_LISTENER_NAME[\s]*="
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "expect".
+  expect      : "^[\s]*[Ii][Nn][Bb][Oo][Uu][Nn][Dd]_[Cc][Oo][Nn][Nn][Ee][Cc][Tt]_[Tt][Ii][Mm][Ee][Oo][Uu][Tt]_LISTENER_NAME[\s]*=[\s]*2$"
+  reference   : "800-171|3.1.11,800-53|AC-12,800-53|SC-5,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,CSF|DE.CM-1,CSF|PR.DS-4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.20 sqlnet.ora - 'tcp.validnode_checking = YES'"
+  info        : "This parameter enables the listener to check incoming connections for matches in the invited and excluded nodes list."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Tt][Cc][Pp]\.[Vv][Aa][Ll][Ii][Dd][Nn][Oo][Dd][Ee]_[Cc][Hh][Ee][Cc][Kk][Ii][Nn][Gg][\s]*="
+  expect      : "^[\s]*[Tt][Cc][Pp]\.[Vv][Aa][Ll][Ii][Dd][Nn][Oo][Dd][Ee]_[Cc][Hh][Ee][Cc][Kk][Ii][Nn][Gg][\s]*=[\s]*[Yy][Ee][Ss]"
+  reference   : "800-171|3.13.1,800-53|SC-5,800-53|SC-7(12),CSCv6|9.2,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,ITSG-33|SC-7(12),NESA|T3.3.1,NIAv2|AM38,NIAv2|GS10c,NIAv2|GS8e,NIAv2|SS13d,NIAv2|SS26"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.21 sqlnet.ora - 'Set tcp.invited_nodes to valid values'"
+  info        : "This creates a list of trusted nodes that can connect to the listener. The excluded_nodes value is ignored if this is set and a default deny"
+  info        : "policy is created only allowing the listed trusted nodes to connect to the listener."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Tt][Cc][Pp]\.[Ii][Nn][Vv][Ii][Tt][Ee][Dd]_[Nn][Oo][Dd][Ee][Ss][\s]*="
+# Note: Variable @INVITED_NODES@ replaced with "192.168.*" in field "expect".
+  expect      : "^[\s]*[Tt][Cc][Pp]\.[Ii][Nn][Vv][Ii][Tt][Ee][Dd]_[Nn][Oo][Dd][Ee][Ss][\s]*=[\s]*\\(192.168.*\\)"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.22 sqlnet.ora - 'Set tcp.excluded_nodes to valid values'"
+  info        : "Excluded nodes will prevent malicious or untrusted hosts from connecting to the listener."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Tt][Cc][Pp]\.[Ee][Xx][Cc][Ll][Uu][Dd][Ee][Dd]_[Nn][Oo][Dd][Ee][Ss][\s]*="
+# Note: Variable @EXCLUDED_NODES@ replaced with "172.30.*" in field "expect".
+  expect      : "^[\s]*[Tt][Cc][Pp]\.[Ee][Xx][Cc][Ll][Uu][Dd][Ee][Dd]_[Nn][Oo][Dd][Ee][Ss][\s]*=[\s]*\\(172.30.*\\)"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.23 sqlnet.ora - 'sqlnet.inbound_connect_timeout = 3'"
+  info        : "Allowing inbound connections to hold open half connections consumes database resource and can lead to denial of service. Suggestion is to"
+  info        : "set to a low initial value and adjust upward if normal clients are unable to connect within the time allocated."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Change {ORACLE_HOME} to the full path of your organization's Oracle directory."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Ii][Nn][Bb][Oo][Uu][Nn][Dd]_[Cc][Oo][Nn][Nn][Ee][Cc][Tt]_[Tt][Ii][Mm][Ee][Oo][Uu][Tt][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Ii][Nn][Bb][Oo][Uu][Nn][Dd]_[Cc][Oo][Nn][Nn][Ee][Cc][Tt]_[Tt][Ii][Mm][Ee][Oo][Uu][Tt][\s]*=[\s]*[1-3]$"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.24 sqlnet.ora - 'sqlnet.expire_time = 10'"
+  info        : "If this is not set in the sqlnet.ora file, the default is never to expire. Allowing a connection to idle indefinitely will consume system"
+  info        : "resources leading to a denial of service. It is recommended to set this to a low value initially, then increase if clients experience"
+  info        : "timeout issues."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Ee][Xx][Pp][Ii][Rr][Ee]_[Tt][Ii][Mm][Ee][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Ee][Xx][Pp][Ii][Rr][Ee]_[Tt][Ii][Mm][Ee][\s]*=[\s]*(10|[1-9])$"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.26 init.ora - 'remote_login_passwordfile = NONE'"
+  info        : "Prevents remote privileged connections to the database. This suggests that remote administration should be performed by remotely logging"
+  info        : "into the database server via a secured connection. Alternately, an administrative listener could be created, the remote_login_passwordfile"
+  info        : "set to exclusive, and logging of the administrative listener implemented."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\dbs\init.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Rr][Ee][Mm][Oo][Tt][Ee]_[Ll][Oo][Gg][Ii][Nn]_[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][Ff][Ii][Ll][Ee][\s]*="
+  expect      : "^[\s]*[Rr][Ee][Mm][Oo][Tt][Ee]_[Ll][Oo][Gg][Ii][Nn]_[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][Ff][Ii][Ll][Ee][\s]*=[\s]*[Nn][Oo][Nn][Ee]"
+  reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-17,CN-L3|7.1.2.2(h),CN-L3|7.1.3.7(a),CN-L3|8.1.10.6(i),CN-L3|8.1.4.4(c),CSF|PR.AC-3,CSF|PR.PT-4,ISO/IEC-27001|A.6.2.2,ITSG-33|AC-17,NESA|T4.2.1,NESA|T4.5.1,NESA|T5.1.1,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.7.1,NESA|T5.7.2,NIAv2|AM40,NIAv2|AM41,NIAv2|NS48,NIAv2|NS51,NIAv2|NS5g,NIAv2|NS5h,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.27 sqlnet.ora - 'sqlnet.allowed_logon_version = 11'"
+  info        : "Set the login version to the 11. The higher setting prevents logins by older version clients that do not use strong authentication to pass"
+  info        : "the login credentials.  The default setting is 10,9,8."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Aa][Ll][Ll][Oo][Ww][Ee][Dd]_[Ll][Oo][Gg][Oo][Nn]_[Vv][Ee][Rr][Ss][Ii][Oo][Nn][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Aa][Ll][Ll][Oo][Ww][Ee][Dd]_[Ll][Oo][Gg][Oo][Nn]_[Vv][Ee][Rr][Ss][Ii][Oo][Nn][\s]*=[\s]*11$"
+  reference   : "800-171|3.14.1,800-171|3.4.8,800-53|CM-7(5),800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSCv6|2.2,CSF|ID.RA-1,CSF|PR.IP-1,CSF|PR.IP-12,CSF|PR.PT-3,HIPAA|164.308(a)(5)(ii)(A),ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|PR9,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,SWIFT-CSCv1|2.2,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "4.28 listener.ora - 'Use absolute paths in ENVS parameters'"
+  info        : "Allowing overly broad PATH and CLASSPATH variables could allow an attacker to leverage pathing issues and load malicious binaries or"
+  info        : "classes."
+  info        : "NOTE: Ensure only full paths are being utilized when the ENVS parameter is used."
+  info        : "Level 2, Not Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\listener.ora"
+  check_type  : CHECK_REGEX
+  regex       : "[Ee][Nn][Vv][Ss][\s]*="
+  expect      : "[Ee][Nn][Vv][Ss][\s]*=[\s]*.*$"
+  reference   : "800-171|3.4.7,800-53|CM-7(2),CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.29 cman.ora - 'remote_admin = NO'"
+  info        : "Ensure remote administration is not left enabled. Default is NO."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\admin\cman.ora"
+  check_type  : CHECK_REGEX
+  regex       : "[\s]*\\([Rr][Ee][Mm][Oo][Tt][Ee]_[Aa][Dd][Mm][Ii][Nn][\s]*="
+  expect      : "[\s]*\\([Rr][Ee][Mm][Oo][Tt][Ee]_[Aa][Dd][Mm][Ii][Nn][\s]*=[\s]*[Nn][Oo]\\)"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<report type:"WARNING">
+  description : "4.30 listener.ora, tnsnames.ora - 'Disable external procedures'"
+  info        : "Remove entries for external procedures from listener.ora or tnsnames.ora file. External procedures can call shared libraries on the host"
+  info        : "system from the $ORACLE_HOME/lib or $ORACLE_HOME/bin directories. This creates a dangerous condition. If not required disable their usage."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that external shared libraries have been removed."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.31 init.ora - 'sec_return_server_release_banner = FALSE'"
+  info        : "Ensure the oracle database is not returning complete database information to clients. Knowing the exact patch set can aid an attacker."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\dbs\init.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Ee][Cc]_[Rr][Ee][Tt][Uu][Rr][Nn]_[Ss][Ee][Rr][Vv][Ee][Rr]_[Rr][Ee][Ll][Ee][Aa][Ss][Ee]_[Bb][Aa][Nn][Nn][Ee][Rr][\s]*="
+  expect      : "^[\s]*[Ss][Ee][Cc]_[Rr][Ee][Tt][Uu][Rr][Nn]_[Ss][Ee][Rr][Vv][Ee][Rr]_[Rr][Ee][Ll][Ee][Aa][Ss][Ee]_[Bb][Aa][Nn][Nn][Ee][Rr][\s]*=[\s]*[Ff][Aa][Ll][Ss][Ee]"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.32 init.ora - 'db_securefile = ALWAYS'"
+  info        : "Ensure that all LOB files created by Oracle are created as SecureFiles."
+  info        : "Level 2, Not Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\dbs\init.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Dd][Bb]_[Ss][Ee][Cc][Uu][Rr][Ee][Ff][Ii][Ll][Ee][\s]*="
+  expect      : "^[\s]*[Dd][Bb]_[Ss][Ee][Cc][Uu][Rr][Ee][Ff][Ii][Ll][Ee][\s]*=[\s]*[Aa][Ll][Ww][Aa][Yy][Ss]"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.39 listener.ora - 'secure_control_listener_name = (TCP,IPC)'"
+  info        : "f remote administration of the listener is required configure the listener for secure control.  If no values are entered for this parameter,"
+  info        : "the listener will accept registration request from any transport. If only IPC or TCPS is required then set the value to TCPS or IPC."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  check_type  : CHECK_REGEX
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "regex".
+  regex       : "^[\s]*[Ss][Ee][Cc][Uu][Rr][Ee]_[Cc][Oo][Nn][Tt][Rr][Oo][Ll]_LISTENER_NAME[\s]*="
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "expect".
+  expect      : "^[\s]*[Ss][Ee][Cc][Uu][Rr][Ee]_[Cc][Oo][Nn][Tt][Rr][Oo][Ll]_LISTENER_NAME[\s]*=[\s]*\\([Tt][Cc][Pp][Ss],[\s]*[Ii][Pp][Cc]\\)"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.41 listener.ora - 'secure_register_listener_name = (TCP,IPC)'"
+  info        : "Ensure that any registration requests are accepted over secure transport. If only IPC or TCP is required then set the value to TCPS or IPC."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Change {ORACLE_HOME} to the full path of your organization's Oracle directory."
+  info        : "NOTE: Change {LISTENER_NAME} to the full path of your organization's Listener name."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  check_type  : CHECK_REGEX
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "regex".
+  regex       : "^[\s]*[Ss][Ee][Cc][Uu][Rr][Ee]_[Rr][Ee][Gg][Ii][Ss][Tt][Ee][Rr]_LISTENER_NAME[\s]*="
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "expect".
+  expect      : "^[\s]*[Ss][Ee][Cc][Uu][Rr][Ee]_[Rr][Ee][Gg][Ii][Ss][Tt][Ee][Rr]_LISTENER_NAME[\s]*=[\s]*\\([Tt][Cc][Pp][Ss],[\s]*[Ii][Pp][Cc]\\)"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "4.42 listener.ora - 'dynamic_registration_listener_name = OFF'"
+  info        : "If DYNAMIC_REGISTRATION is turned on all registration connections are accepted by the listener. It is recommended that only static"
+  info        : "registrations be used by the listener."
+  info        : "Turning off dynamic registration may not be possible in larger or more dynamic environments. Ensure proper testing is done before turning"
+  info        : "off dynamic registration in production."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  check_type  : CHECK_REGEX
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "regex".
+  regex       : "^[\s]*[Dd][Yy][Nn][Aa][Mm][Ii][Cc]_[Rr][Ee][Gg][Ii][Ss][Tt][Rr][Aa][Tt][Ii][Oo][Nn]_LISTENER_NAME[\s]*="
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "expect".
+  expect      : "^[\s]*[Dd][Yy][Nn][Aa][Mm][Ii][Cc]_[Rr][Ee][Gg][Ii][Ss][Tt][Rr][Aa][Tt][Ii][Oo][Nn]_LISTENER_NAME[\s]*=[\s]*[Oo][Ff][Ff]"
+  reference   : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+</custom_item>
+
+#
+## 5. Encryption Specific Settings
+#
+
+<report type:"WARNING">
+  description : "5.01 OAS - 'General - Review requirement for integrity and confidentiality requirements'"
+  info        : "Only implement OAS if a local integrity/encryption policy does not already exist, e.g., IPSec or other means for providing"
+  info        : "integrity/confidentiality services."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires a manual review if this requirement exists for each organization."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.02 OAS - 'Encryption Type - sqlnet.encryption_server = REQUIRED'"
+  info        : "This ensures that regardless of the settings on the user, if communication takes place it must be encrypted. Default is accepted."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt].[Ee][Nn][Cc][Rr][Yy][Pp][Tt][Ii][Oo][Nn]_[Ss][Ee][Rr][Vv][Ee][Rr][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt].[Ee][Nn][Cc][Rr][Yy][Pp][Tt][Ii][Oo][Nn]_[Ss][Ee][Rr][Vv][Ee][Rr][\s]*=[\s]*[Rr][Ee][Qq][Uu][Ii][Rr][Ee][Dd]"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.03 OAS - 'Encryption Type - sqlnet.encryption_client = REQUIRED'"
+  info        : "Communication is only possible on the basis of an agreement between the client and the server regarding the connection encryption. To ensure"
+  info        : "encrypted communication, set the value to REQUIRED. With the server set to REQUIRED the client must match the encryption for valid"
+  info        : "communication to take place. Default is accepted."
+  info        : "Note: Failure to specify one of the values will result in an error when an attempt is made to connect to a FIPS 140-1 compliant server."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt].[Ee][Nn][Cc][Rr][Yy][Pp][Tt][Ii][Oo][Nn]_[Cc][Ll][Ii][Ee][Nn][Tt][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt].[Ee][Nn][Cc][Rr][Yy][Pp][Tt][Ii][Oo][Nn]_[Cc][Ll][Ii][Ee][Nn][Tt][\s]*=[\s]*[Rr][Ee][Qq][Uu][Ii][Rr][Ee][Dd]"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.04 OAS - 'FIPS Compliance - sslfips_140 = TRUE'"
+  info        : "For FIPS 140-2 compliance, the FIPS value must be set to TRUE. The default value for this setting is FALSE."
+  info        : "NOTE: This value is not settable using the Oracle Net Manager. To set this value you must use a text editor and modify the fips.ora file."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\ldap\admin\fips.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Ss][Ll][Ff][Ii][Pp][Ss]_140[\s]*="
+  expect      : "^[\s]*[Ss][Ss][Ll][Ff][Ii][Pp][Ss]_140[\s]*=[\s]*[Tt][Rr][Uu][Ee]"
+  reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.05 OAS - 'Integrity Protection - sqlnet.crypto_checksum_server = REQUIRED'"
+  info        : "The integrity check for communication can prevent data modifications. Two check sum algorithms are available; SHA-1 and MD5."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Cc][Rr][Yy][Pp][Tt][Oo]_[Cc][Hh][Ee][Cc][Kk][Ss][Uu][Mm]_[Ss][Ee][Rr][Vv][Ee][Rr][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Cc][Rr][Yy][Pp][Tt][Oo]_[Cc][Hh][Ee][Cc][Kk][Ss][Uu][Mm]_[Ss][Ee][Rr][Vv][Ee][Rr][\s]*=[\s]*[Rr][Ee][Qq][Uu][Ii][Rr][Ee][Dd]"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.05 OAS - 'Integrity Protection - sqlnet.crypto_checksum_client = REQUIRED'"
+  info        : "The integrity check for communication can prevent data modifications. Two check sum algorithms are available; SHA-1 and MD5."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Cc][Rr][Yy][Pp][Tt][Oo]_[Cc][Hh][Ee][Cc][Kk][Ss][Uu][Mm]_[Cc][Ll][Ii][Ee][Nn][Tt][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Cc][Rr][Yy][Pp][Tt][Oo]_[Cc][Hh][Ee][Cc][Kk][Ss][Uu][Mm]_[Cc][Ll][Ii][Ee][Nn][Tt][\s]*=[\s]*[Rr][Ee][Qq][Uu][Ii][Rr][Ee][Dd]"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.06 OAS - 'Integrity Protection - sqlnet.crypto_checksum_types_server = (SHA1)'"
+  info        : "If possible, use SHA1 instead of MD5. MD5 has documented weaknesses and is prone to collisions. Usage of SHA-1 is recommended. Default is"
+  info        : "all."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Cc][Rr][Yy][Pp][Tt][Oo]_[Cc][Hh][Ee][Cc][Kk][Ss][Uu][Mm]_[Tt][Yy][Pp][Ee][Ss]_[Ss][Ee][Rr][Vv][Ee][Rr][\s]*="
+  expect      : "^[\s]*[Ss][Qq][Ll][Nn][Ee][Tt]\.[Cc][Rr][Yy][Pp][Tt][Oo]_[Cc][Hh][Ee][Cc][Kk][Ss][Uu][Mm]_[Tt][Yy][Pp][Ee][Ss]_[Ss][Ee][Rr][Vv][Ee][Rr][\s]*=[\s]*\\([Ss][Hh][Aa]1\\)"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<report type:"WARNING">
+  description : "5.07 OAS - 'Oracle Wallet Owner Permissions - Set Configuration method for Oracle Wallet.'"
+  info        : "Ensure only the appropriate Oracle user account has access to the wallet. The Oracle service account must have access to the wallet."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to determine if the Oracle service account has access to the"
+  info        : "wallet."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.08 OAS - 'Oracle Wallet Trusted Certificates - Remove certificate authorities (CAs) that are not required.'"
+  info        : "Trust only those CAs that are required by clients and servers."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires running the 'orapki' command line utility to verify compliance."
+  info        : "NOTE: Run the command 'orapki wallet display -wallet wallet_location' to verify only required CAs are listed."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.09 OAS - 'Oracle Wallet Trusted Certificates Import - When adding CAs, verify fingerprint of CA certificates'"
+  info        : "When adding CA certificates via out-of-band methods, use fingerprints to verify the certificate. Failure to verify fingerprints can lead to"
+  info        : "compromise of the certificate chain."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to determine if imported CA certificates are valid."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.10 OAS - 'Certificate Request Key Size - Request the maximum key size.'"
+  info        : "Select the largest key size available that is compatible with the network environment.  2048 or 4096 are recommended sizes."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires running the 'orapki' command line utility to verify compliance."
+  info        : "NOTE: Run the command 'orapki wallet display -wallet wallet_location' to verify only required CAs are listed."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.11 OAS - 'Server Oracle Wallet Auto Login - Allow Auto Login for the server's Oracle Wallet'"
+  info        : "For Windows Oracle database servers, SSL will not work unless Auto Login is set."
+  info        : "Level 2, Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to determine if Auto Login has been enabled."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.12 OAS - 'SSL Tab - SSL is preferred method. If PKI is not possible, use OAS Integrity/Encryption.'"
+  info        : "OAS Integrity/Encryption should only be used if required because of non-SSL clients."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required in order to determine if SSL is available."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.13 OAS - 'SSL Version - Set SSL version ssl_version = 3.0'"
+  info        : "Usage of the most current version of SSL is recommended older versions of the SSL protocol are prone to attack or roll back. Do not set this"
+  info        : "parameter with 'Any'."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Ss][Ll]_[Vv][Ee][Rr][Ss][Ii][Oo][Nn][\s]*="
+  expect      : "^[\s]*[Ss][Ss][Ll]_[Vv][Ee][Rr][Ss][Ii][Oo][Nn][\s]*=[\s]*3\.0"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.14 OAS - 'SSL Cipher Suite - Set SSL Cipher Suite. ssl_cipher_suites = SSL_RSA_WITH_3DES_EDE_CBC_SHA'"
+  info        : "SSL_CIPHER_SUITES are automatically set to FIPS140-2 approved suites by Oracle 11g."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Ss][Ll]_[Cc][Ii][Pp][Hh][Ee][Rr]_[Ss][Uu][Ii][Tt][Ee][Ss][\s]*="
+  expect      : "^[\s]*[Ss][Ss][Ll]_[Cc][Ii][Pp][Hh][Ee][Rr]_[Ss][Uu][Ii][Tt][Ee][Ss][\s]*=[\s]*\\([Ss][Ss][Ll]_[Rr][Ss][Aa]_[Ww][Ii][Tt][Hh]_3[Dd][Ee][Ss]_[Ee][Dd][Ee]_[Cc][Bb][Cc]_[Ss][Hh][Aa]\\)"
+  reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.15 OAS - 'SSL Client DN Match - Set tnsnames file to include ssl_server_cert_dn parameter with the DN of the certificate'"
+  info        : "This will reduce the possibility of certificate masquerading which can lead to man in the middle attacks"
+  info        : "and compromise the security provided by SSL."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\tnsnames.ora"
+  check_type  : CHECK_REGEX
+  regex       : "[\s]*\\([Ss][Ss][Ll]_[Ss][Ee][Rr][Vv][Ee][Rr]_[Cc][Ee][Rr][Tt]_[Dd][Nn][\s]*="
+# Note: Variable @CERT_CN@ replaced with "cn=finance,cn=OracleContext" in field "expect".
+# Note: Variable @CERT_DC@ replaced with "dc=us,dc=example,dc=com" in field "expect".
+  expect      : "[\s]*\\([Ss][Ss][Ll]_[Ss][Ee][Rr][Vv][Ee][Rr]_[Cc][Ee][Rr][Tt]_[Dd][Nn][\s]*=[\s]*.cn=finance,cn=OracleContext,dc=us,dc=example,dc=com."
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.16 OAS - 'SSL Client Authentication - ssl_client_authentication = TRUE'"
+  info        : "It is preferable to have mutually authenticated SSL connections verifying the identity of both parties. If possible use client and server"
+  info        : "certificates for SSL connections. If client certificates are not supported in the enterprise, then set to FALSE."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Ss][Ll]_[Cc][Ll][Ii][Ee][Nn][Tt]_[Aa][Uu][Tt][Hh][Ee][Nn][Tt][Ii][Cc][Aa][Tt][Ii][Oo][Nn][\s]*="
+  expect      : "^[\s]*[Ss][Ss][Ll]_[Cc][Ll][Ii][Ee][Nn][Tt]_[Aa][Uu][Tt][Hh][Ee][Nn][Tt][Ii][Cc][Aa][Tt][Ii][Oo][Nn][\s]*=[\s]*[Tt][Rr][Uu][Ee]"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<report type:"WARNING">
+  description : "5.17 OAS - 'Encryption Tab - Use OAS encryption only if SSL is not feasible'"
+  info        : "OAS Integrity/Encryption should only be used if required because of non-SSL clients."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required in order to determine if SSL is available."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.18 Encryption - 'Use a procedure that employs a content data element as the encryption key that is unique for each record.'"
+  info        : "By employing a procedure that uses data elements that change for each record the resulting ciphertext will be unique. As an example if the"
+  info        : "same value, key, and encryption are used for a value in a record the resulting ciphertext will be identical. Someone knowing the value of"
+  info        : "one of the records independent of the ciphertext can by inference know the value of other records that display the same ciphertext."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required in order to determine which elements require an encryption key."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.19 Encryption - 'Use RAW or BLOB for the storage of encrypted data'"
+  info        : "Storing data in CLOB may result in a failure in decryption if the same number letter symbol set is not used. The use of RAW or BLOBs"
+  info        : "prevents this error and preserves the data."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required in order to determine if RAW or BLOB is being utilized."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.20 Encryption - 'If keys are stored in a table, access should be limited and under the protection of a secure role'"
+  info        : "Assign multiple layers of protection, within the limits of what can be managed, to ensure the security of the encryption keys. The"
+  info        : "combination of methods will be dependent on how and where the keys are stored."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required in order to determine if keys are stored in the database."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.22 Encryption - 'Use HSM for storage of master key'"
+  info        : "Where possible use an HSM to store the master keys for Transparent Data Encryption. All encryption and decryption operations that use the"
+  info        : "master encryption key are performed inside the HSM. This means that the master encryption key is never exposed in insecure memory."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required in order to determine if a HSM for storage is needed."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "5.23 Encryption - 'Tablespace Encryption'"
+  info        : "When a table contains a large number of columns of PII it can be beneficial to encrypt an entire tablespace rather than columns."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required in order to determine if tablespace encryption is required."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.25 sqlnet.ora - 'ssl_cert_revocation = REQUIRED'"
+  info        : "Ensure revocation is required for checking CRLs for client certificate authentication. Revoked certificates can pose a threat to the"
+  info        : "integrity of the SSL channel and should not be trusted."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Ss][Ll]_[Cc][Ee][Rr][Tt]_[Rr][Ee][Vv][Oo][Cc][Aa][Tt][Ii][Oo][Nn][\s]*="
+  expect      : "^[\s]*[Ss][Ss][Ll]_[Cc][Ee][Rr][Tt]_[Rr][Ee][Vv][Oo][Cc][Aa][Tt][Ii][Oo][Nn][\s]*=[\s]*[Rr][Ee][Qq][Uu][Ii][Rr][Ee][Dd]"
+  reference   : "800-53|IA-5(2),CSF|PR.AC-1,ITSG-33|IA-5(2)"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "5.26 sqlnet.ora - 'ssl_server_dn_match = YES'"
+  info        : "Ensure the DN string of the certificate matches the expected value."
+  info        : "Level 2, Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\sqlnet.ora"
+  check_type  : CHECK_REGEX
+  regex       : "^[\s]*[Ss][Ss][Ll]_[Ss][Ee][Rr][Vv][Ee][Rr]_[Dd][Nn]_[Mm][Aa][Tt][Cc][Hh][\s]*="
+  expect      : "^[\s]*[Ss][Ss][Ll]_[Ss][Ee][Rr][Vv][Ee][Rr]_[Dd][Nn]_[Mm][Aa][Tt][Cc][Hh][\s]*=[\s]*[Yy][Ee][Ss]"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+#
+## 6. Startup and Shutdown
+#
+#
+## 7. Backup and Disaster Recovery
+#
+
+<report type:"WARNING">
+  description : "7.08 Failsafe - 'Failsafe must be engaged'"
+  info        : "Failsafe uses the cluster server interface to provide the failover protection previously provided by hardware interfaces."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to determine if failsafe is engaged."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## 8. Oracle Profile (User) Setup Settings
+#
+#
+## 9. Oracle Profile (User) Access Settings
+#
+#
+## 10. Enterprise Manager/Grid Control/Agents
+#
+
+<report type:"WARNING">
+  description : "10.06 Oracle Installation - 'Separate user account for Management/Intelligent Agent'"
+  info        : "The agent database accounts must be separated. This will isolate the Agent from the rest of the Oracle server in the event that is"
+  info        : "compromised."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as separate accounts are not recommended for Windows environments."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## 11. Specific Systems
+#
+
+<report type:"WARNING">
+  description : "11.04 Fine grained access - 'Use fine grain access control within objects'"
+  info        : "Fine grained access control can provide both column and row level security. This can provide an additional layer of access control to"
+  info        : "objects by limiting the access (select, update, insert, delete) within the object and should be used wherever possible.  For fine grained"
+  info        : "access to function properly, use the cost-based optimizer."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to determine if fine grained access is configured."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## 12. General Policy and Procedures
+#
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "12.35 Oracle Installation - 'Oracle software owner account name NOT 'oracle''"
+  info          : "Do not name the Oracle software owner account 'oracle' as it is very well known and userd in many automated attacks and brute forcing tools."
+  info          : "Level 2, Scorable"
+  see_also      : "https://workbench.cisecurity.org/files/580"
+  wmi_namespace : "root/CIMV2"
+  wmi_request   : "SELECT Name FROM Win32_Account"
+  wmi_attribute : "Name"
+  wmi_key       : "Name"
+  value_type    : POLICY_TEXT
+  value_data    : "oracle"
+  check_type    : CHECK_NOT_EQUAL
+  reference     : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+</custom_item>
+
+<report type:"WARNING">
+  description : "12.36 Oracle Installation - 'Separate users for different components of Oracle'"
+  info        : "Properly privilege separate user accounts associated with each Oracle service. In the event that an Oracle service is compromised privilege"
+  info        : "separating each service will help reduce the damage an attacker can perform."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure separate users are used for different Oracle"
+  info        : "components."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.37 Alerts on high priority incidents - 'Create processes to alert'"
+  info        : "Monitoring high priority incidents will help in the event of a security incident."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure processes are created to alert on high priority"
+  info        : "incidents."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.38 Intelligent agent - 'Do not use'"
+  info        : "Intelligent agents provide a direct management interface to the Oracle database."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure the Intelligent agents are not used."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.39 Network - 'Implement if appropriate'"
+  info        : "Traffic sent unencrypted across a network can be monitored and intercepted."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to determine if implementing Oracle Advanced Security is needed"
+  info        : "to secure traffic."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.40 Application PL/SQL code - 'Encrypt'"
+  info        : "The wrap program provided by Oracle encodes the PL/SQL source code but does not encrypt it."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure hardcoded data is avoided."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.41 Hard coded data in PL/SQL and application source code - 'Avoid or encrypt'"
+  info        : "Do not use unencrypted hard coded usernames, passwords, or other critical data in the PL/SQL code. PL/SQL code is often viewable by many"
+  info        : "users of the Oracle system and stored in code repositories."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure hardcoded data does not contain usernames, passwords or"
+  info        : "other critical information."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.42 Decommissioned applications - 'Remove all components'"
+  info        : "Failure to remove all privileges once an application has been removed from an Oracle database widens the attack surface and can provide"
+  info        : "unmonitored access for an attacker."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure decommissioned applications are removed."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.43 DDL statements in application - 'Disallow'"
+  info        : "Applications must not alter the database schema."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure only approved schema changes are made to the database."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.44 Host and Application Monitoring Software - 'Review'"
+  info        : "Any remote access to the database host must be controlled by an application level firewall."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure an application level firewall is installed on the"
+  info        : "system."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.45 Enabling of batch process account - 'Time enabled'"
+  info        : "Allowing the batch account to remain active widens the system attack surface and may lead to unauthorized access of the Oracle database."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure the batch account is only allowed to run commands at"
+  info        : "specific times."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.46 Passwords for batch processes - 'Secure'"
+  info        : "Passwords for batch processes must not be a command line parameter or an environment variable."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure batch files and scripts do not contain passwords."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.47 External account access for batch processes - 'Disallow'"
+  info        : "External accounts used for batch processes allow a simple way to access the database."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure external account access for batch processes are"
+  info        : "disallowed."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.48 User permissions - 'Review'"
+  info        : "Review and test development databases for users with excess permissions not granted in production."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure user accounts for test/development databases are"
+  info        : "reviewed."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.49 Procedures for backup tape retrieval - 'Review'"
+  info        : "Loss of a tape can compromise other measures taken to protect database information."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure backup tapes are controlled and properly secured."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.50 Intrusion detection system on host - 'Utilize'"
+  info        : "A host based intrusion detection system provides another layer of defense for the Oracle server."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure an intrusion detection system is used on the hosting"
+  info        : "server."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "12.51 Remote Administration of Listener - 'Use encryption if remote administration is required'"
+  info        : "If remote administration of a listener via the listener utility is required, configure the listener to have TCPS (SSL) port."
+  info        : "Level 2, Not Scorable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\network\ADMIN\listener.ora"
+  check_type  : CHECK_REGEX
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "regex".
+  regex       : "^[\s]*[Ss][Ee][Cc][Uu][Rr][Ee]_[Cc][Oo][Nn][Tt][Rr][Oo][Ll]_LISTENER_NAME[\s]*="
+# Note: Variable @LISTENER_NAME@ replaced with "LISTENER_NAME" in field "expect".
+  expect      : "^[\s]*[Ss][Ee][Cc][Uu][Rr][Ee]_[Cc][Oo][Nn][Tt][Rr][Oo][Ll]_LISTENER_NAME[\s]*=[\s]*\\([Tt][Cc][Pp][Ss],[\s]*[Ii][Pp][Cc]\\)"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,SWIFT-CSCv1|2.6"
+</custom_item>
+
+<report type:"WARNING">
+  description : "12.52 Multiple listeners - 'Create separate listeners for client and administratorion'"
+  info        : "An administrative listener, protected by IPSec, could allow administrators access to the server if the client listener(s) fail. Preference"
+  info        : "of implementation is IPSec ESP, otherwise SSL and host-based firewall.  If SSL is not possible, use OAS native encryption/integrity with a"
+  info        : "host firewall..   Access must be limited to specific administrative workstations."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to confirm a separate administration listener is configured."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.53 Policy Caching - 'Policy caches must be purged'"
+  info        : "Policy caches can potentially store information that could be used to compromise the database and may accessible outside of Oracle and"
+  info        : "beyond the control of the security parameters. Hence this can defeat row level security."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure the policy caches are purged."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.54 Policy Functions - 'Users should not have execute, alter or drop privileges on policy functions'"
+  info        : "The ability to manipulate policy functions could be used to defeat row level security."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure users do not have execute, alter or drop privileges."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.55 Passwords - 'Remove password parameters from configuration files utilized for Silent Installations'"
+  info        : "Whenever utilizing silent installs, i.e. Oracle Installer, ensure configuration files do not contain password values after the installation"
+  info        : "completes."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure configuration files do not contain passwords."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.56 DataGuard Auth - 'Authenticate Data Guard with SSL cerfiticates'"
+  info        : "Strong authentication using certificates provides both security and identification of endpoints for the DataGuard service."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure SSL certificates are utilized for DataGuard."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.57 Data Guard Mode - 'Select Maximum Protection'"
+  info        : "Loss of data can result in the loss of system integrity or audit trails. Setting Data Guard to maximum mode ensures no information is lost"
+  info        : "in the event of a failure."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure Data Guard is utilizing the Maximum Protection."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.58 Data Guard Redo - 'Authenticate Redo Transport Services using SSL Certificates'"
+  info        : "Connections sent across the network unencrypted can be monitored and intercepted exposing sensitive information."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure Data Guard Redo is configured to use SSL Certificates."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.59 Incident Packages - 'Ensure Incident Packages are destroyed or properly protected after upload to Oracle'"
+  info        : "Sensitive information may be contained in incident packages. Not sanitizing packages may result in leaking of sensitive information to"
+  info        : "Oracle."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure Incident Packages are destroyed or protected properly."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## Appendix A: Additional Settings (not scored)
+#
+
+<report type:"WARNING">
+  description : "14.01 Oracle Label Security - 'Where possible use Oracle Label Security'"
+  info        : "OLS is a strong additional layer of security that can be used to create a Virtual Private database (VPD).  OLS allows data of varying"
+  info        : "sensitivities to be stored in a ingle database and access to the data to be restricted using security clearances as defined by role level."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure Oracle Label Security is used where appropriate."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.02 Oracle Label Security - 'Hide label column'"
+  info        : "If the status of the hidden label column needs to be changed, the values of the label column may be copied to an added column, then the"
+  info        : "hidden column can be removed, the column copies, and then removes the policy dropping the row label column.  Reinstate the policy and then"
+  info        : "copy the values from the added column to the row label column and then remove the added column."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure OLS is hiding the label column."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.03 Oracle Label Security - 'Include LABEL_UPDATE'"
+  info        : "This ensures the user cannot reclassify the data in the record by changing the label."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure the LABEL_UPDATE is included for TABLE_OPTIONS."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.04 Oracle Label Security - 'Limit manipulation'"
+  info        : "By the creation of a procedure, direct manipulation by database users of the labels is prevented and an additional level of security is"
+  info        : "provided.  This can provide a separation of responsibility between the DBA and the security administrators."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure a trusted procedure limit is in use to prevent"
+  info        : "manipulation."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.05  Oracle Label Security - 'Backup data'"
+  info        : "OLS introduces an additional hidden column into a table. For some tables the addition of a column or a hidden column may render the table"
+  info        : "unusable. For applications that expect to see all the data, OLS may be interpreted as corrupt data."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure a backup copy of the data is saved."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.06  Oracle Label Security - 'Where applicable and possible, store labels in the Oracle Internet Directory(OID)'"
+  info        : "In the context of the Enterprise User Security option, this provides a centralized management method for user passwords, enterprise roles,"
+  info        : "and OLS authorization. Under the control of the OID, policies cannot be manipulated within the databases."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure labels are stored in the Oracle Internet Directory."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.07 RAID file system - 'Implement'"
+  info        : "File systems holding the Oracle data should be on RAID volumes for resilience."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure the system utilizes a RAID file system."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.08 Magnetically wipe failed disks - 'Implement'"
+  info        : "Sensitive data or information can be recovered from magnetic or data media if not properly erased."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure failed disks are magnetically wiped."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.09 Backups on system disks - 'Verify permissions'"
+  info        : "In many environments, database backups are written to system disks.  In this type of environment, ensure that the backup files are"
+  info        : "protected.  Files should be owned by oracle software owner set with owner read/write permissions only."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure backups on system disks have appropriate permissions."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.10 Off site backup storage - 'Implement'"
+  info        : "It is a best practice to have redundant offsite backups in the event of a physical catastrophe."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure backups are stored at an offsite location."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.11 Recovery procedures - 'Document and Test'"
+  info        : "Failure to properly implement and test recovery procedures can result in loss of data and compromise system integrity."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure backups are documented and regularly tested."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.12 Screening router - 'Implement to restrict access to database host'"
+  info        : "Unrestricted access to the database widens the attack surface. Network access should be limited to application and administrative hosts."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure a screening router is being utilized."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "14.13 Host-based firewall - 'Implement on database administration machines'"
+  info        : "Use a host based firewall on all computers used to remotely administer databases."
+  info        : "Level 2, Not Scorable"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as manual verification is required to ensure host based firewalls are installed on administration"
+  info        : "machines."
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+</group_policy>
+</check_type>

@@ -1,0 +1,370 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.12 $
+# $Date: 2020/04/20 $
+#
+#<ui_metadata>
+#<display_name>TNS Best Practice OpenStack</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Best Practice OpenStack</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>openstack,tenable</labels>
+#<variables>
+#  <variable>
+#    <name>SERVER_UN</name>
+#    <default></default>
+#    <description>Server Owner Username</description>
+#    <info>This 'Server Owner Username' variable is used in the audit to query for servers owned by a specific username.</info>
+#    <optional />
+#  </variable>
+#  <variable>
+#    <name>SCAN_INTERVAL</name>
+#    <default>30</default>
+#    <description>'Days Since' the last Nessus Scan</description>
+#    <info>This is a 'Days Since' value for Nessus Scans.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"OpenStack">
+
+<custom_item>
+  description    : "OpenStack Servers and their details"
+  info           : "The Servers and their current state will determine what services are available."
+  solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  service        : 'compute'
+  request        : 'servers/detail'
+  json_transform : '.servers[]|
+                    "\n\nName: "    + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "OpenStack Active Servers"
+  info           : "The Servers and their current state will determine what services are available."
+  solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'servers/detail'
+  json_transform : '.servers[]|select(.status=="ACTIVE")|
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "OpenStack Inactive Servers"
+  info           : "The Servers and their current state will determine what services are available."
+  solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'servers/detail'
+  json_transform : '.servers[]|select(.status!="ACTIVE")|
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "OpenStack Servers created since the last scan"
+  info           : "The Servers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+  solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'servers/detail'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+  json_transform : '.servers[] |
+                    select((.created | iso_8601_days_ago) < 30) |
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "OpenStack Servers updated since the last scan"
+  info           : "The Servers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+  solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'servers/detail'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+  json_transform : '.servers[] |
+                    select((.updated | iso_8601_days_ago) < 30) |
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+# Note: Variable @SERVER_UN@ replaced with "" in field "description".
+  description    : "OpenStack Servers owned by ''"
+  info           : "The Servers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+  solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'servers/detail'
+# Note: Variable @SERVER_UN@ replaced with "" in field "json_transform".
+  json_transform : '.servers.[]|
+                      "\(select(
+                              .user_id == (openstack_users | .[] | select(.username == "") |.id))|
+                               "\n\nName: "        + .name
+  +                            "\nID: "        + .id
+  +                            "\nStatus: "    + .status
+  +                            "\nUser_ID: "   + .user_id
+  +                            "\nCreated: "   + .created
+  +                            "\nUpdated: "   + .updated
+  +                            "\nHost_ID: "   + .hostId
+  +                            "\nTenant_ID: " + .tenant_id
+  +                            "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+                              )"
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+#server flavors
+
+<custom_item>
+  description    : "OpenStack Server Flavors"
+  info           : "The Servers and their current state will determine what services are available."
+  solution       : "Review the list of Server Flavors. If any are unknown they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'flavors/detail'
+  json_transform : '.flavors[]|
+                    "\n\nName: " + .name
+  +                 "\nID: " + .id
+  +                 "\nVCPUS: \(.vcpus)"
+  +                 "\nDisk: \(.disk)"
+  +                 "\nRam: \(.ram)"
+  +                 "\nSwap: \(.swap)"
+  '
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+#server Images
+
+<custom_item>
+  description    : "OpenStack Server Images"
+  info           : "The Servers and their current state will determine what services are available."
+  solution       : "Review the list of Server Images. If any are unknown they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'images'
+  json_transform : '.images[]|
+                     "\n\nName: " + .name
++                    "\nID: " + .id
++                    "\nLinks:\n" + ([.links[].href] | join("\n"))
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+#tenants/projects list
+
+<custom_item>
+  description    : "Review the list of OpenStack Tenants"
+  info           : "The Tenants and their current state will determine what services are available."
+  solution       : "Review the list of Tenants. If any are unknown they should be investigated."
+  reference      : "800-171|3.1.1,800-53|AC-2,CCM-3|IVS-07,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'identity'
+  request        : 'tenants'
+  json_transform : '.tenants[]|
+                      "Name: " + .name
++                     "\nID: " + .id
++                     "\nEnabled: \(.enabled)\n"
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+#user list
+
+<custom_item>
+  description    : "Review the list of Current OpenStack Users"
+  info           : "Identifying and managing users is an important function in protecting your assets and information."
+  solution       : "Users should be periodically reviewed. If any users are not documented they should be investigated and/or removed."
+  reference      : "800-171|3.1.1,800-53|AC-2,CCM-3|IAM-02,CCM-3|IAM-09,CCM-3|IAM-11,CN-L3|7.1.3.2(d),COBIT5|DSS05.04,CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.312(a)(1),HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|12.5.4,PCI-DSS|3.5.1,PCI-DSS|7.1,PCI-DSS|7.1.1,PCI-DSS|7.1.2,PCI-DSS|7.1.3,PCI-DSS|7.2.1,PCI-DSS|7.2.2,PCI-DSS|8.5.1"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'identity'
+  request        : 'users'
+  json_transform : '.users[]|
+                      "\nUser Name: "  + .username
++                     "\nID: "        + .id
++                     "\nname: "     + .name
++                     "\nenabled: \(.enabled)"
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+#Networks/subnets
+
+<custom_item>
+  description    : "OpenStack Networks and their attached subnets"
+  info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls."
+  solution       : "Review the list of Networks. If any are missing or undocumented they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'network'
+  request        : '/v2.0/networks'
+  json_transform : '.networks[]|
+                      "Name: \(.name)"
++                     "\nID: \(.id)"
++                     "\nSubnets: " + .subnets[]
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "OpenStack Subnet Details"
+  info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls."
+  solution       : "Review the list of Subnet Details. If any are missing or undocumented they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'network'
+  request        : '/v2.0/subnets'
+  json_transform : '.subnets[]|
+                      "ID: \(.id)"
++                     "\nCIDR: " + .cidr
++                     "\nGateway IP: " + .gateway_ip
++                     "\nIP Version: \(.ip_version)"
++                     "\nName: " + .name
++                     "\nDHCP Enabled: \(.enable_dhcp)"
++                     "\nNetwork ID: " + .network_id
++                     "\nTenant ID: " + .tenant_id
++                     "\nAllocation Pool: " + .allocation_pools[].start + " - " + .allocation_pools[].end
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Review the list of Ports and their details"
+  info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls."
+  solution       : "Review the list of Ports. If any are missing or undocumented they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'network'
+  request        : '/v2.0/ports'
+  json_transform : '.ports[]|
+                      "\nID: \(.id)"
++                     "\nStatus: " + .status
++                     "\nAdmin State Up: \(.admin_state_up)"
++                     "\nNetwork ID: " + .network_id
++                     "\nTenant ID: " + .tenant_id
++                     "\nDevice Owner: " + .device_owner
++                     "\nMac_address: " + .mac_address
++                      (["\nFixed IPs: \n \(.fixed_ips[] |"IP: " + .ip_address + "\n Subnet ID: " + .subnet_id)"]|join("\n - "))
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+#Master Check
+
+<custom_item>
+  description    : "OpenStack Deployment Snapshot"
+  info           : "The OpenStack resources and their current state will determine what services are available."
+  solution       : "Review the list of OpenStack resources. If any are unknown they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.openstack.org/"
+  service        : 'compute'
+  request        : 'limits'
+  json_transform : 'openstack_data|
+
+
+    "   Users: \(.users | length)\n"
++    ([.users[] | "     \(.id) - \(.username)\n"] | sort | join(""))
+
++    "   Servers: \(.servers | length)\n"
++    ([.servers[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Networks: \(.networks | length)\n"
++    ([.networks|.networks[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Ports: \(.networks |.ports | length)\n"
++    ([.networks |.ports[] | "     \(.id)\n"] | sort | join(""))
+
++    "   Subnets: \(.networks |.subnets | length)\n"
++    ([.networks |.subnets[] | "     \(.id) - \(.name)\n"]  | sort | join(""))
+
++    "   Images: \(.images | length)\n"
++    ([.images[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+</check_type>

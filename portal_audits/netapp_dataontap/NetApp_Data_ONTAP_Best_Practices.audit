@@ -1,0 +1,2405 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.22 $
+# $Date: 2020/04/22 $
+#
+# Description 	: This .audit is based on the Best Practices for Secure Configuration of Data ONTAP 7G located at:
+# 	  		http://www.netapp.com/us/media/tr-3649.pdf
+#
+# 			Several additional guides were referenced and are included below:
+#
+# 			SnapMirror Async Overview and Best Practices Guide - http://media.netapp.com/documents/TR-3446.pdf
+# 			SnapVault Best Practices Guide - http://media.netapp.com/documents/TR-3487.pdf
+# 			NetApp Storage Systems in a Microsoft Windows Environment - http://media.netapp.com/documents/TR-3367.pdf
+# 			Windows File Services Best Practices with NetApp Storage Systems - http://media.netapp.com/documents/TR-3771.pdf
+# 			Auditing Quick Start Guide - http://media.netapp.com/documents/TR-3595.pdf
+# 			SMB 2.0-Next-Generation CIFS Protocol in Data ONTAP - http://media.netapp.com/documents/TR-3740.pdf
+# 			NFSv4 Enhancements and Best Practices Guide: Data ONTAP Implementation - http://media.netapp.com/documents/TR-3580.pdf
+# 			NetApp Storage System Multiprotocol User Guide - http://media.netapp.com/documents/TR-3490.pdf
+#
+# NOTE 			: Some queries in this .audit require site-specific data to be known to the query in order to function properly.
+# 	 		Please note the following queries and edit their values accordingly.
+#
+# 			2.1 Enable Secure Admin Access - 'ssh.access has been configured'
+# 			2.6 Logging - 'auditlog.max_file_size has been configured'
+# 			2.8 Protocol Access Controls - 'interface.blocked.cifs has been configured'
+# 			2.8 Protocol Access Controls - 'interface.blocked.ftpd has been configured'
+# 			2.8 Protocol Access Controls - 'interface.blocked.iscsi has been configured'
+# 			2.8 Protocol Access Controls - 'interface.blocked.nfs has been configured'
+# 			2.8 Protocol Access Controls - 'interface.blocked.snapmirror has been configured'
+# 			2.8 Protocol Access Controls - 'interface.blocked.ndmp has been configured'
+# 			2.8 Protocol Access Controls - 'rsh.access has been configured'
+# 			2.8 Protocol Access Controls - 'telnet.access has been configured'
+# 			2.8 Protocol Access Controls - 'snmp.access has been configured'
+# 			2.8 Protocol Access Controls - 'httpd.access has been configured'
+# 			3.2 Data ONTAP (Software) Mgmt - 'httpd.admin.access has been configured'
+# 			5.2 SnapMirror - 'snapmirror.access has been configured'
+# 			5.2 SnapMirror - 'replication.throttle.incoming.max_kbs has been configured'
+# 			5.2 SnapMirror - 'replication.throttle.outgoing.max_kbs has been configured'
+# 			5.3 SnapVault - 'snapvault.access has been configured'
+# 			5.3 SnapVault - 'snapvault.snapshot_for_dr_backup has been configured'
+# 			5.4 CIFS - 'dns.domainname has been configured'
+# 			5.4 CIFS - 'timed.servers has been configured'
+# 			5.4 CIFS - 'cifs.audit.autosave.onsize.threshold has been configured'
+# 			5.4 CIFS - 'cifs.audit.autosave.file.extension has been configured'
+# 			5.4 CIFS - 'cifs.smb2.durable_handle.enable = on'
+# 			5.5 NFS - 'nfs.v4.id.domain has been configured'
+# 			5.5 NFS - 'nfs.kerberos.principal has been configured'
+# 			5.5 NFS - 'nfs.kerberos.realm has been configured'
+# 			5.5 NFS - 'nfs.rpcsec.ctx.high has been configured'
+# 			5.5 NFS - 'nfs.rpcsec.ctx.idle has been configured'
+# 			5.5 NFS - 'wafl.default_security_style has been configured'
+# 			5.5 NFS - 'wafl.default_unix_user has been configured'
+# 			5.5 NFS - 'wafl.default_nt_user has been configured'
+# 			5.5 NFS - 'wafl.wcc_minutes_valid has been configured'
+#
+#<ui_metadata>
+#<display_name>TNS NetApp Data ONTAP 7G Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>NetApp Data ONTAP 7G Best Practices</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>netapp,data,ontap</labels>
+#<variables>
+#  <variable>
+#    <name>SSH_ACCESS</name>
+#    <default>192\.168\.1\.0/24</default>
+#    <description>SSH allowed network</description>
+#    <info>The IP address and network mask that is allowed to connect to the NetApp device through SSH.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDIT_LOG_MAX</name>
+#    <default>[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]</default>
+#    <description>Audit log max size</description>
+#    <info>The maximum size for the audit log in bytes. This can be specified as a regex.</info>
+#  </variable>
+#  <variable>
+#    <name>BLOCK_INTERFACE_CIFS</name>
+#    <default>e0c</default>
+#    <description>Interfaces blocking CIFS</description>
+#    <info>The network interfaces where CIFS is not allowed. Multiple interfaces may be separated by commas.</info>
+#  </variable>
+#  <variable>
+#    <name>BLOCK_INTERFACE_FTP</name>
+#    <default>e0c</default>
+#    <description>Interfaces blocking FTP</description>
+#    <info>The network interfaces where FTP is not allowed. Multiple interfaces may be separated by commas.</info>
+#  </variable>
+#  <variable>
+#    <name>BLOCK_INTERFACE_ISCSI</name>
+#    <default>e0c</default>
+#    <description>Interfaces blocking ISCSI</description>
+#    <info>The network interfaces where ISCSI is not allowed. Multiple interfaces may be separated by commas.</info>
+#  </variable>
+#  <variable>
+#    <name>BLOCK_INTERFACE_NFS</name>
+#    <default>e0c</default>
+#    <description>Interfaces blocking NFS</description>
+#    <info>The network interfaces where NFS is not allowed. Multiple interfaces may be separated by commas.</info>
+#  </variable>
+#  <variable>
+#    <name>BLOCK_INTERFACE_SNAPMIRROR</name>
+#    <default>e0c</default>
+#    <description>Interfaces blocking SnapMirror</description>
+#    <info>The network interfaces where SnapMirror is not allowed. Multiple interfaces may be separated by commas.</info>
+#  </variable>
+#  <variable>
+#    <name>BLOCK_INTERFACE_NDMP</name>
+#    <default>e0c</default>
+#    <description>Interfaces blocking NDMP</description>
+#    <info>The network interfaces where NDMP is not allowed. Multiple interfaces may be separated by commas.</info>
+#  </variable>
+#  <variable>
+#    <name>RSH_ACCESS</name>
+#    <default>192\.168\.1\.0/24</default>
+#    <description>RSH allowed network</description>
+#    <info>The IP address and network mask that is allowed to connect to the NetApp device through RSH.</info>
+#  </variable>
+#  <variable>
+#    <name>TELNET_ACCESS</name>
+#    <default>192\.168\.1\.0/24</default>
+#    <description>Telnet allowed network</description>
+#    <info>The IP address and network mask that is allowed to connect to the NetApp device through telnet.</info>
+#  </variable>
+#  <variable>
+#    <name>SNMP_ACCESS</name>
+#    <default>192\.168\.1\.0/24</default>
+#    <description>SNMP allowed network</description>
+#    <info>The IP address and network mask that is allowed to connect to the NetApp device through SNMP.</info>
+#  </variable>
+#  <variable>
+#    <name>HTTP_ACCESS</name>
+#    <default>192\.168\.1\.0/24</default>
+#    <description>HTTP allowed network</description>
+#    <info>The IP address and network mask that is allowed to connect to the NetApp device through HTTP.</info>
+#  </variable>
+#  <variable>
+#    <name>SNAPMIRROR_ACCESS</name>
+#    <default>192\.168\.1\.0/24</default>
+#    <description>SnapMirror allowed network</description>
+#    <info>The IP address and network mask that is allowed to connect to the NetApp device through SnapMirror.</info>
+#  </variable>
+#  <variable>
+#    <name>REPL_INCOMING_LIMIT</name>
+#    <default>unlimited</default>
+#    <description>SnapMirror incoming repl limit</description>
+#    <info>The maximum total bandwidth used by all incoming SnapMirror and SnapVault transfers (specified in kilobytes/sec).</info>
+#  </variable>
+#  <variable>
+#    <name>REPL_OUTGOING_LIMIT</name>
+#    <default>unlimited</default>
+#    <description>SnapMirror outgoing repl limit</description>
+#    <info>The maximum total bandwidth used by all outgoing SnapMirror and SnapVault transfers (specified in kilobytes/sec).</info>
+#  </variable>
+#  <variable>
+#    <name>SNAPVAULT_ACCESS</name>
+#    <default>192\.168\.1\.0/24</default>
+#    <description>SnapVault allowed network</description>
+#    <info>The IP address and network mask that is allowed to connect to the NetApp device through SnapVault.</info>
+#  </variable>
+#  <variable>
+#    <name>SNAPVAULT_DR_BKUP</name>
+#    <default>vsm_base_only</default>
+#    <description>SnapVault DR backup snapshot</description>
+#    <info>The name of the snapshot used for disaster recovery backups by SnapVault.</info>
+#  </variable>
+#  <variable>
+#    <name>DNS_DOMAIN</name>
+#    <default>example\.com</default>
+#    <description>DNS domain name</description>
+#    <info>The DNS domain name used for access through CIFS.</info>
+#  </variable>
+#  <variable>
+#    <name>NTP_SERVER</name>
+#    <default>1\.1\.1\.1,1\.1\.1\.2</default>
+#    <description>NTP servers</description>
+#    <info>The IP address of the NTP server(s) for your organization. Multiple NTP servers may be delimited by commas.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDIT_THRESHOLD</name>
+#    <default>75%</default>
+#    <description>CIFS log autosave size</description>
+#    <info>The internal CIFS audit log will be saved to the external log file when it is this percent full.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDIT_INTERVAL</name>
+#    <default>1d</default>
+#    <description>CIFS log autosave interval</description>
+#    <info>The internal CIFS audit log will be saved to the external log file at this time interval.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDIT_EXTENSION</name>
+#    <default>timestamp</default>
+#    <description>CIFS log extension</description>
+#    <info>The NetApp file extension generation algorithm used for audit log files.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDIT_LIMIT</name>
+#    <default>10</default>
+#    <description>CIFS max simultaneous logs</description>
+#    <info>The maximum number of simultaneous logs kept by the storage system.</info>
+#  </variable>
+#  <variable>
+#    <name>HANDLE_TIMEOUT</name>
+#    <default>960</default>
+#    <description>CIFS handle timeout</description>
+#    <info>This item defines how many seconds open files from a client are preserved when a client is disconnected from the NetApp system. The acceptable values are 5-960.</info>
+#  </variable>
+#  <variable>
+#    <name>NFS_ID_DOMAIN</name>
+#    <default>lab\.netapp\.com</default>
+#    <description>NFS domain name</description>
+#    <info>The name of the domain used for NFS access.</info>
+#  </variable>
+#  <variable>
+#    <name>NFS_KRB_PRINCIPAL</name>
+#    <default>kerberos\.lab\.netapp\.com</default>
+#    <description>NFS principal Kerberos server</description>
+#    <info>The hostname or IP address of the principal Kerberos server used for NFS authentication.</info>
+#  </variable>
+#  <variable>
+#    <name>NFS_REALM</name>
+#    <default>LAB\.NETAPP\.COM</default>
+#    <description>NFS Kerberos realm</description>
+#    <info>The name of the Kerberos realm used for NFS authentication.</info>
+#  </variable>
+#  <variable>
+#    <name>SEC_CONTEXT_VALUE</name>
+#    <default>100</default>
+#    <description>NFS simultaneous security contexts</description>
+#    <info>The number of security contexts (RPCSEC_GSS sessions) created before they are reused. The expected number for this option is in hundreds or thousands.</info>
+#  </variable>
+#  <variable>
+#    <name>IDLE_CONTEXT_VALUE</name>
+#    <default>360</default>
+#    <description>NFS idle context timeout</description>
+#    <info>The length of time to maintain idle security contexts. The default of 6 minutes should be acceptable in most cases.</info>
+#  </variable>
+#  <variable>
+#    <name>DEFAULT_SECURITY_STYLE</name>
+#    <default>unix</default>
+#    <description>NFS default security style</description>
+#    <info>The default security style assigned to new volumes or qtrees. Acceptable values are unix, ntfs, and mixed.</info>
+#  </variable>
+#  <variable>
+#    <name>UNIX_DEFAULT_USER</name>
+#    <default>pcuser</default>
+#    <description>NFS default unix user</description>
+#    <info>If the unix or mixed security styles are in use this is the Unix user Windows users will be mapped to.</info>
+#  </variable>
+#  <variable>
+#    <name>NT_DEFAULT_USER</name>
+#    <default>CORP\\\ntuser</default>
+#    <description>NFS default Windows user</description>
+#    <info>If the ntfs or mixed security styles are in use this is the Windows user Unix users will be mapped to.</info>
+#  </variable>
+#  <variable>
+#    <name>USER_MAPPING_CACHE</name>
+#    <default>20</default>
+#    <description>NFS user mapping expiration</description>
+#    <info>The number of minutes Windows to Unix mappings will remain in cache.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"NetApp">
+
+# 1 Designing a Secure Storage Installation
+## 1.1 Network Assessment
+## 1.2 Secure Storage Design
+# 2.0 Install & Config
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.0 Install & Config - 'Disable FTP'"
+  info         : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution     : "Disable the File Transfer Protocol (FTP) service"
+  reference    : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "ftpd.enable[\\s\\t]+"
+  expect       : "ftpd.enable[\\s\\t]+off"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable SFTP'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the File Transfer Protocol over SSH (SFTP) service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,PCI-DSS|4.1,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "sftp.enable[\\s\\t]+"
+  expect      : "sftp.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable FTPS'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the File Transfer Protocol over SSL (FTPS) service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,PCI-DSS|4.1,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ftps.enable[\\s\\t]+"
+  expect      : "ftps.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Enable FilerView HTTPS'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Enable the FilerView https service"
+  reference   : "800-171|3.13.15,800-53|SC-23,HIPAA|164.312(e)(2)(ii),ITSG-33|SC-23,NESA|T4.5.1,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.2.4,PCI-DSS|2.3,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "httpd.admin.ssl.enable[\\s\\t]+"
+  expect      : "httpd.admin.ssl.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable FilerView HTTP'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the FilerView http service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.2.4,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "httpd.admin.enable[\\s\\t]+"
+  expect      : "httpd.admin.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable NDMP'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the Network Data Management Protocol (NDMP) service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ndmpd.enable[\\s\\t]+"
+  expect      : "ndmpd.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.0 Install & Config - 'Disable RSH'"
+  info         : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution     : "Disable the Remote Shell (rsh) service"
+  reference    : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "rsh.enable[\\s\\t]+"
+  expect       : "rsh.enable[\\s\\t]+off"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "2.0 Install & Config - 'Disable RIPv1'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  info        : "NOTE: Nessus has not performed this query, and this check is only provided for informational purposes."
+  solution    : "Disable the RIP - routed (RIPv1) service"
+  reference   : "800-53|CM-7,PCI-DSS|1.1.5,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Enable SSH'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Enable the Secure Shell (SSH) service"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,HIPAA|164.312(e)(2)(ii),ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.6"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh.enable[\\s\\t]+"
+  expect      : "ssh.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable SSHv1'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the Secure Shell v1 (SSHv1) service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh1.enable[\\s\\t]+"
+  expect      : "ssh1.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Enable SSHv2'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Enable the Secure Shell v2 (SSHv2) service"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,HIPAA|164.312(e)(2)(ii),ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.6"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh2.enable[\\s\\t]+"
+  expect      : "ssh2.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Enable SSL'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Enable the Secure Sockets Layer (SSL) service"
+  reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(2)(ii),ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssl.enable[\\s\\t]+"
+  expect      : "ssl.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable SSLv2'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the Secure Sockets Layer v2 (SSLv2) service"
+  reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(2)(ii),ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssl.v2.enable[\\s\\t]+"
+  expect      : "ssl.v2.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Enable SSLv3'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Enable the Secure Sockets Layer v3 (SSLv3) service"
+  reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(2)(ii),ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssl.v3.enable[\\s\\t]+"
+  expect      : "ssl.v3.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable SNMPv1'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the Simple Network Management Protocol (SNMPv1) service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "snmp.enable[\\s\\t]+"
+  expect      : "snmp.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable SNMPv3'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the Simple Network Management Protocol (SNMPv3) service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "snmp.enable[\\s\\t]+"
+  expect      : "snmp.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.0 Install & Config - 'Disable Telnet'"
+  info         : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution     : "Disable the Telnet service"
+  reference    : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "telnet.enable[\\s\\t]+"
+  expect       : "telnet.enable[\\s\\t]+off"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Enable TLSv1'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Enable the Transport Layer Security v1 (TLSv1) service"
+  reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(2)(ii),ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "tls.enable[\\s\\t]+"
+  expect      : "tls.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.0 Install & Config - 'Disable TFTP'"
+  info         : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution     : "Disable the Trivial File Transfer Protocol (TFTP) service"
+  reference    : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "tftpd.enable[\\s\\t]+"
+  expect       : "tftpd.enable[\\s\\t]+off"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.0 Install & Config - 'Disable WebDav'"
+  info        : "There are several services that should be considered for disabling. Depending on your enterprise security structure, the state of any service depends on where the service is deployed and how deep it is in your infrastructure."
+  solution    : "Disable the WebDav service"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|4.1,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "webdav.enable[\\s\\t]+"
+  expect      : "webdav.enable[\\s\\t]+off"
+</custom_item>
+
+## 2.1 Enable Secure Admin Access
+### Setting Up SSH
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "2.1 Enable Secure Admin Access - 'ssh.access is not unlimited'"
+      regex       : "ssh.access[\\s\\t]+"
+      not_expect  : "ssh.access[\\s\\t]+\\*"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "2.1 Enable Secure Admin Access - 'ssh.access has been configured'"
+      info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+      solution    : "Configure ssh.access to include only approved hosts or IP ranges"
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|12"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "ssh.access[\\s\\t]+"
+# Note: Variable @SSH_ACCESS@ replaced with "192\\.168\\.1\\.0/24" in field "expect".
+      expect      : "ssh.access[\\s\\t]+192\\.168\\.1\\.0/24"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "2.1 Enable Secure Admin Access - 'ssh.access is not unlimited'"
+      info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+      solution    : "Configure ssh.access to include only approved hosts or IP ranges"
+      reference   : "HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|12"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+    </report>
+  </else>
+</if>
+
+#### ssh.enable - See 2.0 Install & Config - 'Enable SSH'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'ssh.passwd_auth.enable = on'"
+  info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+  solution    : "Enable SSH password authentication"
+  reference   : "800-171|3.5.10,800-171|3.5.7,800-171|3.5.8,800-171|3.5.9,800-53|IA-5(1),CSF|PR.AC-1,HIPAA|164.312(d),ITSG-33|IA-5(1),NESA|T5.2.3,PCI-DSS|2.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh.passwd_auth.enable[\\s\\t]+"
+  expect      : "ssh.passwd_auth.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'ssh.idle.timeout <= 60'"
+  info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+  solution    : "Configure the SSH idle timeout"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|12.3.8,PCI-DSS|2.2.3,PCI-DSS|8.15,SANS-CSC|12"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh.idle.timeout[\\s\\t]+"
+  expect      : "ssh.idle.timeout[\\s\\t]+(60|[1-5][0-9]|[1-9])[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'ssh.port = 22'"
+  info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+  solution    : "Configure the SSH port"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,HIPAA|164.312(e)(2)(ii),ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|12,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh.port[\\s\\t]+"
+  expect      : "ssh.port[\\s\\t]+22[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'ssh.pubkey_auth.enable = on'"
+  info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+  solution    : "Enable SSH public key authentication"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,HIPAA|164.312(d),ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|12,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh.pubkey_auth.enable[\\s\\t]+"
+  expect      : "ssh.pubkey_auth.enable[\\s\\t]+on"
+</custom_item>
+
+#### See 2.0 Install & Config - 'Disable SSHv1'
+#### See 2.0 Install & Config - 'Disable SSHv2'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'telnet.distinct.enable = on'"
+  info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+  solution    : "Enable telenet.distinct.enable to make the ssh and console separate user environments"
+  reference   : "800-53|AC-6(4),CSF|PR.AC-4,ITSG-33|AC-6(4),PCI-DSS|2.2.3,SANS-CSC|12"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "telnet.distinct.enable[\\s\\t]+"
+  expect      : "telnet.distinct.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'autologout.telnet.enable = on'"
+  info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+  solution    : "Enable automatic disconnect of inactive SSH Interactive sessions"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,SANS-CSC|12"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "autologout.telnet.enable[\\s\\t]+"
+  expect      : "autologout.telnet.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'autologout.telnet.timeout <= 5'"
+  info        : "NetApp recommends that you configure and enable SecureAdmin immediately after initially setting up Data ONTAP. Best practice suggesting enabling SSH and SSL encryption for secure administration of the NetApp storage system."
+  solution    : "Enable automatic disconnect of inactive SSH Interactive sessions"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|12.3.8,PCI-DSS|2.2.3,PCI-DSS|8.15,SANS-CSC|12"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "autologout.telnet.timeout[\\s\\t]+"
+  expect      : "autologout.telnet.timeout[\\s\\t]+[1-5][\\s\\t]*$"
+</custom_item>
+
+### Setting Up SSL
+#### See 2.0 Install & Config - 'Disable SSL'
+#### See 2.0 Install & Config - 'Enable SSLv2'
+#### See 2.0 Install & Config - 'Enable SSLv3'
+#### See 2.0 Install & Config - 'Enable TLSv1'
+### Enabling SSL for FilterView
+#### See 2.0 Install & Config - 'Disable FilterView HTTP'
+#### See 2.0 Install & Config - 'Enable FilterView HTTP'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.1 Enable Secure Admin Access - 'httpd.timeout <= 300'"
+  info        : "By default FilerView is enabled on port 80, and this will pass all authentications in clear text. NetApp recommends that the ssl protocol be utilized for Web communication to the storage system for administrative functions."
+  solution    : "Configure the HTTP idle connection timeout to 300 seconds or less"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|12.3.8,PCI-DSS|2.2.3,PCI-DSS|8.15,SANS-CSC|12"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "httpd.timeout[\\s\\t]+"
+  expect      : "httpd.timeout[\\s\\t]+(300|[1-2][0-9][0-9]|[1-9][0-9]|[1-9])[\\s\\t]*$"
+</custom_item>
+
+## 2.2 Disable/Modify Default Accts
+### Root Account
+
+<report type:"WARNING">
+  description : "2.2 Disable/Modify Default Accts - 'alternate admin account has been created (root)'"
+  info        : "The root account needs to be disabled in order to meet many, if not all, of the GRC standards. You will need to create a new administrative account prior to disabling root. Other functions that use this account such as NDMP and ndmpcopy might be affected. It will be necessary to use a different account for these functions.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Create an alternate account to replace root"
+  reference   : "HIPAA|164.312(a)(2)(i),PCI-DSS|2.1,SANS-CSC|12"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.2 Disable/Modify Default Accts - 'security.passwd.rootaccess.enable = off'"
+  info        : "The root account needs to be disabled in order to meet many, if not all, of the GRC standards. You will need to create a new administrative account prior to disabling root. Other functions that use this account such as NDMP and ndmpcopy might be affected. It will be necessary to use a different account for these functions."
+  solution    : "Disable the root account"
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|10.1,PCI-DSS|2.2.3,SANS-CSC|12"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rootaccess.enable[\\s\\t]+"
+  expect      : "security.passwd.rootaccess.enable[\\s\\t]+off"
+</custom_item>
+
+### SNMP
+#### See 2.0 Install & Config - 'Disable SNMPv1'
+
+<report type:"WARNING">
+  description : "2.2 Disable/Modify Default Accts - 'alternate admin account has been created (snmp)'"
+  info        : "Data ONTAP 7G supports SNMP versions 1c, 2, and 3 (AuthNoPriv). There are many attacks that can be run against SNMP versions 1c/2 as they use a community string as the only control to access the queries for information. It is best to only utilize SNMPv3 to protect the access to the information that is provided by the OIDs. If you cannot use SNMPv3, at a minimum delete the default community string name and replace it with one that is not in the dictionary. The new community string should also contain special characters. This will reduce the likelihood of an attacker using a dictionary attack to guess the SNMPv1c/2 community string.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Create a role, group, and user with login-snmp capability"
+  reference   : "HIPAA|164.312(a)(2)(i),PCI-DSS|2.1,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<report type:"WARNING">
+  description : "2.2 Disable/Modify Default Accts - 'SNMP default community strings have been removed'"
+  info        : "Data ONTAP 7G supports SNMP versions 1c, 2, and 3 (AuthNoPriv). There are many attacks that can be run against SNMP versions 1c/2 as they use a community string as the only control to access the queries for information. It is best to only utilize SNMPv3 to protect the access to the information that is provided by the OIDs. If you cannot use SNMPv3, at a minimum delete the default community string name and replace it with one that is not in the dictionary. The new community string should also contain special characters. This will reduce the likelihood of an attacker using a dictionary attack to guess the SNMPv1c/2 community string.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Modify the SNMP community string"
+  reference   : "PCI-DSS|2.1,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+### NDMP Account and Password Encryption
+
+<report type:"WARNING">
+  description : "2.2 Disable/Modify Default Accts - 'ndmp/ndmpcopy service account'"
+  info        : "The NDMP function and the ndmpcopy function, by default, use the root account as well as pass the password using a challenge/response to the backup server or service.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Create a service account for ndmp and ndmp copy use and assign this account to the 'Backup Operators' group"
+  reference   : "PCI-DSS|2.1,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+## 2.3 Disable Unnecessary Services
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.3 Disable Unnecessary Services - 'rsh.access != legacy'"
+  info        : "By default, telnet, RIPv1, rsh, and webdav are enabled. If these services are not required in your infrastructure, NetApp recommends that they be disabled."
+  solution    : "Disable rsh access or limit it to only known, trusted hosts"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "rsh.access[\\s\\t]+"
+  not_expect  : "rsh.access[\\s\\t]+legacy"
+</custom_item>
+
+#### See 2.0 Install & Config - 'Disable RSH'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.3 Disable Unnecessary Services - 'telnet.access != legacy'"
+  info        : "By default, telnet, RIPv1, rsh, and webdav are enabled. If these services are not required in your infrastructure, NetApp recommends that they be disabled."
+  solution    : "Disable telnet access or limit it to only known, trusted hosts"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "telnet.access[\\s\\t]+"
+  not_expect  : "telnet.access[\\s\\t]+legacy"
+</custom_item>
+
+#### See 2.1 Enable Secure Admin Access - 'telnet.distinct.enable = on'
+#### See 2.0 Install & Config - 'Disable Telnet'
+#### See 2.0 Install & Config - 'Disable WebDav'
+#### See 2.0 Install & Config - 'Disable RIPv1'
+## 2.4 Password Security
+#### See 2.2 Disable/Modify Default Accts - 'security.passwd.rootaccess.enable = off'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.rules.everyone = on'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Enable password properties application to all acounts"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|2.2.3,PCI-DSS|8.5.16,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rules.everyone[\\s\\t]+"
+  expect      : "security.passwd.rules.everyone[\\s\\t]+on"
+</custom_item>
+
+<report type:"WARNING">
+  description : "2.4 Password Security - 'maximum password age <= 90'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Limit the maximum password age to 90 days or less"
+  reference   : "800-53|AC-2,HIPAA|164.308(a)(5)(ii)(D),PCI-DSS|2.2.3,PCI-DSS|8.5.9,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<report type:"WARNING">
+  description : "2.4 Password Security - 'minimum password age >= 1'"
+  info        : "Requiring high quality passwords decreasse the opportunity for unauthorized access.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Limit the minimum password age to 1 day or more"
+  reference   : "800-53|AC-2,HIPAA|164.308(a)(5)(ii)(D),PCI-DSS|2.2.3,PCI-DSS|8.5.9,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.rules.minimum >= 8'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Limit the minimum password length to 8 characters or more"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|2.2.3,PCI-DSS|8.5.10,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rules.minimum[\\s\\t]+"
+  expect      : "security.passwd.rules.minimum[\\s\\t]+([8-9]|[1-9][0-9]+)[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.rules.maximum >= 14'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Limit the maximum password length to 14 characters or more"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|2.2.3,PCI-DSS|8.5.10,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rules.maximum[\\s\\t]+"
+  expect      : "security.passwd.rules.maximum[\\s\\t]+([8-9]|[2-9][0-9]|[1-9][0-9][0-9]+)[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.rules.minimum.alphabetic = 2'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Limit the required minimum number of alphabetic characters to at least 2"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|2.2.3,PCI-DSS|8.5.11,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rules.minimum.alphabetic[\\s\\t]+"
+  expect      : "security.passwd.rules.minimum.alphabetic[\\s\\t]+[2-9][\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.rules.minimum.digit = 1'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Limit the required minimum number of numeric characters to at least 1"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|2.2.3,PCI-DSS|8.5.11,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rules.minimum.digit[\\s\\t]+"
+  expect      : "security.passwd.rules.minimum.digit[\\s\\t]+[1-9][\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.rules.minimum.symbol = 1'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Limit the required minimum number of special characters to at least 1"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,PCI-DSS|2.2.3,PCI-DSS|8.5.11,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rules.minimum.symbol[\\s\\t]+"
+  expect      : "security.passwd.rules.minimum.symbol[\\s\\t]+[1-9][\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.rules.history = 6'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Limit the required password history to at least 6"
+  reference   : "800-171|3.5.8,800-53|IA-5(1),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM22c,PCI-DSSv3.1|8.2.5,PCI-DSSv3.2|8.2.5,PCI-DSS|2.2.3,PCI-DSS|8.5.12,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.rules.history[\\s\\t]+"
+  expect      : "security.passwd.rules.history[\\s\\t]+([6-9]|[1-9][0-9]+)[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.lockout.numtries = 6'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Limit the number of bad passwords before account lockout to 6 or less"
+  reference   : "800-171|3.1.8,800-53|AC-7,CIP|007-6-R5,CN-L3|8.1.4.1(b),HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-7,NIAv2|AM24,PCI-DSSv3.1|8.1.6,PCI-DSSv3.2|8.1.6,PCI-DSS|2.2.3,PCI-DSS|8.5.13,SANS-CSC|16,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.lockout.numtries[\\s\\t]+"
+  expect      : "security.passwd.lockout.numtries[\\s\\t]+[1-6][\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.4 Password Security - 'security.passwd.firstlogin.enable = on'"
+  info        : "Requiring high quality passwords decreases the opportunity for unauthorized access."
+  solution    : "Require users to change their password at their first login"
+  reference   : "800-171|3.5.9,800-53|IA-5(1),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,PCI-DSSv3.1|8.2.6,PCI-DSSv3.2|8.2.6,PCI-DSS|2.2.3,PCI-DSS|8.5.3,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.6"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "security.passwd.firstlogin.enable[\\s\\t]+"
+  expect      : "security.passwd.firstlogin.enable[\\s\\t]+on"
+</custom_item>
+
+## 2.5 Autologout
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.5 Autologout - 'autologout.console.timeout <= 5'"
+  info        : "The autologout capability is required by several security standards. In Data ONTAP these requirements can be met by setting the timeout times in the various interfaces. If the timeouts are enabled, the session will be terminated and will require reauthentication."
+  solution    : "Limit the console idle timeout to 5 minutes or less"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|12.3.8,PCI-DSS|2.2.3,PCI-DSS|8.15,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "autologout.console.timeout[\\s\\t]+"
+  expect      : "autologout.console.timeout[\\s\\t]+[1-5][\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.5 Autologout - 'autologout.console.enable = on'"
+  info        : "The autologout capability is required by several security standards. In Data ONTAP these requirements can be met by setting the timeout times in the various interfaces. If the timeouts are enabled, the session will be terminated and will require reauthentication."
+  solution    : "Enable the autologout of the console when the idle timeout has been reached"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,PCI-DSS|8.15,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "autologout.console.enable[\\s\\t]+"
+  expect      : "autologout.console.enable[\\s\\t]+on"
+</custom_item>
+
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.timeout <= 5'
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.enable = on'
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.timeout <= 5'
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.enable = on'
+#### See 2.1 Enable Secure Admin Access - 'httpd.timeout <= 300'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.5 Autologout - 'ssh.idle.timeout <= 300'"
+  info        : "The autologout capability is required by several security standards. In Data ONTAP these requirements can be met by setting the timeout times in the various interfaces. If the timeouts are enabled, the session will be terminated and will require reauthentication."
+  solution    : "Limit the SSH 'orphan' timeout to 300 or less"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|12.3.8,PCI-DSS|2.2.3,PCI-DSS|8.15,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh.idle.timeout[\\s\\t]+"
+  expect      : "ssh.idle.timeout[\\s\\t]+(300|[1-2][0-9][0-9]|[1-9][0-9]|[1-9])[\\s\\t]*$"
+</custom_item>
+
+## 2.6 Logging
+### Audit Log
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.6 Logging - 'auditlog.enable = on'"
+  info        : "Data ONTAP provides logging capabilities for many functions within the base operating system as well as many of the protocols; licensed services provide their own logging. The base logging of Data ONTAP includes an audit log and a messages log."
+  solution    : "Enable the the audit log"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,PCI-DSS|2.2.3,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "auditlog.enable[\\s\\t]+"
+  expect      : "auditlog.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.6 Logging - 'auditlog.max_file_size has been configured'"
+  info        : "Data ONTAP provides logging capabilities for many functions within the base operating system as well as many of the protocols; licensed services provide their own logging. The base logging of Data ONTAP includes an audit log and a messages log."
+  solution    : "Limit the audit max file size"
+  reference   : "800-53|AU-4,CSCv6|6.3,CSF|PR.DS-4,CSF|PR.PT-1,HIPAA|164.312(b),ITSG-33|AU-4,NESA|T3.3.1,NESA|T3.6.2,PCI-DSS|10.2,PCI-DSS|2.2.3,SANS-CSC|14"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "auditlog.max_file_size[\\s\\t]+"
+# Note: Variable @AUDIT_LOG_MAX@ replaced with "[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]" in field "expect".
+  expect      : "auditlog.max_file_size[\\s\\t]+[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][\\s\\t]*$"
+</custom_item>
+
+### Messages Log
+#### See 2.6 Logging - 'auditlog.enable = on'
+## 2.7 Network & IP Options
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.7 Network & IP Options - 'ip.fastpath.enable = off'"
+  info        : "Because NFS, CIFS, iSCSI, and administrative clients access Data ONTAP over TCP/IP networks, it is important to configure the networking on the NetApp storage system in a secure fashion. The most relevant documentation for this purpose is the 'Data ONTAP Network Management Guide.'"
+  solution    : "Disable IP fastpath"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ip.fastpath.enable[\\s\\t]+"
+  expect      : "ip.fastpath.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.7 Network & IP Options - 'ip.icmp_ignore_redirect.enable = on'"
+  info        : "Because NFS, CIFS, iSCSI, and administrative clients access Data ONTAP over TCP/IP networks, it is important to configure the networking on the NetApp storage system in a secure fashion. The most relevant documentation for this purpose is the 'Data ONTAP Network Management Guide.'"
+  solution    : "Enable ignore ICMP redirects"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ip.icmp_ignore_redirect.enable[\\s\\t]+"
+  expect      : "ip.icmp_ignore_redirect.enable[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.7 Network & IP Options - 'ip.match_any_ifaddr = off'"
+  info        : "Because NFS, CIFS, iSCSI, and administrative clients access Data ONTAP over TCP/IP networks, it is important to configure the networking on the NetApp storage system in a secure fashion. The most relevant documentation for this purpose is the 'Data ONTAP Network Management Guide.'"
+  solution    : "Disable IP match any interface address"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ip.match_any_ifaddr[\\s\\t]+"
+  expect      : "ip.match_any_ifaddr[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.7 Network & IP Options - 'ip.ping_throttle.alarm_interval >= 15'"
+  info        : "Because NFS, CIFS, iSCSI, and administrative clients access Data ONTAP over TCP/IP networks, it is important to configure the networking on the NetApp storage system in a secure fashion. The most relevant documentation for this purpose is the 'Data ONTAP Network Management Guide.'"
+  solution    : "Set the IP ping throttle alarm interval to 15 minutes or greater"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ip.ping_throttle.alarm_interval[\\s\\t]+"
+  expect      : "ip.ping_throttle.alarm_interval[\\s\\t]+(1[5-9]|[2-9][0-9]|[1-9][0-9][0-9]+)[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.7 Network & IP Options - 'ip.ping_throttle.drop_level <= 100'"
+  info        : "Because NFS, CIFS, iSCSI, and administrative clients access Data ONTAP over TCP/IP networks, it is important to configure the networking on the NetApp storage system in a secure fashion. The most relevant documentation for this purpose is the 'Data ONTAP Network Management Guide.'"
+  solution    : "Set the IP ping throttle drop level to 100 or less"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ip.ping_throttle.drop_level[\\s\\t]+"
+  expect      : "ip.ping_throttle.drop_level[\\s\\t]+(100|[1-9][0-9]|[1-9])[\\s\\t]*$"
+</custom_item>
+
+#### See 2.0 Install & Config - 'Disable RIPv1'
+# 2.8 Protocol Access Controls
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.cifs is not blank'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the CIFS protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.cifs[\\s\\t]+"
+  not_expect  : "interface.blocked.cifs[\\s\\t]+$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.cifs has been configured'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the CIFS protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.cifs[\\s\\t]+"
+# Note: Variable @BLOCK_INTERFACE_CIFS@ replaced with "e0c" in field "expect".
+  expect      : "interface.blocked.cifs[\\s\\t]+e0c[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.8 Protocol Access Controls - 'interface.blocked.ftpd is not blank'"
+  info         : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution     : "Block the FTP protocol on unneeded interfaces"
+  reference    : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "interface.blocked.ftpd[\\s\\t]+"
+  expect       : "interface.blocked.ftpd[\\s\\t]+$"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.8 Protocol Access Controls - 'interface.blocked.ftpd has been configured'"
+  info         : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution     : "Block the FTP protocol on unneeded interfaces"
+  reference    : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "interface.blocked.ftpd[\\s\\t]+"
+# Note: Variable @BLOCK_INTERFACE_FTP@ replaced with "e0c" in field "expect".
+  expect       : "interface.blocked.ftpd[\\s\\t]+e0c[\\s\\t]*$"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.iscsi is not blank'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the iSCSI protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.iscsi[\\s\\t]+"
+  expect      : "interface.blocked.iscsi[\\s\\t]+$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.iscsi has been configured'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the iSCSI protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.iscsi[\\s\\t]+"
+# Note: Variable @BLOCK_INTERFACE_ISCSI@ replaced with "e0c" in field "expect".
+  expect      : "interface.blocked.iscsi[\\s\\t]+e0c[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.nfs is not blank'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the NFS protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.nfs[\\s\\t]+"
+  expect      : "interface.blocked.nfs[\\s\\t]+$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.nfs has been configured'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the NFS protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.nfs[\\s\\t]+"
+# Note: Variable @BLOCK_INTERFACE_NFS@ replaced with "e0c" in field "expect".
+  expect      : "interface.blocked.nfs[\\s\\t]+e0c[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.snapmirror is not blank'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the SnapMirror protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.snapmirror[\\s\\t]+"
+  expect      : "interface.blocked.snapmirror[\\s\\t]+$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.snapmirror has been configured'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the SnapMirror protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.snapmirror[\\s\\t]+"
+# Note: Variable @BLOCK_INTERFACE_SNAPMIRROR@ replaced with "e0c" in field "expect".
+  expect      : "interface.blocked.snapmirror[\\s\\t]+e0c[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.mgmt_data_traffic = on'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Enable the interface.blocked.mgmt_data_traffic setting"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,PCI-DSS|2.2.3,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.mgmt_data_traffic[\\s\\t]+"
+  expect      : "interface.blocked.mgmt_data_traffic[\\s\\t]+on"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.ndmp is not blank'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the NDMP protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.ndmp[\\s\\t]+"
+  expect      : "interface.blocked.ndmp[\\s\\t]+$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'interface.blocked.ndmp has been configured'"
+  info        : "Protocol blocking enables you to specifically disable several protocols by physical interface, providing additional flexibility when designing secure storage systems. For example, NFS could be blocked on a pair of interfaces, so that NFS requests to either of these interfaces are ignored."
+  solution    : "Block the NDMP protocol on unneeded interfaces"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.2,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "interface.blocked.ndmp[\\s\\t]+"
+# Note: Variable @BLOCK_INTERFACE_NDMP@ replaced with "e0c" in field "expect".
+  expect      : "interface.blocked.ndmp[\\s\\t]+e0c[\\s\\t]*$"
+</custom_item>
+
+### Protocol Access Filter
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.8 Protocol Access Controls - 'rsh.access has been configured'"
+  info         : "Data ONTAP allows the configuration of filters for the following protocols: RSH, telnet, SSH, HTTP, SNMP, NDMP, SnapMirror, and SnapVault. The filters can specify host names, IP addresses, IP subnets, or interface names, which are either allowed or disallowed for each protocol. Each application then uses the filter on the listening socket to control access. In conjunction with disabling insecure protocols, this allows fine-grained control of access from limited areas. NetApp recommends as a best practice that you configure protocol access filters for any administrative protocol that is enabled on the NetApp storage system."
+  solution     : "Configure rsh to allow connections only from known trusted hosts"
+  reference    : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "rsh.access[\\s\\t]+"
+# Note: Variable @RSH_ACCESS@ replaced with "192\\.168\\.1\\.0/24" in field "expect".
+  expect       : "rsh.access[\\s\\t]+192\\.168\\.1\\.0/24[\\s\\t]*$"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type         : CONFIG_CHECK
+  description  : "2.8 Protocol Access Controls - 'telnet.access has been configured'"
+  info         : "Data ONTAP allows the configuration of filters for the following protocols: RSH, telnet, SSH, HTTP, SNMP, NDMP, SnapMirror, and SnapVault. The filters can specify host names, IP addresses, IP subnets, or interface names, which are either allowed or disallowed for each protocol. Each application then uses the filter on the listening socket to control access. In conjunction with disabling insecure protocols, this allows fine-grained control of access from limited areas. NetApp recommends as a best practice that you configure protocol access filters for any administrative protocol that is enabled on the NetApp storage system."
+  solution     : "Configure telnet to allow connections only from known trusted hosts"
+  reference    : "800-171|3.1.3,800-53|AC-4,CN-L3|8.1.10.2(c),CSF|DE.AE-1,CSF|ID.AM-3,CSF|PR.AC-4,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|AC-4,NESA|T4.2.1,NESA|T4.5.1,NESA|T4.5.3,NESA|T4.5.4,NESA|T5.4.6,NESA|T5.7.2,NESA|T7.5.2,NESA|T7.6.4,NIAv2|GS11a,NIAv2|GS12a,NIAv2|GS14a,NIAv2|GS15a,NIAv2|GS16a,NIAv2|NS13a,NIAv2|NS13b,NIAv2|NS13c,NIAv2|NS14,NIAv2|SS23,NIAv2|SS27a,NIAv2|SS27b,NIAv2|SS32,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3,SWIFT-CSCv1|2.1,SWIFT-CSCv1|2.4"
+  see_also     : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex        : "telnet.access[\\s\\t]+"
+# Note: Variable @TELNET_ACCESS@ replaced with "192\\.168\\.1\\.0/24" in field "expect".
+  expect       : "telnet.access[\\s\\t]+192\\.168\\.1\\.0/24[\\s\\t]*$"
+  check_option : CAN_BE_NULL
+</custom_item>
+
+#### See 2.1 Enable Secure Admin Access - 'ssh.access has been configured'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'snmp.access has been configured'"
+  info        : "Data ONTAP allows the configuration of filters for the following protocols: RSH, telnet, SSH, HTTP, SNMP, NDMP, SnapMirror, and SnapVault. The filters can specify host names, IP addresses, IP subnets, or interface names, which are either allowed or disallowed for each protocol. Each application then uses the filter on the listening socket to control access. In conjunction with disabling insecure protocols, this allows fine-grained control of access from limited areas. NetApp recommends as a best practice that you configure protocol access filters for any administrative protocol that is enabled on the NetApp storage system."
+  solution    : "Configure SNMP to allow connections only from known trusted hosts"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "snmp.access[\\s\\t]+"
+# Note: Variable @SNMP_ACCESS@ replaced with "192\\.168\\.1\\.0/24" in field "expect".
+  expect      : "snmp.access[\\s\\t]+192\\.168\\.1\\.0/24[\\s\\t]*$"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "2.8 Protocol Access Controls - 'httpd.access has been configured'"
+  info        : "Data ONTAP allows the configuration of filters for the following protocols: RSH, telnet, SSH, HTTP, SNMP, NDMP, SnapMirror, and SnapVault. The filters can specify host names, IP addresses, IP subnets, or interface names, which are either allowed or disallowed for each protocol. Each application then uses the filter on the listening socket to control access. In conjunction with disabling insecure protocols, this allows fine-grained control of access from limited areas. NetApp recommends as a best practice that you configure protocol access filters for any administrative protocol that is enabled on the NetApp storage system."
+  solution    : "Configure HTTP to allow connections only from known trusted hosts"
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "httpd.access[\\s\\t]+"
+# Note: Variable @HTTP_ACCESS@ replaced with "192\\.168\\.1\\.0/24" in field "expect".
+  expect      : "httpd.access[\\s\\t]+192\\.168\\.1\\.0/24[\\s\\t]*$"
+</custom_item>
+
+# 3 System Administration
+## 3.1 Storage System (Hardware) Management
+### Baseboard Management Controller (BMC)
+
+<report type:"WARNING">
+  description : "3.1 Storage System (Hardware) Management - 'Place the interface on a management VLAN'"
+  info        : "The baseboard management controller (BMC) is a remote management device that is built into the motherboard of FAS20xx storage systems. It provides remote platform management capabilities, including remote access, monitoring, troubleshooting, logging, and alerting features. The BMC supports the SSH protocol for CLI access from UNIX clients and PuTTY for CLI access from PC clients. Telnet and RSH are not supported on the BMC, and system options to enable or disable them have no effect on the BMC. You can use 'root', 'naroot', or 'Administrator' to log into the BMC. These users have access to all commands available on the BMC. The password for all three account names is the same as the Data ONTAP root password. You cannot add additional users to the BMC.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Place the interface on a management VLAN or separate network from the user data access path"
+  reference   : "PCI-DSS|1.1.3,SANS-CSC|13"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<report type:"WARNING">
+  description : "3.1 Storage System (Hardware) Management - 'Strong Password root account'"
+  info        : "The baseboard management controller (BMC) is a remote management device that is built into the motherboard of FAS20xx storage systems. It provides remote platform management capabilities, including remote access, monitoring, troubleshooting, logging, and alerting features. The BMC supports the SSH protocol for CLI access from UNIX clients and PuTTY for CLI access from PC clients. Telnet and RSH are not supported on the BMC, and system options to enable or disable them have no effect on the BMC. You can use 'root', 'naroot', or 'Administrator' to log into the BMC. These users have access to all commands available on the BMC. The password for all three account names is the same as the Data ONTAP root password. You cannot add additional users to the BMC.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Set a strong password for the Data ONTAP root account"
+  reference   : "800-53|AC-2,HIPAA|164.308(a)(5)(ii)(D),PCI-DSS|8.1,SANS-CSC|12,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<report type:"WARNING">
+  description : "3.1 Storage System (Hardware) Management - 'Change the root account password after each use'"
+  info        : "The baseboard management controller (BMC) is a remote management device that is built into the motherboard of FAS20xx storage systems. It provides remote platform management capabilities, including remote access, monitoring, troubleshooting, logging, and alerting features. The BMC supports the SSH protocol for CLI access from UNIX clients and PuTTY for CLI access from PC clients. Telnet and RSH are not supported on the BMC, and system options to enable or disable them have no effect on the BMC. You can use 'root', 'naroot', or 'Administrator' to log into the BMC. These users have access to all commands available on the BMC. The password for all three account names is the same as the Data ONTAP root password. You cannot add additional users to the BMC.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Change the root account password after each use"
+  reference   : "800-53|AC-2,HIPAA|164.308(a)(5)(ii)(D),PCI-DSS|8.5.3,SANS-CSC|12,SANS-CSC|16"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+#### See 2.2 Disable/Modify Default Accts - 'security.passwd.rootaccess.enable = off'
+### Service Processor (SP)
+#### See 3.1 Storage System (Hardware) Management - 'Place the interface on a management VLAN'
+#### See 2.2 Disable/Modify Default Accts - 'security.passwd.rootaccess.enable = off'
+### Remote LAM Module (RLM)
+#### See 3.1 Storage System (Hardware) Management - 'Place the interface on a management VLAN'
+#### See 2.2 Disable/Modify Default Accts - 'security.passwd.rootaccess.enable = off'
+
+<report type:"WARNING">
+  description : "3.1 Storage System (Hardware) Management - 'FW version >= 4.0'"
+  info        : "The RLM CLI commands enable you to remotely access and administer the storage system and diagnose error conditions. Also, the RLM extends AutoSupport capabilities by sending alerts and notifications through an AutoSupport message.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Determine that the FW is version 4.0 or later"
+  reference   : "HIPAA|164.308(a)(1)(ii)(B),PCI-DSS|6.1,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+## 3.2 Data ONTAP (Software) Mgmt
+### System Manager
+
+<report type:"WARNING">
+  description : "3.2 Data ONTAP (Software) Mgmt - 'Use e0M as the Data ONTAP management port'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure and use the e0M port as the Data ONTAP management port and place e0M on a management VLAN or separate network than the user data access path."
+  reference   : "PCI-DSS|1.1.3,SANS-CSC|13"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<report type:"WARNING">
+  description : "3.2 Data ONTAP (Software) Mgmt - 'Place e0M on a management VLAN'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure and use the e0M port as the Data ONTAP management port and place e0M on a management VLAN or separate network than the user data access path."
+  reference   : "PCI-DSS|1.1.3,SANS-CSC|13"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+#### See 2.0 Install & Config - 'Enable FilerView HTTPS'
+#### See 2.0 Install & Config - 'Enable TLSv1'
+# Needs customization
+# Please update {HTTP_ADMIN_ACCESS} with the appropriate value for the local environment
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "3.2 Data ONTAP (Software) Mgmt - 'httpd.admin.access has been configured'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs."
+  info        : "NOTE: Update {HTTP_ADMIN_ACCESS} with the appropriate value for the local environment"
+  solution    : "Configure httpd.admin.access to restricts HTTP access to System Manager"
+  reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3,SWIFT-CSCv1|5.1"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "httpd.admin.access[\\s\\t]+"
+# example expect
+# expect		: "httpd.admin.access[\\s\\t]+192\.168\.19\.0/24[\\s\\t]*$"
+  expect      : "httpd.admin.access[\\s\\t]+{HTTP_ADMIN_ACCESS}[\\s\\t]*$"
+</custom_item>
+
+#### See 2.0 Install & Config - 'Disable FilerView HTTP'
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "3.2 Data ONTAP (Software) Mgmt - 'httpd.admin.hostsequiv.enable = off'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs."
+  solution    : "Disable the use of /etc/hosts.equiv for administrative HTTP authentication. If enabled, the authentication of administrative HTTP (for APIs) will use the contents of /etc/hosts.equiv to allow access to the storage controller without the need to provide a password."
+  reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,PCI-DSS|2.2.3,SANS-CSC|3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "httpd.admin.hostsequiv.enable[\\s\\t]+"
+  expect      : "httpd.admin.hostsequiv.enable[\\s\\t]+off"
+</custom_item>
+
+### Telnet
+#### See 2.1 Enable Secure Admin Access - 'telnet.distinct.enable = on'
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.enable = on'
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.timeout <= 5'
+
+<report type:"WARNING">
+  description : "3.2 Data ONTAP (Software) Mgmt - 'Telnet login banner'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Set a banner message through the creation of the /etc/issue file"
+  reference   : "HIPAA|164.308(a)(1)(ii)(C),HIPAA|164.308(a)(5)(ii)(A),PCI-DSS|12.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+### RSH
+#### See 2.0 Install & Config - 'Disable RSH'
+### SSH
+#### See 2.0 Install & Config - 'Disable SSHv1'
+#### See 2.0 Install & Config - 'Enable SSHv2'
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.enable = on'
+#### See 2.1 Enable Secure Admin Access - 'autologout.telnet.timeout <= 5'
+#### See 2.1 Enable Secure Admin Access - 'telnet.distinct.enable = on'
+#### See 2.1 Enable Secure Admin Access - 'ssh.idle.timeout <= 60'
+
+<report type:"WARNING">
+  description : "3.2 Data ONTAP (Software) Mgmt - 'Set SSH login banner'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Create a banner for the ssh session by creating a /etc/motd file"
+  reference   : "HIPAA|164.308(a)(1)(ii)(C),HIPAA|164.308(a)(5)(ii)(A),PCI-DSS|12.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "3.2 Data ONTAP (Software) Mgmt - 'ssh2.banner.enable = on'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs."
+  solution    : "Enable the sshv2 login banner"
+  reference   : "800-171|3.1.9,800-53|AC-8,HIPAA|164.308(a)(1)(ii)(C),HIPAA|164.308(a)(5)(ii)(A),ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,PCI-DSS|12.4,PCI-DSS|2.2.3,TBA-FIISB|45.2.4"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "ssh2.banner.enable[\\s\\t]+"
+  expect      : "ssh2.banner.enable[\\s\\t]+on"
+</custom_item>
+
+### HARDWARE MANAGEMENT RLM/SP/BMC
+## 3.3 Role-Based Access Control (RBAC)
+### Users
+### Groups
+### Roles
+### Capabilities
+
+<report type:"WARNING">
+  description : "3.3 Role-Based Access Control (RBAC) - 'RBAC has been implemented'"
+  info        : "System Manager is a graphical management interface that enables you to manage most storage system functions through a telnet session, the rsh command, or scripts or configuration files rather than by entering commands at the console. You can also use System Manager to view information about the storage system; its physical storage units, such as adapters, disks, and RAID groups; and its data storage units, such as aggregates, volumes, and LUNs.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "You should thoroughly plan a complete RBAC implementation"
+  reference   : "HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),PCI-DSS|7.1.2,PCI-DSS|7.1.4,PCI-DSS|7.2"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+</report>
+
+# 4 Vulnerability Scanners and Reporting
+# 5 Licensed Protocols
+##### Several of the licensed protocols provide their own Best Practices recommendations.
+##### Where applicable, these recommendations have been included in this section and the
+##### particular source document has been noted.
+## 5.1 MultiStore
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "5.1 MultiStore - 'MultiStore protocol is disabled'"
+  info        : "MultiStore enables you to partition the storage and network resources of a single storage system so that it appears as multiple storage systems on the network. MultiStore is optional software that is available by license for Data ONTAP."
+  solution    : "Disable MultiStore if not required"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "licensed_feature.multistore.enable[\\s\\t]+"
+  expect      : "licensed_feature.multistore.enable[\\s\\t]+off"
+</custom_item>
+
+## 5.2 SnapMirror
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "5.2 SnapMirror - 'SnapMirror protocol is disabled'"
+  info        : "SnapMirror is a feature of Data ONTAP that enables you to replicate data. SnapMirror enables you to replicate data from specified source volumes or qtrees to specified destination volumes or qtrees, respectively."
+  solution    : "Disable SnapMirror if not required"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.308(a)(7)(ii)(A),HIPAA|164.308(a)(7)(ii)(B),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "snapmirror.enable[\\s\\t]+"
+  expect      : "snapmirror.enable[\\s\\t]+off"
+</custom_item>
+
+##### SnapMirror Async Overview and Best Practices Guide
+##### http://media.netapp.com/documents/TR-3446.pdf
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.2 SnapMirror - 'SnapMirror is enabled'"
+      regex       : "snapmirror.enable[\\s\\t]+"
+      expect      : "snapmirror.enable[\\s\\t]+on"
+    </custom_item>
+  </condition>
+
+  <then>
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.2 SnapMirror - 'snapmirror.access = legacy'"
+          regex       : "snapmirror.enable[\\s\\t]+"
+          expect      : "snapmirror.enable[\\s\\t]+legacy"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"WARNING">
+          description : "5.2 SnapMirror - 'snapmirror.allow file should be reviewed'"
+          info        : "SnapMirror is a feature of Data ONTAP that enables you to replicate data. SnapMirror enables you to replicate data from specified source volumes or qtrees to specified destination volumes or qtrees, respectively.
+
+          NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "If snapmirror.access option is set to legacy, the snapmirror.allow file is used instead.
+
+          Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+          reference   : "HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.2 SnapMirror - 'snapmirror.access has been configured'"
+          info        : "SnapMirror is a feature of Data ONTAP that enables you to replicate data. SnapMirror enables you to replicate data from specified source volumes or qtrees to specified destination volumes or qtrees, respectively."
+          solution    : "Configure the snapmirror.access option to limit access to SnapMirror to known, trusted hosts
+
+          Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+          reference   : "800-171|3.1.3,800-53|AC-4,CN-L3|8.1.10.2(c),CSF|DE.AE-1,CSF|ID.AM-3,CSF|PR.AC-4,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|AC-4,NESA|T4.2.1,NESA|T4.5.1,NESA|T4.5.3,NESA|T4.5.4,NESA|T5.4.6,NESA|T5.7.2,NESA|T7.5.2,NESA|T7.6.4,NIAv2|GS11a,NIAv2|GS12a,NIAv2|GS14a,NIAv2|GS15a,NIAv2|GS16a,NIAv2|NS13a,NIAv2|NS13b,NIAv2|NS13c,NIAv2|NS14,NIAv2|SS23,NIAv2|SS27a,NIAv2|SS27b,NIAv2|SS32,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3,SWIFT-CSCv1|2.1,SWIFT-CSCv1|2.4"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "snapmirror.access[\\s\\t]+"
+# Note: Variable @SNAPMIRROR_ACCESS@ replaced with "192\\.168\\.1\\.0/24" in field "expect".
+          expect      : "snapmirror.access[\\s\\t]+192\\.168\\.1\\.0/24[\\s\\t]*$"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.2 SnapMirror - 'snapmirror.log.enable = on'"
+      info        : "SnapMirror is a feature of Data ONTAP that enables you to replicate data. SnapMirror enables you to replicate data from specified source volumes or qtrees to specified destination volumes or qtrees, respectively."
+      solution    : "Enable SnapMirror logging
+
+      Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|2.2.3,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "snapmirror.log.enable[\\s\\t]+"
+      expect      : "snapmirror.log.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.2 SnapMirror - 'replication.throttle.enable = on'"
+      info        : "SnapMirror is a feature of Data ONTAP that enables you to replicate data. SnapMirror enables you to replicate data from specified source volumes or qtrees to specified destination volumes or qtrees, respectively."
+      solution    : "Enable global network throttling of SnapMirror and SnapVault transfers
+
+      Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+      reference   : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),PCI-DSS|2.2.3,SANS-CSC|14,SWIFT-CSCv1|6.4"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "replication.throttle.enable[\\s\\t]+"
+      expect      : "replication.throttle.enable[\\s\\t]+on"
+    </custom_item>
+
+# Needs customization
+# Please update {INCOMING_LIMIT} with the appropriate value for the local environment
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.2 SnapMirror - 'replication.throttle.incoming.max_kbs has been configured'"
+      info        : "SnapMirror is a feature of Data ONTAP that enables you to replicate data. SnapMirror enables you to replicate data from specified source volumes or qtrees to specified destination volumes or qtrees, respectively."
+      solution    : "On the destination system, specify the maximum total bandwidth used by all incoming SnapMirror and SnapVault transfers (specified in kilobytes/sec)
+
+      Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+      reference   : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),PCI-DSS|2.2.3,SWIFT-CSCv1|6.4"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "replication.throttle.incoming.max_kbs[\\s\\t]+"
+# Note: Variable @REPL_INCOMING_LIMIT@ replaced with "unlimited" in field "expect".
+      expect      : "replication.throttle.incoming.max_kbs[\\s\\t]+unlimited[\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.2 SnapMirror - 'replication.throttle.outgoing.max_kbs has been configured'"
+      info        : "SnapMirror is a feature of Data ONTAP that enables you to replicate data. SnapMirror enables you to replicate data from specified source volumes or qtrees to specified destination volumes or qtrees, respectively."
+      solution    : "On the source system, specify the maximum total bandwidth used by all incoming SnapMirror and SnapVault transfers (specified in kilobytes/sec)
+
+      Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+      reference   : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),PCI-DSS|2.2.3,SWIFT-CSCv1|6.4"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "replication.throttle.outgoing.max_kbs[\\s\\t]+"
+# Note: Variable @REPL_OUTGOING_LIMIT@ replaced with "unlimited" in field "expect".
+      expect      : "replication.throttle.outgoing.max_kbs[\\s\\t]+unlimited[\\s\\t]*$"
+    </custom_item>
+  </then>
+</if>
+
+## 5.3 SnapVault
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "5.3 SnapVault - 'SnapVault protocol is disabled'"
+  info        : "SnapVault leverages disk-based backup and block-level incremental backups for reliable, low-overhead backup and recovery suitable for any environment. SnapVault enables data stored on multiple systems to be backed up to a central secondary system quickly and efficiently as read-only Snapshot copies."
+  solution    : "Disable SnapVault if not required"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.308(a)(7)(ii)(A),HIPAA|164.308(a)(7)(ii)(B),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "snapvault.enable[\\s\\t]+"
+  expect      : "snapvault.enable[\\s\\t]+off"
+</custom_item>
+
+##### SnapVault Best Practices Guide
+##### http://media.netapp.com/documents/TR-3487.pdf
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.3 SnapVault - 'SnapVault is enabled'"
+      regex       : "snapvault.enable[\\s\\t]+"
+      expect      : "snapvault.enable[\\s\\t]+on"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.3 SnapVault - 'snapvault.access has been configured'"
+      info        : "SnapVault leverages disk-based backup and block-level incremental backups for reliable, low-overhead backup and recovery suitable for any environment. SnapVault enables data stored on multiple systems to be backed up to a central secondary system quickly and efficiently as read-only Snapshot copies."
+      solution    : "Configure the snapvault.access option to limit acces to SnapVault to known, trusted hosts
+
+      Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+      reference   : "800-171|3.1.3,800-53|AC-4,CN-L3|8.1.10.2(c),CSF|DE.AE-1,CSF|ID.AM-3,CSF|PR.AC-4,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),ITSG-33|AC-4,NESA|T4.2.1,NESA|T4.5.1,NESA|T4.5.3,NESA|T4.5.4,NESA|T5.4.6,NESA|T5.7.2,NESA|T7.5.2,NESA|T7.6.4,NIAv2|GS11a,NIAv2|GS12a,NIAv2|GS14a,NIAv2|GS15a,NIAv2|GS16a,NIAv2|NS13a,NIAv2|NS13b,NIAv2|NS13c,NIAv2|NS14,NIAv2|SS23,NIAv2|SS27a,NIAv2|SS27b,NIAv2|SS32,PCI-DSS|2.2.3,PCI-DSS|7.2.1,SANS-CSC|3,SWIFT-CSCv1|2.1,SWIFT-CSCv1|2.4"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "snapvault.access[\\s\\t]+"
+# Note: Variable @SNAPVAULT_ACCESS@ replaced with "192\\.168\\.1\\.0/24" in field "expect".
+      expect      : "snapvault.access[\\s\\t]+192\\.168\\.1\\.0/24[\\s\\t]*$"
+    </custom_item>
+
+# Needs customization
+# Please update {SNAPVAULT_DR_BKUP} with the appropriate value for the local environment
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.3 SnapVault - 'snapvault.snapshot_for_dr_backup has been configured'"
+      info        : "SnapVault leverages disk-based backup and block-level incremental backups for reliable, low-overhead backup and recovery suitable for any environment. SnapVault enables data stored on multiple systems to be backed up to a central secondary system quickly and efficiently as read-only Snapshot copies."
+      solution    : "Configure the snapvault.snapshot_for_dr_backup appropriately for the required transfer schedule
+
+      Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+      reference   : "800-171|3.8.9,800-53|CP-9,CSF|PR.IP-4,HIPAA|164.308(a)(7)(ii)(A),HIPAA|164.308(a)(7)(ii)(B),ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4,PCI-DSS|2.2.3,SANS-CSC|8"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "snapvault.snapshot_for_dr_backup[\\s\\t]+"
+# Note: Variable @SNAPVAULT_DR_BKUP@ replaced with "vsm_base_only" in field "expect".
+      expect      : "snapvault.snapshot_for_dr_backup[\\s\\t]+vsm_base_only[\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.3 SnapVault - 'snapvault.preservesnap = on'"
+      info        : "SnapVault leverages disk-based backup and block-level incremental backups for reliable, low-overhead backup and recovery suitable for any environment. SnapVault enables data stored on multiple systems to be backed up to a central secondary system quickly and efficiently as read-only Snapshot copies."
+      solution    : "Enable snapvault.preservesnap to globally preserve Snapshot copies from rolling off.
+
+      Additional information: http://media.netapp.com/documents/TR-3446.pdf"
+      reference   : "800-171|3.8.9,800-53|CP-9,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4,PCI-DSS|2.2.3,SANS-CSC|8"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "snapvault.preservesnap[\\s\\t]+"
+      expect      : "snapvault.preservesnap[\\s\\t]+on"
+    </custom_item>
+  </then>
+</if>
+
+## 5.4 CIFS
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "5.4 CIFS - 'CIFS protocol is disabled'"
+  info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+  solution    : "Disable CIFS if not required"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "cifs.smb2.enable[\\s\\t]+"
+  expect      : "cifs.smb2.enable[\\s\\t]+off"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.smb2.enable = on'"
+      regex       : "cifs.smb2.enable[\\s\\t]+"
+      expect      : "cifs.smb2.enable[\\s\\t]+on"
+    </custom_item>
+  </condition>
+
+  <then>
+##### NetApp Storage Systems in a Microsoft Windows Environment
+##### http://media.netapp.com/documents/TR-3367.pdf
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.signing.enable = on'"
+      info        : "NetApp recommends the use of security features in IP storage protocols to secure client access"
+      solution    : "Enable CIFS signing"
+      reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3,PCI-DSS|4.1,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.signing.enable[\\s\\t]+"
+      expect      : "cifs.signing.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.smb2.signing.required = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable SMB signing for SMB 2.0 protocol
+
+      Additional information: http://media.netapp.com/documents/TR-3367.pdf"
+      reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3,PCI-DSS|4.1,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.smb2.signing.required[\\s\\t]+"
+      expect      : "cifs.smb2.signing.required[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.LMCompatibilityLevel <= 3'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Set the LMCompaibilityLevel to an appropriate value for the local environment
+
+      Additional information: http://media.netapp.com/documents/TR-3367.pdf"
+      reference   : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,PCI-DSS|2.2.3,PCI-DSS|4.1,SANS-CSC|3,TBA-FIISB|31.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.LMCompatibilityLevel[\\s\\t]+"
+      expect      : "cifs.LMCompatibilityLevel[\\s\\t]+[3-5][\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.gpo.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable GPO support
+
+      Additional information: http://media.netapp.com/documents/TR-3367.pdf"
+      reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-3(3),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(3),NESA|T5.5.4,NESA|T7.5.3,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.gpo.enable[\\s\\t]+"
+      expect      : "cifs.gpo.enable[\\s\\t]+on"
+    </custom_item>
+
+##### Windows File Services Best Practices with NetApp Storage Systems
+##### http://media.netapp.com/documents/TR-3771.pdf
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'dns.update.enable = on or secure'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable dynamic DNS updates
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-53|SC-20,ITSG-33|SC-20,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "dns.update.enable[\\s\\t]+"
+      expect      : "dns.update.enable[\\s\\t]+(on|secure)"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'dns.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable DNS on the NetApp Storage System
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-53|SC-20,ITSG-33|SC-20,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "dns.enable[\\s\\t]+"
+      expect      : "dns.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'dns.domainname has been configured'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Configure the DNS domain name
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-53|SC-20,ITSG-33|SC-20,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "dns.domainname[\\s\\t]+"
+# Note: Variable @DNS_DOMAIN@ replaced with "example\\.com" in field "expect".
+      expect      : "dns.domainname[\\s\\t]+example\\.com[\\s\\t]+"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'timed.proto = ntp'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Specify a time protocol
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,PCI-DSS|2.2.3,SANS-CSC|14"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "timed.proto[\\s\\t]+"
+      expect      : "timed.proto[\\s\\t]+ntp"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'timed.servers has been configured'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Configure at least one NTP server
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,PCI-DSS|2.2.3,SANS-CSC|14"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "timed.servers[\\s\\t]+"
+# Note: Variable @NTP_SERVER@ replaced with "1\\.1\\.1\\.1,1\\.1\\.1\\.2" in field "expect".
+      expect      : "timed.servers[\\s\\t]+1\\.1\\.1\\.1,1\\.1\\.1\\.2[\\s\\t]+"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'timed.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable the time daemon
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,PCI-DSS|2.2.3,SANS-CSC|14"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "timed.enable[\\s\\t]+"
+      expect      : "timed.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'timed.window = 5m'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Set the timed window
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,PCI-DSS|2.2.3,SANS-CSC|14"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "timed.window[\\s\\t]+"
+      expect      : "timed.window[\\s\\t]+5m[\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.guest_account is not configured'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Disable users from nontrusted domains to log in and access shares on the storage system
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.308(a)(3)(ii)(A),HIPAA|164.308(a)(4)(ii)(B),HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.1,PCI-DSS|7.2.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.guest_account[\\s\\t]+"
+      expect      : "cifs.guest_account[\\s\\t]+$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.restrict_anonymous = 2'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Restrict anonymous share lookups
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,HIPAA|164.312(a)(2)(i),ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,PCI-DSS|2.2.3,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.restrict_anonymous[\\s\\t]+"
+      expect      : "cifs.restrict_anonymous[\\s\\t]+2"
+    </custom_item>
+
+#### See 5.4 CIFS - 'cifs.LMCompatibilityLevel <= 3'
+#### See 5.4 CIFS - 'cifs.smb2.signing.required = on'
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'ldap.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable LDAP
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,HIPAA|164.312(d),ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|2.2.3,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "ldap.enable[\\s\\t]+"
+      expect      : "ldap.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'ldap.ssl.enable = on'"
+      info        : "NetApp recommends the use of security features in IP storage protocols to secure client access"
+      solution    : "Enable LDAP over SSL"
+      reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3,PCI-DSS|4.1,SANS-CSC|17"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "ldap.ssl.enable[\\s\\t]+"
+      expect      : "ldap.ssl.enable[\\s\\t]+on"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.4 CIFS - 'ldap.security.level = 1 or 2'"
+          regex       : "ldap.security.level[\\s\\t]+"
+          expect      : "ldap.security.level[\\s\\t]+"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.4 CIFS - 'ldap.security.level = 1 or 2'"
+          info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+          solution    : "Enable LDAP signing
+
+          Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+          reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "ldap.security.level[\\s\\t]+"
+          expect      : "ldap.security.level[\\s\\t]+[1-2]"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "5.4 CIFS - 'ldap.security.level = 1 or 2'"
+          info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+          solution    : "Enable LDAP signing
+
+          Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+          reference   : "PCI-DSS|2.2.3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+        </report>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.4 CIFS - 'cifs.audit.autosave.onsize.threshold has been configured'"
+          regex       : "cifs.audit.autosave.onsize.threshold[\\s\\t]+"
+# Note: Variable @AUDIT_THRESHOLD@ replaced with "75%" in field "expect".
+          expect      : "cifs.audit.autosave.onsize.threshold[\\s\\t]+75%"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.4 CIFS - 'cifs.audit.autosave.onsize.threshold has been configured'"
+          info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+          solution    : "Configure for automatic saving of the event logs
+
+          Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+          reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "cifs.audit.autosave.onsize.threshold[\\s\\t]+"
+# Note: Variable @AUDIT_THRESHOLD@ replaced with "75%" in field "expect".
+          expect      : "cifs.audit.autosave.onsize.threshold[\\s\\t]+75%"
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.4 CIFS - 'cifs.audit.autosave.ontime.interval has been configured'"
+          info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+          solution    : "Configure for automatic saving of the event logs
+
+          Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+          reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "cifs.audit.autosave.ontime.interval[\\s\\t]+"
+# Note: Variable @AUDIT_INTERVAL@ replaced with "1d" in field "expect".
+          expect      : "cifs.audit.autosave.ontime.interval[\\s\\t]+1d"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.autosave.file.extension has been configured'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Configure file extensions for saving the event logs
+
+      Additional information: http://media.netapp.com/documents/TR-3771.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.autosave.file.extension[\\s\\t]+"
+# Note: Variable @AUDIT_EXTENSION@ replaced with "timestamp" in field "expect".
+      expect      : "cifs.audit.autosave.file.extension[\\s\\t]+timestamp"
+    </custom_item>
+
+##### Auditing Quick Start Guide
+##### http://media.netapp.com/documents/TR-3595.pdf
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable CIFS auditing
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.enable[\\s\\t]+"
+      expect      : "cifs.audit.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.file_access_events.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Audit file access events
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2.1,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.file_access_events.enable[\\s\\t]+"
+      expect      : "cifs.audit.file_access_events.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.logon_events.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Audit log-on/log-off events
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(5)(ii)(C),HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2.4,PCI-DSS|10.2.5,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.logon_events.enable[\\s\\t]+"
+      expect      : "cifs.audit.logon_events.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.account_mgmt_events.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Audit account management events
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.account_mgmt_events.enable[\\s\\t]+"
+      expect      : "cifs.audit.account_mgmt_events.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.nfs.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable NFS auditing
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2.1,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.nfs.enable[\\s\\t]+"
+      expect      : "cifs.audit.nfs.enable[\\s\\t]+on"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.4 CIFS - 'cifs.audit.nfs.enable = on'"
+          regex       : "cifs.audit.nfs.enable[\\s\\t]+"
+          expect      : "cifs.audit.nfs.enable[\\s\\t]+on"
+        </custom_item>
+      </condition>
+
+      <then>
+#### See 5.4 CIFS - 'cifs.audit.file_access_events.enable = on'
+#### See 5.4 CIFS - 'cifs.audit.logon_events.enable = on'
+
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.4 CIFS - 'cifs.audit.nfs.filter.filename has been configured'"
+          info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+          solution    : "Set the cifs.audit.nfs.filter.filename option to identify the filter file
+
+          Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,HIPAA|164.312(b),ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|2.3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "cifs.audit.nfs.filter.filename[\\s\\t]+"
+          not_expect  : "cifs.audit.nfs.filter.filename[\\s\\t]+$"
+        </custom_item>
+      </then>
+    </if>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.autosave.onsize.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable the audit file autodsaving
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.autosave.file.extension[\\s\\t]+"
+      expect      : "cifs.audit.autosave.file.limit[\\s\\t]+on"
+    </custom_item>
+
+#### See 5.4 CIFS - 'cifs.audit.autosave.onsize.threshold has been configured'
+#### See 5.4 CIFS - 'cifs.audit.autosave.file.extension has been configured'
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.autosave.file.limit has been configured'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      info        : "NOTE: Update {AUDIT_LIMIT} with the appropriate value for the local environment"
+      solution    : "Sspecifies the number of simultaneous logs kept by the storage system
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.autosave.file.extension[\\s\\t]+"
+# Note: Variable @AUDIT_LIMIT@ replaced with "10" in field "expect".
+      expect      : "cifs.audit.autosave.file.limit[\\s\\t]+10[\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.audit.liveview.enable = off'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "If Live View auditing is required, configure the option Enable Live View in Data ONTAP
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(b),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.audit.liveview.enable[\\s\\t]+"
+      expect      : "cifs.audit.liveview.enable[\\s\\t]+off"
+    </custom_item>
+
+##### SMB 2.0-Next-Generation CIFS Protocol in Data ONTAP
+##### http://media.netapp.com/documents/TR-3740.pdf
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.smb2.client.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable SMB 2.0 client capability on the storage system. When this option is enabled, NetApp system-initiated connections to Windows domain controllers attempt to use the SMB 2.0 protocol.
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,PCI-DSS|1.1.5,PCI-DSS|2.2.2,PCI-DSS|4.1,SANS-CSC|3,SWIFT-CSCv1|2.2"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.smb2.client.enable[\\s\\t]+"
+      expect      : "cifs.smb2.client.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.smb2.durable_handle.enable = on'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable the durable handle functionality for SMB 2.0 clients. If this option is enabled, the open files from a client are preserved when the client gets disconnected from the NetApp system.
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.smb2.durable_handle.enable[\\s\\t]+"
+      expect      : "cifs.smb2.durable_handle.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.4 CIFS - 'cifs.smb2.durable_handle.timeout'"
+      info        : "CIFS is a file-sharing protocol intended to provide an open cross-platform mechanism for client systems to request file services from server systems over a network. It is based on the standard Server Message Block (SMB) protocol widely in use by personal computers and workstations running a wide variety of operating systems."
+      solution    : "Enable the durable handle functionality for SMB 2.0 clients. If this option is enabled, the open files from a client are preserved when the client gets disconnected from the NetApp system.
+
+      Additional information: http://media.netapp.com/documents/TR-3595.pdf"
+      reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "cifs.smb2.durable_handle.timeout[\\s\\t]+"
+# Note: Variable @HANDLE_TIMEOUT@ replaced with "960" in field "expect".
+      expect      : "cifs.smb2.durable_handle.timeout[\\s\\t]+960[\\s\\t]*"
+    </custom_item>
+  </then>
+</if>
+
+## 5.5 NFS
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "5.5 NFS - 'nfs.v2.enable = off'"
+  info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+  solution    : "Disable NFSv2"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "nfs.v2.enable[\\s\\t]+"
+  expect      : "nfs.v2.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "5.5 NFS - 'nfs.v3.enable = off'"
+  info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+  solution    : "Disable NFSv3"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "nfs.v3.enable[\\s\\t]+"
+  expect      : "nfs.v3.enable[\\s\\t]+off"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "5.5 NFS - 'nfs.v4.enable = off'"
+  info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+  solution    : "Disable NFSv4 unless NFS functions are required"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.2,SANS-CSC|3,SWIFT-CSCv1|2.3"
+  see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+  regex       : "nfs.v4.enable[\\s\\t]+"
+  expect      : "nfs.v4.enable[\\s\\t]+off"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "NFS is enabled - 'nfs.v4.enable = on'"
+      regex       : "nfs.v4.enable[\\s\\t]+"
+      expect      : "nfs.v4.enable[\\s\\t]+on"
+    </custom_item>
+  </condition>
+
+  <then>
+##### NFSv4 Enhancements and Best Practices Guide: Data ONTAP Implementation
+##### http://media.netapp.com/documents/TR-3580.pdf
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.v4.id.domain has been configured'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Configure the NFS domain ID
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.v4.id.domain[\\s\\t]+"
+# Note: Variable @NFS_ID_DOMAIN@ replaced with "lab\\.netapp\\.com" in field "expect".
+      expect      : "nfs.v4.id.domain[\\s\\t]+lab\\.netapp\\.com"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.v4.acl.enable = on'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Use the nfs.v4.acl.enable option to control the setting and viewing of NFSv4 ACLs
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-3(3),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(3),NESA|T5.5.4,NESA|T7.5.3,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.v4.acl.enable[\\s\\t]+"
+      expect      : "nfs.v4.acl.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.v4.read_delegation = on'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Enable the READ/WRITE delegations on the NetApp system
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.v4.read_delegation[\\s\\t]+"
+      expect      : "nfs.v4.read_delegation[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.v4.write_delegation = on'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Enable the READ/WRITE delegations on the NetApp system
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.v4.write_delegation[\\s\\t]+"
+      expect      : "nfs.v4.write_delegation[\\s\\t]+on"
+    </custom_item>
+
+#### See 5.4 CIFS - 'timed.enable = on'
+#### See 5.4 CIFS - 'timed.servers has been configured'
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.kerberos.enable = on'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Enable Kerberos authentication for NFS
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.kerberos.enable[\\s\\t]+"
+      expect      : "nfs.kerberos.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.kerberos.file_keytab.enable = on'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Enable the option for nfs.kerberos.file_keytab.enable
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.kerberos.file_keytab.enable[\\s\\t]+"
+      expect      : "nfs.kerberos.file_keytab.enable[\\s\\t]+on"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.kerberos.principal has been configured'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Configure the principal Kerberos server
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.kerberos.principal[\\s\\t]+"
+# Note: Variable @NFS_KRB_PRINCIPAL@ replaced with "kerberos\\.lab\\.netapp\\.com" in field "expect".
+      expect      : "nfs.kerberos.principal[\\s\\t]+kerberos\\.lab\\.netapp\\.com[\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.kerberos.realm has been configured'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Configure the Kerberos realm
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.kerberos.realm[\\s\\t]+"
+# Note: Variable @NFS_REALM@ replaced with "LAB\\.NETAPP\\.COM" in field "expect".
+      expect      : "nfs.kerberos.realm[\\s\\t]+LAB\\.NETAPP\\.COM[\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.rpcsec.ctx.high has been configured'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Configure how many security contexts (RPCSEC_GSS sessions) you can have before they are reused. The expected number for this option is in hundreds or thousands.
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.rpcsec.ctx.high[\\s\\t]+"
+# Note: Variable @SEC_CONTEXT_VALUE@ replaced with "100" in field "expect".
+      expect      : "nfs.rpcsec.ctx.high[\\s\\t]+100[\\s\\t]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'nfs.rpcsec.ctx.idle has been configured'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Configure how long to keep idle contexts around. The default of 6 minutes should be acceptable in most cases.
+
+      Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+      reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "nfs.rpcsec.ctx.idle[\\s\\t]+"
+# Note: Variable @IDLE_CONTEXT_VALUE@ replaced with "360" in field "expect".
+      expect      : "nfs.rpcsec.ctx.idle[\\s\\t]+360[\\s\\t]*$"
+    </custom_item>
+
+##### NetApp Storage System Multiprotocol User Guide
+##### http://media.netapp.com/documents/TR-3490.pdf
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'wafl.default_security_style has been configured'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Configure the default security style.
+
+      Additional information: http://media.netapp.com/documents/TR-3490.pdf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "wafl.default_security_style[\\s\\t]+"
+# Note: Variable @DEFAULT_SECURITY_STYLE@ replaced with "unix" in field "expect".
+      expect      : "wafl.default_security_style[\\s\\t]+unix[\\s\\t]*$"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.5 NFS - 'wafl.default_security_style = unix or mixed'"
+          regex       : "wafl.default_security_style[\\s\\t]+"
+          expect      : "wafl.default_security_style[\\s\\t]+(unix|mixed)[\\s\\t]*$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.5 NFS - 'wafl.default_unix_user has been configured'"
+          info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+          solution    : "Setting this option is set to the null string. Windows users who are not mapped to a UNIX user are not allowed to log in.
+
+          Additional information: http://media.netapp.com/documents/TR-3490.pdf"
+          reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2.3,SANS-CSC|3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "wafl.default_unix_user[\\s\\t]+"
+# Note: Variable @UNIX_DEFAULT_USER@ replaced with "pcuser" in field "expect".
+          expect      : "wafl.default_unix_user[\\s\\t]+pcuser[\\s\\t]*$"
+        </custom_item>
+
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.5 NFS - 'cifs.preserve_unix_security = on'"
+          info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+          solution    : "Enable the cifs.preserve_unix_security option to display the effective UNIX owner, group, and other access permissions on the folder Properties tab.
+
+          Additional information: http://media.netapp.com/documents/TR-3490.pdf"
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|2.3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "cifs.preserve_unix_security[\\s\\t]+"
+          expect      : "cifs.preserve_unix_security[\\s\\t]+on"
+        </custom_item>
+
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.5 NFS - 'wafl.nt_admin_priv_map_to_root = on'"
+          info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+          solution    : "Turn on the option that allows all Windows administrators to map to root.
+
+          Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+          reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2.3,SANS-CSC|3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "wafl.nt_admin_priv_map_to_root[\\s\\t]+"
+          expect      : "wafl.nt_admin_priv_map_to_root[\\s\\t]+on"
+        </custom_item>
+
+#### See 5.4 CIFS - 'cifs.guest_account is not configured'
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.5 NFS - 'wafl.default_security_style = ntfs or mixed'"
+          regex       : "wafl.default_security_style[\\s\\t]+"
+          expect      : "wafl.default_security_style[\\s\\t]+(ntfs|mixed)[\\s\\t]*$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.5 NFS - 'wafl.default_nt_user has been configured'"
+          info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+          solution    : "Setting this option is set to the null string. Windows users who are not mapped to a UNIX user are not allowed to log in.
+
+          Additional information: http://media.netapp.com/documents/TR-3490.pdf"
+          reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2.3,SANS-CSC|3"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "wafl.default_nt_user[\\s\\t]+"
+# Note: Variable @NT_DEFAULT_USER@ replaced with "CORP\\\\\\ntuser" in field "expect".
+          expect      : "wafl.default_nt_user[\\s\\t]+CORP\\\\\\ntuser[\\s\\t]*$"
+        </custom_item>
+
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "5.5 NFS - 'cifs.nfs_root_ignore_acl = on'"
+          info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+          solution    : "Turn on the option that allows root to access files with ACLs even if the ACLs would not allow access to the mapped Windows user.
+
+          Additional information: http://media.netapp.com/documents/TR-3580.pdf"
+          reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,PCI-DSS|2.2.3,SANS-CSC|3,SWIFT-CSCv1|5.1"
+          see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+          regex       : "cifs.nfs_root_ignore_acl[\\s\\t]+"
+          expect      : "cifs.nfs_root_ignore_acl[\\s\\t]+on"
+        </custom_item>
+
+#### See 5.4 CIFS - 'cifs.guest_account is not configured'
+      </then>
+    </if>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "5.5 NFS - 'wafl.wcc_minutes_valid has been configured'"
+      info        : "Network File System (NFS) is one of the most popular distributed file system protocols that allows a client computer to access files on shared storage over the network. NFS version 4 (NFSv4) is an improved version of NFS protocol versions 2 and 3."
+      solution    : "Configure the time limit for caching Windows to Unix user mapping.
+
+      Additional information: http://media.netapp.com/documents/TR-3490.pdf"
+      reference   : "800-53|IA-5(13),CSF|PR.AC-1,HIPAA|164.312(d),PCI-DSS|2.2.3,SANS-CSC|3"
+      see_also    : "http://media.netapp.com/documents/tr-3649.pdf"
+      regex       : "wafl.wcc_minutes_valid[\\s\\t]+"
+# Note: Variable @USER_MAPPING_CACHE@ replaced with "20" in field "expect".
+      expect      : "wafl.wcc_minutes_valid[\\s\\t]+20[\\s\\t]*$"
+    </custom_item>
+  </then>
+</if>
+
+</check_type>

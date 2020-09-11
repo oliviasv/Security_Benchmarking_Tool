@@ -1,0 +1,555 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/07/14 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Kubernetes Benchmark v1.4.1
+#
+#               https://workbench.cisecurity.org/files/2421
+#
+#<ui_metadata>
+#<display_name>CIS Kubernetes 1.13 Benchmark v1.4.1 L2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Kubernetes 1.13 L2</name>
+#  <version>1.4.1</version>
+#  <link>https://workbench.cisecurity.org/files/2421</link>
+#</spec>
+#<labels>kubernetes,kubernetes_1.13,agent,unix</labels>
+#<benchmark_refs>LEVEL,CSCv6,CSCv7</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>APISERVER_FILE</name>
+#    <default>/etc/kubernetes/manifests/kube-apiserver.yaml</default>
+#    <description>API Server Config File</description>
+#    <info>The apiserver file controls various parameters that set the behavior of the API server.</info>
+#  </variable>
+#  <variable>
+#    <name>KUBECONFIG</name>
+#    <default>/etc/kubernetes/admin.conf</default>
+#    <description>Path to the kubectl config</description>
+#    <info>The kubeconfig file controls various parameters for connecting to the API server.</info>
+#  </variable>
+#  <variable>
+#    <name>KUBECTL_PATH</name>
+#    <default>/usr/bin</default>
+#    <description>Path to the kubectl binary</description>
+#    <info>This is the directory where the kubectl binary is located.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<custom_item>
+  system      : "Linux"
+  type        : PROCESS_CHECK
+  description : "CIS_Kubernetes_v1.4.1_Level_2.audit from CIS Kubernetes Benchmark v1.4.1"
+  info        : "NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  name        : "kubelet"
+  status      : ON
+  severity    : MEDIUM
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      system      : "Linux"
+      type        : PROCESS_CHECK
+      description : "Check if kubelet is running"
+      name        : "kubelet"
+      status      : ON
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Check if this is a Docker Vessel/Host"
+      cmd         : "/usr/bin/docker info"
+      expect      : "Containers"
+    </custom_item>
+  </condition>
+
+  <then>
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system        : "Linux"
+          type          : CMD_EXEC
+          description   : "Check if API Server is running"
+          cmd           : "ps -ef | egrep '/etcd[2]?([[:space:]]|$)' | grep -v grep"
+          expect        : "etcd[2]?[\\s]"
+          dont_echo_cmd : YES
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"WARNING">
+          description : "1.5.7 Ensure that a unique Certificate Authority is used for etcd"
+          info        : "Use a different certificate authority for etcd from the one used for Kubernetes.
+
+Rationale:
+
+etcd is a highly available key-value store used by Kubernetes deployments for persistent storage of all of its REST API objects. Its access should be restricted to specifically designated clients and peers only.
+
+Authentication to etcd is based on whether the certificate presented was issued by a trusted certificate authority. There is no checking of certificate attributes such as common name or subject alternative name. As such, if any attackers were able to gain access to any certificate issued by the trusted certificate authority, they would be able to gain full access to the etcd database.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Follow the etcd documentation and create a dedicated certificate authority setup for the etcd service.
+
+Then, edit the etcd pod specification file '/etc/kubernetes/manifests/etcd.yaml' on the master node and set the below parameter.
+
+--trusted-ca-file="
+          reference   : "CSCv6|9,LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/2421"
+        </report>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : FILE_CHECK
+          description : "Check if kubectl exists"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "file".
+          file        : "/usr/bin/kubectl"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : FILE_CHECK
+              description : "Check if kubeconfig exists"
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "file".
+              file        : "/etc/kubernetes/admin.conf"
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.3 Create network segmentation using Network Policies"
+              info          : "Use network policies to isolate your cluster network.
+
+Rationale:
+
+Running different applications on the same Kubernetes cluster creates a risk of one compromised application attacking a neighboring application. Network segmentation is important to ensure that containers can communicate only with those they are supposed to. A network policy is a specification of how selections of pods are allowed to communicate with each other and other network endpoints. 'NetworkPolicy' resources use labels to select pods and define whitelist rules which allow traffic to the selected pods in addition to what is allowed by the isolation policy for a given namespace.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow the documentation and create 'NetworkPolicy' objects as you need them."
+              reference     : "800-171|3.13.2,800-171|3.13.5,800-53|SC-7(21),CSCv6|14.1,CSCv7|14.1,CSCv7|14.2,CSF|PR.AC-5,CSF|PR.DS-5,LEVEL|2S,NESA|T4.5.3,NIAv2|VL6"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "cmd".
+              cmd           : "/usr/bin/kubectl get networkpolicy --namespace=kube-system --kubeconfig /etc/kubernetes/admin.conf"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+          </then>
+
+          <else>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.3 Create network segmentation using Network Policies"
+              info          : "Use network policies to isolate your cluster network.
+
+Rationale:
+
+Running different applications on the same Kubernetes cluster creates a risk of one compromised application attacking a neighboring application. Network segmentation is important to ensure that containers can communicate only with those they are supposed to. A network policy is a specification of how selections of pods are allowed to communicate with each other and other network endpoints. 'NetworkPolicy' resources use labels to select pods and define whitelist rules which allow traffic to the selected pods in addition to what is allowed by the isolation policy for a given namespace.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow the documentation and create 'NetworkPolicy' objects as you need them."
+              reference     : "800-171|3.13.2,800-171|3.13.5,800-53|SC-7(21),CSCv6|14.1,CSCv7|14.1,CSCv7|14.2,CSF|PR.AC-5,CSF|PR.DS-5,LEVEL|2S,NESA|T4.5.3,NIAv2|VL6"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+              cmd           : "/usr/bin/kubectl get networkpolicy --namespace=kube-system"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+          </else>
+        </if>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK
+          description : "1.6.4 Ensure that the seccomp profile is set to docker/default in your pod definitions"
+          info        : "Enable 'docker/default' seccomp profile in your pod definitions.
+
+Rationale:
+
+Seccomp (secure computing mode) is used to restrict the set of system calls applications can make, allowing cluster administrators greater control over the security of workloads running in the cluster. Kubernetes disables seccomp profiles by default for historical reasons. You should enable it to ensure that the workloads have restricted actions available within the container."
+          solution    : "Seccomp is an alpha feature currently. By default, all alpha features are disabled. So, you would need to enable alpha features in the apiserver by passing ''--feature-gates=AllAlpha=true'' argument.
+
+Edit the '/etc/kubernetes/apiserver' file on the master node and set the 'KUBE_API_ARGS' parameter to ''--feature-gates=AllAlpha=true''
+
+KUBE_API_ARGS='--feature-gates=AllAlpha=true'
+
+Based on your system, restart the 'kube-apiserver' service. For example:
+
+systemctl restart kube-apiserver.service
+
+Use 'annotations' to enable the 'docker/default' seccomp profile in your pod definitions. An example is as below:
+
+apiVersion: v1
+kind: Pod
+metadata:
+ name: trustworthy-pod
+ annotations:
+ seccomp.security.alpha.kubernetes.io/pod: docker/default
+spec:
+ containers:
+ - name: trustworthy-container
+ image: sotrustworthy:latest"
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @APISERVER_FILE@ replaced with "/etc/kubernetes/manifests/kube-apiserver.yaml" in field "file".
+          file        : "/etc/kubernetes/manifests/kube-apiserver.yaml"
+          regex       : "seccomp"
+          expect      : "seccomp.security.alpha.kubernetes.io/pod[\\s]*:[\\s]*docker/default"
+        </custom_item>
+
+        <report type:"WARNING">
+          description : "1.6.5 Apply Security Context to Your Pods and Containers"
+          info        : "Apply Security Context to Your Pods and Containers
+
+Rationale:
+
+A security context defines the operating system security settings (uid, gid, capabilities, SELinux role, etc..) applied to a container. When designing your containers and pods, make sure that you configure the security context for your pods, containers, and volumes. A security context is a property defined in the deployment yaml. It controls the security parameters that will be assigned to the pod/container/volume. There are two levels of security context: pod level security context, and container level security context.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Follow the Kubernetes documentation and apply security contexts to your pods. For a suggested list of security contexts, you may refer to the CIS Security Benchmark for Docker Containers."
+          reference   : "CSCv6|3,LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/2421"
+        </report>
+
+        <report type:"WARNING">
+          description : "1.6.6 Configure Image Provenance using ImagePolicyWebhook admission controller"
+          info        : "Configure Image Provenance for your deployment.
+
+Rationale:
+
+Kubernetes supports plugging in provenance rules to accept or reject the images in your deployments. You could configure such rules to ensure that only approved images are deployed in the cluster.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Follow the Kubernetes documentation and setup image provenance."
+          reference   : "CSCv6|18,LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/2421"
+        </report>
+
+        <report type:"WARNING">
+          description : "1.6.7 Configure Network policies as appropriate"
+          info        : "Configure Network policies as appropriate.
+
+Rationale:
+
+The Network Policy API is now stable. Network policy, implemented through a network plug-in, allows users to set and enforce rules governing which pods can communicate with each other. You should leverage it as appropriate in your environment.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          solution    : "Follow the Kubernetes documentation and setup network policies as appropriate.
+
+For example, you could create a 'default' isolation policy for a Namespace by creating a NetworkPolicy that selects all pods but does not allow any traffic:
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+ name: default-deny
+spec:
+ podSelector:"
+          reference   : "CSCv6|12,LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/2421"
+        </report>
+
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : FILE_CHECK
+              description : "Check if kubeconfig exists"
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "file".
+              file        : "/etc/kubernetes/admin.conf"
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.8 Place compensating controls in the form of PSP and RBAC for privileged containers usage - psp"
+              info          : "Use Pod Security Policies (PSP) and RBAC authorization to mitigate the risk arising from using privileged containers.
+
+Rationale:
+
+A number of components used by Kubernetes clusters currently make use of privileged containers (e.g. Container Network Interface plugins). Privileged containers pose a risk to the underlying host infrastructure. You should use PSP and RBAC or other forms of authorization to mitigate the risk arising out of such privileged container usage. PSPs should be in place to restrict access to create privileged containers to specific roles only, and access to those roles should be restricted using RBAC role bindings.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow Kubernetes documentation and setup PSP and RBAC authorization for your cluster."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "cmd".
+              cmd           : "/usr/bin/kubectl get psp --kubeconfig /etc/kubernetes/admin.conf"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.8 Place compensating controls in the form of PSP and RBAC for privileged containers usage - rolebinding"
+              info          : "Use Pod Security Policies (PSP) and RBAC authorization to mitigate the risk arising from using privileged containers.
+
+Rationale:
+
+A number of components used by Kubernetes clusters currently make use of privileged containers (e.g. Container Network Interface plugins). Privileged containers pose a risk to the underlying host infrastructure. You should use PSP and RBAC or other forms of authorization to mitigate the risk arising out of such privileged container usage. PSPs should be in place to restrict access to create privileged containers to specific roles only, and access to those roles should be restricted using RBAC role bindings.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow Kubernetes documentation and setup PSP and RBAC authorization for your cluster."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "cmd".
+              cmd           : "/usr/bin/kubectl get rolebinding --kubeconfig /etc/kubernetes/admin.conf"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.8 Place compensating controls in the form of PSP and RBAC for privileged containers usage - clusterrolebinding"
+              info          : "Use Pod Security Policies (PSP) and RBAC authorization to mitigate the risk arising from using privileged containers.
+
+Rationale:
+
+A number of components used by Kubernetes clusters currently make use of privileged containers (e.g. Container Network Interface plugins). Privileged containers pose a risk to the underlying host infrastructure. You should use PSP and RBAC or other forms of authorization to mitigate the risk arising out of such privileged container usage. PSPs should be in place to restrict access to create privileged containers to specific roles only, and access to those roles should be restricted using RBAC role bindings.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow Kubernetes documentation and setup PSP and RBAC authorization for your cluster."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "cmd".
+              cmd           : "/usr/bin/kubectl get clusterrolebinding --kubeconfig /etc/kubernetes/admin.conf"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+          </then>
+
+          <else>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.8 Place compensating controls in the form of PSP and RBAC for privileged containers usage - psp"
+              info          : "Use Pod Security Policies (PSP) and RBAC authorization to mitigate the risk arising from using privileged containers.
+
+Rationale:
+
+A number of components used by Kubernetes clusters currently make use of privileged containers (e.g. Container Network Interface plugins). Privileged containers pose a risk to the underlying host infrastructure. You should use PSP and RBAC or other forms of authorization to mitigate the risk arising out of such privileged container usage. PSPs should be in place to restrict access to create privileged containers to specific roles only, and access to those roles should be restricted using RBAC role bindings.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow Kubernetes documentation and setup PSP and RBAC authorization for your cluster."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+              cmd           : "/usr/bin/kubectl get psp"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.8 Place compensating controls in the form of PSP and RBAC for privileged containers usage - rolebinding"
+              info          : "Use Pod Security Policies (PSP) and RBAC authorization to mitigate the risk arising from using privileged containers.
+
+Rationale:
+
+A number of components used by Kubernetes clusters currently make use of privileged containers (e.g. Container Network Interface plugins). Privileged containers pose a risk to the underlying host infrastructure. You should use PSP and RBAC or other forms of authorization to mitigate the risk arising out of such privileged container usage. PSPs should be in place to restrict access to create privileged containers to specific roles only, and access to those roles should be restricted using RBAC role bindings.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow Kubernetes documentation and setup PSP and RBAC authorization for your cluster."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+              cmd           : "/usr/bin/kubectl get rolebinding"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.6.8 Place compensating controls in the form of PSP and RBAC for privileged containers usage - clusterrolebinding"
+              info          : "Use Pod Security Policies (PSP) and RBAC authorization to mitigate the risk arising from using privileged containers.
+
+Rationale:
+
+A number of components used by Kubernetes clusters currently make use of privileged containers (e.g. Container Network Interface plugins). Privileged containers pose a risk to the underlying host infrastructure. You should use PSP and RBAC or other forms of authorization to mitigate the risk arising out of such privileged container usage. PSPs should be in place to restrict access to create privileged containers to specific roles only, and access to those roles should be restricted using RBAC role bindings.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              solution      : "Follow Kubernetes documentation and setup PSP and RBAC authorization for your cluster."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+              cmd           : "/usr/bin/kubectl get clusterrolebinding"
+              expect        : "MANUAL_REVIEW"
+              dont_echo_cmd : YES
+              severity      : MEDIUM
+            </custom_item>
+          </else>
+        </if>
+
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : FILE_CHECK
+              description : "Check if kubeconfig exists"
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "file".
+              file        : "/etc/kubernetes/admin.conf"
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.7.6 Do not admit root containers"
+              info          : "Do not generally permit containers to be run as the root user.
+
+Rationale:
+
+Containers may run as any Linux user. Containers which run as the root user, whilst constrained by Container Runtime security features still have a escalated likelihood of container breakout.
+
+Ideally, all containers should run as a defined non-UID 0 user.
+
+There should be at least one PodSecurityPolicy (PSP) defined which does not permit root users in a container.
+
+If you need to run root containers, this should be defined in a separate PSP and you should carefully check RBAC controls to ensure that only limited service accounts and users are given permission to access that PSP."
+              solution      : "Create a PSP as described in the Kubernetes documentation, ensuring that the '.spec.runAsUser.rule' is set to either 'MustRunAsNonRoot' or 'MustRunAs' with the range of UIDs not including 0."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "cmd".
+              cmd           : "/usr/bin/kubectl get psp --kubeconfig /etc/kubernetes/admin.conf -o=custom-columns=name:.metadata.name,rule:.spec.runAsUser.rule,min:.spec.runAsUser.ranges.min"
+              expect        : "^.*[\\s](MustRunAs[\\s]+[1-9][0-9]*|MustRunAsNonRoot[\\s]+<none>)$"
+              dont_echo_cmd : YES
+            </custom_item>
+          </then>
+
+          <else>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.7.6 Do not admit root containers"
+              info          : "Do not generally permit containers to be run as the root user.
+
+Rationale:
+
+Containers may run as any Linux user. Containers which run as the root user, whilst constrained by Container Runtime security features still have a escalated likelihood of container breakout.
+
+Ideally, all containers should run as a defined non-UID 0 user.
+
+There should be at least one PodSecurityPolicy (PSP) defined which does not permit root users in a container.
+
+If you need to run root containers, this should be defined in a separate PSP and you should carefully check RBAC controls to ensure that only limited service accounts and users are given permission to access that PSP."
+              solution      : "Create a PSP as described in the Kubernetes documentation, ensuring that the '.spec.runAsUser.rule' is set to either 'MustRunAsNonRoot' or 'MustRunAs' with the range of UIDs not including 0."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+              cmd           : "/usr/bin/kubectl get psp -o=custom-columns=name:.metadata.name,rule:.spec.runAsUser.rule,min:.spec.runAsUser.ranges.min"
+              expect        : "^.*[\\s](MustRunAs[\\s]+[1-9][0-9]*|MustRunAsNonRoot[\\s]+<none>)$"
+              dont_echo_cmd : YES
+            </custom_item>
+          </else>
+        </if>
+
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : FILE_CHECK
+              description : "Check if kubeconfig exists"
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "file".
+              file        : "/etc/kubernetes/admin.conf"
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.7.7 Do not admit containers with dangerous capabilities"
+              info          : "Do not generally permit containers with potentially dangerous capabilities.
+
+Rationale:
+
+Containers run with a default set of capabilities as assigned by the Container Runtime. By default this can include potentially dangerous capabilities. By default with Docker as the container runtime the NET_RAW capability is enabled which may be misused by malicious containers.
+
+Ideally, all containers should drop this capability.
+
+There should be at least one PodSecurityPolicy (PSP) defined which prevents containers with the NET_RAW capability from launching.
+
+If you need to run containers with this capability, this should be defined in a separate PSP and you should carefully check RBAC controls to ensure that only limited service accounts and users are given permission to access that PSP."
+              solution      : "Create a PSP as described in the Kubernetes documentation, ensuring that the '.spec.requiredDropCapabilities' is set to include either 'NET_RAW' or 'ALL'."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+# Note: Variable @KUBECONFIG@ replaced with "/etc/kubernetes/admin.conf" in field "cmd".
+              cmd           : "/usr/bin/kubectl get psp --kubeconfig /etc/kubernetes/admin.conf -o=custom-columns=name:.metadata.name,requiredDropCapabilities:.spec.requiredDropCapabilities"
+              expect        : "^.*[\\s]\\[[A-z\\s]*(ALL|NET_RAW)[A-z\\s]*\\]$"
+              dont_echo_cmd : YES
+            </custom_item>
+          </then>
+
+          <else>
+            <custom_item>
+              system        : "Linux"
+              type          : CMD_EXEC
+              description   : "1.7.7 Do not admit containers with dangerous capabilities"
+              info          : "Do not generally permit containers with potentially dangerous capabilities.
+
+Rationale:
+
+Containers run with a default set of capabilities as assigned by the Container Runtime. By default this can include potentially dangerous capabilities. By default with Docker as the container runtime the NET_RAW capability is enabled which may be misused by malicious containers.
+
+Ideally, all containers should drop this capability.
+
+There should be at least one PodSecurityPolicy (PSP) defined which prevents containers with the NET_RAW capability from launching.
+
+If you need to run containers with this capability, this should be defined in a separate PSP and you should carefully check RBAC controls to ensure that only limited service accounts and users are given permission to access that PSP."
+              solution      : "Create a PSP as described in the Kubernetes documentation, ensuring that the '.spec.requiredDropCapabilities' is set to include either 'NET_RAW' or 'ALL'."
+              reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|5.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+              see_also      : "https://workbench.cisecurity.org/files/2421"
+# Note: Variable @KUBECTL_PATH@ replaced with "/usr/bin" in field "cmd".
+              cmd           : "/usr/bin/kubectl get psp -o=custom-columns=name:.metadata.name,requiredDropCapabilities:.spec.requiredDropCapabilities"
+              expect        : "^.*[\\s]\\[[A-z\\s]*(ALL|NET_RAW)[A-z\\s]*\\]$"
+              dont_echo_cmd : YES
+            </custom_item>
+          </else>
+        </if>
+      </then>
+    </if>
+  </then>
+</if>
+
+</check_type>

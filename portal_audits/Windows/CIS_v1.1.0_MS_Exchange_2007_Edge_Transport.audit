@@ -1,0 +1,556 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.22 $
+# $Date: 2020/04/23 $
+#
+# description	: This .audit is designed against the CIS Security Configuration Benchmark For
+# 			Microsoft Exchange 2007 Version 1.1.0 July 30th 2010.
+#
+# NOTE			: CIS, in some cases, presents different possible values for a setting depending
+# 			on Exchange server's role.  For the purposes of this audit policy we are assuming
+# 			the server is operating in as an Enterprise Edge Transport Role for all queries.
+#
+#<ui_metadata>
+#<display_name>CIS Exchange 2007 Enterprise Edge Transport 1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Exchange 2007 Enterprise Edge Transport</name>
+#  <version>1.1.0</version>
+#</spec>
+#<labels>windows,cis,microsoft,exchange,exchange_2007,edge,transport</labels>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"CIS Microsoft Exchange 2007 Enterprise Edge Transport Benchmark 1.1.0">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "Microsoft Exchange 2007 is installed"
+      value_type  : POLICY_TEXT
+      value_data  : "8"
+      reg_key     : "HKLM\SOFTWARE\Microsoft\Exchange\Setup"
+      reg_item    : "MsiProductMajor"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_v1.1.0_MS_Exchange_2007_Edge_Transport.audit"
+    </report>
+
+#
+## 3.Pre-Installation and Installation Recommendations
+#
+
+    <custom_item>
+      type          : WMI_POLICY
+      description   : "3.1. Installation Host is Not a Domain Controller"
+      info          : "Installation of Exchange should never be performed on the same host as a domain controller. Installation of Exchange should be on a standalone server to reduce the attack surface and minimize possible damage done by a system compromise. Recommendation Level: Enterprise."
+      solution      : "Make sure 'Installation Host is Not a Domain Controller' is not set to the Backup Domain Controller and the Primary Domain Controller."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,PCI-DSS|2.2.3,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/656"
+      value_type    : POLICY_DWORD
+      value_data    : "4" || "5"
+      wmi_namespace : "root/CIMV2"
+      wmi_request   : "select DomainRole from Win32_ComputerSystem"
+      wmi_attribute : "DomainRole"
+      wmi_key       : "DomainRole"
+      check_type    : CHECK_NOT_EQUAL
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "3.2. Patches and Updates"
+      info        : "Install all relevant patches and updates before installing Exchange 2007. Ensuring the integrity of the host and its services is integral to performing a secure Exchange installation and deployment. Make sure the Windows 2003 Server is fully up to date before installing Exchange 2007. Recommendation Level: Enterprise. NOTE: Nessus did not perform this check as a full safe scan with administrator credentials, to include the Microsoft plugin families enabled, will report any missing patches
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Make sure the Windows 2003 Server is fully up to date before installing Exchange 2007."
+      reference   : "PCI-DSS|6.1"
+      see_also    : "https://workbench.cisecurity.org/files/656"
+    </report>
+
+    <report type:"WARNING">
+      description : "3.3. Security Configuration Wizard"
+      info        : "Run the Microsoft Security Configuration Wizard to lock down the server Exchange is being installed on. The Security Configuraiton Wizard will create a security policy and reduce the attack surface of the Windows server. Recommendation Level: Enterprise. NOTE: Nessus did not perform this check as it requires manual verification that the Microsoft Security Configuration Wizard is installed on the server.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Make sure 'Security Configuration Wizard' is run in order to lock down the server Exchange is being installed on."
+      reference   : "PCI-DSS|2.2.4"
+      see_also    : "https://workbench.cisecurity.org/files/656"
+    </report>
+
+    <custom_item>
+      type                 : AUDIT_POWERSHELL
+      description          : "3.4. Disable Unnecessary Exchange Services and Roles - 'Running Services'"
+      info                 : "Remove all services and roles that the individual Exchange server does not require. Reducing the service list to only necessary services simplifies the administration complexity and reduces the attack surface of the Exchange Server. Recommendation Level: Enterprise"
+      solution             : "Make sure the User Reviews the server's running services and ensure only necessary services are listed."
+      reference            : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.4,SWIFT-CSCv1|2.3"
+      see_also             : "https://workbench.cisecurity.org/files/656"
+      value_type           : POLICY_TEXT
+      value_data           : ""
+      powershell_args      : 'get-service | where {$_.status -eq \\"running\\"}| select name | format-list'
+      only_show_cmd_output : YES
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "3.4. Disable Unnecessary Exchange Services and Roles - 'Server Roles'"
+      info                    : "Remove all services and roles that the individual Exchange server does not require. Reducing the service list to only necessary services simplifies the administration complexity and reduces the attack surface of the Exchange Server. Recommendation Level: Enterprise"
+      solution                : "Make sure the User Reviews the server's roles and ensure only necessary services are listed."
+      reference               : "PCI-DSS|2.2.4"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-exchangeserver | select identity,serverrole| format-list'
+      only_show_cmd_output    : YES
+    </custom_item>
+
+#
+## 4. All Roles
+#
+#<custom_item>
+# type			: AUDIT_POWERSHELL
+# description	: "4.1. Audit Administrative Access to Exchange"
+# info			: "Restrict administrative access to Exchange to only necessary administrators. Audit the Exchange administrator list to ensure that the least privileges required are assigned to each admin."
+# solution		: "Make sure 'Audit Administrative Access to Exchange' is set to your organization's security policy."
+# reference	: "PCI-DSS|10.2.2"
+# see_also		: "https://workbench.cisecurity.org/files/656"
+# value_type	: POLICY_TEXT
+# powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+# powershell_args : 'get-exchangeadministrator | format-list'
+# value_data	: ""
+# only_show_cmd_output : YES
+#</custom_item>
+
+    <report type:"WARNING">
+      description : "4.1. Audit Administrative Access to Exchange"
+      info        : "Restrict administrative access to Exchange to only necessary administrators. Allowing too many administrators or unrestricted administrative access to Exchange can result in a system instability or security compromise. Audit the Exchange administrator list to ensure that the least privileges required are assigned to each admin. This audit will be manual and different for each organization. NOTE: Nessus did not perform this check as it requires manual verification to determine if each administrator found on the system is authorized. NOTE: The 'get-exchangeadministrator' command-let is only applicable for the Exchange Mailbox Role.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Make sure 'Audit Administrative Access to Exchange' is set to your organization's security policy."
+      reference   : "PCI-DSS|10.2.2"
+      see_also    : "https://workbench.cisecurity.org/files/656"
+    </report>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "4.2. Ensure Fatal Error Reporting = Disabled"
+      info        : "This feature controls whether debugging messages are sent to Microsoft whenever a system error is detected. While no sensitive information is sent in the debugging report, the act of sending the report can provide system stability information to attackers."
+      solution    : "Make sure 'Ensure Fatal Error Reporting' is Disabled (default)."
+      reference   : "800-53|SI-11,ITSG-33|SI-11,PCI-DSS|10.2"
+      see_also    : "https://workbench.cisecurity.org/files/656"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Microsoft\Exchange"
+      reg_item    : "DisableErrorReporting"
+      reg_option  : MUST_EXIST
+    </custom_item>
+
+#
+## 5. Edge Transport Role
+#
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.1. Restrict Accepted Domains = Authoritative Domain"
+      info                    : "Exchange should only route mail for which it is both the authoritative domain and the users/mailboxes are present in the organization. Allowing external mail routing on an Edge Transport role opens the Exchange server to both spam abuse and malicious activity."
+      solution                : "Make sure 'Restrict Accepted Domains' is set to Authoritative Domain (default)."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-accepteddomain | where {$_.DomainType -ne \\"Authoritative\\"}| select DomainName,DomainType | format-list'
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.2. Mail Routing Options = Authorized Smart Hosts"
+      info                    : "This controls whether the SMTP connector routes its messages through simple DNS lookups (forming outbound connections to whichever host its routing table prefers) or whether it should use a Smart host. Selecting 'Smart host' means that all outbound messages through this connector will pass through a single server."
+      solution                : "Make sure 'Mail Routing Options' is set to Authorized Smart Hosts."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-sendconnector | select SmartHosts | format-list'
+      only_show_cmd_output    : YES
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.3. Audit Send Connector Address Space = approved address spaces"
+      info                    : "The send connector will only route email for a specific approved list of domains and sub-domains. A send connector will route mail for various sub domains allowing too general a list or other domains can result in server or relaying abuse."
+      solution                : "Make sure 'Audit Send Connector Address Space' is set to route approved address spaces only."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-sendconnector | select addressspaces | format-list'
+      only_show_cmd_output    : YES
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.4. Enable TLS for Smart Host Basic Authentication = Basic Auth require TLS"
+      info                    : "If basic authentication must be used with smart host authentication require that TLS be enabled for the transport of the credentials. TLS ensures the security of the credential is maintained in transit."
+      solution                : "Make sure 'Enable TLS for Smart Host Basic Authentication' is set to Basic Auth require TLS."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : "^ *[Ss][Mm][Aa][Rr][Tt][Hh][Oo][Ss][Tt][Aa][Uu][Tt][Hh][Mm][Ee][Cc][Hh][Aa][Nn][Ii][Ss][Mm][\s\t]*:[\s\t]*[Bb][Aa][Ss][Ii][Cc][Aa][Uu][Tt][Hh][Rr][Ee][Qq][Uu][Ii][Rr][Ee][Tt][Ll][Ss]"
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-sendconnector | select smarthostauthmechanism | format-list'
+      check_type              : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.5. Specify Block List Service Provider = at least Filter known hostile email providers"
+      info                    : "Configure a block list service provider to automatically update IP block lists. Block list providers update lists of known compromised or malicious email servers. Filtering known hostile email providers helps protect the Exchange infrastructure and users from viruses, spam, phishing, and other email based attacks."
+      solution                : "Make sure the administrators Review the list of IP Block List Providers to ensure they are configured correctly."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-ipblocklistprovider | select name,lookupdomain,enabled,rejectionresponse | format-list'
+      only_show_cmd_output    : YES
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.6. Specify Allow List Service Provider = set to your organization's security policy"
+      info                    : "The allow list will white list which servers are able to communicate with the edge transport domain. This list will bypass the blacklist routing the email to its proper destination."
+      solution                : "Make sure 'Specify Allow List Service Provider' is set to your organization's security policy."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-ipallowlistprovider | select name,lookupdomain,enabled | format-list'
+      only_show_cmd_output    : YES
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.7. Filter Recipients Who Are Not in Directory = Do not filter"
+      info                    : "Exchange 2007 has a built in tar pitting functionality for recipient connections. The default tar pitting combined with other built in defense mechanisms Connection Filtering and Sender Reputation slow down account harvesting."
+      solution                : "Make sure 'Filter Recipients Who Are Not in Directory' is set to not block messages sent to recipients not listed in Global Address List."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : "^ *[Rr][Ee][Cc][Ii][Pp][Ii][Ee][Nn][Tt][Vv][Aa][Ll][Ii][Dd][Aa][Tt][Ii][Oo][Nn][Ee][Nn][Aa][Bb][Ll][Ee][Dd][\s\t]*:[\s\t]*[Tt][Rr][Uu][Ee]"
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-recipientfilterconfig | select recipientvalidationenabled | format-list'
+      check_type              : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.8. Filter Recipients = Ensure the list is configured correctly"
+      info                    : "If this filter is enabled, any messages sent to a filtered recipient will be dropped early in the transmission process."
+      solution                : "Make sure the Administrators Review the list of Blocked Recipients to ensure the server is configured correctly."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-recipientfilterconfig | select blockedrecipients | format-list'
+      only_show_cmd_output    : YES
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.9. Filter Senders = Ensure the list is configured correctly"
+      info                    : "If this filter is enabled, any messages sent by a filtered sender will be dropped early in the transmission process."
+      solution                : "Make sure the Administrators Review the list of Blocked Senders to ensure the server is configured correctly."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-senderfilterconfig | select blockedsenders | format-list'
+      only_show_cmd_output    : YES
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.10. Filter Blank Senders = Enabled/True"
+      info                    : "Email with a blank senders is commonly spam or malicious. These emails should be dropped early in the transmission process."
+      solution                : "Make sure 'Filter Blank Senders' is Enabled."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : "^[\s\t]*[Bb][Ll][Aa][Nn][Kk][Ss][Ee][Nn][Dd][Ee][Rr][Bb][Ll][Oo][Cc][Kk][Ii][Nn][Gg][Ee][Nn][Aa][Bb][Ll][Ee][Dd][\s\t]*:[\s\t]*[Tt][Rr][Uu][Ee]"
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-senderfilterconfig | select blanksenderblockingenabled | format-list'
+      check_type              : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.11. Filter Custom Words = correct words are configured to list"
+      info                    : "If this filter is enabled, any message containing a keyword from the list will be filtered from transit. This can help catch common words and terms in spam and malicious email or help keep sensitive information from leaving your network."
+      solution                : "Make sure 'Filter Custom Words' is configured to your organization's security policy."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-contentfilterphrase | select influence,phrase | format-list'
+      only_show_cmd_output    : YES
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.12. Filter Attachment extensions = your organization is filtering all required attachments correctly"
+      info                    : "If this filter is enabled, any message containing an attachment of a particular extension will be dropped. This can help catch common viruses, trojans, or other malicious software but should not be considered a replacement for a robust virus scanning solution."
+      solution                : "Make sure the administrators Review the list of attachment extensions to ensure your organization is filtering all required attachments correctly."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-attachmentfilterentry | select name | format-list'
+      only_show_cmd_output    : YES
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.13. Configure Allowed IPs = configured to your organization's security policy"
+      info                    : "Allowing specific servers as exceptions to the block rules can help performance and mail flow. Examples of servers to be white listed are other internal email servers, a branch corporate office, or partner."
+      solution                : "Make sure 'Configure Allowed IPs' is configured to your organization's security policy."
+      reference               : "PCI-DSS|1.2.1,PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : 'get-ipallowlistentry | select identity,iprange | format-list'
+      only_show_cmd_output    : YES
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.14. Enable TLS for Basic Authentication"
+      info                    : "If basic authentication must be used ensure that the credentials are protected by TLS. TLS ensures that both that the identity of the end server are known to the user and that their credentials are protected."
+      solution                : "Make sure 'Enable TLS for Basic Authentication' is Enabled."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-receiveconnector | where {$_.authmechanism -notmatch 'BasicAuthRequireTLS' -and $_.authmechanism -notmatch 'BasicAuth'} | select identity,authmechanism | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.15. Restrict Mail Send Size - 'TransportConfig MaxSendSize <= 20Mb'"
+      info                    : "Sending email of too large a size can cause network congestion, needlessly fill disk space, and cause denial of service issues or continuous rejection for mail servers and users."
+      solution                : "Make sure 'Restrict Mail Send Size - TransportConfig MaxSendSize' is set to a maximum of 20Mb."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-transportconfig | where {$_.maxsendsize -gt 20*1048576} | select identity,maxsendsize | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.15. Restrict Mail Send Size - 'SendConnector MaxMessageSize <= 20Mb'"
+      info                    : "Sending email of too large a size can cause network congestion, needlessly fill disk space, and cause denial of service issues or continuous rejection for mail servers and users."
+      solution                : "Make sure 'Restrict Mail Send Size - SendConnector MaxMessageSize' is set to a maximum of 20Mb."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-sendconnector | where {$_.maxmessagesize -gt 20*1048576} | select identity,maxmessagesize | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.16. Restrict Mail Receive Size - 'TransportConfig MaxReceiveSize <= 10Mb'"
+      info                    : "Receiving email of too large a size can cause local denial of service issues or continuous rejection for external mail. Restricting the size of email received will help ensure that mail services are not over burdened by large messages or attachments."
+      solution                : "Make sure 'Restrict Mail Receive Size - 'TransportConfig MaxReceiveSize' is set to a maximum of 10Mb."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-transportconfig | where {$_.maxreceivesize -gt 10*1048576} | select identity,maxreceivesize | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.16. Restrict Mail Receive Size - 'ReceiveConnector MaxMessageSize <= 10Mb'"
+      info                    : "Receiving email of too large a size can cause local denial of service issues or continuous rejection for external mail. Restricting the size of email received will help ensure that mail services are not over burdened by large messages or attachments."
+      solution                : "Make sure 'Restrict Mail Receive Size - 'ReceiveConnector MaxMessageSize' is set to a maximum of 10Mb."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-receiveconnector | where {$_.maxmessagesize -gt 10*1048576} | select identity,maxmessagesize | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.16. Restrict Mail Receive Size - 'TransportServer ExternalDsnMaxMessageAttachSize <= 10Mb'"
+      info                    : "Receiving email of too large a size can cause local denial of service issues or continuous rejection for external mail. Restricting the size of email received will help ensure that mail services are not over burdened by large messages or attachments."
+      solution                : "Make sure 'Restrict Mail Receive Size - 'TransportServer ExternalDsnMaxMessageAttachSize' is set to a maximum of 10Mb."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-transportserver | where {$_.externaldsnmaxmessageattachsize -gt 10*1048576} | select identity,externaldsnmaxmessageattachsize | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.16. Restrict Mail Receive Size - 'TransportServer InternalDsnMaxMessageAttachSize <= 10Mb'"
+      info                    : "Receiving email of too large a size can cause local denial of service issues or continuous rejection for external mail. Restricting the size of email received will help ensure that mail services are not over burdened by large messages or attachments."
+      solution                : "Make sure 'Restrict Mail Receive Size - 'TransportServer InternalDsnMaxMessageAttachSize' is set to a maximum of 10Mb."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-transportserver | where {$_.internaldsnmaxmessageattachsize -gt 10*1048576} | select identity,internaldsnmaxmessageattachsize | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.17. Restrict Max Recipients - 'ReceiveConnector MaxRecipientsPerMessage <= 100'"
+      info                    : "Allowing an unlimited number of recipients can lead to a denial of services to users or system instability. It should be limited to a reasonable number"
+      solution                : "Make sure 'Restrict Max Recipients - 'ReceiveConnector MaxRecipientsPerMessage' is set to a maximum of 100 recipients."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-receiveconnector | where {$_.maxrecipientspermessage -gt 100} | select identity,maxrecipientspermessage | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.18. Restrict IP Range For Receive Connectors"
+      info                    : "Restrict the IP ranges that can connect to a receive connector."
+      info                    : "Recommendation Level: Special Security"
+      info                    : "ref: https://workbench.cisecurity.org/files/656, pg 51"
+      solution                : "Restricting the host IPs or ranges of IPs that can connect to an Edge Receive Connector adds another layer of defense to your Exchange Server. These settings will be organizationally dependent and strict IP ranges may not be practical in larger environments."
+      reference               : "PCI-DSS|1.2.1,PCI-DSS|2.2.3"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-receiveconnector | where {$_.maxrecipientspermessage -gt 100} | select identity,maxrecipientspermessage | format-list"
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.18. Restrict IP Range For Receive Connectors = Your organization's security policy"
+      info                    : "Restricting the host IPs or ranges of IPs that can connect to an Edge Receive Connector adds another layer of defense to your Exchange Server."
+      solution                : "Make sure the administrators review the list of IP Ranges that are allowed to connect to the receive connector to ensure only authorized ranges are listed."
+      reference               : "PCI-DSS|1.2.1,PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : ""
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-receiveconnector | select identity,remoteipranges | format-list"
+      only_show_cmd_output    : YES
+      powershell_option       : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type                    : AUDIT_POWERSHELL
+      description             : "5.19. Ensure Sender Reputation is Enabled"
+      info                    : "Sender Reputation is anti-spam functionality that is enabled by default on Exchange servers disabling the sender reputation functionality can lead to excessive spam or denial of services."
+      solution                : "Make sure 'Ensure Sender Reputation is Enabled."
+      reference               : "PCI-DSS|2.2.3"
+      see_also                : "https://workbench.cisecurity.org/files/656"
+      value_type              : POLICY_TEXT
+      value_data              : "^ *[Ee][Nn][Aa][Bb][Ll][Ee][Dd][\s\t]*:[\s\t]*[Tt][Rr][Uu][Ee]"
+      powershell_console_file : "C:\Program Files\Microsoft\Exchange Server\Bin\ExShell.psc1"
+      powershell_args         : "get-senderreputationconfig | select enabled | format-list"
+      check_type              : CHECK_REGEX
+    </custom_item>
+
+#
+## 10. Post Installation
+#
+
+    <report type:"WARNING">
+      description : "10.1. Configure Monitoring"
+      info        : "If a monitoring package like Operations Manager is not installed then monitoring should be configured to watch the basic health of Exchange. It is recommended to monitor CPU, memory, and logical disk utilization. Add other monitors as needed.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Make sure the following is monitored: CPU, memory, and logical disk utilization."
+      reference   : "PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/656"
+    </report>
+
+    <report type:"WARNING">
+      description : "10.2. Install Anti-Virus Software"
+      info        : "Install anti-virus software to scan for viruses and other malicious software embedded in email. Email is a common transport for viruses and other malicious software. Attackers will often try to ruse users into opening malicious attachments as a starting point for a larger attack on an infrastructure.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Make sure Anti-Virus Software is installed."
+      reference   : "PCI-DSS|5.1,PCI-DSS|5.1.1,PCI-DSS|5.2"
+      see_also    : "https://workbench.cisecurity.org/files/656"
+    </report>
+
+    <report type:"WARNING">
+      description : "10.3. Security Configuration Wizard"
+      info        : "The Security Configuration Wizard will create a security policy and reduce the attack surface of both the Windows server and Exchange roles and services.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Make sure Security Configuration Wizard is running in order to lock down the server exchange has been installed on."
+      reference   : "PCI-DSS|2.2.4"
+      see_also    : "https://workbench.cisecurity.org/files/656"
+    </report>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_v1.1.0_MS_Exchange_2007_Edge_Transport.audit"
+      info        : "Microsoft Exchange 2007 is not installed or Remote Registry Service is disabled.
+
+   NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/656"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

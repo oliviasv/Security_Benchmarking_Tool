@@ -1,0 +1,896 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.10 $
+# $Date: 2020/04/22 $
+#
+# Description : This audit is based on the Security Configuration Benchmark For MySQL 5.7 Enterprise Editions
+#             Version 1.0.0 March 28, 2016
+#             https://workbench.cisecurity.org/files/1619
+#
+#<ui_metadata>
+#<display_name>CIS MySQL 5.7 Enterprise Linux OS L1 v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MySQL 5.7 Enterprise Linux L1</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/1619</link>
+#</spec>
+#<labels>database,cis,mysql,mysql_5,mysql_5.7,mysql_5.7_enterprise</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>MYSQL_DATA</name>
+#    <default>/var/lib/mysql/</default>
+#    <description>MySQL Data Directory</description>
+#    <info>This is your MySQL data directory.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_USER</name>
+#    <default>mysql</default>
+#    <description>MySQL User Account</description>
+#    <info>This is your MySQL user account.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_LOG</name>
+#    <default>/var/log/mysqld.log</default>
+#    <description>MySQL Log File</description>
+#    <info>This is your MySQL log file.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_ERROR_LOG</name>
+#    <default>/var/log/AUDITORACLE.err</default>
+#    <description>MySQL Error Log File</description>
+#    <info>This is your MySQL error log file.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_QUERY_LOG</name>
+#    <default>/var/log/AUDITORACLE-slow.log</default>
+#    <description>MySQL Query Log File</description>
+#    <info>This is your MySQL query log file.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_RELAY_LOG</name>
+#    <default>/var/log/relay.log</default>
+#    <description>MySQL Replication Relay Log File</description>
+#    <info>This is your MySQL replication relay log file.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_GENERAL_LOG</name>
+#    <default>/var/log/AUDITORACLE.log</default>
+#    <description>MySQL General Log File</description>
+#    <info>This is your MySQL general log file.</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_CERT_PATH</name>
+#    <default>/PATH/TO/server-cert.pem</default>
+#    <description>SSL Cert Path</description>
+#    <info>This is the path to your server's SSL certificate.</info>
+#  </variable>
+#  <variable>
+#    <name>PLUGIN_DIR_PATH</name>
+#    <default>/var/lib/mysql/lib/plugin</default>
+#    <description>Plugins Directory Path</description>
+#    <info>This is the path to your server's plugins directory.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDIT_LOG_PATH</name>
+#    <default>/var/log/AUDITORACLE.log</default>
+#    <description>MySQL Audit Log File</description>
+#    <info>This is your MySQL audit log file.</info>
+#  </variable>
+#  <variable>
+#    <name>SYSCONFDIR</name>
+#    <default>SYSCONFDIR/my.cnf</default>
+#    <description>sysconfdir Path</description>
+#    <info>This is the directory specified with the --sysconfdir option to configure when MySQL was built.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 5.7 Community Edition is installed"
+      rpm         : "mysql-server-5.7.0"
+      operator    : "gte"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "MySQL 5.7 Enterprise Edition is installed"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.1 Place Databases on Non-System Partitions"
+      info        : "Moving the database off the system partition will reduce the probability of denial of service via the exhaustion of available disk space to the operating system.
+
+   NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Perform the following steps to remediate this setting: Choose a non-system partition new location for the MySQL data Stop mysqld using a command like: service mysql stop Copy the data using a command like: cp -rp <datadir Value> <new location> Set the datadir location to the new location in the MySQL configuration file Start mysqld using a command like: service mysql start NOTE: On some Linux distributions you may need to additionally modify apparmor settings. For example, on a Ubuntu 14.04.1 system edit the file /etc/apparmor.d/usr.sbin.mysqld so that the datadir access is appropriate. The original might look like this: # Allow data dir access /var/lib/mysql/ r, /var/lib/mysql/** rwk, Alter those two paths to be the new location you chose above. For example, if that new location were /media/mysql, then the /etc/apparmor.d/usr.sbin.mysqld file should include something like this: # Allow data dir access /media/mysql/ r, /media/mysql/** rwk, Impact: Moving the database to a non-system partition may be difficult depending on whether there was only a single partition when the operating system was set up and whether there are additional storage available."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      cmd         : "/usr/bin/df -h /usr/mysql"
+      expect      : ""
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.2 Use Dedicated Least Privileged Account for MySQL Daemon/Service"
+      info        : "Utilizing a least privilege account for MySQL to execute as may reduce the impact of a MySQL-born vulnerability. A restricted account will be unable to access resources unrelated to MySQL, such as operating system configurations."
+      solution    : "Create a user which is only used for running MySQL and directly related processes. This user must not have administrative rights to the system."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      cmd         : "/bin/ps  -ef | /bin/egrep \"^mysql.*$\""
+      expect      : ".+"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "1.4 Verify that 'MYSQL_PWD' Is Not Set"
+      info        : "The use of the MYSQL_PWD environment variable implies the clear text storage of MySQL credentials."
+      solution    : "Check which users and/or scripts are setting MYSQL_PWD and change them to use a more secure method."
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      cmd         : "/bin/egrep MYSQL_PWD /proc/*/environ | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "2.1 Dedicate Machine Running MySQL"
+      info        : "The attack surface is reduced on a server with only the underlying operating system, MySQL server software, and any security or operational tooling that may be additionally installed. A smaller attack surface reduces the probability of the data within MySQL being compromised.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Remove excess applications or services and/or remove unnecessary roles from the underlying operating system. Impact: Care must be taken that applications or services that are required for the proper operation of the operating system are not removed. Custom applications may need to be modified to accommodate database connections over the network rather than on the use (e.g., using TCP/IP connections). Additional hardware and operating system licenses may be required to make the architectural change."
+      reference   : "LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+    </report>
+
+    <report type:"WARNING">
+      description : "2.2 Do Not Specify Passwords in Command Line - History"
+      info        : "If the password is visible in the process list or user's shell/command history, an attacker will be able to access the MySQL database using the stolen credentials.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Use -p without password and then enter the password when prompted, use a properly secured . my.cnf file, or store authentication information in encrypted format in .mylogin.cnf. Impact: Depending on the remediation chosen, additional steps may need to be undertaken like: Entering a password when prompted; Ensuring the file permissions on .my.cnf is restricted yet accessible by the user; Using mysql_config_editor to encrypt the authentication credentials in .mylogin.cnf. Additionally, not all scripts/applications may be able to use .mylogin.cnf."
+      reference   : "LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+    </report>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "2.2 Do Not Specify Passwords in Command Line - Process Listing"
+          cmd         : "/usr/bin/ps -aux"
+          expect      : "mysql -u .* -p.+"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "2.2 Do Not Specify Passwords in Command Line - Process Listing"
+          info        : "If the password is visible in the process list or user's shell/command history, an attacker will be able to access the MySQL database using the stolen credentials."
+          solution    : "Use -p without password and then enter the password when prompted, use a properly secured . my.cnf file, or store authentication information in encrypted format in .mylogin.cnf. Impact: Depending on the remediation chosen, additional steps may need to be undertaken like: Entering a password when prompted; Ensuring the file permissions on .my.cnf is restricted yet accessible by the user; Using mysql_config_editor to encrypt the authentication credentials in .mylogin.cnf. Additionally, not all scripts/applications may be able to use .mylogin.cnf."
+          reference   : "LEVEL|1NS"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+        </report>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "2.2 Do Not Specify Passwords in Command Line - Process Listing"
+          info        : "If the password is visible in the process list or user's shell/command history, an attacker will be able to access the MySQL database using the stolen credentials."
+          solution    : "Use -p without password and then enter the password when prompted, use a properly secured . my.cnf file, or store authentication information in encrypted format in .mylogin.cnf. Impact: Depending on the remediation chosen, additional steps may need to be undertaken like: Entering a password when prompted; Ensuring the file permissions on .my.cnf is restricted yet accessible by the user; Using mysql_config_editor to encrypt the authentication credentials in .mylogin.cnf. Additionally, not all scripts/applications may be able to use .mylogin.cnf."
+          reference   : "LEVEL|1NS"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+        </report>
+      </else>
+    </if>
+
+    <report type:"WARNING">
+      description : "2.3 Do Not Reuse User Accounts"
+      info        : "Utilizing unique database accounts across applications will reduce the impact of a compromised MySQL account.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Add/Remove users so that each user is only used for one specific purpose."
+      reference   : "LEVEL|1NS"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.1 Ensure 'datadir' Has Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database. If someone other than the MySQL user is allowed to read files from the data directory he or she might be able to read data from the mysql.user table which contains passwords. Additionally, the ability to create files can lead to denial of service, or might otherwise allow someone to gain access to specific data by manually creating a file with a view definition."
+      solution    : "Execute the following commands at a terminal prompt: chmod 700 <datadir> chown mysql:mysql <datadir>"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @MYSQL_DATA@ replaced with "/var/lib/mysql/" in field "file".
+      file        : "/var/lib/mysql/"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "077"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.2 Ensure 'log_bin_basename' Files Have Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "Execute the following command for each log file location requiring corrected permissions and ownership: chmod 660 <log file> chown mysql:mysql <log file> Impact: Changing the permissions and ownership of the log files might impact monitoring tools which use a logfile adapter. If the permissions on the binary log files are accidentally changed to exclude the user account which is used to run the MySQL service, then this might break replication. The binary log file can be used for point in time recovery so this can also affect backup, restore and disaster recovery procedures."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @MYSQL_LOG@ replaced with "/var/log/mysqld.log" in field "file".
+      file        : "/var/log/mysqld.log"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.3 Ensure 'log_error' Has Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "Execute the following command for each log file location requiring corrected permissions and ownership: chmod 660 <log file> chown mysql:mysql <log file> Impact: Changing the permissions of the log files might impact monitoring tools which use a logfile adapter."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @MYSQL_ERROR_LOG@ replaced with "/var/log/AUDITORACLE.err" in field "file".
+      file        : "/var/log/AUDITORACLE.err"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.4 Ensure 'slow_query_log' Has Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "Execute the following command for each log file location requiring corrected permissions: chmod 660 <log file> chown mysql:mysql <log file> Impact: Changing the permissions of the log files might impact monitoring tools which use a logfile adapter. Also the slow query log can be used for performance analysis by application developers."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @MYSQL_QUERY_LOG@ replaced with "/var/log/AUDITORACLE-slow.log" in field "file".
+      file        : "/var/log/AUDITORACLE-slow.log"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.5 Ensure 'relay_log_basename' Files Have Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "Execute the following command for each log file location requiring corrected permissions and ownership: chmod 660 <log file> chown mysql:mysql <log file> Impact: Changing the permissions of the log files might impact monitoring tools which use a logfile adapter. If the permissions on the relay logs are accidentally changed to exclude the user account which is used to run the MySQL service then this might break replication."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @MYSQL_RELAY_LOG@ replaced with "/var/log/relay.log" in field "file".
+      file        : "/var/log/relay.log"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.6 Ensure 'general_log_file' Has Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "Execute the following command for each log file location requiring corrected permissions and ownership: chmod 660 <log file> chown mysql:mysql <log file> Impact: Changing the permissions of the log files might impact monitoring tools which use a logfile adapter."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @MYSQL_GENERAL_LOG@ replaced with "/var/log/AUDITORACLE.log" in field "file".
+      file        : "/var/log/AUDITORACLE.log"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.7 Ensure SSL Key Files Have Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database and the communication with the client. If the contents of the SSL key file is known to an attacker he or she might impersonate the server. This can be used for a man-in-the-midddle attack. Depending on the SSL ciphersuite the key might also be used to decipher previously captured network traffic."
+      solution    : "Execute the following commands at a terminal prompt to remediate these settings using the Value from the audit procedure: chown mysql:mysql <ssl_key Value> chmod 400 <ssl_key Value> Impact: If the permissions or ownership for the key file are changed incorrectly this can cause SSL to be disabled when MySQL is restarted or can cause MySQL not to start at all. If other applications are using the same keypair then changing the permissions or ownership of the key file will affect this application. If this is the case then a new keypair must be generated for MySQL."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @SSL_CERT_PATH@ replaced with "/PATH/TO/server-cert.pem" in field "file".
+      file        : "/PATH/TO/server-cert.pem"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "377"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.8 Ensure Plugin Directory Has Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database. If someone can modify plugins then these plugins might be loaded when the server starts and the code will get executed."
+      solution    : "To remediate these settings, execute the following commands at a terminal prompt using the plugin_dir Value from the audit procedure. chmod 775 <plugin_dir Value> (or use 755) chown mysql:mysql <plugin_dir Value> Impact: Users other than the mysql user will no longer be able to update and add/remove plugins unless they're able to switch to the mysql user;"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @PLUGIN_DIR_PATH@ replaced with "/var/lib/mysql/lib/plugin" in field "file".
+      file        : "/var/lib/mysql/lib/plugin"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "002"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "3.9 Ensure 'audit_log_file' has Appropriate Permissions and Ownership"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "Execute the following commands for the audit_log_file discovered in the audit procedure: chmod 660 <audit_log_file>chown mysql:mysql <audit_log_file> Impact: Changing the permissions and ownership of the audit log file may have impact on who can access and edit the the audit log. Such changes can affect monitoring tools which maybe using a logfile adapter or scripted alternatives. Also the audit log may be used by alerting by infrastructure teams which can affect real-time audit capability."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @AUDIT_LOG_PATH@ replaced with "/var/log/AUDITORACLE.log" in field "file".
+      file        : "/var/log/AUDITORACLE.log"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql" || "mysql"
+      mask        : "117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql" || "mysql"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - /etc/my.cnf"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*skip-grant-tables[\\s]*="
+              expect      : "^[\\s]*skip-grant-tables[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - /etc/my.cnf"
+              info        : "If this option is used, all clients of the affected server will have unrestricted access to all databases."
+              solution    : "Perform the following to establish the recommended state: Open the MySQL configuration (e.g. my.cnf) file and set: skip-grant-tables = FALSE"
+              reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*skip-grant-tables[\\s]*="
+              expect      : "^[\\s]*skip-grant-tables[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - /etc/my.cnf"
+              info        : "If this option is used, all clients of the affected server will have unrestricted access to all databases."
+              solution    : "Perform the following to establish the recommended state: Open the MySQL configuration (e.g. my.cnf) file and set: skip-grant-tables = FALSE"
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - /etc/mysql/my.cnf"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*skip-grant-tables[\\s]*="
+              expect      : "^[\\s]*skip-grant-tables[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - /etc/mysql/my.cnf"
+              info        : "If this option is used, all clients of the affected server will have unrestricted access to all databases."
+              solution    : "Perform the following to establish the recommended state: Open the MySQL configuration (e.g. my.cnf) file and set: skip-grant-tables = FALSE"
+              reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*skip-grant-tables[\\s]*="
+              expect      : "^[\\s]*skip-grant-tables[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - /etc/mysql/my.cnf"
+              info        : "If this option is used, all clients of the affected server will have unrestricted access to all databases."
+              solution    : "Perform the following to establish the recommended state: Open the MySQL configuration (e.g. my.cnf) file and set: skip-grant-tables = FALSE"
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - SYSCONFDIR/my.cnf/my.cnf"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*skip-grant-tables[\\s]*="
+              expect      : "^[\\s]*skip-grant-tables[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - SYSCONFDIR/my.cnf/my.cnf"
+              info        : "If this option is used, all clients of the affected server will have unrestricted access to all databases."
+              solution    : "Perform the following to establish the recommended state: Open the MySQL configuration (e.g. my.cnf) file and set: skip-grant-tables = FALSE"
+              reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*skip-grant-tables[\\s]*="
+              expect      : "^[\\s]*skip-grant-tables[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables' - SYSCONFDIR/my.cnf/my.cnf"
+              info        : "If this option is used, all clients of the affected server will have unrestricted access to all databases."
+              solution    : "Perform the following to establish the recommended state: Open the MySQL configuration (e.g. my.cnf) file and set: skip-grant-tables = FALSE"
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "4.5 Ensure 'mysqld' Is Not Started with '--skip-grant-tables'"
+          info        : "If this option is used, all clients of the affected server will have unrestricted access to all databases."
+          solution    : "Perform the following to establish the recommended state: Open the MySQL configuration (e.g. my.cnf) file and set: skip-grant-tables = FALSE"
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+        </report>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - /etc/my.cnf"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*log-raw[\\s]*="
+              expect      : "^[\\s]*log-raw[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - /etc/my.cnf"
+              info        : "With raw logging of passwords enabled someone with access to the log files might see plain text passwords."
+              solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the log-raw entry and set it as follows log-raw = OFF"
+              reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*log-raw[\\s]*="
+              expect      : "^[\\s]*log-raw[\\s]*=[\\s]*OFF"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"FAILED">
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - /etc/my.cnf"
+              info        : "With raw logging of passwords enabled someone with access to the log files might see plain text passwords."
+              solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the log-raw entry and set it as follows log-raw = OFF"
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - /etc/mysql/my.cnf"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*log-raw[\\s]*="
+              expect      : "^[\\s]*log-raw[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - /etc/mysql/my.cnf"
+              info        : "With raw logging of passwords enabled someone with access to the log files might see plain text passwords."
+              solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the log-raw entry and set it as follows log-raw = OFF"
+              reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*log-raw[\\s]*="
+              expect      : "^[\\s]*log-raw[\\s]*=[\\s]*OFF"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"FAILED">
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - /etc/mysql/my.cnf"
+              info        : "With raw logging of passwords enabled someone with access to the log files might see plain text passwords."
+              solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the log-raw entry and set it as follows log-raw = OFF"
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - SYSCONFDIR/my.cnf/my.cnf"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*log-raw[\\s]*="
+              expect      : "^[\\s]*log-raw[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - SYSCONFDIR/my.cnf/my.cnf"
+              info        : "With raw logging of passwords enabled someone with access to the log files might see plain text passwords."
+              solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the log-raw entry and set it as follows log-raw = OFF"
+              reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*log-raw[\\s]*="
+              expect      : "^[\\s]*log-raw[\\s]*=[\\s]*OFF"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"FAILED">
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - SYSCONFDIR/my.cnf/my.cnf"
+              info        : "With raw logging of passwords enabled someone with access to the log files might see plain text passwords."
+              solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the log-raw entry and set it as follows log-raw = OFF"
+              reference   : "LEVEL|1S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "6.4 Ensure 'log-raw' Is Set to 'OFF' - SYSCONFDIR/my.cnf\my.cnf"
+          info        : "With raw logging of passwords enabled someone with access to the log files might see plain text passwords."
+          solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the log-raw entry and set it as follows log-raw = OFF"
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+        </report>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration - /etc/my.cnf"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+          file        : "/etc/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration - /etc/mysql/my.cnf"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+          file        : "/etc/mysql/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration - SYSCONFDIR/my.cnf/my.cnf"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+        </report>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "MySQL 5.7 Enterprise Edition is installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+    </report>
+  </else>
+</if>
+
+</check_type>

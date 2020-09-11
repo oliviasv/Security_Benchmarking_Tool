@@ -1,0 +1,351 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.1 $
+# $Date: 2020/04/22 $
+#
+# description : This document implements the security configuration as recommended by the
+#               DISA MongoDB Enterprise Advanced 3.x STIG V1R1
+#
+#              https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip
+#
+#<ui_metadata>
+#<display_name>DISA STIG MongoDB Enterprise Advanced 3.x v1r1</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>MongoDB Enterprise Advanced 3.x</name>
+#  <version>1.1.0</version>
+#  <link>https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip</link>
+#</spec>
+#<labels>mongodb,mongodb_3,disa</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#</ui_metadata>
+
+<check_type:"MongoDB">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "MongoDB version 3.x is installed"
+      collection  : 'admin.$cmd'
+      query       : '{"buildInfo":1}'
+      regex       : "\"version\""
+      expect      : "\"version\" : \"3\.[0-9]+\.[0-9]+\".*"
+    </custom_item>
+
+    <custom_item>
+      description : "MongoDB enterprise module is installed"
+      collection  : 'admin.$cmd'
+      query       : '{"buildInfo":1}'
+      regex       : "enterprise"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "DISA MongoDB Enterprise Advanced 3.x STIG V1R1"
+    </report>
+
+    <custom_item>
+      description : "MD3X-00-000020 - MongoDB must enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies."
+      info        : "MongoDB must enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies.
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Use createRole(), updateRole(), dropRole(), grantRole() statements to add and remove permissions on server-level securables, bringing them into line with the documented requirements.
+
+		MongoDB commands for role management can be found here:
+		https://docs.mongodb.com/v3.4/reference/method/js-role-management/"
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-000213,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96559r1_rule,STIG-ID|MD3X-00-000020,Vuln-ID|V-81845"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "MD3X-00-000270 - The role(s)/group(s) used to modify database structure (including but not necessarily limited to tables, indexes, storage, etc.) and logic modules (stored procedures, functions, triggers, links to software external to MongoDB, etc.) must be restricted to authorized users."
+      info        : "If MongoDB were to allow any user to make changes to database structure or logic, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.
+
+		Accordingly, only qualified and authorized individuals must be allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+		Unmanaged changes that occur to the database software libraries or configuration can lead to unauthorized or compromised installations.
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Use the following commands to remove unauthorized access to a MongoDB database.
+
+		db.revokePrivilegesFromRole()
+		db. revokeRolesFromUser()
+
+		MongoDB commands for role management can be found here:
+		https://docs.mongodb.com/v3.4/reference/method/js-role-management/"
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-001499,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96571r1_rule,STIG-ID|MD3X-00-000270,Vuln-ID|V-81857"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "MD3X-00-000310 - MongoDB must uniquely identify and authenticate organizational users (or processes acting on behalf of organizational users)."
+      info        : "To assure accountability and prevent unauthenticated access, organizational users must be identified and authenticated to prevent potential misuse and compromise of the system.
+
+		Organizational users include organizational employees or individuals the organization deems to have equivalent status of employees (e.g., contractors). Organizational users (and any processes acting on behalf of users) must be uniquely identified and authenticated for all accesses, except the following:
+
+		(i) Accesses explicitly identified and documented by the organization. Organizations document specific user actions that can be performed on the information system without identification or authentication; and
+		(ii) Accesses that occur through authorized use of group authenticators without individual authentication. Organizations may require unique identification of individuals using shared accounts, for detailed accountability of individual activity.
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Prereq: To drop a user from a database, must have the \"dropUser\" action on the database.
+
+		For any user not a member of an appropriate organization and has access to a database in the system run the following command:
+
+		// Change to the appropriate database
+		use <database>
+		db.dropUser(<username>, {w: \"majority\", wtimeout: 5000}
+
+		If the MongoDB configuration file (default location: /etc/mongod.conf) does not contain
+
+		security: authorization: \"enabled\"
+
+		Edit the MongoDB configuration file, add these parameters, stop/start (restart) any mongod or mongos process using this MongoDB configuration file."
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-000764,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96577r1_rule,STIG-ID|MD3X-00-000310,Vuln-ID|V-81863"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "MD3X-00-000370 - MongoDB must map the PKI-authenticated identity to an associated user account."
+      info        : "The DoD standard for authentication is DoD-approved PKI certificates. Once a PKI certificate has been validated, it must be mapped to a DBMS user account for the authenticated identity to be meaningful to MongoDB and useful for authorization decisions.
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Add x.509 Certificate subject as an authorized user.
+
+		To authenticate with a client certificate, you must first add the value of the subject from the client certificate as a MongoDB user.
+
+		Each unique x.509 client certificate corresponds to a single MongoDB user; i.e. you cannot use a single client certificate to authenticate more than one MongoDB user.
+
+		Note: The RDNs in the subject string must be compatible with the RFC2253 standard.
+
+		Retrieve the RFC2253 formatted subject from the client certificate with the following command:
+		openssl x509 -in <pathToClient PEM> -inform PEM -subject -nameopt RFC2253
+
+		The command returns the subject string as well as certificate:
+		subject= CN=myName,OU=myOrgUnit,O=myOrg,L=myLocality,ST=myState,C=myCountry
+		-----BEGIN CERTIFICATE-----
+		# ...
+		-----END CERTIFICATE-----
+
+		Add the RFC2253 compliant value of the subject as a user. Omit spaces as needed.
+
+		For example, in the mongo shell, to add the user with both the \"readWrite\" role in the test database and the \"userAdminAnyDatabase\" role which is defined only in the admin database:
+		db.getSiblingDB(\"$external\").runCommand(
+		{
+		createUser: \"CN=myName,OU=myOrgUnit,O=myOrg,L=myLocality,ST=myState,C=myCountry\",
+		roles: [
+		{ role: 'readWrite', db: 'test' },
+		{ role: 'userAdminAnyDatabase', db: 'admin' }
+		],
+		writeConcern: { w: \"majority\" , wtimeout: 5000 }
+		}
+		)
+
+		In the above example, to add the user with the \"readWrite\" role in the test database, the role specification document specified \"test\" in the \"db\" field. To add \"userAdminAnyDatabase\" role for the user, the above example specified \"admin\" in the \"db\" field.
+
+		Note: Some roles are defined only in the admin database, including: clusterAdmin, readAnyDatabase, readWriteAnyDatabase, dbAdminAnyDatabase, and userAdminAnyDatabase. To add a user with these roles, specify \"admin\" in the \"db\" field. See Manage Users and Roles for details on adding a user with roles.
+
+		To remove a user that is not authorized run the following command:
+
+		use $external
+		db.dropUser(\"<RDN of user>\")"
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-000187,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96587r1_rule,STIG-ID|MD3X-00-000370,Vuln-ID|V-81873"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "MD3X-00-000390 - MongoDB must uniquely identify and authenticate non-organizational users (or processes acting on behalf of non-organizational users)."
+      info        : "Non-organizational users include all information system users other than organizational users, which include organizational employees or individuals the organization deems to have equivalent status of employees (e.g., contractors, guest researchers, individuals from allied nations).
+
+		Non-organizational users must be uniquely identified and authenticated for all accesses other than those accesses explicitly identified and documented by the organization when related to the use of anonymous access, such as accessing a web server.
+
+		Accordingly, a risk assessment is used in determining the authentication needs of the organization.
+
+		Scalability, practicality, and security are simultaneously considered in balancing the need to ensure ease of use for access to federal information and information systems with the need to protect and adequately mitigate risk to organizational operations, organizational assets, individuals, other organizations, and the Nation.
+
+		Satisfies: SRG-APP-000180-DB-000115, SRG-APP-000211-DB-000122, SRG-APP-000211-DB-000124
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Prereq: To view a user's roles, must have the 'viewUser' privilege.
+
+		Connect to MongoDB.
+
+		For each database, identify the user's roles for the database.
+
+		use <database>
+		db.getUser(\"[username]\")
+
+		The server will return a document with the user's roles.
+
+		To revoke a user's role from a database use the db.revokeRolesFromUser() method.
+
+		To grant a role to a user use the db.grantRolesToUser() method."
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-000804,CCI|CCI-001082,CCI|CCI-001084,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96591r1_rule,STIG-ID|MD3X-00-000390,Vuln-ID|V-81877"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "MD3X-00-000540 - MongoDB must associate organization-defined types of security labels having organization-defined security label values with information in storage."
+      info        : "Without the association of security labels to information, there is no basis for MongoDB to make security-related access-control decisions.
+
+		Security labels are abstractions representing the basic properties or characteristics of an entity (e.g., subjects and objects) with respect to safeguarding information.
+
+		These labels are typically associated with internal data structures (e.g., tables, rows) within the database and are used to enable the implementation of access control and flow control policies, reflect special dissemination, handling, or distribution instructions, or support other aspects of the information security policy.
+
+		One example includes marking data as classified or FOUO. These security labels may be assigned manually or during data processing, but, either way, it is imperative these assignments are maintained while the data is in storage. If the security labels are lost when the data is stored, there is the risk of a data compromise.
+
+		The mechanism used to support security labeling may be a feature of MongoDB product, a third-party product, or custom application code.
+
+		Satisfies: SRG-APP-000311-DB-000308, SRG-APP-000313-DB-000309, SRG-APP-000313-DB-000310
+
+		NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Follow the documentation page to setup RBAC:https://docs.mongodb.com/manual/core/authorization/.
+
+		For the required collections, create specific read-only views that allow access to only a subset of the data in a collection as documented here: https://docs.mongodb.com/manual/core/views/. Permissions on the view are specified separately from the permissions on the underlying collection.
+
+		Use the '$redact' operator to restrict the contents of the documents based on information stored in the documents themselves as documented here: https://docs.mongodb.com/master/reference/operator/aggregation/redact/"
+      reference   : "CAT|II,CCI|CCI-002262,CCI|CCI-002263,CCI|CCI-002264,Rule-ID|SV-96611r1_rule,STIG-ID|MD3X-00-000540,Vuln-ID|V-81897"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+    </report>
+
+    <custom_item>
+      description : "MD3X-00-000570 - MongoDB must enforce discretionary access control policies, as defined by the data owner, over defined subjects and objects."
+      info        : "Discretionary Access Control (DAC) is based on the notion that individual users are 'owners' of objects and therefore have discretion over who should be authorized to access the object and in which mode (e.g., read or write). Ownership is usually acquired as a consequence of creating the object or via specified ownership assignment. DAC allows the owner to determine who will have access to objects they control. An example of DAC includes user-controlled table permissions.
+
+		When discretionary access control policies are implemented, subjects are not constrained with regard to what actions they can take with information for which they have already been granted access. Thus, subjects that have been granted access to information are not prevented from passing (i.e., the subjects have the discretion to pass) the information to other subjects or objects.
+
+		A subject that is constrained in its operation by Mandatory Access Control policies is still able to operate under the less rigorous constraints of this requirement. Thus, while Mandatory Access Control imposes constraints preventing a subject from passing information to another subject operating at a different sensitivity level, this requirement permits the subject to pass the information to any subject at the same sensitivity level.
+
+		The policy is bounded by the information system boundary. Once the information is passed outside of the control of the information system, additional means may be required to ensure the constraints remain in effect. While the older, more traditional definitions of discretionary access control require identity-based access control, that limitation is not required for this use of discretionary access control.
+
+		Satisfies: SRG-APP-000328-DB-000301, SRG-APP-000340-DB-000304
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Revoke any roles with unnecessary privileges to privileged functionality by executing the revoke command as documented here:
+		https://docs.mongodb.com/v3.4/reference/method/db.revokeRolesFromUser/
+
+		Revoke any unnecessary privileges from any roles by executing the revoke command as document here:
+		https://docs.mongodb.com/v3.4/reference/method/db.revokePrivilegesFromRole/
+
+		If a new role with associated privileges needs to be created, follow the documentation here:
+		https://docs.mongodb.com/v3.4/reference/command/createRole/"
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-002165,CCI|CCI-002235,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96613r1_rule,STIG-ID|MD3X-00-000570,Vuln-ID|V-81899"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "MD3X-00-000650 - MongoDB must prohibit user installation of logic modules (stored procedures, functions, triggers, views, etc.) without explicit privileged status."
+      info        : "Allowing regular users to install software, without explicit privileges, creates the risk that untested or potentially malicious software will be installed on the system. Explicit privileges (escalated or administrative privileges) provide the regular user with explicit capabilities and control that exceed the rights of a regular user.
+
+		DBMS functionality and the nature and requirements of databases will vary; so while users are not permitted to install unapproved software, there may be instances where the organization allows the user to install approved software packages such as from an approved software repository. The requirements for production servers will be more restrictive than those used for development and research.
+
+		MongoDB must enforce software installation by users based upon what types of software installations are permitted (e.g., updates and security patches to existing software) and what types of installations are prohibited (e.g., software whose pedigree with regard to being potentially malicious is unknown or suspect) by the organization).
+
+		In the case of a database management system, this requirement covers stored procedures, functions, triggers, views, etc.
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Revoke any roles with unnecessary privileges to privileged functionality by executing the revoke command.
+
+		Revoke any unnecessary privileges from any roles by executing the revoke command.
+
+		Create, as needed, new role(s) with associated privileges."
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-001812,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96623r1_rule,STIG-ID|MD3X-00-000650,Vuln-ID|V-81909"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description : "MD3X-00-000670 - MongoDB must enforce access restrictions associated with changes to the configuration of MongoDB or database(s)."
+      info        : "Failure to provide logical access restrictions associated with changes to configuration may have significant effects on the overall security of the system.
+
+		When dealing with access restrictions pertaining to change control, it should be noted that any changes to the hardware, software, and/or firmware components of the information system can potentially have significant effects on the overall security of the system.
+
+		Accordingly, only qualified and authorized individuals should be allowed to obtain access to system components for the purposes of initiating changes, including upgrades and modifications.
+
+		NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "Prereq: To view a user's roles, must have the 'viewUser' privilege.
+		https://docs.mongodb.com/v3.4/reference/privilege-actions/
+
+		Connect to MongoDB.
+
+		For each database, identify the user's roles for the database.
+
+		use <database>
+		db.getUser(\"[username]\")
+
+		The server will return a document with the user's roles.
+
+		To revoke a user's role from a database use the db.revokeRolesFromUser() method.
+		https://docs.mongodb.com/v3.4/reference/method/db.revokeRolesFromUser/
+
+		To grant a role to a user use the db.grantRolesToUser() method. https://docs.mongodb.com/v3.4/reference/method/db.grantRolesToUser/"
+      reference   : "800-53|AC-6(7),CAT|II,CCI|CCI-001813,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-96625r1_rule,STIG-ID|MD3X-00-000670,Vuln-ID|V-81911"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+      collection  : "admin.system.users"
+      query       : '{}'
+      expect      : ".*"
+      severity    : MEDIUM
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "MD3X-00-000780 - When invalid inputs are received, MongoDB must behave in a predictable and documented manner that reflects organizational and system objectives."
+      info        : "A common vulnerability is unplanned behavior when invalid inputs are received. This requirement guards against adverse or unintended system behavior caused by invalid inputs, where information system responses to the invalid input may be disruptive or cause the system to fail into an unsafe state.
+
+		The behavior will be derived from the organizational and system requirements and includes, but is not limited to, notification of the appropriate personnel, creating an audit record, and rejecting invalid input.
+
+		This calls for inspection of application source code, which will require collaboration with the application developers. It is recognized that in many cases, the database administrator (DBA) is organizationally separate from the application developers, and may have limited, if any, access to source code. Nevertheless, protections of this type are so important to the secure operation of databases that they must not be ignored. At a minimum, the DBA must attempt to obtain assurances from the development organization that this issue has been addressed, and must document what has been discovered.
+
+		NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Document validation can be added at the time of creation of a collection. Existing collections can also be modified with document validation rules. Use the \"validator\" option to create or update a collection with the desired validation rules."
+      reference   : "CAT|II,CCI|CCI-002754,Rule-ID|SV-96639r1_rule,STIG-ID|MD3X-00-000780,Vuln-ID|V-81925"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+    </report>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "DISA MongoDB Enterprise Advanced 3.x STIG V1R1"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_MongoDB_Enterprise_Advanced_3-x_V1R1_STIG.zip"
+    </report>
+  </else>
+</if>
+
+</check_type>

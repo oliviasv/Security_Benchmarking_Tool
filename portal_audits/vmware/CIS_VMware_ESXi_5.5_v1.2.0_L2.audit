@@ -1,0 +1,1958 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.15 $
+# $Date: 2020/04/22 $
+#
+# Description	: This .audit is designed to query VMware 5.5
+# 	  as defined by CIS in the CIS VMware ESXi v1.2.0 benchmark
+#                 https://workbench.cisecurity.org/files/145
+#
+#<ui_metadata>
+#<display_name>CIS VMware ESXi 5.5 v1.2.0 Level 2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>VMware ESXi 5.5 Level 2</name>
+#  <version>1.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/145</link>
+#</spec>
+#<labels>vmware,cis,esxi,esxi_5,esxi_5.5</labels>
+#<variables>
+#  <variable>
+#    <name>CPU_SHARE_LEVEL</name>
+#    <default>normal</default>
+#    <description>The CPU Share Level</description>
+#    <info>Use limits, shares, and reservations to prevent virtual machines from taking over resources</info>
+#  </variable>
+#  <variable>
+#    <name>NUM_MEM_SHARES</name>
+#    <default>20480</default>
+#    <description>Num Memory Shares</description>
+#    <info>Use limits, shares, and reservations to prevent virtual machines from taking over resources</info>
+#  </variable>
+#  <variable>
+#    <name>MEM_SHARE_LEVEL</name>
+#    <default>normal</default>
+#    <description>Mem Share Level</description>
+#    <info>Use limits, shares, and reservations to prevent virtual machines from taking over resources</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"VMware">
+
+<report type:"PASSED">
+  description : "CIS VMware ESXi 5.5 v1.2.0 Level 2"
+  info        : "CIS VMware ESXi 5.5 v1.2.0 Level 2"
+  see_also    : "https://workbench.cisecurity.org/files/145"
+</report>
+
+<custom_item>
+  type        : AUDIT_ESX
+  description : "5.1 Disable DCUI to prevent local administrative control"
+  info        : "The Direct Console User Interface (DCUI) can be disabled to prevent any local
+administration from the Host. Once the DCUI is disabled any administration of the ESXi
+host will be done through vCenter.
+
+*Rationale*
+
+The DCUI allows for low-level host configuration such as configuring IP address, hostname
+and root password as well as diagnostic capabilities such as enabling the ESXi shell,
+viewing log files, restarting agents, and resetting configurations. Actions performed from
+the DCUI are not tracked by vCenter Server. Even if Lockdown Mode is enabled, users who
+are members of the DCUI.Access list can perform administrative tasks in the DCUI
+bypassing RBAC and auditing controls provided through vCenter. DCUI access can be
+disabled. Disabling it prevents all local activity and thus forces actions to be performed in
+vCenter Server where they can be centrally audited and monitored."
+  solution    : "Perform the following-
+1. From the vSphere web client select the host.
+2. Select 'Manage' -> 'Settings' -> 'System' -> 'Security Profile'.
+3. Scroll down to 'Services'.
+4. Click 'Edit...'.
+5. Select 'Direct Console UI'.
+6. Click 'Stop'.
+7. Change the Startup Policy 'Start and Stop Manually'.
+8. Click 'OK'.
+
+Additionally, the following PowerCLI command will implement the recommended
+configuration state-# Set DCUI to start manually rather than automatic for all hosts
+Get-VMHost | Get-VMHostService | Where { $_.key -eq 'DCUI' } | Set-VMHostService -
+Policy OffImpact-Disabling the DCUI can create a potential 'lock out' situation should the host become
+isolated from vCenter Server. Recovering from a 'lock out' scenario requires re-installing
+ESXi. Consider leaving DCUI enabled and instead enable lockdown mode and limit the users
+allowed to access the DCUI using the DCUI.Access list.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-125A|HY-SR-16,800-125A|HY-SR-17,800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='DCUI']\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='DCUI']/audit:label\"/> : running = <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='HostConfigInfo']/audit:service/audit:service[audit:key='DCUI']/audit:running\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet[audit:name='name']/audit:val\"/> - <xsl:text>Direct Console UI : running = NOT configured</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Direct Console UI : running ="
+  expect      : "Direct Console UI : running = FALSE$"
+</custom_item>
+
+<report type:"WARNING">
+  description : "5.6 Remove keys from SSH authorized_keys file"
+  info        : "For day-to-day operations the ESXi host should be in Lockdown mode with the Secure Shell
+(SSH) service disabled. Lockdown mode does not prevent root users from logging in using
+authorized keys. When you use an authorized key file for root user authentication, root
+users are not prevented from accessing a host with SSH even when the host is in lockdown
+mode.
+
+*Rationale*
+
+ESXi hosts come with SSH, which can be configured to authenticate remote users using
+public key authentication. To enable public key authentication, copy the remote users
+public key into the /etc/ssh/keys-root/authorized_keys file on the ESXi host. The
+presence of the remote user's public key in the authorized_keys file identifies the user as
+trusted, meaning the user is granted access to the host without providing a password.Note- Lockdown mode does not apply to root users who log in using authorized keys.
+When you use an authorized key file for root user authentication, root users are not
+prevented from accessing a host with SSH even when the host is in lockdown mode.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "To check for SSH keys added to the authorized_keys file-
+1. Logon to the ESXi shell as root or an authorized admin user.
+2. Verify the contents of the /etc/ssh/keys-root/authorized_keys file.
+3. If the file is not empty remove any keys found in the file.Impact-Disabling the SSH authorized_keys access may limit your ability to run unattended remote
+scripts.
+
+Default Value-The prescribed state is the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-125A|HY-SR-16,LEVEL|2S"
+</report>
+
+<report type:"WARNING">
+  description : "5.10 Verify contents of exposed configuration files"
+  info        : "Monitor exposed configuration files to verify no unauthorized modifications have been made.
+
+*Rationale*
+
+Although most configurations on ESXi are controlled via an API, there are a limited set of
+configuration files that are used directly to govern host behavior. These specific files are
+exposed via the vSphere HTTPS-based file transfer API. Any changes to these files should
+be correlated with an approved administrative action, such as an authorized configuration
+change. Tampering with these files has the potential to enable unauthorized access to the
+host configuration and virtual machines.
+
+WARNING- do not attempt to monitor files that are NOT exposed via this file-transfer API,
+since this can result in a destabilized system
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "During a configuration backup, the serial number is backed up with the configuration. The
+number is restored when you restore the configuration. The number is not preserved when
+you run the Recovery CD (ESXi Embedded) or perform a repair operation (ESXi Installable).
+You can back up and restore configuration information as follows.
+
+1. Back up the configuration by using the vicfg-cfgbackup command.
+2. Run the Recovery CD or repair operation
+3. Restore the configuration by using the vicfg-cfgbackup command.When you restore a configuration, you must make sure that all virtual machines on the host
+are stopped.Impact-After you configure an ESXi host, you can back up the host configuration data. Always back
+up your host configuration after you change the configuration or upgrade the ESXi image.
+Important The vicfg-cfgbackup command is available only for ESXi hosts. The command is
+not available through a vCenter Server system connection. No equivalent ESXCLI command
+is supported."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "LEVEL|2NS"
+</report>
+
+<report type:"WARNING">
+  description : "6.4 Zero out VMDK files prior to deletion"
+  info        : "Zeroing out a VMDK before deleting can help prevent users from reconstructing the
+original contents of the disk.
+
+*Rationale*
+
+To help prevent sensitive data in VMDK files from being read off the physical disk after it is
+deleted, the virtual disk should be zeroed out prior to deletion. This will make it more
+difficult for someone to reconstruct the contents of the VMDK file. The CLI command
+'vmkfstools -writezeroes' can be used to write zeros to the entire contents of a VMDK file
+prior to its deletion.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "When deleting a VMDK file with sensitive data-
+
+1. Shut down or stop the virtual machine.
+2. Issue the CLI command 'vmkfstools -writezeroes' on that file prior to deleting it
+from the datastore.Impact-CAUTION-
+When you use this command, you lose any existing data on the virtual disk."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "LEVEL|2NS"
+</report>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.1.2 Limit sharing of console connections"
+  info        : "Limit the max number of console connections to prevent non-administrators from
+observing the VMs screen.
+
+*Rationale*
+
+By default, remote console sessions can be connected to by more than one user at a time.
+When multiple sessions are activated, each terminal window gets a notification about the
+new session. If an administrator in the VM logs in using a VMware remote console during
+their session, a non-administrator in the VM can connect to the console and observe the
+administrator's actions. Also, this could result in an administrator losing console access to a
+virtual machine. For example, if a jump box is being used for an open console session, and
+the admin loses connection to that box, then the console session remains open. Allowing
+two console sessions permits debugging via a shared session. For highest security, only one
+remote console session at a time should be allowed."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'RemoteDisplay.maxConnections' -value 1Impact-Only one remote console connection to the VM will be permitted. Other attempts will be
+rejected until the first session disconnects.Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='RemoteDisplay.maxConnections']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - RemoteDisplay.maxConnections : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='RemoteDisplay.maxConnections']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - RemoteDisplay.maxConnections : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='RemoteDisplay.maxConnections']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - RemoteDisplay.maxConnections : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - RemoteDisplay.maxConnections : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "RemoteDisplay\.maxConnections : "
+  expect      : "RemoteDisplay\.maxConnections : 1$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.1 Disconnect unauthorized devices - Floppy Devices"
+  info        : "Any enabled or connected device represents a potential attack channel. Users and
+processes without privileges on a virtual machine can connect or disconnect hardware
+devices, such as network adapters and CD-ROM drives. Attackers can use this capability to
+breach virtual machine security. Removing unnecessary hardware devices can help prevent
+attacks.
+
+*Rationale*
+
+Ensure that no device is connected to a virtual machine if it is not required. For example,
+serial and parallel ports are rarely used for virtual machines in a datacenter environment,
+and CD/DVD drives are usually connected only temporarily during software installation.
+For less commonly used devices that are not required, either the parameter should not be
+present or its value must be FALSE.
+
+NOTE- The parameters listed are not sufficient to ensure that a device is usable; other
+parameters are required to indicate specifically how each device is instantiated. Any
+enabled or connected device represents another potential attack channel.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Remove all Floppy drives attached to VMs
+Get-VM | Get-FloppyDrive | Remove-FloppyDriveImpact-Virtual machine will need to be powered off to reverse change if any of these devices are
+needed at a later time.Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.8.7,800-53|MP-7,CSF|PR.PT-2,LEVEL|2S"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualFloppy']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Floppies : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualFloppy']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Floppies : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualFloppy']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Floppies : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Floppies : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.2 Disconnect unauthorized devices - CD/DVD Devices"
+  info        : "Any enabled or connected device represents a potential attack channel. Users and
+processes without privileges on a virtual machine can connect or disconnect hardware
+devices, such as network adapters and CD-ROM drives. Attackers can use this capability to
+breach virtual machine security. Removing unnecessary hardware devices can help prevent
+attacks.
+
+*Rationale*
+
+Ensure that no device is connected to a virtual machine if it is not required. For example,
+serial and parallel ports are rarely used for virtual machines in a datacenter environment,
+and CD/DVD drives are usually connected only temporarily during software installation.
+For less commonly used devices that are not required, either the parameter should not be
+present or its value must be FALSE.
+NOTE- The parameters listed are not sufficient to ensure that a device is usable; other
+parameters are required to indicate specifically how each device is instantiated. Any
+enabled or connected device represents another potential attack channel.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Remove all CD/DVD Drives attached to VMs
+Get-VM | Get-CDDrive | Remove-CDDriveImpact-Virtual machine will need to be powered off to reverse change if any of these devices are
+needed at a later time.Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.8.7,800-53|MP-7,CSF|PR.PT-2,LEVEL|2S"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualCdrom']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual CD/DVD : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualCdrom']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual CD/DVD : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualCdrom']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual CD/DVD : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual CD/DVD : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.3 Disconnect unauthorized devices - Parallel Devices"
+  info        : "Any enabled or connected device represents a potential attack channel. Users and
+processes without privileges on a virtual machine can connect or disconnect hardware
+devices, such as network adapters and CD-ROM drives. Attackers can use this capability to
+breach virtual machine security. Removing unnecessary hardware devices can help prevent
+attacks.
+
+*Rationale*
+
+Ensure that no device is connected to a virtual machine if it is not required. For example,
+serial and parallel ports are rarely used for virtual machines in a datacenter environment,
+and CD/DVD drives are usually connected only temporarily during software installation.
+For less commonly used devices that are not required, either the parameter should not be
+present or its value must be FALSE.
+
+NOTE- The parameters listed are not sufficient to ensure that a device is usable; other
+parameters are required to indicate specifically how each device is instantiated. Any
+enabled or connected device represents another potential attack channel.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# In this Example you will need to add the functions from this post-
+http-//blogs.vmware.com/vipowershell/2012/05/working-with-vm-devices-in-powercli.html
+# Remove all Parallel Ports attached to VMs
+Get-VM | Get-ParallelPort | Remove-ParallelPortImpact-
+Virtual machine will need to be powered off to reverse change if any of these devices are
+needed at a later time.Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualParallelPort']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Parallel Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualParallelPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Parallel Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualParallelPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Parallel Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Parallel Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.4 Disconnect unauthorized devices - Serial Devices"
+  info        : "Any enabled or connected device represents a potential attack channel. Users and
+processes without privileges on a virtual machine can connect or disconnect hardware
+devices, such as network adapters and CD-ROM drives. Attackers can use this capability to
+breach virtual machine security. Removing unnecessary hardware devices can help prevent
+attacks.
+
+*Rationale*
+
+Ensure that no device is connected to a virtual machine if it is not required. For example,
+serial and parallel ports are rarely used for virtual machines in a datacenter environment,
+and CD/DVD drives are usually connected only temporarily during software installation.
+For less commonly used devices that are not required, either the parameter should not be
+present or its value must be FALSE.
+
+NOTE- The parameters listed are not sufficient to ensure that a device is usable; other
+parameters are required to indicate specifically how each device is instantiated. Any
+enabled or connected device represents another potential attack channel.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# In this Example you will need to add the functions from this post-
+http-//blogs.vmware.com/vipowershell/2012/05/working-with-vm-devices-in-powercli.html
+# Remove all Serial Ports attached to VMs
+Get-VM | Get-SerialPort | Remove-SerialPortImpact-Virtual machine will need to be powered off to reverse change if any of these devices are
+needed at a later time.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualSerialPort']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Serial Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualSerialPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Serial Port : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualSerialPort']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Serial Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Serial Port : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.2.5 Disconnect unauthorized devices - USB Devices"
+  info        : "Any enabled or connected device represents a potential attack channel. Users and
+processes without privileges on a virtual machine can connect or disconnect hardware
+devices, such as network adapters and CD-ROM drives. Attackers can use this capability to
+breach virtual machine security. Removing unnecessary hardware devices can help prevent
+attacks.
+
+*Rationale*
+
+Ensure that no device is connected to a virtual machine if it is not required. For example,
+serial and parallel ports are rarely used for virtual machines in a datacenter environment,
+and CD/DVD drives are usually connected only temporarily during software installation.
+For less commonly used devices that are not required, either the parameter should not be
+present or its value must be FALSE.
+
+NOTE- The parameters listed are not sufficient to ensure that a device is usable; other
+parameters are required to indicate specifically how each device is instantiated. Any
+enabled or connected device represents another potential attack channel.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Remove all USB Devices attached to VMs
+Get-VM | Get-USBDevice | Remove-USBDevice
+
+Impact-Virtual machine will need to be powered off to reverse change if any of these devices are
+needed at a later time.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.8.7,800-53|MP-7,CSF|PR.PT-2,LEVEL|2S"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualUSBController']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual USB Controller : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualUSBController']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual USB Controller : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualUSBController']/audit:deviceInfo/audit:label\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual USB Controller : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual USB Controller : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.5 Disable Autologon"
+  info        : "Disable unneeded autologon to reduce the potential for vulnerabilities.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.ghi.autologon.disable' -value
+$true
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-53|AC-14,ITSG-33|AC-14,LEVEL|2S,NESA|T5.6.1"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.autologon.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.autologon.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.autologon.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.autologon.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.autologon.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.autologon.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.autologon.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.ghi\.autologon\.disable : "
+  expect      : "isolation\.tools\.ghi\.autologon\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.6 Disable BIOS BBS"
+  info        : "Disable BIOS BBS to reduce the potential for vulnerabilities.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.bios.bbs.disable' -value $true
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.bios.bbs.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.bios.bbs.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.bios.bbs.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.bios.bbs.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.bios.bbs.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.bios.bbs.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.bios.bbs.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.bios\.bbs\.disable : "
+  expect      : "isolation\.bios\.bbs\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.7 Disable Guest Host Interaction Protocol Handler"
+  info        : "Disable Guest Host Interaction Protocol Handle to reduce opportunity for vulnerabilities.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.ghi.protocolhandler.info.disable'
+-value $true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.protocolhandler.info.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.protocolhandler.info.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.protocolhandler.info.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.protocolhandler.info.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.protocolhandler.info.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.protocolhandler.info.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.protocolhandler.info.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.ghi\.protocolhandler\.info\.disable : "
+  expect      : "isolation\.tools\.ghi\.protocolhandler\.info\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.8 Disable Unity Taskbar"
+  info        : "Disable unexposed Unity Taskbar feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.unity.taskbar.disable' -value
+$true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.taskbar.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.taskbar.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.taskbar.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.taskbar.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.taskbar.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.taskbar.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.taskbar.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.unity\.taskbar\.disable : "
+  expect      : "isolation\.tools\.unity\.taskbar\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.9 Disable Unity Active"
+  info        : "Disable unexposed Unity Active feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.unityActive.disable' -value $True
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unityActive.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unityActive.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unityActive.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unityActive.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unityActive.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unityActive.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unityActive.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.unityActive\.disable : "
+  expect      : "isolation\.tools\.unityActive\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.10 Disable Unity Window Contents"
+  info        : "Disable unexposed Unity Window Contents feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.unity.windowContents.disable' -
+value $True
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.windowContents.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.windowContents.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.windowContents.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.windowContents.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.windowContents.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.windowContents.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.windowContents.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.unity\.windowContents\.disable : "
+  expect      : "isolation\.tools\.unity\.windowContents\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.11 Disable Unity Push Update"
+  info        : "Disable unexposed Unity Push Update features
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.unity.push.update.disable' -value
+$true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.push.update.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.push.update.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.push.update.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.push.update.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.push.update.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.push.update.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.push.update.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.unity\.push\.update\.disable : "
+  expect      : "isolation\.tools\.unity\.push\.update\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.12 Disable Drag and Drop Version Get"
+  info        : "Disable unexposed Drag and Drop Version Get feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-
+# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.vmxDnDVersionGet.disable' -value
+$true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.vmxDnDVersionGet.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.vmxDnDVersionGet.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.vmxDnDVersionGet.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.vmxDnDVersionGet.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.vmxDnDVersionGet.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.vmxDnDVersionGet.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.vmxDnDVersionGet.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.vmxDnDVersionGet\.disable : "
+  expect      : "isolation\.tools\.vmxDnDVersionGet\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.13 Disable Drag and Drop Version Set"
+  info        : "Disable unexposed Drag and Drop Version Set feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.guestDnDVersionSet.disable' -value
+$true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.guestDnDVersionSet.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.guestDnDVersionSet.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.guestDnDVersionSet.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.guestDnDVersionSet.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.guestDnDVersionSet.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.guestDnDVersionSet.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.guestDnDVersionSet.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.guestDnDVersionSet\.disable : "
+  expect      : "isolation\.tools\.guestDnDVersionSet\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.14 Disable Shell Action"
+  info        : "Disable unexposed Shell Action feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.ghi.host.shellAction.disable' -value
+$true
+
+Impact-Some automated tools and process may cease to function
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.ghi.host.shellAction.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.ghi.host.shellAction.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.ghi.host.shellAction.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.ghi.host.shellAction.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.ghi.host.shellAction.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.ghi.host.shellAction.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.ghi.host.shellAction.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.ghi\.host\.shellAction\.disable : "
+  expect      : "isolation\.ghi\.host\.shellAction\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.15 Disable Request Disk Topology"
+  info        : "Disable unexposed Request Disk Topology feature.
+
+*Rationale*
+
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.dispTopoRequest.disable' -value
+$true
+Impact-Some automated tools and process may cease to function
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.dispTopoRequest.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.dispTopoRequest.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.dispTopoRequest.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.dispTopoRequest.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.dispTopoRequest.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.dispTopoRequest.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.dispTopoRequest.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.dispTopoRequest\.disable : "
+  expect      : "isolation\.tools\.dispTopoRequest\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.16 Disable Trash Folder State"
+  info        : "Disable unexposed Trash Folder State feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.trashFolderState.disable' -value
+$true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.trashFolderState.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.trashFolderState.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.trashFolderState.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.trashFolderState.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.trashFolderState.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.trashFolderState.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.trashFolderState.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.trashFolderState\.disable : "
+  expect      : "isolation\.tools\.trashFolderState\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.17 Disable Guest Host Interaction Tray Icon"
+  info        : "Disable unexposed Guest Host Interaction Tray Icon feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.ghi.trayicon.disable' -value $true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.trayicon.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.trayicon.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.trayicon.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.trayicon.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.trayicon.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.trayicon.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.trayicon.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.ghi\.trayicon\.disable : "
+  expect      : "isolation\.tools\.ghi\.trayicon\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.18 Disable Unity"
+  info        : "Disable unexposed Unity feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The
+codepaths for these features is not implementing in ESX. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are documented for customers that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.unity.disable' -value $true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unity.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unity.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unity.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.unity\.disable : "
+  expect      : "isolation\.tools\.unity\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.19 Disable Unity Interlock"
+  info        : "Disable unexposed Unity Interlock feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.unityInterlockOperation.disable' -
+value $true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unityInterlockOperation.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unityInterlockOperation.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unityInterlockOperation.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unityInterlockOperation.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.unityInterlockOperation.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.unityInterlockOperation.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.unityInterlockOperation.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.unityInterlockOperation\.disable : "
+  expect      : "isolation\.tools\.unityInterlockOperation\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.20 Disable GetCreds"
+  info        : "Disable unexposed GetCreds feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.getCreds.disable' -value $true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.getCreds.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.getCreds.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.getCreds.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.getCreds.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.getCreds.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.getCreds.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.getCreds.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.getCreds\.disable : "
+  expect      : "isolation\.tools\.getCreds\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.21 Disable Host Guest File System Server"
+  info        : "Disable unexposed Host Guest File System Server.
+
+*Rationale*
+
+Certain automated operations such as automated tools upgrades use a component into the
+hypervisor called Host Guest File System (HGFS) and an attacker could potentially use this
+to transfer files inside the guest OS. These VMX parameters don't apply on vSphere because
+VMware virtual machines work on vSphere and hosted virtualization platforms such as
+Workstation and Fusion. The code paths for these features are not implemented in ESXi.
+Explicitly disabling these features reduces the potential for vulnerabilities because it
+reduces the number of ways in which a guest can affect the host. Note that these are
+implemented in code or not, must have a value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.hgfsServerSet.disable' -value
+$true
+
+Impact-This will cause the VMX process to not respond to commands from the tools process. It may
+also have a negative impact on operations such as automated tools upgrades. Setting
+isolation.tools.hgfsServerSet.disable to TRUE disables the registration of the guest's HGFS
+server with the host. APIs that use HGFS to transfer files to and from the guest operating
+system, such as some VIX commands or the VMware Tools auto-upgrade utility, will not
+function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.hgfsServerSet.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.hgfsServerSet.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.hgfsServerSet.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.hgfsServerSet.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.hgfsServerSet.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.hgfsServerSet.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.hgfsServerSet.disable : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.hgfsServerSet\.disable : "
+  expect      : "isolation\.tools\.hgfsServerSet\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.22 Disable Guest Host Interaction Launch Menu"
+  info        : "Disable unexposed Guest Host Interaction Launch Menu feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.ghi.launchmenu.change' -value
+$true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.launchmenu.change']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.launchmenu.change : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.launchmenu.change']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.launchmenu.change : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.ghi.launchmenu.change']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.ghi.launchmenu.change : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.ghi.launchmenu.change : NOT found<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.ghi\.launchmenu\.change : "
+  expect      : "isolation\.tools\.ghi\.launchmenu\.change : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.23 Disable memSchedFakeSampleStats"
+  info        : "Disable unexposed memSchedFakeSampleStats feature.
+
+*Rationale*
+
+Some VMX parameters don't apply on vSphere because VMware virtual machines work on
+vSphere and hosted virtualization platforms such as Workstation and Fusion. The code
+paths for these features are not implemented in ESXi. Explicitly disabling these features
+reduces the potential for vulnerabilities because it reduces the number of ways in which a
+guest can affect the host. Note that these are referenced for organizations that insist any
+documented setting, regardless of whether it is implemented in code or not, must have a
+value."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.memSchedFakeSampleStats.disable' -
+value $true
+
+Impact-Some automated tools and process may cease to function.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.memSchedFakeSampleStats.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.memSchedFakeSampleStats.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.memSchedFakeSampleStats.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.memSchedFakeSampleStats.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.memSchedFakeSampleStats.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.memSchedFakeSampleStats.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.memSchedFakeSampleStats.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.memSchedFakeSampleStats\.disable : "
+  expect      : "isolation\.tools\.memSchedFakeSampleStats\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.4.29 Disable all but VGA mode on virtual machines."
+  info        : "Enable VGA Only mode for the Virtual Machine video card.
+
+*Rationale*
+
+Many Server-class virtual machines need only a standard VGA console (typically a
+Unix/Linux server or Windows Server Core system). Enabling this setting removes
+additional unnecessary graphics functionality beyond disabling 3D. This reduces the
+potential attack surface available for malicious attacks."
+  solution    : "Check that the virtual machine advanced setting of 'svga.vgaonly' is set to TRUE.To modify the advanced settings of a virtual machine using the vSphere Client-
+
+1. Ensure that the virtual machine has been shutdown and is powered off.
+2. Right-click on the virtual machine.
+3. Click Edit Settings... to open the Virtual Machine Properties window.
+4. Click the Options tab.
+5. From the list on the left, click Advanced > General.
+6. On the Configuration Parameters frame on the right, click Configuration
+Parameters....
+7. Click Add Row.
+8. On the new row, click under the Name column and specify the configuration option
+name.
+9. On the new row, click under the Value column and specify the configuration value.
+10. Start the virtual machine for the settings take effect.
+Additionally, the following PowerCLI command may be used-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'svga.vgaOnly' -value $true
+
+Impact-Configuring this setting to True will not allow any advanced graphics functions to work.
+Only character-cell console mode will be available. Use of this setting renders
+mks.enable3d moot. The mks.enable3d has no effect.Note- this setting should only be applied to those virtual machines for which a video card is
+not needed such as Windows Server Core and UNIX / Linux servers.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.13.2,800-171|3.13.5,800-53|SC-7(21),CSF|PR.AC-5,CSF|PR.DS-5,LEVEL|2NS,NESA|T4.5.3,NIAv2|VL6"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='svga.vgaOnly']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - svga.vgaOnly : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='svga.vgaOnly']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - svga.vgaOnly : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='svga.vgaOnly']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - svga.vgaOnly : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - svga.vgaOnly : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "svga\.vgaOnly : "
+  expect      : "svga\.vgaOnly : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.5.1 Prevent virtual machines from taking over resources - CPU Share Level"
+  info        : "Use limits, shares, and reservations to prevent virtual machines from taking over
+resources.
+
+*Rationale*
+
+By default, all virtual machines on an ESXi host share the resources equally. By using the
+resource management capabilities of ESXi, such as shares and limits, you can control the
+server resources that a virtual machine consumes. A denial of service can cause one virtual
+machine to consume so much of the host's resources that other virtual machines on the
+same host cannot perform their intended functions. You can use this mechanism to prevent
+such an occurrence."
+  info        : "NOTE: Update CPU_SHARE_LEVEL with the appropriate value for the local environment."
+  solution    : "Use shares or reservations to guarantee resources to critical VMs.
+Use limits to constrain resource consumption by virtual machines that have a greater risk of being exploited or attacked, or that run applications that are known to have the potential to greatly consume resources."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-125A|HY-SR-17,800-125A|HY-SR-8,800-125A|HY-SR-9,800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,LEVEL|2NS"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:cpuAllocation/audit:shares/audit:level\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - CPU Share Level : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:cpuAllocation/audit:shares/audit:level\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - CPU Share Level : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:cpuAllocation/audit:shares/audit:level\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - CPU Share Level : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - CPU Share Level : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "CPU Share Level : "
+# Note: Variable @CPU_SHARE_LEVEL@ replaced with "normal" in field "expect".
+  expect      : "CPU Share Level : normal$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.5.1 Prevent virtual machines from taking over resources - Num Mem Shares"
+  info        : "Use limits, shares, and reservations to prevent virtual machines from taking over
+resources.
+
+*Rationale*
+
+By default, all virtual machines on an ESXi host share the resources equally. By using the
+resource management capabilities of ESXi, such as shares and limits, you can control the
+server resources that a virtual machine consumes. A denial of service can cause one virtual
+machine to consume so much of the host's resources that other virtual machines on the
+same host cannot perform their intended functions. You can use this mechanism to prevent
+such an occurrence."
+  info        : "NOTE: Update NUM_MEM_SHARES with the appropriate value for the local environment."
+  solution    : "Use shares or reservations to guarantee resources to critical VMs. Use limits to constrain resource consumption by virtual machines that have a
+greater risk of being exploited or attacked, or that run applications that are known to have the potential to greatly consume resources."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-125A|HY-SR-17,800-125A|HY-SR-6,800-125A|HY-SR-7,800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,LEVEL|2NS"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:memoryAllocation/audit:shares/audit:shares\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Num Mem Shares : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:memoryAllocation/audit:shares/audit:shares\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Num Mem Shares : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:memoryAllocation/audit:shares/audit:shares\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Num Mem Shares : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Num Mem Shares : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Num Mem Shares : "
+# Note: Variable @NUM_MEM_SHARES@ replaced with "20480" in field "expect".
+  expect      : "Num Mem Shares : 20480$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.5.1 Prevent virtual machines from taking over resources - Mem Share Level"
+  info        : "Use limits, shares, and reservations to prevent virtual machines from taking over
+resources.
+
+*Rationale*
+
+By default, all virtual machines on an ESXi host share the resources equally. By using the
+resource management capabilities of ESXi, such as shares and limits, you can control the
+server resources that a virtual machine consumes. A denial of service can cause one virtual
+machine to consume so much of the host's resources that other virtual machines on the
+same host cannot perform their intended functions. You can use this mechanism to prevent
+such an occurrence."
+  info        : "NOTE: Update MEM_SHARE_LEVEL with the appropriate value for the local environment."
+  solution    : "Use shares or reservations to guarantee resources to critical VMs. Use limits to constrain resource consumption by virtual machines that have a
+greater risk of being exploited or attacked, or that run applications that are known to have the potential to greatly consume resources."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-125A|HY-SR-17,800-125A|HY-SR-6,800-125A|HY-SR-7,800-53|SC-5,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|2NS,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:memoryAllocation/audit:shares/audit:level\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Mem Share Level : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:memoryAllocation/audit:shares/audit:level\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Mem Share Level : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:memoryAllocation/audit:shares/audit:level\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Mem Share Level : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Mem Share Level : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Mem Share Level : "
+# Note: Variable @MEM_SHARE_LEVEL@ replaced with "normal" in field "expect".
+  expect      : "Mem Share Level : normal$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.6.1 Avoid using nonpersistent disks"
+  info        : "Virtual Machine Disks are created as Dependent by default and are affected by snapshots.To ensure a virtual machine disk is not affected by snapshots the disk mode can be set to
+Independent.Disks set to Independent mode can be Independent Persistent or Independent
+Nonpersistent.Disks with Independent persistent mode have their data written permanently to the disk.Independent Nonpersistent disks lose any changes made to the disk when the system is
+rebooted and can mask any trace of an attack on the system.
+
+*Rationale*
+
+The security issue with nonpersistent disk mode is that successful attackers, with a simple
+shutdown or reboot, might undo or remove any traces that they were ever on the machine.
+To safeguard against this risk, production virtual machines should be configured as follows-
+
+1. Independent setting not enabled
+2. Independent persistent
+3. Independent nonpersistent with remote logging
+
+Without a persistent record of activity on a VM, administrators might never know whether
+they have been attacked or hacked."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-#Alter the parameters for the following cmdlet to set the VM Disk Type-
+Get-VM | Get-HardDisk | Set-HardDisk
+
+Impact-Won't be able to make use of nonpersistent mode, which allows rollback to a known state
+when rebooting the VM.
+
+Default Value-The default mode is the correct mode."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-53|AU-11,CIP|007-6-R4,CSF|PR.PT-1,ITSG-33|AU-11,LEVEL|2S,NESA|M5.2.3,NESA|T3.6.2,NIAv2|SM7,PCI-DSSv3.1|10.7,PCI-DSSv3.2|10.7"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualDisk']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Disk Mode : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualDisk']/audit:backing/audit:diskMode\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Disk Mode : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:hardware/audit:device[@xsi:type='VirtualDisk']/audit:backing/audit:diskMode\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - Virtual Disk Mode : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - Virtual Disk Mode : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "Virtual Disk Mode : "
+  expect      : "Virtual Disk Mode : persistent$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.7.1 Disable VIX messages from the VM"
+  info        : "If you do not make use of custom VIX programming in your environment then you should
+disable this feature to reduce the potential for vulnerabilities.
+
+*Rationale*
+
+The VIX API is a library for writing scripts and programs to manipulate virtual machines. If
+you do not make use of custom VIX programming in your environment, then you should
+disable certain features to reduce the potential for vulnerabilities. The ability to send
+messages from the VM to the host is one of these features.
+
+Note- Disabling this feature does NOT adversely affect the functioning of VIX operations
+that originate outside the guest, so certain VMware and 3rd party solutions that rely upon
+this capability should continue to work. This is a deprecated interface. Ensure that any
+deprecated interface is turned off for audit purposes."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'isolation.tools.vixMessage.disable' -value $true
+
+Impact-Guest will no longer be able to send messages via VIX API.
+
+Default Value-The prescribed state is not the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.vixMessage.disable']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.vixMessage.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.vixMessage.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.vixMessage.disable : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='isolation.tools.vixMessage.disable']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - isolation.tools.vixMessage.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - isolation.tools.vixMessage.disable : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "isolation\.tools\.vixMessage\.disable : "
+  expect      : "isolation\.tools\.vixMessage\.disable : TRUE$"
+</custom_item>
+
+<custom_item>
+  type        : AUDIT_VM
+  description : "8.7.3 Do not send host information to guests"
+  info        : "Configure VMware Tools to disable host info from being sent to guests.
+
+*Rationale*
+
+By enabling a VM to get detailed information about the physical host, an adversary could
+potentially use this information to inform further attacks on the host. If set to TRUE, a VM
+can obtain detailed information about the physical host. The default value for the
+parameter is FALSE. This setting should not be TRUE unless a particular VM requires this
+  information for performance monitoring."
+  solution    : "To implement the recommended configuration state, run the following PowerCLI
+command-# Add the setting to all VMs
+Get-VM | New-AdvancedSetting -Name 'tools.guestlib.enableHostInfo' -value $false
+
+Impact-You cannot retrieve performance information about the host from inside the guest virtual
+machine, there are times when this can be useful for troubleshooting.
+
+Default Value-The prescribed state is the default state."
+  see_also    : "https://workbench.cisecurity.org/files/145"
+  reference   : "800-171|3.13.4,800-53|SC-4,ITSG-33|SC-4,LEVEL|2S"
+  xsl_stmt    : "<xsl:template match=\"/\">"
+  xsl_stmt    : "<xsl:for-each select=\"//audit:returnval\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='tools.guestlib.enableHostInfo']\">"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - tools.guestlib.enableHostInfo : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='tools.guestlib.enableHostInfo']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - tools.guestlib.enableHostInfo : <xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:extraConfig[audit:key='tools.guestlib.enableHostInfo']/audit:value\"/><xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:choose>"
+  xsl_stmt    : "<xsl:when test=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\">"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:ipAddress\"/>) - tools.guestlib.enableHostInfo : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:when>"
+  xsl_stmt    : "<xsl:otherwise>"
+  xsl_stmt    : "<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineConfigInfo']/audit:name\"/> (<xsl:value-of select=\"audit:propSet/audit:val[@xsi:type='VirtualMachineSummary']/audit:guest/audit:toolsStatus\"/>) - tools.guestlib.enableHostInfo : NOT configured<xsl:text>&#10;</xsl:text>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:otherwise>"
+  xsl_stmt    : "</xsl:choose>"
+  xsl_stmt    : "</xsl:for-each>"
+  xsl_stmt    : "</xsl:template>"
+  regex       : "tools\.guestlib\.enableHostInfo : "
+  expect      : "tools\.guestlib\.enableHostInfo : FALSE$"
+</custom_item>
+
+</check_type>

@@ -1,0 +1,679 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/07/14 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA Apache 2.2 Unix STIG v1r11
+#
+#<ui_metadata>
+#<display_name>DISA STIG Apache Site 2.2 Unix v1r11</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>Apache Site 2.2 Unix</name>
+#  <version>1.11.0</version>
+#  <link>https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip</link>
+#</spec>
+#<labels>unix,disa,apache,apache_2,apache_2.2,site,agent</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>HTTPD_LOCATION</name>
+#    <default>/usr/sbin/httpd</default>
+#    <description>Apache server binary location</description>
+#    <info>The path to the binary for the Apache server.  Defaults to 'httpd', but could be 'apache2' on some platforms.</info>
+#  </variable>
+#  <variable>
+#    <name>APACHE_USER</name>
+#    <default>apache</default>
+#    <description>Apache user name</description>
+#    <info>The name of the user account used to run Apache.</info>
+#  </variable>
+#  <variable>
+#    <name>APACHE_GROUP</name>
+#    <default>webadmin</default>
+#    <description>Apache group name</description>
+#    <info>The name of the group with permissions to run Apache.</info>
+#  </variable>
+#  <variable>
+#    <name>HTTPD_CONFIG_DIRECTORY</name>
+#    <default>/etc/httpd/conf</default>
+#    <description>httpd conf directory</description>
+#    <info>The path to the conf directory. Permissions of this directory and its files will be checked to ensure it can only be modified by authorized users.</info>
+#  </variable>
+#  <variable>
+#    <name>APACHE_LOGS_DIR</name>
+#    <default>/apache/logs</default>
+#    <description>Apache logs directory</description>
+#    <info>Directory where Apache log files can be found.</info>
+#  </variable>
+#  <variable>
+#    <name>ALIAS_DIR</name>
+#    <default>/var/www/icons</default>
+#    <description>Maps URLs to filesystem locations</description>
+#    <info>The Alias directive allows documents to be stored in the local filesystem other than under the DocumentRoot.</info>
+#  </variable>
+#  <variable>
+#    <name>SCRIPTALIAS_DIR</name>
+#    <default>/var/www/cgi-bin</default>
+#    <description>Maps a URL to a filesystem location and designates as CGI script</description>
+#    <info>The ScriptAlias marks the target directory as containing CGI scripts that will be processed by mod_cgi's cgi-script handler.</info>
+#  </variable>
+#  <variable>
+#    <name>SCRIPTALIASMATCH_DIR</name>
+#    <default>/usr/local/apache/cgi-bin$1</default>
+#    <description>Maps a URL to a filesystem location using a regular expression</description>
+#    <info>This directive is equivalent to ScriptAlias, but makes use of regular expressions, instead of simple prefix matching.</info>
+#  </variable>
+#  <variable>
+#    <name>DOCUMENTROOT_DIR</name>
+#    <default>/var/www/html</default>
+#    <description>Directory that forms the main document tree visible from the web</description>
+#    <info>This directive controls whether the httpd may use memory-mapping if it needs to read the contents of a file during delivery.</info>
+#  </variable>
+#  <variable>
+#    <name>ANTI_VIRUS_RPM</name>
+#    <default>LinuxShield-0.0.0-0</default>
+#    <description>Anti-Virus RPM</description>
+#    <info>Insert installed organization anti-virus software</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_FORMAT</name>
+#    <default>\\\"%h %l %u %t \\\\\"%r\\\\\"\ %>s %b \\\\\"%{[Rr]eferer}i\\\\\" \\\\\"%{[Uu]ser-[Aa]gent}i\\\\\"\\\"</default>
+#    <description>Log format string</description>
+#    <info>The string defining the format of each line in Apache log files.</info>
+#  </variable>
+#  <variable>
+#    <name>ERROR_LOG</name>
+#    <default>logs\\/error_log</default>
+#    <description>Error log path</description>
+#    <info>The path to the ErrorLog file where Apache will store error logs, configured in httpd.conf.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Apache found"
+# Note: Variable @HTTPD_LOCATION@ replaced with "/usr/sbin/httpd" in field "cmd".
+      cmd         : "/usr/sbin/httpd -version"
+      expect      : "Apache/2.2.*"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "DISA_STIG_Apache_Site-2.2_Unix_v1r11.audit from DISA Apache 2.2 Unix STIG v1r11"
+    </report>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "WG210 A22 - Web content directories must not be anonymously shared."
+      info          : "Sharing web content is a security risk when a web server is involved. Users accessing the share anonymously could experience privileged access to the content of such directories. Network sharable directories expose those directories and their contents to unnecessary access. Any unnecessary exposure increases the risk that someone could exploit that access and either compromises the web content or cause web server performance problems.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution      : "Remove the shares from the applicable directories."
+      reference     : "800-171|3.1.5,800-53|AC-6,8500.2|ECCD-1,8500.2|ECCD-2,CAT|II,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-33022r1_rule,STIG-ID|WG210_A22,SWIFT-CSCv1|5.1,Vuln-ID|V-2226"
+      see_also      : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+      cmd           : "/bin/echo \"/etc/exports contents :\" ; /bin/echo ; /bin/cat /etc/exports"
+      expect        : ""
+      dont_echo_cmd : YES
+      severity      : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "WG360 A22 - Symbolic links must not be used in the web content directory tree - find"
+      info          : "A symbolic link allows a file or a directory to be referenced using a symbolic name raising a potential hazard if symbolic linkage is made to a sensitive area.
+
+When web scripts are executed and symbolic links are allowed, the web user could be allowed to access locations on the web server that are outside the scope of the web document root or home directory.
+
+
+If symbolic links are found in the web content directory tree, the target file or directory is outside of the web content directory tree, and file permissions allow the web user any authority less than write, then the severity level will be downgraded to CAT 2.
+
+If symbolic links are found in the web content directory tree, the target file or directory is not outside of the web content directory tree, and file permissions allow the web user write authority, then the severity level will remain at CAT 1.
+
+If symbolic links are found in the web content directory tree, the target file or directory is not outside of the web content directory tree, and file permissions allow the web user any authority less than write, then the severity level will be downgraded to CAT 3."
+      solution      : "Disable symbolic links."
+      reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCPA-1,8500.2|ECSC-1,CAT|I,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-30576r1_rule,STIG-ID|WG360_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2227"
+      see_also      : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+      cmd           : "/usr/bin/find /var/www/html -type l -exec /bin/ls -l {} \\;"
+      expect        : ""
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type            : FILE_CONTENT_CHECK
+      description     : "WG360 A22 - Symbolic links must not be used in the web content directory tree - conf"
+      info            : "A symbolic link allows a file or a directory to be referenced using a symbolic name raising a potential hazard if symbolic linkage is made to a sensitive area.
+
+When web scripts are executed and symbolic links are allowed, the web user could be allowed to access locations on the web server that are outside the scope of the web document root or home directory.
+
+
+If symbolic links are found in the web content directory tree, the target file or directory is outside of the web content directory tree, and file permissions allow the web user any authority less than write, then the severity level will be downgraded to CAT 2.
+
+If symbolic links are found in the web content directory tree, the target file or directory is not outside of the web content directory tree, and file permissions allow the web user write authority, then the severity level will remain at CAT 1.
+
+If symbolic links are found in the web content directory tree, the target file or directory is not outside of the web content directory tree, and file permissions allow the web user any authority less than write, then the severity level will be downgraded to CAT 3."
+      solution        : "Disable symbolic links."
+      reference       : "800-171|3.4.2,800-53|CM-6,8500.2|DCPA-1,8500.2|ECSC-1,CAT|I,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-30576r1_rule,STIG-ID|WG360_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2227"
+      see_also        : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file            : "/etc/httpd/conf/httpd.conf"
+      regex           : "^[\\s]*Options.*SymLinks\\s+"
+      expect          : "^[\\s]*Options.*SymLinksIfOwnerMatch"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "WG400 A22 - All interactive programs (CGI) must be placed in a designated directory with appropriate permissions."
+      info          : "CGI scripts represents one of the most common and exploitable means of compromising a web server. By definition, CGI are executable by the operating system of the host server. While access control is provided via the web service, the execution of CGI programs is not otherwise limited unless the SA or Web Manager takes specific measures. CGI programs can access and alter data files, launch other programs and use the network. CGI programs can be written in any available programming language. C, PERL, PHP, Javascript, VBScript and shell (sh, ksh, bash) are popular choices."
+      solution      : "Ensure the CGI (or equivalent i.e. scripts) directory has access controls IAW the WEB Services STIG."
+      reference     : "800-171|3.1.5,800-53|AC-6,8500.2|DCPA-1,CAT|II,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-6928r1_rule,STIG-ID|WG400_A22,SWIFT-CSCv1|5.1,Vuln-ID|V-2228"
+      see_also      : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "cmd".
+      cmd           : "/bin/cat /etc/httpd/conf/httpd.conf | /bin/grep -A25 '<Directory [\"]\\/var\\/www\\/html[\"]>' | /bin/grep -e '^\\s*AllowOverride ' | /bin/grep '[Nn]one'"
+      expect        : "[Nn]one"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "WG110 A22 - The number of allowed simultaneous requests must be set."
+      info        : "Resource exhaustion can occur when an unlimited number of concurrent requests are allowed on a web site, facilitating a denial of service attack. Mitigating this kind of attack will include limiting the number of concurrent HTTP/HTTPS requests per IP address and may include, where feasible, limiting parameter values associated with keepalive, (i.e., a parameter used to limit the amount of time a connection may be inactive)."
+      solution    : "Edit the httpd.conf file and set the MaxKeepAliveRequests directive to 100 or greater."
+      reference   : "800-53|SC-6,8500.2|ECSC-1,CAT|II,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,Rule-ID|SV-33018r1_rule,STIG-ID|WG110_A22,Vuln-ID|V-2240"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*MaxKeepAliveRequests\\s*="
+      expect      : "^[\\s]*MaxKeepAliveRequests\\s*=\\s*0\\s*$"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "WG170 A22 - Each readable web document directory must contain either a default, home, index, or equivalent file."
+      info        : "The goal is to completely control the web users experience in navigating any portion of the web document root directories. Ensuring all web content directories have at least the equivalent of an index.html file is a significant factor to accomplish this end. Also, enumeration techniques, such as URL parameter manipulation, rely upon being able to obtain information about the web server's directory structure by locating directories with default pages. This practice helps ensure that the anonymous web user will not obtain directory browsing information or an error message that reveals the server type and version.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Add a default document to the applicable directories."
+      reference   : "8500.2|ECAN-1,8500.2|ECSC-1,CAT|III,Rule-ID|SV-33020r1_rule,STIG-ID|WG170_A22,Vuln-ID|V-2245"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : PROCESS_CHECK
+      description : "WG230 A22 - Web server administration must be performed over a secure path or at the local console."
+      info        : "Logging into a web server remotely using an unencrypted protocol or service when performing updates and maintenance is a major risk.  Data, such as user account, is transmitted in plaintext and can easily be compromised.  When performing remote administrative tasks, a protocol or service that encrypts the communication channel must be used.
+
+An alternative to remote administration of the web server is to perform web server administration locally at the console.  Local administration at the console implies physical access to the server."
+      solution    : "Ensure the web server's administration is only performed over a secure path."
+      reference   : "800-171|3.4.2,800-53|CM-6,8500.2|EBRU-1,CAT|I,CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-33023r3_rule,STIG-ID|WG230_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2249"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+      name        : "sshd"
+      status      : ON
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "WG240 A22 - Logs of web server access and errors must be established and maintained"
+      info        : "A major tool in exploring the web site use, attempted use, unusual conditions, and problems are reported in the access and error logs. In the event of a security incident, these logs can provide the SA and the web manager with valuable information. Without these log files, SAs and web managers are seriously hindered in their efforts to respond appropriately to suspicious or criminal actions targeted at the web site."
+      solution    : "Edit the httpd.conf file and add the following module to configure logging.
+
+'log_config_module'"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-2,8500.2|ECAT-1,8500.2|ECAT-2,CAT|II,CSF|PR.PT-1,ITSG-33|AU-2,NESA|M1.2.2,NESA|M5.5.1,NIAv2|AM11a,NIAv2|AM11b,NIAv2|AM11c,NIAv2|AM11d,NIAv2|AM11e,NIAv2|AM7,NIAv2|SS30,NIAv2|VL8,Rule-ID|SV-33025r1_rule,STIG-ID|WG240_A22,SWIFT-CSCv1|6.4,Vuln-ID|V-2250"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*LoadModule[\\s]+[Ll]og_config_module[\\s]+"
+      expect      : "^[\\s]*LoadModule[\\s]+[Ll]og_config_module[\\s]+modules/mod_log_config.so[\\s]*"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "WG250 A22 - Log file access must be restricted to System Administrators, Web Administrators or Auditors."
+      info        : "A major tool in exploring the web site use, attempted use, unusual conditions, and problems are the access and error logs. In the event of a security incident, these logs can provide the SA and the web manager with valuable information. To ensure the integrity of the log files and protect the SA and the web manager from a conflict of interest related to the maintenance of these files, only the members of the Auditors group will be granted permissions to move, copy, and delete these files in the course of their duties related to the archiving of these files."
+      solution    : "Use the chmod command to set the appropriate file permissions on the log files."
+      reference   : "800-171|3.4.2,800-53|CM-6,8500.2|ECTP-1,CAT|II,CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-33033r1_rule,STIG-ID|WG250_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2252"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @APACHE_LOGS_DIR@ replaced with "/apache/logs" in field "file".
+      file        : "/apache/logs/*log"
+# Note: Variable @APACHE_USER@ replaced with "apache" in field "owner".
+      owner       : "root" || "apache"
+      mask        : "137"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "WG260 A22 - Only web sites that have been fully reviewed and tested must exist on a production web server."
+      info        : "In the case of a production web server, areas for content development and testing will not exist, as this type of content is only permissible on a development web site. The process of developing on a functional production web site entails a degree of trial and error and repeated testing. This process is often accomplished in an environment where debugging, sequencing, and formatting of content are the main goals. The opportunity for a malicious user to obtain files that reveal business logic and login schemes is high in this situation. The existence of such immature content on a web server represents a significant security risk that is totally avoidable.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "The presences of portions of the web site that proclaim Under Construction or Under Development are clear indications that a production web server is being used for development. The web administrator will ensure that all pages that are in development are not installed on a production web server."
+      reference   : "8500.2|ECSC-1,CAT|II,Rule-ID|SV-32830r2_rule,STIG-ID|WG260_A22,Vuln-ID|V-2254"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "WG290 A22 - Web client access to the content directories must be restricted to read and execute - alias"
+      info        : "Excessive permissions for the anonymous web user account are one of the most common faults contributing to the compromise of a web server. If this user is able to upload and execute files on the web server, the organization or owner of the server will no longer have control of the asset."
+      solution    : "Assign the appropriate permissions to the applicable directories and files using the chmod command."
+      reference   : "800-171|3.4.2,800-53|CM-6,8500.2|ECLP-1,CAT|I,CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-33027r2_rule,STIG-ID|WG290_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2258"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @ALIAS_DIR@ replaced with "/var/www/icons" in field "file".
+      file        : "/var/www/icons"
+# Note: Variable @APACHE_USER@ replaced with "apache" in field "owner".
+      owner       : "root" || "apache"
+      mask        : "277"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "WG290 A22 - Web client access to the content directories must be restricted to read and execute - script alias"
+      info        : "Excessive permissions for the anonymous web user account are one of the most common faults contributing to the compromise of a web server. If this user is able to upload and execute files on the web server, the organization or owner of the server will no longer have control of the asset."
+      solution    : "Assign the appropriate permissions to the applicable directories and files using the chmod command."
+      reference   : "800-171|3.4.2,800-53|CM-6,8500.2|ECLP-1,CAT|I,CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-33027r2_rule,STIG-ID|WG290_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2258"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @SCRIPTALIAS_DIR@ replaced with "/var/www/cgi-bin" in field "file".
+      file        : "/var/www/cgi-bin"
+# Note: Variable @APACHE_USER@ replaced with "apache" in field "owner".
+      owner       : "root" || "apache"
+      mask        : "277"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "WG290 A22 - Web client access to the content directories must be restricted to read and execute - script alias match"
+      info        : "Excessive permissions for the anonymous web user account are one of the most common faults contributing to the compromise of a web server. If this user is able to upload and execute files on the web server, the organization or owner of the server will no longer have control of the asset."
+      solution    : "Assign the appropriate permissions to the applicable directories and files using the chmod command."
+      reference   : "800-171|3.4.2,800-53|CM-6,8500.2|ECLP-1,CAT|I,CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-33027r2_rule,STIG-ID|WG290_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2258"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @SCRIPTALIASMATCH_DIR@ replaced with "/usr/local/apache/cgi-bin$1" in field "file".
+      file        : "/usr/local/apache/cgi-bin$1"
+# Note: Variable @APACHE_USER@ replaced with "apache" in field "owner".
+      owner       : "root" || "apache"
+      mask        : "277"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "WG310 A22 - A web site must not contain a robots.txt file - document root"
+      info        : "Search engines are constantly at work on the Internet.  Search engines are augmented by agents, often referred to as spiders or bots, which endeavor to capture and catalog web-site content.  In turn, these search engines make the content they obtain and catalog available to any public web user.
+
+To request that a well behaved search engine not crawl and catalog a site, the web site may contain a file called robots.txt.  This file contains directories and files that the web server SA desires not be crawled or cataloged, but this file can also be used, by an attacker or poorly coded search engine, as a directory and file index to a site.  This information may be used to reduce an attacker's time searching and traversing the web site to find files that might be relevant.  If information on the web site needs to be protected from search engines and public view, other methods must be used."
+      solution    : "Remove the robots.txt file from the web site.  If there is information on the web site that needs protection from search engines and public view, then other methods must be used to safeguard the data."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|ECLP-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-33028r2_rule,STIG-ID|WG310_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2260"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @DOCUMENTROOT_DIR@ replaced with "/var/www/html" in field "file".
+      file        : "/var/www/html/robots.txt"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK_NOT
+      description : "WG310 A22 - A web site must not contain a robots.txt file - alias"
+      info        : "Search engines are constantly at work on the Internet.  Search engines are augmented by agents, often referred to as spiders or bots, which endeavor to capture and catalog web-site content.  In turn, these search engines make the content they obtain and catalog available to any public web user.
+
+To request that a well behaved search engine not crawl and catalog a site, the web site may contain a file called robots.txt.  This file contains directories and files that the web server SA desires not be crawled or cataloged, but this file can also be used, by an attacker or poorly coded search engine, as a directory and file index to a site.  This information may be used to reduce an attacker's time searching and traversing the web site to find files that might be relevant.  If information on the web site needs to be protected from search engines and public view, other methods must be used."
+      solution    : "Remove the robots.txt file from the web site.  If there is information on the web site that needs protection from search engines and public view, then other methods must be used to safeguard the data."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|ECLP-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-33028r2_rule,STIG-ID|WG310_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2260"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @ALIAS_DIR@ replaced with "/var/www/icons" in field "file".
+      file        : "/var/www/icons/robots.txt"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : FILE_CONTENT_CHECK
+          description : "WG340 A22 - A private web server must utilize an approved TLS version. 'SSLProtocol'"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+          file        : "/etc/httpd/conf/httpd.conf"
+          regex       : "^[\\s]*SSLProtocol\\s+"
+          expect      : "^[\\s]*SSLProtocol\\s+TLSv1\\s*$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "WG340 A22 - A private web server must utilize an approved TLS version - SSLProtocol"
+          info        : "Transport Layer Security (TLS) encryption is a required security setting for a private web server.  Encryption of private information is essential to ensuring data confidentiality.  If private information is not encrypted, it can be intercepted and easily read by an unauthorized party.  A private web server must use a FIPS 140-2 approved TLS version, and all non-FIPS-approved SSL versions must be disabled.
+
+FIPS 140-2 approved TLS versions include TLS V1.0 or greater.  NIST SP 800-52 specifies the preferred configurations for government systems."
+          solution    : "Edit the httpd.conf file and set the SSLProtocol to 'ALL -SSLv2 -SSLv3' and the SSLEngine to On.  For Apache 2.2.22 and older, set SSLProtocol to 'TLSv1'."
+          reference   : "800-171|3.13.11,800-53|SC-13,8500.2|ECSC-1,CAT|II,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-33029r2_rule,STIG-ID|WG340_A22,Vuln-ID|V-2262"
+          see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : FILE_CONTENT_CHECK
+          description : "WG340 A22 - A private web server must utilize an approved TLS version - SSLProtocol"
+          info        : "Transport Layer Security (TLS) encryption is a required security setting for a private web server.  Encryption of private information is essential to ensuring data confidentiality.  If private information is not encrypted, it can be intercepted and easily read by an unauthorized party.  A private web server must use a FIPS 140-2 approved TLS version, and all non-FIPS-approved SSL versions must be disabled.
+
+FIPS 140-2 approved TLS versions include TLS V1.0 or greater.  NIST SP 800-52 specifies the preferred configurations for government systems."
+          solution    : "Edit the httpd.conf file and set the SSLProtocol to 'ALL -SSLv2 -SSLv3' and the SSLEngine to On.  For Apache 2.2.22 and older, set SSLProtocol to 'TLSv1'."
+          reference   : "800-171|3.13.11,800-53|SC-13,8500.2|ECSC-1,CAT|II,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-33029r2_rule,STIG-ID|WG340_A22,Vuln-ID|V-2262"
+          see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+          file        : "/etc/httpd/conf/httpd.conf"
+          regex       : "^[\\s]*SSLProtocol\\s+"
+          expect      : "^[\\s]*SSLProtocol\\s+All\\s+-SSLv2\\s+SSLv3\\s*$"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "WG340 A22 - A private web server must utilize an approved TLS version - SSLEngine"
+      info        : "Transport Layer Security (TLS) encryption is a required security setting for a private web server.  Encryption of private information is essential to ensuring data confidentiality.  If private information is not encrypted, it can be intercepted and easily read by an unauthorized party.  A private web server must use a FIPS 140-2 approved TLS version, and all non-FIPS-approved SSL versions must be disabled.
+
+FIPS 140-2 approved TLS versions include TLS V1.0 or greater.  NIST SP 800-52 specifies the preferred configurations for government systems."
+      solution    : "Edit the httpd.conf file and set the SSLProtocol to 'ALL -SSLv2 -SSLv3' and the SSLEngine to On.  For Apache 2.2.22 and older, set SSLProtocol to 'TLSv1'."
+      reference   : "800-171|3.13.11,800-53|SC-13,8500.2|ECSC-1,CAT|II,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-33029r2_rule,STIG-ID|WG340_A22,Vuln-ID|V-2262"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*SSLEngine\\s+"
+      expect      : "^[\\s]*SSLEngine\\s+On\\s*$"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "WG350 A22 - A private web server will have a valid DoD server certificate."
+      info        : "This check verifies that DoD is a hosted web site's CA. The certificate is actually a DoD-issued server certificate used by the organization being reviewed. This is used to verify the authenticity of the web site to the user. If the certificate is not for the server (Certificate belongs to), if the certificate is not issued by DoD (Certificate was issued by), or if the current date is not included in the valid date (Certificate is valid from), then there is no assurance that the use of the certificate is valid. The entire purpose of using a certificate is, therefore, compromised.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Configure the private web site to use a valid DoD certificate."
+      reference   : "8500.2|IATS-1,8500.2|IATS-2,CAT|II,Rule-ID|SV-33031r1_rule,STIG-ID|WG350_A22,Vuln-ID|V-2263"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+    </report>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "WG490 A22 - Java software on production web servers must be limited to class files and the JAVA virtual machine - html"
+      info          : "From the source code in a .java or a .jpp file, the Java compiler produces a binary file with an extension of .class. The .java or .jpp file would, therefore, reveal sensitive information regarding an application's logic and permissions to resources on the server. By contrast, the .class file, because it is intended to be machine independent, is referred to as bytecode. Bytecodes are run by the Java Virtual Machine (JVM), or the Java Runtime Environment (JRE), via a browser configured to permit Java code."
+      solution      : "Remove the unnecessary files from the web server."
+      reference     : "800-171|3.4.8,800-53|CM-7,8500.2|ECSC-1,CAT|III,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,NIAv2|SS13a,Rule-ID|SV-33032r1_rule,STIG-ID|WG490_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2265"
+      see_also      : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+      cmd           : "/usr/bin/find /var/www/html -type f -name \\*\\.java -o -name \\*\\.jpp"
+      expect        : ""
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "WG490 A22 - Java software on production web servers must be limited to class files and the JAVA virtual machine - cgi-bin"
+      info          : "From the source code in a .java or a .jpp file, the Java compiler produces a binary file with an extension of .class. The .java or .jpp file would, therefore, reveal sensitive information regarding an application's logic and permissions to resources on the server. By contrast, the .class file, because it is intended to be machine independent, is referred to as bytecode. Bytecodes are run by the Java Virtual Machine (JVM), or the Java Runtime Environment (JRE), via a browser configured to permit Java code."
+      solution      : "Remove the unnecessary files from the web server."
+      reference     : "800-171|3.4.8,800-53|CM-7,8500.2|ECSC-1,CAT|III,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,NIAv2|SS13a,Rule-ID|SV-33032r1_rule,STIG-ID|WG490_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-2265"
+      see_also      : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+      cmd           : "/usr/bin/find /var/www/cgi-bin -type f -name \\*\\.java -o -name \\*\\.jpp"
+      expect        : ""
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "WG430 A22 - Anonymous FTP user access to interactive scripts is prohibited."
+      info        : "The directories containing the CGI scripts, such as PERL, must not be accessible to anonymous users via FTP. This applies to all directories that contain scripts that can dynamically produce web pages in an interactive manner (i.e., scripts based upon user-provided input). Such scripts contain information that could be used to compromise a web service, access system resources, or deface a web site.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "If the CGI, the cgi-bin, or the cgi-shl directories can be accessed via FTP by any group or user that does not require access, remove permissions to such directories for all but the web administrators and the SAs. Ensure that any such access employs an encrypted connection."
+      reference   : "8500.2|ECCD-1,8500.2|ECCD-2,CAT|II,Rule-ID|SV-36641r1_rule,STIG-ID|WG430_A22,Vuln-ID|V-2270"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+    </report>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          type          : CMD_EXEC
+          description   : "WG460 A22 - PERL scripts must use the TAINT option. 'mod_perl'"
+# Note: Variable @HTTPD_LOCATION@ replaced with "/usr/sbin/httpd" in field "cmd".
+          cmd           : "/usr/sbin/httpd -l | /bin/grep mod_perl"
+          expect        : "perl"
+          dont_echo_cmd : YES
+        </custom_item>
+
+        <custom_item>
+          type          : CMD_EXEC
+          description   : "WG460 A22 - PERL scripts must use the TAINT option. 'PERL'"
+          cmd           : "/usr/sbin/httpd -M 2>&1 | /bin/grep mod_perl"
+          expect        : "perl"
+          dont_echo_cmd : YES
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type            : FILE_CONTENT_CHECK
+          description     : "WG460 A22 - PERL scripts must use the TAINT option."
+          info            : "PERL (Practical Extraction and Report Language) is an interpreted language optimized for scanning arbitrary text files, extracting information from those text files, and printing reports based on that information. The language is often used in shell scripting and is intended to be practical, easy to use, and efficient means of generating interactive web pages for the user. Unfortunately, many widely available freeware PERL programs (scripts) are extremely insecure. This is most readily accomplished by a malicious user substituting input to a PERL script during a POST or a GET operation.
+
+Consequently, the founders of PERL have developed a mechanism named TAINT that protects the system from malicious input sent from outside the program. When the data is tainted, it cannot be used in programs or functions such as eval(), system(), exec(), pipes, or popen(). The script will exit with a warning message. It is vital that if PERL is being used, the following line appear in the first line of PERL scripts:
+
+#!/usr/local/bin/perl -T"
+          solution        : "Add the TAINT call to the PERL script.
+
+#!/usr/local/bin/perl -T"
+          reference       : "800-53|SI-10,8500.2|ECSC-1,CAT|II,ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-6932r1_rule,STIG-ID|WG460_A22,Vuln-ID|V-2272"
+          see_also        : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+          file            : "/etc/httpd/conf/*.conf"
+          regex           : "^[\\s]*PerlTaintCheck\\s"
+          expect          : "^[\\s]*PerlTaintCheck\\s+On\\s*$"
+          string_required : YES
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "WG460 A22 - PERL scripts must use the TAINT option."
+          info        : "PERL (Practical Extraction and Report Language) is an interpreted language optimized for scanning arbitrary text files, extracting information from those text files, and printing reports based on that information. The language is often used in shell scripting and is intended to be practical, easy to use, and efficient means of generating interactive web pages for the user. Unfortunately, many widely available freeware PERL programs (scripts) are extremely insecure. This is most readily accomplished by a malicious user substituting input to a PERL script during a POST or a GET operation.
+
+Consequently, the founders of PERL have developed a mechanism named TAINT that protects the system from malicious input sent from outside the program. When the data is tainted, it cannot be used in programs or functions such as eval(), system(), exec(), pipes, or popen(). The script will exit with a warning message. It is vital that if PERL is being used, the following line appear in the first line of PERL scripts:
+
+#!/usr/local/bin/perl -T"
+          solution    : "Add the TAINT call to the PERL script.
+
+#!/usr/local/bin/perl -T"
+          reference   : "800-53|SI-10,8500.2|ECSC-1,CAT|II,ITSG-33|SI-10,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,Rule-ID|SV-6932r1_rule,STIG-ID|WG460_A22,Vuln-ID|V-2272"
+          see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "WG205 A22 - The web document (home) directory must be in a separate partition from the web server's system files."
+      info          : "Application partitioning enables an additional security measure by securing user traffic under one security context, while managing system and application files under another.  Web content is can be to an anonymous web user. For such an account to have access to system files of any type is a major security risk that is avoidable and desirable. Failure to partition the system files from the web site documents increases risk of attack via directory traversal, or impede web site availability due to drive space exhaustion.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution      : "Move the web document (normally 'htdocs') directory to a separate partition, other than the OS root partition and the web server's system files."
+      reference     : "800-171|3.4.2,800-53|CM-6,8500.2|DCPA-1,CAT|II,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-33021r1_rule,STIG-ID|WG205_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-3333"
+      see_also      : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "cmd".
+      cmd           : "/bin/echo -n \"DocumentRoot is set to : \" ; /bin/grep ^\\s*DocumentRoot /etc/httpd/conf/httpd.conf ; /bin/echo ; /bin/echo \"/etc/fstab contents :\" ; /bin/echo ; /bin/cat /etc/fstab"
+      expect        : ""
+      dont_echo_cmd : YES
+      severity      : MEDIUM
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "WG265 A22 - The required DoD banner page must be displayed to authenticated users accessing a DoD private website."
+      info        : "A consent banner will be in place to make prospective entrants aware that the website they are about to enter is a DoD web site and their activity is subject to monitoring. The document, DoDI 8500.01, establishes the policy on the use of DoD information systems. It requires the use of a standard Notice and Consent Banner and standard text to be included in user agreements. The requirement for the banner is for websites with security and access controls. These are restricted and not publicly accessible. If the website does not require authentication/authorization for use, then the banner does not need to be present. A manual check of the document root directory for a banner page file (such as banner.html) or navigation to the website via a browser can be used to confirm the information provided from interviewing the web staff.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Configure a DoD private website to display the required DoD banner page when authentication is required for user access."
+      reference   : "8500.2|ECWM-1,CAT|III,Rule-ID|SV-33026r2_rule,STIG-ID|WG265_A22,Vuln-ID|V-6373"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+    </report>
+
+    <custom_item>
+      type            : FILE_CONTENT_CHECK
+      description     : "WG140 A22 - Private web servers must require certificates issued from a DoD-authorized Certificate Authority."
+      info            : "Web sites requiring authentication within the DoD must utilize PKI as an authentication mechanism for web users. Information systems residing behind web servers requiring authorization based on individual identity must use the identity provided by certificate-based authentication to support access control decisions."
+      solution        : "Edit the httpd.conf file and set the value of SSLVerifyClient to 'require'."
+      reference       : "800-171|3.13.11,800-53|SC-13,8500.2|IATS-1,8500.2|IATS-2,CAT|II,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-33019r1_rule,STIG-ID|WG140_A22,Vuln-ID|V-6531"
+      see_also        : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file            : "/etc/httpd/conf/httpd.conf"
+      regex           : "^[\\s]*SSLVerifyClient\\s+"
+      expect          : "^[\\s]*SSLVerifyClient\\s+[Rr]equire\\s*$"
+      string_required : YES
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "WG235 A22 - Web Administrators must only use encrypted connections for Document Root directory uploads."
+      info        : "Logging in to a web server via an unencrypted protocol or service, to upload documents to the web site, is a risk if proper encryption is not utilized to protect the data being transmitted.  An encrypted protocol or service must be used for remote access to web administration tasks.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Use only secure encrypted logons and connections for uploading files to the web site."
+      reference   : "8500.2|EBRP-1,8500.2|EBRU-1,CAT|I,Rule-ID|SV-33024r1_rule,STIG-ID|WG235_A22,Vuln-ID|V-13686"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : RPM_CHECK
+      description : "WG237 A22 - Remote authors or content providers must have all files scanned for viruses and malicious code before uploading files to the Document Root directory."
+      info        : "Remote web authors should not be able to upload files to the Document Root directory structure without virus checking and checking for malicious or mobile code. A remote web user, whose agency has a Memorandum of Agreement (MOA) with the hosting agency and has submitted a DoD form 2875 (System Authorization Access Request (SAAR)) or an equivalent document, will be allowed to post files to a temporary location on the server. All posted files to this temporary location will be scanned for viruses and content checked for malicious or mobile code. Only files free of viruses and malicious or mobile code will be posted to the appropriate DocumentRoot directory."
+      solution    : "Install anti-virus software on the system and set it to automatically scan new files that are introduced to the web server."
+      reference   : "800-171|3.14.1,800-53|SI-2,8500.2|ECVP-1,CAT|II,CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,Rule-ID|SV-36699r1_rule,STIG-ID|WG237_A22,SWIFT-CSCv1|2.2,Vuln-ID|V-13687"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @ANTI_VIRUS_RPM@ replaced with "LinuxShield-0.0.0-0" in field "rpm".
+      rpm         : "LinuxShield-0.0.0-0"
+      operator    : "gt"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "WG242 A22 - Log file data must contain required data elements."
+      info        : "The use of log files is a critical component of the operation of the Information Systems (IS) used within the DoD, and they can provide invaluable assistance with regard to damage assessment, causation, and the recovery of both affected components and data. They may be used to monitor accidental or intentional misuse of the (IS) and may be used by law enforcement for criminal prosecutions. The use of log files is a requirement within the DoD."
+      solution    : "Configure the web server to ensure the log file data includes the required data elements."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,8500.2|ECAR-1,8500.2|ECAR-2,8500.2|ECAR-3,CAT|II,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-36642r1_rule,STIG-ID|WG242_A22,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-13688"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*LogFormat[\\s]+.+[\\s]+[Cc]ombined"
+# Note: Variable @LOG_FORMAT@ replaced with "\\\\\\\"%h %l %u %t \\\\\\\\\\\"%r\\\\\\\\\\\"\\ %>s %b \\\\\\\\\\\"%{[Rr]eferer}i\\\\\\\\\\\" \\\\\\\\\\\"%{[Uu]ser-[Aa]gent}i\\\\\\\\\\\"\\\\\\\"" in field "expect".
+      expect      : "^[\\s]*LogFormat[\\s]+\\\\\\\"%h %l %u %t \\\\\\\\\\\"%r\\\\\\\\\\\"\\ %>s %b \\\\\\\\\\\"%{[Rr]eferer}i\\\\\\\\\\\" \\\\\\\\\\\"%{[Uu]ser-[Aa]gent}i\\\\\\\\\\\"\\\\\\\"[\\s]+[Cc]ombined[\\s]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "WG255 A22 - Access to the web server log files must be restricted to administrators, web administrators, and auditors."
+      info        : "A major tool in exploring the web site use, attempted use, unusual conditions, and problems are the access and error logs. In the event of a security incident, these logs can provide the SA and the web administrator with valuable information. Because of the information that is captured in the logs, it is critical that only authorized individuals have access to the logs."
+      solution    : "To ensure the integrity of the data that is being captured in the log files, ensure that only the members of the Auditors group, Administrators, and the user assigned to run the web server software is granted permissions to read the log files."
+      reference   : "800-171|3.4.2,800-53|CM-6,8500.2|ECTP-1,CAT|II,CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-36643r1_rule,STIG-ID|WG255_A22,SWIFT-CSCv1|2.3,Vuln-ID|V-13689"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @APACHE_LOGS_DIR@ replaced with "/apache/logs" in field "file".
+      file        : "/apache/logs/*log"
+# Note: Variable @APACHE_GROUP@ replaced with "webadmin" in field "owner".
+# Note: Variable @APACHE_USER@ replaced with "apache" in field "owner".
+      owner       : "root" || "webadmin" || "Auditors" || "Web Managers" || "Administrators" || "apache"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "WG342 A22 - Public web servers must use TLS if authentication is required."
+      info        : "Transport Layer Security (TLS) is optional for a public web server.  However, if authentication is being performed, then the use of the TLS protocol is required.
+
+Without the use of TLS, the authentication data would be transmitted unencrypted and would become vulnerable to disclosure.  Using TLS along with DoD PKI certificates for encryption of the authentication data protects the information from being accessed by all parties on the network.  To further protect the authentication data, the web server must use a FIPS 140-2 approved TLS version and all non-FIPS-approved SSL versions must be disabled.
+
+FIPS 140-2 approved TLS versions include TLS V1.0 or greater.  NIST SP 800-52 specifies the preferred configurations for government systems."
+      solution    : "Edit the httpd.conf file and set the SSLProtocol to 'TLSv1' for Apache 2.2.22 and older or to 'ALL -SSLv2 -SSLv3' for Apache versions newer than 2.2.22.  The SSLEngine parameter must also be set to On."
+      reference   : "800-171|3.13.11,800-53|SC-13,8500.2|ECCT-1,8500.2|ECCT-2,CAT|II,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-33030r2_rule,STIG-ID|WG342_A22,Vuln-ID|V-13694"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_LOCATION@ replaced with "/usr/sbin/httpd" in field "cmd".
+      cmd         : "/usr/sbin/httpd -M | /bin/grep 'ssl_module'"
+      expect      : "^[\\s]*ssl_module[\\s]*\\((shared|static)\\)[\\s]*$"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "WG610 A22 - Web sites must utilize ports, protocols, and services according to PPSM guidelines."
+      info        : "Failure to comply with DoD ports, protocols, and services (PPS) requirements can result
+in compromise of enclave boundary protections and/or functionality of the AIS.
+
+The IAM will ensure web servers are configured to use only authorized PPS in accordance with the Network Infrastructure STIG, DoD Instruction 8551.1, Ports, Protocols, and Services Management (PPSM), and the associated Ports, Protocols, and Services (PPS) Assurance Category Assignments List.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Ensure the web site enforces the use of IANA well-known ports for HTTP and HTTPS."
+      reference   : "8500.2|DCPP-1,CAT|III,Rule-ID|SV-34015r1_rule,STIG-ID|WG610_A22,Vuln-ID|V-15334"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "WA00605 A22 - Error logging must be enabled."
+      info        : "The server error logs are invaluable because they can also be used to identify potential problems and enable proactive remediation.  . Log data can reveal anomalous behavior such as 'not found' or 'unauthorized' errors that may be an evidence of attack attempts.   Failure to enable error logging can significantly reduce the ability of Web Administrators to detect or remediate problems."
+      solution    : "Edit the httpd.conf file and enter the name and path to the ErrorLog."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,8500.2|ECAR-1,CAT|II,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-33192r1_rule,STIG-ID|WA00605_A22,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-26279"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*ErrorLog[\\s]*"
+# Note: Variable @ERROR_LOG@ replaced with "logs\\\\/error_log" in field "expect".
+      expect      : "^[\\s]*ErrorLog[\\s]*logs\\\\/error_log[\\s]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "WA00612 A22 - The sites error logs must log the correct format."
+      info        : "The server error logs are invaluable because they can also be used to identify potential problems and enable proactive remediation. Log data can reveal anomalous behavior such as 'not found' or 'unauthorized' errors that may be an evidence of attack attempts. Failure to enable error logging can significantly reduce the ability of Web Administrators to detect or remediate problems. The LogFormat directive defines the format and information to be included in the access log entries."
+      solution    : "Edit the httpd.conf file and add LogFormat '%a %A %h %H %l %m %s %t %u %U \'%{Referer}i\' ' combined"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,8500.2|ECAR-1,8500.2|ECAR-2,CAT|II,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-33203r1_rule,STIG-ID|WA00612_A22,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-26280"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*LogFormat[\\s]+.+[\\s]+[Cc]ombined"
+# Note: Variable @LOG_FORMAT@ replaced with "\\\\\\\"%h %l %u %t \\\\\\\\\\\"%r\\\\\\\\\\\"\\ %>s %b \\\\\\\\\\\"%{[Rr]eferer}i\\\\\\\\\\\" \\\\\\\\\\\"%{[Uu]ser-[Aa]gent}i\\\\\\\\\\\"\\\\\\\"" in field "expect".
+      expect      : "^[\\s]*LogFormat[\\s]+\\\\\\\"%h %l %u %t \\\\\\\\\\\"%r\\\\\\\\\\\"\\ %>s %b \\\\\\\\\\\"%{[Rr]eferer}i\\\\\\\\\\\" \\\\\\\\\\\"%{[Uu]ser-[Aa]gent}i\\\\\\\\\\\"\\\\\\\"[\\s]+[Cc]ombined[\\s]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "WA00615 A22 - System logging must be enabled."
+      info        : "The server error logs are invaluable because they can also be used to identify potential problems and enable proactive remediation. Log data can reveal anomalous behavior such as 'not found' or 'unauthorized' errors that may be an evidence of attack attempts.   Failure to enable error logging can significantly reduce the ability of Web Administrators to detect or remediate problems. The CustomLog directive specifies the log file, syslog facility, or piped logging utility."
+      solution    : "Edit the httpd.conf file and configure to load the log_config_module. Configure with ErrorLog and CustomLog directives to ensure comprehensive system and access logging."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,8500.2|ECAR-1,CAT|II,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-33206r1_rule,STIG-ID|WA00615_A22,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-26281"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*CustomLog[\\s]+"
+      expect      : "^[\\s]*CustomLog[\\s]+logs/access_log[\\s]+[Cc]ommon[\\s]*$"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "WA00620 A22 - The LogLevel directive must be enabled."
+      info        : "The server error logs are invaluable because they can also be used to identify potential problems and enable proactive remediation. Log data can reveal anomalous behavior such as 'not found' or 'unauthorized' errors that may be an evidence of attack attempts. Failure to enable error logging can significantly reduce the ability of Web Administrators to detect or remediate problems. While the ErrorLog directive configures the error log file name, the LogLevel directive is used to configure the severity level for the error logs. The log level values are the standard syslog levels: emerg, alert, crit, error, warn, notice, info and debug."
+      solution    : "Edit the httpd.conf file and add the value LogLevel warn."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,8500.2|ECAR-1,CAT|II,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,Rule-ID|SV-33207r1_rule,STIG-ID|WA00620_A22,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1,Vuln-ID|V-26282"
+      see_also    : "https://iasecontent.disa.mil/stigs/zip/U_Apache_2-2_UNIX_V1R11_STIG.zip"
+# Note: Variable @HTTPD_CONFIG_DIRECTORY@ replaced with "/etc/httpd/conf" in field "file".
+      file        : "/etc/httpd/conf/httpd.conf"
+      regex       : "^[\\s]*LogLevel[\\s]*"
+      expect      : "^[\\s]*LogLevel[\\s]+([Ww]arn|[Ee]rror|[Cc]rit|[Aa]lert|[Ee]merg)[\\s]*$"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "DISA_STIG_Apache_Site-2.2_Unix_v1r11.audit from DISA Apache 2.2 Unix STIG v1r11"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

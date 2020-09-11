@@ -1,0 +1,797 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.7 $
+# $Date: 2020/04/23 $
+#
+# Description	: This .audit is designed to query targets against the CIS Microsoft IIS 8.0/8.5 Benchmark.
+#
+# 	https://workbench.cisecurity.org/files/166
+#
+#<ui_metadata>
+#<display_name>CIS IIS 8.0 v1.5.0 Level 2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>IIS 8.0 L2</name>
+#  <version>1.5.0</version>
+#  <link>https://workbench.cisecurity.org/files/166</link>
+#</spec>
+#<labels>windows,cis,microsoft,internet,information,server,iis,iis_8,iis_8.0,iis_8.5</labels>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"CIS Microsoft IIS 8 Benchmark v1.5.0">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : REG_CHECK
+      description : "Verify IIS is installed."
+      value_type  : POLICY_TEXT
+      value_data  : "HKLM\Software\Microsoft\Inetstp"
+      reg_option  : MUST_EXIST
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "Verify IIS 8.0 or 8.5 installed."
+      value_type  : POLICY_TEXT
+      value_data  : "^Version 8\.[05][\s]*$"
+      reg_key     : "HKLM\Software\Microsoft\Inetstp"
+      reg_item    : "VersionString"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "Windows Server 2012 or 2012 R2 installed"
+      value_type  : POLICY_TEXT
+      value_data  : "^[a-zA-Z0-9\(\)\s]*2012[a-zA-Z0-9\(\)\s]*$"
+      reg_key     : "HKLM\Software\Microsoft\Windows Nt\Currentversion"
+      reg_item    : "ProductName"
+      check_type  : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS Microsoft IIS 8 Benchmark v1.5.0 Level 2"
+    </report>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          type        : REGISTRY_SETTING
+          description : "Verify .net extensibility is installed - NetFxExtensibility45"
+          value_type  : POLICY_DWORD
+          value_data  : 1
+          reg_key     : "HKLM\Software\Microsoft\Inetstp\Components"
+          reg_item    : "NetFxExtensibility45"
+          reg_option  : CAN_NOT_BE_NULL
+        </custom_item>
+
+        <custom_item>
+          type        : REGISTRY_SETTING
+          description : "Verify .net extensibility is installed - ASPNET45"
+          value_type  : POLICY_DWORD
+          value_data  : 1
+          reg_key     : "HKLM\Software\Microsoft\Inetstp\Components"
+          reg_item    : "ASPNET45"
+          reg_option  : CAN_NOT_BE_NULL
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "2.4 Ensure 'forms authentication' is set to use cookies - Default"
+          info        : "Forms Authentication can be configured to maintain the site visitor's session identifier in either a URI or cookie. It is recommended that Forms Authentication be set to use cookies.
+
+Using cookies to manage session state may help mitigate the risk of session hi-jacking attempts by preventing ASP.NET from having to move session information to the URL. Moving session information identifiers into the URL may cause session IDs to show up in proxy logs, browsing history, and be accessible to client scripting via document.location."
+          solution    : " 1. Open IIS Manager and navigate to the level where Forms Authentication is enabled
+ 2. In Features View, double-click Authentication
+ 3. On the Authentication page, select Forms Authentication
+ 4. In the Actions pane, click Edit
+ 5. In the Cookie settings section, select Use cookies from the Mode dropdown"
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "UseCookies"
+          appcmd_args : "list config /section:system.web/authentication /text:forms.cookieless"
+        </custom_item>
+
+        <custom_item>
+          type                : AUDIT_IIS_APPCMD
+          description         : "2.4 Ensure 'forms authentication' is set to use cookies - Applications"
+          info                : "Forms Authentication can be configured to maintain the site visitor's session identifier in either a URI or cookie. It is recommended that Forms Authentication be set to use cookies.
+
+Using cookies to manage session state may help mitigate the risk of session hi-jacking attempts by preventing ASP.NET from having to move session information to the URL. Moving session information identifiers into the URL may cause session IDs to show up in proxy logs, browsing history, and be accessible to client scripting via document.location."
+          solution            : " 1. Open IIS Manager and navigate to the level where Forms Authentication is enabled
+ 2. In Features View, double-click Authentication
+ 3. On the Authentication page, select Forms Authentication
+ 4. In the Actions pane, click Edit
+ 5. In the Cookie settings section, select Use cookies from the Mode dropdown"
+          reference           : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SWIFT-CSCv1|2.3"
+          see_also            : "https://workbench.cisecurity.org/files/166"
+          value_type          : POLICY_TEXT
+          value_data          : "UseCookies"
+          appcmd_args         : "list config {} /section:system.web/authentication /text:forms.cookieless"
+          appcmd_filter       : "list config {} /section:system.web/authentication /text:mode"
+          appcmd_filter_value : "Forms"
+          appcmd_list         : "list apps"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "2.4 Ensure 'forms authentication' is set to use cookies - Not Enabled"
+          info        : "Forms Authentication can be configured to maintain the site visitor's session identifier in either a URI or cookie. It is recommended that Forms Authentication be set to use cookies.
+
+Using cookies to manage session state may help mitigate the risk of session hi-jacking attempts by preventing ASP.NET from having to move session information to the URL. Moving session information identifiers into the URL may cause session IDs to show up in proxy logs, browsing history, and be accessible to client scripting via document.location.
+
+NOTE: This requires .Net Extensibility or ASPNET45 component, but neiter component was not found."
+          reference   : "LEVEL|2S,PCI-DSS|2.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "2.8 Ensure 'credentials' are not stored in configuration files - Default"
+      info        : "The <credentials> element of the <authentication> element allows optional definitions of name and password for IIS Manager User accounts within the configuration file. Forms based authentication also uses these elements to define the users. IIS Manager Users can use the administration interface to connect to sites and applications in which they've been granted authorization. Note that the <credentials> element only applies when the default provider, ConfigurationAuthenticationProvider, is configured as the authentication provider. It is recommended that passwordFormat be set to a value other than Clear, such as SHA1 or MD5.
+
+Authentication credentials should always be protected to reduce the risk of stolen authentication credentials. For security reasons, it is recommended that user credentials not be stored an any IIS configuration files."
+      solution    : "Authentication mode is configurable at the machine.config, root-level web.config, or application-level web.config:
+
+1. Locate and open the configuration file where the credentials are stored
+2. Find the <credentials> element
+3. If present, remove the section
+
+This will remove all references to stored users in the configuration files."
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : ".*user.*"
+      appcmd_args : "list config /section:system.web/authentication"
+      check_type  : CHECK_NOT_REGEX
+    </custom_item>
+
+    <custom_item>
+      type                : AUDIT_IIS_APPCMD
+      description         : "2.8 Ensure 'credentials' are not stored in configuration files - Applications"
+      info                : "The <credentials> element of the <authentication> element allows optional definitions of name and password for IIS Manager User accounts within the configuration file. Forms based authentication also uses these elements to define the users. IIS Manager Users can use the administration interface to connect to sites and applications in which they've been granted authorization. Note that the <credentials> element only applies when the default provider, ConfigurationAuthenticationProvider, is configured as the authentication provider. It is recommended that passwordFormat be set to a value other than Clear, such as SHA1 or MD5.
+
+Authentication credentials should always be protected to reduce the risk of stolen authentication credentials. For security reasons, it is recommended that user credentials not be stored an any IIS configuration files."
+      solution            : "Authentication mode is configurable at the machine.config, root-level web.config, or application-level web.config:
+
+1. Locate and open the configuration file where the credentials are stored
+2. Find the <credentials> element
+3. If present, remove the section
+
+This will remove all references to stored users in the configuration files."
+      reference           : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also            : "https://workbench.cisecurity.org/files/166"
+      value_type          : POLICY_TEXT
+      value_data          : ".*user.*"
+      appcmd_args         : "list config /section:system.web/authentication"
+      appcmd_filter       : "list config {} /section:system.web/authentication /text:mode"
+      appcmd_filter_value : "Forms"
+      appcmd_list         : "list apps"
+      check_type          : CHECK_NOT_REGEX
+    </custom_item>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          type        : REGISTRY_SETTING
+          description : "Verify .net extensibility is installed - ASPNET45"
+          value_type  : POLICY_DWORD
+          value_data  : 1
+          reg_key     : "HKLM\Software\Microsoft\Inetstp\Components"
+          reg_item    : "ASPNET45"
+          reg_option  : CAN_NOT_BE_NULL
+        </custom_item>
+
+        <custom_item>
+          type        : REGISTRY_SETTING
+          description : "Verify .net extensibility is installed - NetFxExtensibility45"
+          value_type  : POLICY_DWORD
+          value_data  : 1
+          reg_key     : "HKLM\Software\Microsoft\Inetstp\Components"
+          reg_item    : "NetFxExtensibility45"
+          reg_option  : CAN_NOT_BE_NULL
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.2 Ensure 'debug' is turned off - Default"
+          info        : "Developers often enable the debug mode during active ASP.NET development so that they do not have to continually clear their browsers cache every time they make a change to a resource handler. The problem would arise from this being left 'on' or set to 'true'. Compilation debug output is displayed to the end user, allowing malicious persons to obtain detailed information about applications.
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config configuration file overriding any debug settings. It is recommended that debugging still be turned off.
+
+Setting <compilation debug> to false ensures that detailed error information does not inadvertently display during live application usage, mitigating the risk of application information leakage falling into unscrupulous hands."
+          solution    : "To use the UI to make this change:
+ 1. Open IIS Manager and navigate desired server, site, or application
+ 2. In Features View, double-click .NET Compilation
+ 3. On the .NET Compilation page, in the Behavior section, ensure the Debug field is set to False
+ 4. When finished, click Apply in the Actions pane
+Note: The <compilation debug> switch will not be present in the web.config file unless it has been added manually, or has previously been configured using the IIS Manager GUI."
+          reference   : "800-53|SI-11,ITSG-33|SI-11,LEVEL|2S,PCI-DSS|2.2.4"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "false"
+          appcmd_args : "list config /section:system.web/compilation /text:debug"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.2 Ensure 'debug' is turned off - Applications"
+          info        : "Developers often enable the debug mode during active ASP.NET development so that they do not have to continually clear their browsers cache every time they make a change to a resource handler. The problem would arise from this being left 'on' or set to 'true'. Compilation debug output is displayed to the end user, allowing malicious persons to obtain detailed information about applications.
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config configuration file overriding any debug settings. It is recommended that debugging still be turned off.
+
+Setting <compilation debug> to false ensures that detailed error information does not inadvertently display during live application usage, mitigating the risk of application information leakage falling into unscrupulous hands."
+          solution    : "To use the UI to make this change:
+ 1. Open IIS Manager and navigate desired server, site, or application
+ 2. In Features View, double-click .NET Compilation
+ 3. On the .NET Compilation page, in the Behavior section, ensure the Debug field is set to False
+ 4. When finished, click Apply in the Actions pane
+Note: The <compilation debug> switch will not be present in the web.config file unless it has been added manually, or has previously been configured using the IIS Manager GUI."
+          reference   : "800-53|SI-11,ITSG-33|SI-11,LEVEL|2S,PCI-DSS|2.2.4"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "false"
+          appcmd_args : "list config {} /section:system.web/compilation /text:debug"
+          appcmd_list : "list apps"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.3 Ensure Custom Error Messages are not Off - Default"
+          info        : "When an ASP.NET application fails and causes an HTTP/1.x 500 Internal Server Error, or a feature configuration (such as Request Filtering) prevents a page from being displayed, an error message will be generated. Administrators can choose whether or not the application should display a friendly message to the client, detailed error message to the client, or detailed error message to localhost only. The <customErrors> tag in the web.config has three modes:
+ . On: Specifies that custom errors are enabled. If no defaultRedirect attribute is specified, users see a generic error. The custom errors are shown to the remote clients and to the local host
+ . Off: Specifies that custom errors are disabled. The detailed ASP.NET errors are shown to the remote clients and to the local host
+ . RemoteOnly: Specifies that custom errors are shown only to the remote clients, and that ASP.NET errors are shown to the local host. This is the default value
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config file overriding any settings for customErrors to be turned Off. It is recommended that customErrors still be turned to On or RemoteOnly.
+
+customErrors can be set to On or RemoteOnly without leaking detailed application information to the client. Ensuring that customErrors is not set to Off will help mitigate the risk of malicious persons learning detailed application error and server configuration information."
+          solution    : "customErrors may be set for a server, site, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, directly editing the configuration files, or by writing WMI scripts. Perform the following to set the customErrors mode to RemoteOnly or On for a Web Site in the IIS Manager GUI:
+ 1. Open the IIS Manager GUI and navigate to the site to be configured
+ 2. In Features View, find and double-click .NET Error Pages icon
+ 3. In the Actions Pane, click Edit Feature Settings
+ 4. In modal dialog, choose On or Remote Only for Mode settings
+ 5. Click OK"
+          reference   : "800-53|SI-11,ITSG-33|SI-11,LEVEL|2S,PCI-DSS|2.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "RemoteOnly" || "On"
+          appcmd_args : "list config /section:system.web/customErrors /text:mode"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.3 Ensure Custom Error Messages are not Off - Applications"
+          info        : "When an ASP.NET application fails and causes an HTTP/1.x 500 Internal Server Error, or a feature configuration (such as Request Filtering) prevents a page from being displayed, an error message will be generated. Administrators can choose whether or not the application should display a friendly message to the client, detailed error message to the
+client, or detailed error message to localhost only. The <customErrors> tag in the web.config has three modes:
+ . On: Specifies that custom errors are enabled. If no defaultRedirect attribute is specified, users see a generic error. The custom errors are shown to the remote clients and to the local host
+ . Off: Specifies that custom errors are disabled. The detailed ASP.NET errors are shown to the remote clients and to the local host
+ . RemoteOnly: Specifies that custom errors are shown only to the remote clients, and that ASP.NET errors are shown to the local host. This is the default value
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config file overriding any settings for customErrors to be turned Off. It is recommended that customErrors still be turned to On or RemoteOnly.
+
+customErrors can be set to On or RemoteOnly without leaking detailed application information to the client. Ensuring that customErrors is not set to Off will help mitigate the risk of malicious persons learning detailed application error and server configuration information."
+          solution    : "customErrors may be set for a server, site, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, directly editing the configuration files, or by writing WMI scripts. Perform the following to set the customErrors mode to RemoteOnly or On for a Web Site in the IIS Manager GUI:
+ 1. Open the IIS Manager GUI and navigate to the site to be configured
+ 2. In Features View, find and double-click .NET Error Pages icon
+ 3. In the Actions Pane, click Edit Feature Settings
+ 4. In modal dialog, choose On or Remote Only for Mode settings
+ 5. Click OK"
+          reference   : "800-53|SI-11,ITSG-33|SI-11,LEVEL|2S,PCI-DSS|2.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "RemoteOnly" || "On"
+          appcmd_args : "list config {} /section:system.web/customErrors /text:mode"
+          appcmd_list : "list apps"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.5 Ensure ASP.NET stack tracing is not enabled - Default"
+          info        : "The trace element configures the ASP.NET code tracing service that controls how trace results are gathered, stored, and displayed. When tracing is enabled, each page request generates trace messages that can be appended to the page output or stored in an application trace log.
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config file overriding any settings for ASP.NET stack tracing that are left on. It is recommended that ASP.NET stack tracing still be turned off.
+
+In an active Web Site, tracing should not be enabled because it can display sensitive configuration and detailed stack trace information to anyone who views the pages in the site. If necessary, the localOnly attribute can be set to true to have trace information displayed only for localhost requests. Ensuring that ASP.NET stack tracing is not on will help mitigate the risk of malicious persons learning detailed stack trace information."
+          solution    : " 1) ensure <deployment retail='true' /> is enabled in the machine.config.
+ 2) Remove all attribute references to ASP.NET tracing by deleting the trace and trace enable attributes.
+Per Page:
+Remove any references to
+Trace='true'
+Per Application:
+<configuration> <system.web>
+ ... <trace enabled='true'>
+ ... </system.web> </configuration>
+Default Value:
+The default value for ASP.NET tracing is off."
+          reference   : "800-53|SI-11,ITSG-33|SI-11,LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "false"
+          appcmd_args : "list config /section:system.web/trace /text:enabled"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.5 Ensure ASP.NET stack tracing is not enabled - Applications"
+          info        : "The trace element configures the ASP.NET code tracing service that controls how trace results are gathered, stored, and displayed. When tracing is enabled, each page request generates trace messages that can be appended to the page output or stored in an application trace log.
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config file overriding any settings for ASP.NET stack tracing that are left on. It is recommended that ASP.NET stack tracing still be turned off.
+
+In an active Web Site, tracing should not be enabled because it can display sensitive configuration and detailed stack trace information to anyone who views the pages in the site. If necessary, the localOnly attribute can be set to true to have trace information displayed only for localhost requests. Ensuring that ASP.NET stack tracing is not on will help mitigate the risk of malicious persons learning detailed stack trace information."
+          solution    : " 1) ensure <deployment retail='true' /> is enabled in the machine.config.
+ 2) Remove all attribute references to ASP.NET tracing by deleting the trace and trace enable attributes.
+Per Page:
+Remove any references to
+Trace='true'
+Per Application:
+<configuration> <system.web>
+ ... <trace enabled='true'>
+ ... </system.web> </configuration>
+Default Value:
+The default value for ASP.NET tracing is off."
+          reference   : "800-53|SI-11,ITSG-33|SI-11,LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "false"
+          appcmd_args : "list config {} /section:system.web/trace /text:enabled"
+          appcmd_list : "list apps"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.6 Ensure 'httpcookie' mode is configured for session state - Default"
+          info        : "A session cookie associates session information with client information for that session, which can be the duration of a user's connection to a site. The cookie is passed in a HTTP header together with all requests between the client and server.
+Session information can also be stored in the URL. However, storing session information in this manner has security implications that can open attack vectors such as session hijacking. An effective method used to prevent session hijacking attacks is to force web applications to use cookies to store the session token. This is accomplished by setting the cookieless attribute of the sessionState node to UseCookies or False which will in turn keep session state data out of URI. It is recommended that session state be configured to UseCookies.
+
+Cookies that have been properly configured help mitigate the risk of attacks such as session hi-jacking attempts by preventing ASP.NET from having to move session information to the URL; moving session information in URI causes session IDs to show up in proxy logs, and is accessible to client scripting via document.location."
+          solution    : "SessionState can be set to UseCookies by using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, directly editing the configuration files, or by writing WMI scripts. Perform the following to set the cookieless attribute of the sessionState node to UseCookies in the IIS Manager GUI:
+ 1. Open the IIS Manager GUI and navigate desired server, site, or application
+ 2. In Features View, find and double-click the Session State icon
+ 3. In the Cookie Settings section, choose Use Cookies from the Mode dropdown
+ 4. In the Actions Pane, click Apply
+To use AppCmd.exe to configure sessionState at the server level, the command would look like this:
+%systemroot%\system32\inetsrv\appcmd set config /commit:WEBROOT /section:sessionState /cookieless:UseCookies /cookieName:ASP.NET_SessionID /timeout:20
+
+When Appcmd.exe is used to configure the <sessionstate> element at the global level in IIS, the /commit:WEBROOT switch must be included so that configuration changes are made to the root web.config file instead of ApplicationHost.config."
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "UseCookies"
+          appcmd_args : "list config /section:system.web/sessionState /text:cookieless"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.6 Ensure 'httpcookie' mode is configured for session state - Applications"
+          info        : "A session cookie associates session information with client information for that session, which can be the duration of a user's connection to a site. The cookie is passed in a HTTP header together with all requests between the client and server.
+Session information can also be stored in the URL. However, storing session information in this manner has security implications that can open attack vectors such as session hijacking. An effective method used to prevent session hijacking attacks is to force web applications to use cookies to store the session token. This is accomplished by setting the cookieless attribute of the sessionState node to UseCookies or False which will in turn keep session state data out of URI. It is recommended that session state be configured to UseCookies.
+
+Cookies that have been properly configured help mitigate the risk of attacks such as session hi-jacking attempts by preventing ASP.NET from having to move session information to the URL; moving session information in URI causes session IDs to show up in proxy logs, and is accessible to client scripting via document.location."
+          solution    : "SessionState can be set to UseCookies by using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, directly editing the configuration files, or by writing WMI scripts. Perform the following to set the cookieless attribute of the sessionState node to UseCookies in the IIS Manager GUI:
+ 1. Open the IIS Manager GUI and navigate desired server, site, or application
+ 2. In Features View, find and double-click the Session State icon
+ 3. In the Cookie Settings section, choose Use Cookies from the Mode dropdown
+ 4. In the Actions Pane, click Apply
+To use AppCmd.exe to configure sessionState at the server level, the command would look like this:
+%systemroot%\system32\inetsrv\appcmd set config /commit:WEBROOT /section:sessionState /cookieless:UseCookies /cookieName:ASP.NET_SessionID /timeout:20
+
+When Appcmd.exe is used to configure the <sessionstate> element at the global level in IIS, the /commit:WEBROOT switch must be included so that configuration changes are made to the root web.config file instead of ApplicationHost.config."
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "UseCookies"
+          appcmd_args : "list config {} /section:system.web/sessionState /text:cookieless"
+          appcmd_list : "list apps"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.7 Ensure 'cookies' are set with HttpOnly attribute - Default"
+          info        : "The httpOnlyCookies attribute of the httpCookies node determines if IIS will set the HttpOnly flag on HTTP cookies it sets. The HttpOnly flag indicates to the user agent that the cookie must not be accessible by client-side script (i.e document.cookie). It is recommended that the httpOnlyCookies attribute be set to true.
+
+When cookies are set with the HttpOnly flag, they cannot be accessed by client side scripting running in the user's browser. Preventing client-side scripting from accessing cookie content may reduce the probability of a cross site scripting attack materializing into a successful session hijack."
+          solution    : "1. Locate and open the application's web.config file
+          2. Add the <httpCookies httpOnlyCookies='true' /> tag within <system.web>:
+          <configuration>
+            <system.web>
+              <httpCookies httpOnlyCookies='true' />
+            </system.web>
+          </configuration>
+
+          Setting the value of the httpOnlyCookies attribute of the httpCookies element to true will add the HttpOnly flag to all the cookies set by the application. All modern versions of browsers recognize HttpOnly attribute; older versions will either treat them as normal cookies or simply ignore them altogether."
+          reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,PCI-DSS|2.2.3,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "true"
+          appcmd_args : "list config /section:system.web/httpCookies /text:httpOnlyCookies"
+        </custom_item>
+
+        <custom_item>
+          type        : AUDIT_IIS_APPCMD
+          description : "3.7 Ensure 'cookies' are set with HttpOnly attribute - Applications"
+          info        : "The httpOnlyCookies attribute of the httpCookies node determines if IIS will set the HttpOnly flag on HTTP cookies it sets. The HttpOnly flag indicates to the user agent that the cookie must not be accessible by client-side script (i.e document.cookie). It is recommended that the httpOnlyCookies attribute be set to true.
+
+When cookies are set with the HttpOnly flag, they cannot be accessed by client side scripting running in the user's browser. Preventing client-side scripting from accessing cookie content may reduce the probability of a cross site scripting attack materializing into a successful session hijack."
+          solution    : "1. Locate and open the application's web.config file
+          2. Add the <httpCookies httpOnlyCookies='true' /> tag within <system.web>:
+          <configuration>
+            <system.web>
+              <httpCookies httpOnlyCookies='true' />
+            </system.web>
+          </configuration>
+
+          Setting the value of the httpOnlyCookies attribute of the httpCookies element to true will add the HttpOnly flag to all the cookies set by the application. All modern versions of browsers recognize HttpOnly attribute; older versions will either treat them as normal cookies or simply ignore them altogether."
+          reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,PCI-DSS|2.2.3,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+          value_type  : POLICY_TEXT
+          value_data  : "true"
+          appcmd_args : "list config {} /section:system.web/httpCookies /text:httpOnlyCookies"
+          appcmd_list : "list apps"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "3.2 Ensure 'debug' is turned off"
+          info        : "Developers often enable the debug mode during active ASP.NET development so that they do not have to continually clear their browsers cache every time they make a change to a resource handler. The problem would arise from this being left 'on' or set to 'true'. Compilation debug output is displayed to the end user, allowing malicious persons to obtain detailed information about applications.
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config configuration file overriding any debug settings. It is recommended that debugging still be turned off.
+
+Setting <compilation debug> to false ensures that detailed error information does not inadvertently display during live application usage, mitigating the risk of application information leakage falling into unscrupulous hands.
+
+NOTE: This section requires ASP.NET, but ASPNET45 and .Net Extensibility have not been found."
+          reference   : "LEVEL|2S,PCI-DSS|2.2.4"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+        </report>
+
+        <report type:"PASSED">
+          description : "3.3 Ensure Custom Error Messages are not Off"
+          info        : "When an ASP.NET application fails and causes an HTTP/1.x 500 Internal Server Error, or a feature configuration (such as Request Filtering) prevents a page from being displayed, an error message will be generated. Administrators can choose whether or not the application should display a friendly message to the client, detailed error message to the client, or detailed error message to localhost only. The <customErrors> tag in the web.config has three modes:
+ . On: Specifies that custom errors are enabled. If no defaultRedirect attribute is specified, users see a generic error. The custom errors are shown to the remote clients and to the local host
+ . Off: Specifies that custom errors are disabled. The detailed ASP.NET errors are shown to the remote clients and to the local host
+ . RemoteOnly: Specifies that custom errors are shown only to the remote clients, and that ASP.NET errors are shown to the local host. This is the default value
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config file overriding any settings for customErrors to be turned Off. It is recommended that customErrors still be turned to On or RemoteOnly.
+
+customErrors can be set to On or RemoteOnly without leaking detailed application information to the client. Ensuring that customErrors is not set to Off will help mitigate the risk of malicious persons learning detailed application error and server configuration information.
+
+NOTE: This section requires ASP.NET, but ASPNET45 and .Net Extensibility have not been found."
+          reference   : "LEVEL|2S,PCI-DSS|2.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+        </report>
+
+        <report type:"PASSED">
+          description : "3.5 Ensure ASP.NET stack tracing is not enabled"
+          info        : "The trace element configures the ASP.NET code tracing service that controls how trace results are gathered, stored, and displayed. When tracing is enabled, each page request generates trace messages that can be appended to the page output or stored in an application trace log.
+This is a defense in depth recommendation due to the <deployment retail='true' /> in the machine.config file overriding any settings for ASP.NET stack tracing that are left on. It is recommended that ASP.NET stack tracing still be turned off.
+
+In an active Web Site, tracing should not be enabled because it can display sensitive configuration and detailed stack trace information to anyone who views the pages in the site. If necessary, the localOnly attribute can be set to true to have trace information displayed only for localhost requests. Ensuring that ASP.NET stack tracing is not on will help mitigate the risk of malicious persons learning detailed stack trace information.
+
+NOTE: This section requires ASP.NET, but ASPNET45 and .Net Extensibility have not been found."
+          reference   : "LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+        </report>
+
+        <report type:"PASSED">
+          description : "3.6 Ensure 'httpcookie' mode is configured for session state"
+          info        : "A session cookie associates session information with client information for that session, which can be the duration of a user's connection to a site. The cookie is passed in a HTTP header together with all requests between the client and server.
+Session information can also be stored in the URL. However, storing session information in this manner has security implications that can open attack vectors such as session hijacking. An effective method used to prevent session hijacking attacks is to force web applications to use cookies to store the session token. This is accomplished by setting the cookieless attribute of the sessionState node to UseCookies or False which will in turn keep session state data out of URI. It is recommended that session state be configured to UseCookies.
+
+Cookies that have been properly configured help mitigate the risk of attacks such as session hi-jacking attempts by preventing ASP.NET from having to move session information to the URL; moving session information in URI causes session IDs to show up in proxy logs, and is accessible to client scripting via document.location.
+
+NOTE: This section requires ASP.NET, but ASPNET45 and .Net Extensibility have not been found."
+          reference   : "LEVEL|2S,PCI-DSS|2.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+        </report>
+
+        <report type:"PASSED">
+          description : "3.7 Ensure 'cookies' are set with HttpOnly attribute"
+          info        : "The httpOnlyCookies attribute of the httpCookies node determines if IIS will set the HttpOnly flag on HTTP cookies it sets. The HttpOnly flag indicates to the user agent that the cookie must not be accessible by client-side script (i.e document.cookie). It is recommended that the httpOnlyCookies attribute be set to true.
+
+When cookies are set with the HttpOnly flag, they cannot be accessed by client side scripting running in the user's browser. Preventing client-side scripting from accessing cookie content may reduce the probability of a cross site scripting attack materializing into a successful session hijack.
+
+NOTE: This section requires ASP.NET, but ASPNET45 and .Net Extensibility have not been found."
+          reference   : "LEVEL|2S,PCI-DSS|2.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/166"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.11 Ensure 'encryption providers' are locked down"
+      info            : "By default, whenever a property is encrypted, IIS uses the defaultProvider for encryption defined in machine.config. The IIS local system process (WAS) runs under the context of LOCALSYSTEM and needs access to the application pool passwords. However, by default the IIS_IUSRS security group is granted read access. It is recommended that the IIS_IUSRS group have access to the iisWasKey revoked.
+
+The iisWasKey is intended for access only by Administrators and SYSTEM. Since the IIS_IUSRS group is granted read access, an attacker compromising an application set to use a principal in the IIS_IUSRS group could potentially gain access to the encryption key(s). Revoking this unnecessary privilege will reduce attack surface and help maintain confidentiality and system/application integrity."
+      solution        : "Removing access to the iisWasKey can be done by using an aspnet_regiis.exe command. The syntax is as follows, and is dependent on the version of .NET being used:
+   %systemroot%\Microsoft.NET\Framework\aspnet_regiis.exe -pr iisWasKey IIS_IUSRS
+To remove read access to the IIS_IUSRS security group on a system using .NET Framework v2.0:
+ 1. Open an elevated command prompt
+ 2. Run the following aspnet_regiis.exe command:
+  %systemroot%\Microsoft.NET\Framework\v2.0.50727\aspnet_regiis.exe -pr iisWasKey IIS_IUSRS
+
+If running a 64-bit system, also run the following:
+  %systemroot%\Microsoft.NET\Framework64\v2.0.50727\aspnet_regiis.exe -pr iisWasKey IIS_IUSRS
+
+Note: A unique version of aspnet_regiis.exe is included with each version of the .NET Framework. Since each version of the tool applies only to its associated version of the .NET Framework, be sure to use the appropriate version of the tool."
+      reference       : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,PCI-DSS|2.2.3,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also        : "https://workbench.cisecurity.org/files/166"
+      value_type      : POLICY_TEXT
+      value_data      : "[\s]*BUILTIN\\IIS_IUSRS[\s]*"
+      powershell_args : "Get-Acl %ALLUSERSPROFILE%\Microsoft\Crypto\RSA\MachineKeys\76944fb33636aeddb9590521c2e8815a_* | Format-List"
+      check_type      : CHECK_NOT_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.1 Ensure 'maxAllowedContentLength' is configured - Default"
+      info        : "The maxAllowedContentLength Request Filter is the maximum size of the http request, measured in bytes, which can be sent from a client to the server. Configuring this value enables the total request size to be restricted to a configured value. It is recommended that the overall size of requests be restricted to a maximum value appropriate for the server, site, or application.
+
+Setting an appropriate value that has been tested for the maxAllowedContentLength filter will lower the impact an abnormally large request would otherwise have on IIS and/or web applications. This helps to ensure availability of web content and services, and may also help mitigate the risk of buffer overflow type attacks in unmanaged components."
+      solution    : "The MaxAllowedContentLength Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, click on the server, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the Request Limits section, key the maximum content length in bytes that will allow applications to retain their intended functionality, such as 30000000 (approx.
+ 28.6 MB)
+
+ To set this Request Filter using an AppCmd.exe command, run the following command at an elevated command prompt: %systemroot%\system32\inetsrv\appcmd set config /section:requestfiltering /requestLimits.maxAllowedContentLength:30000000"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2NS,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "^(3[0]{7}|[0-2][0-9]{7}|[0-9]{1,7})$"
+      appcmd_args : "list config /section:system.webServer/security/requestFiltering /text:requestLimits.maxAllowedContentLength"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.1 Ensure 'maxAllowedContentLength' is configured - Applications"
+      info        : "The maxAllowedContentLength Request Filter is the maximum size of the http request, measured in bytes, which can be sent from a client to the server. Configuring this value enables the total request size to be restricted to a configured value. It is recommended that the overall size of requests be restricted to a maximum value appropriate for the server, site, or application.
+
+Setting an appropriate value that has been tested for the maxAllowedContentLength filter will lower the impact an abnormally large request would otherwise have on IIS and/or web applications. This helps to ensure availability of web content and services, and may also help mitigate the risk of buffer overflow type attacks in unmanaged components."
+      solution    : "The MaxAllowedContentLength Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, click on the server, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the Request Limits section, key the maximum content length in bytes that will allow applications to retain their intended functionality, such as 30000000 (approx.
+ 28.6 MB)
+
+ To set this Request Filter using an AppCmd.exe command, run the following command at an elevated command prompt: %systemroot%\system32\inetsrv\appcmd set config /section:requestfiltering /requestLimits.maxAllowedContentLength:30000000"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2NS,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "^(3[0]{7}|[0-2][0-9]{7}|[0-9]{1,7})$"
+      appcmd_args : "list config {} /section:system.webServer/security/requestFiltering /text:requestLimits.maxAllowedContentLength"
+      appcmd_list : "list apps"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.2 Ensure 'maxURL request filter' is configured - Default"
+      info        : "The maxURL attribute of the <requestLimits> property is the maximum length (in Bytes) in which a requested URL can be (excluding query string) in order for IIS to accept. Configuring this Request Filter enables administrators to restrict the length of the requests that the server will accept. It is recommended that a limit be put on the length of URL.
+
+With a properly configured Request Filter limiting the amount of data accepted in the URL, chances of undesired application behaviors affecting the availability of content and services are reduced."
+      solution    : "The MaxURL Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, click on the connection, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the Request Limits section, key the maximum URL length in bytes that has been tested with web applications"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2S,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "^(409[0-6]|40[0-8][0-9]|[0-3][0-9]{3}|[0-9]{1,3})$"
+      appcmd_args : "list config /section:system.webServer/security/requestFiltering /text:requestLimits.maxURL"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.2 Ensure 'maxURL request filter' is configured - Applications"
+      info        : "The maxURL attribute of the <requestLimits> property is the maximum length (in Bytes) in which a requested URL can be (excluding query string) in order for IIS to accept. Configuring this Request Filter enables administrators to restrict the length of the requests that the server will accept. It is recommended that a limit be put on the length of URL.
+
+With a properly configured Request Filter limiting the amount of data accepted in the URL, chances of undesired application behaviors affecting the availability of content and services are reduced.
+
+NOTE: Please update MAX_URL with the appropriate value for the local environment."
+      solution    : "The MaxURL Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, click on the connection, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the Request Limits section, key the maximum URL length in bytes that has been tested with web applications"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2S,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "^(409[0-6]|40[0-8][0-9]|[0-3][0-9]{3}|[0-9]{1,3})$"
+      appcmd_args : "list config {} /section:system.webServer/security/requestFiltering /text:requestLimits.maxURL"
+      appcmd_list : "list apps"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.3 Ensure 'MaxQueryString request filter' is configured - Default"
+      info        : "The MaxQueryString Request Filter describes the upper limit on the length of the query string that the configured IIS server will allow for websites or applications. It is recommended that values always be established to limit the amount of data will can be accepted in the query string.
+
+With a properly configured Request Filter limiting the amount of data accepted in the query string, chances of undesired application behaviors such as app pool failures are reduced."
+      solution    : "The MaxQueryString Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, go to the connection, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the Request Limits section, key in a safe upper bound in the Maximum query string (Bytes) textbox
+
+ To set this Request Filter using an AppCmd.exe command, run the following command at an elevated command prompt: %systemroot%\system32\inetsrv\appcmd set config /section:requestfiltering /requestLimits.maxQueryString:2048"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2S,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "^(204[0-8]|20[0-3][0-9]|[0-1][0-9]{3}|[0-9]{1,3})$"
+      appcmd_args : "list config /section:system.webServer/security/requestFiltering /text:requestLimits.maxQueryString"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.3 Ensure 'MaxQueryString request filter' is configured - Applications"
+      info        : "The MaxQueryString Request Filter describes the upper limit on the length of the query string that the configured IIS server will allow for websites or applications. It is recommended that values always be established to limit the amount of data will can be accepted in the query string.
+
+With a properly configured Request Filter limiting the amount of data accepted in the query string, chances of undesired application behaviors such as app pool failures are reduced."
+      solution    : "The MaxQueryString Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, go to the connection, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the Request Limits section, key in a safe upper bound in the Maximum query string (Bytes) textbox
+
+ To set this Request Filter using an AppCmd.exe command, run the following command at an elevated command prompt: %systemroot%\system32\inetsrv\appcmd set config /section:requestfiltering /requestLimits.maxQueryString:2048"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2S,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e,PCI-DSS|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "^(204[0-8]|20[0-3][0-9]|[0-1][0-9]{3}|[0-9]{1,3})$"
+      appcmd_args : "list config {} /section:system.webServer/security/requestFiltering /text:requestLimits.maxQueryString"
+      appcmd_list : "list apps"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.4 Ensure non-ASCII characters in URLs are not allowed - Default"
+      info        : "This feature is used to allow or reject all requests to IIS that contain non-ASCII characters. When using this feature, Request Filtering will deny the request if high-bit characters are present in the URL. The UrlScan equivalent is AllowHighBitCharacters. It is recommended that requests containing non-ASCII characters be rejected, where possible.
+
+This feature can help defend against canonicalization attacks, reducing the potential attack surface of servers, sites, and/or applications."
+      solution    : "The AllowHighBitCharacters Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, go to the connection, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the General section, uncheck Allow high-bit characters
+
+Note: Disallowing high-bit ASCII characters in the URL may negatively impact the functionality of sites requiring international language support.
+
+To set this Request Filter using an AppCmd.exe command, run the following command at an elevated command prompt: %systemroot%\system32\inetsrv\appcmd set config /section:requestfiltering /allowHighBitCharacters:false"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2S,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "false"
+      appcmd_args : "list config /section:system.webServer/security/requestFiltering /text:allowHighBitCharacters"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "4.4 Ensure non-ASCII characters in URLs are not allowed - Applications"
+      info        : "This feature is used to allow or reject all requests to IIS that contain non-ASCII characters. When using this feature, Request Filtering will deny the request if high-bit characters are present in the URL. The UrlScan equivalent is AllowHighBitCharacters. It is recommended that requests containing non-ASCII characters be rejected, where possible.
+
+This feature can help defend against canonicalization attacks, reducing the potential attack surface of servers, sites, and/or applications."
+      solution    : "The AllowHighBitCharacters Request Filter may be set for a server, website, or application using the IIS Manager GUI, using AppCmd.exe commands in a command-line window, and/or directly editing the configuration files. To configure using the IIS Manager GUI:
+ 1. Open Internet Information Services (IIS) Manager
+ 2. In the Connections pane, go to the connection, site, application, or directory to be configured
+ 3. In the Home pane, double-click Request Filtering
+ 4. Click Edit Feature Settings... in the Actions pane
+ 5. Under the General section, uncheck Allow high-bit characters
+
+Note: Disallowing high-bit ASCII characters in the URL may negatively impact the functionality of sites requiring international language support.
+
+To set this Request Filter using an AppCmd.exe command, run the following command at an elevated command prompt: %systemroot%\system32\inetsrv\appcmd set config /section:requestfiltering /allowHighBitCharacters:false"
+      reference   : "800-53|SI-10,CN-L3|8.1.4.4(d),ITSG-33|SI-10,LEVEL|2S,NESA|T7.3.1,NESA|T7.3.2,NIAv2|SS6e"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : "false"
+      appcmd_args : "list config {} /section:system.webServer/security/requestFiltering /text:allowHighBitCharacters"
+      appcmd_list : "list apps"
+    </custom_item>
+
+    <custom_item>
+      type        : AUDIT_IIS_APPCMD
+      description : "7.1 Ensure HSTS Header is set"
+      info        : "HTTP Strict Transport Security (HSTS) allows a site to inform the user agent to communicate with the site only over HTTPS. This header takes two parameters: max-age, 'specifies the number of seconds, after the reception of the STS header field, during which the user agent regards the host (from whom the message was received) as a Known HSTS Host [speaks only HTTPS]'; and includeSubDomains. includeSubDomains is an optional directive that defines how this policy is applied to subdomains. If includeSubDomains is included in the header, it provides the following definition: this HSTS Policy also applies to any hosts whose domain names are subdomains of the Known HSTS Host's domain name.  HTTP Strict Transport Security (HSTS) is a simple and widely supported standard to protect visitors by ensuring that their browsers always connect to a website over HTTPS. HSTS exists to remove the need for the common, insecure practice of redirecting users from http:// to https:// URLs. HSTS relies on the User Agent/Browser to enforce the required behavior. All major browsers support it. If the browser doesn't support HSTS, it will be ignored. When a browser knows that a domain has enabled HSTS, it does two things: 1. Always uses an https:// connection, even when clicking on an http:// link or after typing a domain into the location bar without specifying a protocol. 2. Removes the ability for users to click through warnings about invalid certificates. A domain instructs browsers that it has enabled HSTS by returning an HTTP header over an HTTPS connection."
+      solution    : "Any value greater than 0 meets this recommendation. The examples below are specific to 8 minutes but can be adjusted to meet your requirements. To set the HTTP Header at the server level using an AppCmd.exe command, run the following command from an elevated command prompt: %systemroot%\system32\inetsrv\appcmd.exe set config -section:system.webServer/httpProtocol /+'customHeaders.[name='Strict-Transport-Security',value='max-age=480']' To set the HTTP Header and include subdomains at the server level using an AppCmd.exe command, run the following command from an elevated command prompt: %systemroot%\system32\inetsrv\appcmd.exe set config -section:system.webServer/httpProtocol /+'customHeaders.[name='Strict-Transport-Security',value='max-age=480; includeSubDomains']' To set the HTTP Header at the Website level using an AppCmd.exe command, run the following command from an elevated command prompt: %systemroot%\system32\inetsrv\appcmd.exe set config -section:system.webServer/httpProtocol /+'customHeaders.[name='Strict-Transport-Security',value='max-age=480']' To set the HTTP Header and include subdomains at the Website level using an AppCmd.exe command, run the following command from an elevated command prompt: %systemroot%\system32\inetsrv\appcmd.exe set config 'Website' -section:system.webServer/httpProtocol /+'customHeaders.[name='Strict-Transport-Security',value='max-age=480; includeSubDomains']'"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|2NS,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_TEXT
+      value_data  : '<add name="Strict-Transport-Security" value="([1-9]|[1-9][0-9]+)" />'
+      appcmd_args : "list config {} /section:system.webServer/httpProtocol /xml:*"
+      appcmd_list : "list apps"
+      check_type  : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "7.4 Ensure TLS 1.0 is disabled"
+      info        : "The PCI Data Security Standard 3.1 recommends disabling 'early TLS' along with SSL:
+
+SSL and early TLS are not considered strong cryptography and cannot be used as a security control after June 30, 2016."
+      solution    : "Review the following registry locations to verify that TLS 1.0 is configured as expected.
+      Disabled settings - Enabled to 0.
+      HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.0\Server\Enabled"
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2NS,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also    : "https://workbench.cisecurity.org/files/166"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\System\Currentcontrolset\Control\Securityproviders\Schannel\Protocols\Tls 1.0\Server"
+      reg_item    : "Enabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "7.14 Ensure TLS Cipher Suite ordering is configured"
+      info            : "Cipher suites are a named combination of authentication, encryption, message authentication code, and key exchange algorithms used for the security settings of a network connection using TLS protocol. Clients send a cipher list and a list of ciphers that it supports in order of preference to a server. The server then replies with the cipher suite that it selects from the client cipher suite list.
+
+Cipher suites should be ordered from strongest to weakest in order to ensure that the more secure configuration is used for encryption between the server and client."
+      solution        : "To order the cipher suites correctly, ensure the following key is set to:
+TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384_P384
+TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256_P256
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256_P256
+TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA_P256
+TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA_P256
+TLS_RSA_WITH_AES_256_GCM_SHA384
+TLS_RSA_WITH_AES_128_GCM_SHA256
+TLS_RSA_WITH_AES_256_CBC_SHA256
+TLS_RSA_WITH_AES_128_CBC_SHA256
+TLS_RSA_WITH_AES_256_CBC_SHA
+TLS_RSA_WITH_AES_128_CBC_SHA
+TLS_RSA_WITH_3DES_EDE_CBC_SHA
+HKLM\System\CurrentControlSet\Control\Cryptography\Configuration\Local\SSL\00010002\Functions"
+      reference       : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|2S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also        : "https://workbench.cisecurity.org/files/166"
+      value_type      : POLICY_TEXT
+      value_data      : "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384_P384 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256_P256 TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256_P256 TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA_P256 TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA_P256 TLS_RSA_WITH_AES_256_GCM_SHA384 TLS_RSA_WITH_AES_128_GCM_SHA256 TLS_RSA_WITH_AES_256_CBC_SHA256 TLS_RSA_WITH_AES_128_CBC_SHA256 TLS_RSA_WITH_AES_256_CBC_SHA TLS_RSA_WITH_AES_128_CBC_SHA TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+      powershell_args : "[string](Get-ItemProperty -Path hklm:System\CurrentControlSet\Control\Cryptography\Configuration\Local\SSL\00010002).Functions"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS Microsoft IIS 8 Benchmark v1.5.0 Level 2"
+      info        : "This audit checks the testable Level 2 guidance in the CIS Microsoft IIS 8 Benchmark v1.5.0 document against Microsoft IIS 8.0 running on Microsoft Windows Server 2012 and Microsoft IIS 8.5 running on Microsoft Windows Server 2012 R2.
+
+Microsoft IIS 8.0/8.5 or Windows Server 2012/2012 R2 is not found as installed on the target.
+
+NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/166"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

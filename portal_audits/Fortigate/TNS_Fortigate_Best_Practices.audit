@@ -1,0 +1,1609 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.32 $
+# $Date: 2020/04/14 $
+#
+# Description   : This .audit is designed to review the configuration of a FortiGate security appliance
+#               and validate its settings against a comprehensive list of important settings.
+#
+#<ui_metadata>
+#<display_name>TNS Fortigate FortiOS Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Fortigate FortiOS Best Practices</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>fortigate,tenable</labels>
+#</ui_metadata>
+
+<check_type:"FortiGate">
+
+#review list of users with admin rights
+
+<custom_item>
+  description : "Fortigate - Review users with admin privileges"
+  info        : "A periodic review of users with administrative privileges ensures that organizational changes are reflected in the device configuration.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|7.1.1,SANS-CSC|12,SANS-CSC|16"
+  cmd         : "get system admin"
+  expect      : ".+"
+  severity    : MEDIUM
+</custom_item>
+
+#review NTP server configuration details
+
+<custom_item>
+  description : "Fortigate - Review the NTP server configuration"
+  info        : "Ensuring that approved NTP servers are used allows for accurate log/audit file correlation.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Use this command to configure Network Time Protocol (NTP) servers.
+config system ntp
+ set ntpsync {enable | disable}
+ set source-ip <ipv4_addr>
+ set syncinterval <interval_int>
+ set type {fortiguard | custom}
+ set server-mode {enable | disable}
+ set interface <interface_list>
+  config ntpserver
+   edit <serverid_int>
+    set authentication {enable | disable}
+    set key <password_str>
+    set key-id <int>
+    set ntpv3 {enable | disable}
+    set server <ipv4_addr>[/<hostname_str>]
+   end
+end"
+  reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,SANS-CSC|14"
+  expect      : ".+"
+  context     : "config system ntp"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - NTP server configuration - *.ntp.org"
+  info        : "Ensuring that approved NTP servers are used allows for accurate log/audit file correlation - '*.ntp.org'"
+  solution    : "Use this command to configure Network Time Protocol (NTP) servers.
+config system ntp
+ set ntpsync {enable | disable}
+ set source-ip <ipv4_addr>
+ set syncinterval <interval_int>
+ set type {fortiguard | custom}
+ set server-mode {enable | disable}
+ set interface <interface_list>
+  config ntpserver
+   edit <serverid_int>
+    set authentication {enable | disable}
+    set key <password_str>
+    set key-id <int>
+    set ntpv3 {enable | disable}
+    set server <ipv4_addr>[/<hostname_str>]
+   end
+end"
+  reference   : "800-171|3.3.7,800-53|AU-8(1),CSCv6|6.1,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,SANS-CSC|14"
+  context     : "config system ntp"
+  regex       : "set[\s]+server"
+  expect      : "set[\s]+server[\s]+\".*\.ntp\.org\""
+</custom_item>
+
+#admin password policy settings
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Fortigate - Admin password policy is enabled"
+      context     : "config system password-policy"
+      regex       : "set[\s]+status"
+      expect      : "set[\s]+status[\s]+enable"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Fortigate - Password Complexity - 4 char difference"
+      info        : "Require the new administrative password to differ from the old password by at least four characters. Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM22d,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+change-4-characters"
+      expect      : "set[\s]+change-4-characters[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Password Complexity - length >= 8"
+      info        : "Ensure that the administrator password length is at least 8 (MAX 32). Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+minimum-length"
+      expect      : "set[\s]+minimum-length[\s]+([8-9]|[1-2][0-9|3[0-2])$"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Password Complexity - 1 lowercase letter"
+      info        : "Password must contain at least one lowercase letter. Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+min-lower-case-letter"
+      expect      : "set[\s]+min-lower-case-letter[\s]+[1-9][0-9]*$"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Password Complexity - 1 uppercase letter"
+      info        : "Password must contain at least one uppercase letter. Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+min-upper-case-letter"
+      expect      : "set[\s]+min-upper-case-letter[\s]+[1-9][0-9]*$"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Password Complexity - 1 non-alphanum character"
+      info        : "Password must contain at least one non-alphanumeric character. Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+min-non-alphanumeric"
+      expect      : "set[\s]+min-non-alphanumeric[\s]+[1-9][0-9]*$"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Password Complexity - at least 1 char"
+      info        : "Password must contain at least one character. Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+min-number"
+      expect      : "set[\s]+min-number[\s]+[1-9][0-9]*$"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Require that passwords expire"
+      info        : "Require that passwords expire. Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.10,800-171|3.5.7,800-171|3.5.8,800-171|3.5.9,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,PCI-DSSv3.1|8.2.4,PCI-DSSv3.2|8.2.4,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+expire-status"
+      expect      : "set[\s]+expire-status[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Password Expiry date <= 30 days"
+      info        : "Ensure that the administrator password has an expiry date of at most 30 days. Enforcing strong password policies reduces the chance that a password will be compromised."
+      reference   : "800-171|3.5.10,800-171|3.5.7,800-171|3.5.8,800-171|3.5.9,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,PCI-DSSv3.1|8.2.4,PCI-DSSv3.2|8.2.4,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+      solution    : "Use this command to configure higher security requirements for administrator passwords and
+IPsec VPN pre-shared keys.
+
+config system password-policy
+ set status {enable | disable}
+ set apply-to [admin-password ipsec-preshared-key]
+ set change-4-characters {enable | disable}
+ set expire <days>
+ set minimum-length <chars>
+ set min-lower-case-letter <num_int>
+ set min-upper-case-letter <num_int>
+ set min-non-alphanumeric <num_int>
+ set min-number <num_int>
+ set expire-status {enable | disable}
+ set expire-day <num_int>
+end"
+      context     : "config system password-policy"
+      regex       : "set[\s]+expire-day"
+      expect      : "set[\s]+expire-day[\s]+([1-9]|[1-2][0-9]|30)$"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "The device does not appear to support or is not configured for administrative password policy settings."
+      info        : "The device does not appear to support or is not configured for administrative password policy settings."
+    </report>
+  </else>
+</if>
+
+#antivirus
+
+<custom_item>
+  description : "Fortigate - Virus database - 'extended'"
+  info        : "The 'extended' AV Database includes both 'In the Wild' viruses and all available zoo viruses that are no longer seen in recent virus studies. It is suitable for an enhanced security environment."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,HIPAA|164.308(a)(5)(ii)(B),ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,SANS-CSC|5,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7"
+  solution    : "Use this command to select the default antivirus database.
+
+config antivirus settings
+ set default-db extended
+end"
+  context     : "config antivirus settings"
+  expect      : "set[\s]+default-db[\s]+extended"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - AV Heuristic - 'block'"
+  info        : "Heuristic scanning is a technique used to identify previously unknown viruses. A value of 'block' enables heuristic AV scanning of binary files and blocks any detected. A replacement message is forwarded to the recipient. Blocked files are quarantined if quarantine is enabled."
+  reference   : "800-171|3.14.2,800-53|SI-3(7),CSF|DE.CM-4,HIPAA|164.308(a)(5)(ii)(B),SANS-CSC|5,SWIFT-CSCv1|6.1"
+  solution    : "Use this command to configure heuristic scanning for viruses in binary files.
+
+config antivirus heuristic
+ set mode block
+end"
+  context     : "config antivirus heuristic"
+  expect      : "set[\s]+mode[\s]+block"
+</custom_item>
+
+#grayware
+
+<custom_item>
+  description : "Fortigate - AV Grayware"
+  info        : "Grayware programs are unsolicited software programs installed on computers, often without the user's consent or knowledge. Grayware programs are generally considered an annoyance, but they can also cause system performance problems or be used for malicious purposes."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,HIPAA|164.308(a)(5)(ii)(B),ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS10b,NIAv2|GS8a,NIAv2|IE11,NIAv2|SU7,SANS-CSC|5,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7"
+  solution    : "Use this command to enable grayware detection as part of antivirus scanning.
+
+config antivirus settings
+set grayware enable
+end"
+  context     : "config antivirus settings"
+  expect      : "set[\s]+grayware[\s]+enable"
+</custom_item>
+
+#logging
+
+<custom_item>
+  description : "Fortigate - External Logging - 'syslogd'"
+  info        : "Synchronize log messages with an external log server to have a backup of log messages for analysis if the FortiGate unit is compromised."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to enable external logging via syslog.
+
+config log syslogd setting
+ set status enable
+ set csv {enable | disable}
+ set facility {alert | audit | auth | authpriv | clock | cron |
+ daemon | ftp | kernel | local0 | local1 | local2 | local3 |
+ local4 | local5 | local6 | local7 | lpr | mail | news | ntp |
+ syslog | user | uucp}
+ set port <port_integer>
+ set reliable {enable | disable}
+ set server <address_ipv4 | FQDN>
+ set source-ip <address_ipv4>
+end"
+  context     : "config log syslogd setting"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - External Logging - 'syslog2'"
+  info        : "Synchronize log messages with an external log server to have a backup of log messages for analysis if the FortiGate unit is compromised."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to enable external logging via syslog.
+
+config log syslog2 setting
+ set status enable
+ set csv {enable | disable}
+ set facility {alert | audit | auth | authpriv | clock | cron |
+ daemon | ftp | kernel | local0 | local1 | local2 | local3 |
+ local4 | local5 | local6 | local7 | lpr | mail | news | ntp |
+ syslog | user | uucp}
+ set port <port_integer>
+ set reliable {enable | disable}
+ set server <address_ipv4 | FQDN>
+ set source-ip <address_ipv4>
+end"
+  context     : "config log syslog2 setting"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - External Logging - 'syslog3'"
+  info        : "Synchronize log messages with an external log server to have a backup of log messages for analysis if the FortiGate unit is compromised."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to enable external logging via syslog.
+
+config log syslog3 setting
+ set status enable
+ set csv {enable | disable}
+ set facility {alert | audit | auth | authpriv | clock | cron |
+ daemon | ftp | kernel | local0 | local1 | local2 | local3 |
+ local4 | local5 | local6 | local7 | lpr | mail | news | ntp |
+ syslog | user | uucp}
+ set port <port_integer>
+ set reliable {enable | disable}
+ set server <address_ipv4 | FQDN>
+ set source-ip <address_ipv4>
+end"
+  context     : "config log syslog3 setting"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - External Logging - 'fortianalyzer'"
+  info        : "Synchronize log messages with an external log server to have a backup of log messages for analysis if the FortiGate unit is compromised."
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,SANS-CSC|14"
+  solution    : "Use this command to enable external logging via fortianalyzer.
+
+config log fortianalyzer setting
+ set status enable
+ set csv {enable | disable}
+ set facility {alert | audit | auth | authpriv | clock | cron |
+ daemon | ftp | kernel | local0 | local1 | local2 | local3 |
+ local4 | local5 | local6 | local7 | lpr | mail | news | ntp |
+ syslog | user | uucp}
+ set port <port_integer>
+ set reliable {enable | disable}
+ set server <address_ipv4 | FQDN>
+ set source-ip <address_ipv4>
+end"
+  context     : "config log fortianalyzer setting"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - External Logging - 'fortianalyzer2'"
+  info        : "Synchronize log messages with an external log server to have a backup of log messages for analysis if the FortiGate unit is compromised."
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,SANS-CSC|14"
+  solution    : "Use this command to enable external logging via fortianalyzer2.
+
+config log fortianalyzer2 setting
+ set status enable
+ set csv {enable | disable}
+ set facility {alert | audit | auth | authpriv | clock | cron |
+ daemon | ftp | kernel | local0 | local1 | local2 | local3 |
+ local4 | local5 | local6 | local7 | lpr | mail | news | ntp |
+ syslog | user | uucp}
+ set port <port_integer>
+ set reliable {enable | disable}
+ set server <address_ipv4 | FQDN>
+ set source-ip <address_ipv4>
+end"
+  context     : "config log fortianalyzer2 setting"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - External Logging - 'fortianalyzer3'"
+  info        : "Synchronize log messages with an external log server to have a backup of log messages for analysis if the FortiGate unit is compromised."
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,SANS-CSC|14"
+  solution    : "Use this command to enable external logging via fortianalyzer3.
+
+config log fortianalyzer3 setting
+ set status enable
+ set csv {enable | disable}
+ set facility {alert | audit | auth | authpriv | clock | cron |
+ daemon | ftp | kernel | local0 | local1 | local2 | local3 |
+ local4 | local5 | local6 | local7 | lpr | mail | news | ntp |
+ syslog | user | uucp}
+ set port <port_integer>
+ set reliable {enable | disable}
+ set server <address_ipv4 | FQDN>
+ set source-ip <address_ipv4>
+end"
+  context     : "config log fortianalyzer3 setting"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Local Logging is enabled"
+  info        : "Synchronize local log messages with an external log server to have a backup of log messages for analysis if the external unit is compromised."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to configure log settings for logging to the local disk. Disk logging is only
+available for FortiGate units with an internal hard disk. You can also use this command to
+configure the FortiGate unit to upload current log files to an FTP server every time the log files
+are rolled.
+
+config log disk setting
+ set status enable
+end"
+  context     : "config log disk setting"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Local Logging - severity 'information'"
+  info        : "The FortiGate unit logs all messages at and above the logging severity level you select. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to configure log level settings.
+
+config log disk filter
+ set severity information
+end"
+  context     : "config log disk filter"
+  expect      : "set[\s]+severity[\s]+information"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Syslogd Logging - severity 'information'"
+  info        : "The FortiGate unit logs all messages at and above the logging severity level you select. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,SANS-CSC|14"
+  solution    : "Use this command to configure log level settings.
+
+config log syslogd filter
+ set severity information
+end"
+  context     : "config log syslogd filter"
+  expect      : "set[\s]+severity[\s]+information"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Syslog2 Logging - severity 'information'"
+  info        : "The FortiGate unit logs all messages at and above the logging severity level you select. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,SANS-CSC|14"
+  solution    : "Use this command to configure log level settings.
+
+config log syslog2 filter
+ set severity information
+end"
+  context     : "config log syslog2 filter"
+  expect      : "set[\s]+severity[\s]+information"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Syslog3 Logging - severity 'information'"
+  info        : "The FortiGate unit logs all messages at and above the logging severity level you select. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,SANS-CSC|14"
+  solution    : "Use this command to configure log level settings.
+
+config log syslog3 filter
+ set severity information
+end"
+  context     : "config log syslog3 filter"
+  expect      : "set[\s]+severity[\s]+information"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Fortianalyzer Logs - severity 'information'"
+  info        : "The FortiGate unit logs all messages at and above the logging severity level you select. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to configure log level settings.
+
+config log fortianalyzer filter
+ set severity information
+end"
+  context     : "config log fortianalyzer filter"
+  expect      : "set[\s]+severity[\s]+information"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Fortianalyzer2 Logs - severity 'information'"
+  info        : "The FortiGate unit logs all messages at and above the logging severity level you select. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to configure log level settings.
+
+config log fortianalyzer2 filter
+ set severity information
+end"
+  context     : "config log fortianalyzer2 filter"
+  expect      : "set[\s]+severity[\s]+information"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Fortianalyzer3 Logs - severity 'information'"
+  info        : "The FortiGate unit logs all messages at and above the logging severity level you select. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  solution    : "Use this command to configure log level settings.
+
+config log fortianalyzer3 filter
+ set severity information
+end"
+  context     : "config log fortianalyzer3 filter"
+  expect      : "set[\s]+severity[\s]+information"
+</custom_item>
+
+#event logging
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Fortigate - Event logging"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+event[\s]+enable"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Fortigate - Log admin login/logout messages"
+      info        : "Log admin login/logout messages. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to Log admin login/logout messages.
+
+config log eventfilter
+ set admin enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+admin[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Log DNS lookups"
+      info        : "Log DNS lookups. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to Log DNS lookups.
+
+config log eventfilter
+ set dns enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+dns[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Log network messages"
+      info        : "Log DHCP service messages, L2TP/PPTP/PPPoE messages,VIP SSL messages, GTP messages. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to Log DHCP service messages, L2TP/PPTP/PPPoE messages, VIP SSL messages, GTP messages..
+
+config log eventfilter
+ set network enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+network[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - System event logging"
+      info        : "Log system activity messages, HA activity messages, CPU and memory usage, VIP realserver health monitoring, and AMC interface bypass mode messages. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to Log system events.
+
+config log eventfilter
+ set system enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+system[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Log user authentication messages"
+      info        : "Log user authentication messages. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to Log user authentication messages.
+
+config log eventfilter
+ set user enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+user[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Log UTM messages"
+      info        : "Log UTM messages, including NAC quarantine, client reputation, FortiClient, and MMS statistics. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to Log UTM messages.
+
+config log eventfilter
+ set user enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+utm[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - VPN event logging"
+      info        : "Log IPSec negotiation messages, SSL user authentication, administration and session messages. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to Log VPN events.
+
+config log eventfilter
+ set vpn enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+vpn[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Log WAN optimization messages"
+      info        : "Log WAN optimization messages. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to log WAN optimization messages.
+
+config log eventfilter
+ set wan-opt enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+wan-opt[\s]+enable"
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - Wireless-activity event logging"
+      info        : "Log wireless activity. Record as many log messages as you can without affecting FortiGate performance. More log messages means more visibility into what's happening with the system."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(1)(ii)(D),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      solution    : "Use this command to log Wireless-activity events.
+
+config log eventfilter
+ set wireless-activity enable
+end"
+      context     : "config log eventfilter"
+      expect      : "set[\s]+wireless-activity[\s]+enable"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Event Logging is not available or enabled - Event Logging category checks not performed"
+      info        : "Event Logging is not available or enabled - Event Logging category checks not performed"
+    </report>
+  </else>
+</if>
+
+#alert emails
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Fortigate - Alert Emails - 'server'"
+      context     : "config system email-server"
+      expect      : "set[\s]+server.*"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Fortigate - Alert Emails - 'admin address'"
+      info        : "Alert email provides an efficient and direct method of notifying an administrator of events. By configuring alert messages, you can define the threshold when a problem becomes critical and needs attention. When this threshold is reached, the FortiGate unit will send an email to one or more individuals notifying them of the issue."
+      solution    : "Use this command to set an alertmail admin email address.
+
+config alertemail setting
+ set mailto1 <email-address_str>
+end"
+      reference   : "800-53|SI-4(5),CSF|DE.AE-2,CSF|DE.AE-3,CSF|DE.CM-1,CSF|DE.CM-7,CSF|DE.DP-2,CSF|ID.RA-1,CSF|PR.IP-8,CSF|RS.AN-1,CSF|RS.CO-3,ITSG-33|SI-4(5),PCI-DSS|2.2.3,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.2.5"
+      context     : "config alertemail setting"
+      expect      : "set[\s]+mailto1.*"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Alertmail server not configured or this feature is not available on the device"
+      info        : "Alertmail server not configured or this feature is not available on the device"
+    </report>
+  </else>
+</if>
+
+#auto backup
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Fortigate - Auto backup exists - 'FortiManager'"
+      context     : "config system central-management"
+      regex       : ".+"
+      expect      : ".+"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Fortigate - Auto backup is configured - 'FortiManager'"
+      info        : "FortiManager - Auto backup is configured. Automatically backing up the configuration allows for easy restoration of configuration settings. It also allows for change comparison."
+      solution    : "Use this command to configure auto backup via 'FortiManager'.
+
+config system central-management
+ set mode backup
+end"
+      reference   : "800-171|3.8.9,800-53|CP-9,CSCv6|10.1,CSF|PR.IP-4,HIPAA|164.308(a)(7)(ii)(A),ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4,NESA|T3.5.1,PCI-DSS|12.9.1,SANS-CSC|8"
+      cmd         : "get system central-management"
+      expect      : "auto-backup[\s]*:[\s]*enable"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Auto Backup via central management is not available or not configured."
+      info        : "Auto Backup via central management is not available or not configured."
+    </report>
+  </else>
+</if>
+
+#patch status/method review
+
+<custom_item>
+  description : "Fortigate - Review the patch update method"
+  info        : "Review the patch update method and current version. Ensuring timely updates are applied helps to remediate vulnerabilities or technical issues in the appliance.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.14.1,800-53|SI-2(5),CSF|ID.RA-1,CSF|PR.IP-12,HIPAA|164.308(a)(5)(ii)(B),NIAv2|NS26b,PCI-DSS|2.2.3,SANS-CSC|4,SWIFT-CSCv1|2.2"
+  cmd         : "get system fortiguard-service status"
+  regex       : ".*"
+  expect      : ".*"
+  severity    : MEDIUM
+</custom_item>
+
+#unused interfaces
+
+<custom_item>
+  description : "Fortigate - Review and disable unused interfaces"
+  info        : "Review and disable unused interfaces. Disabling unused interfaces reduces the attack surface of the device.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,800-53|SC-41,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|13,SWIFT-CSCv1|2.3"
+  solution    : "If any of the interfaces on the FortiGate unit are not being used, disable traffic on that interface. This avoids someone plugging in network cables and potentially causing network bypass or loop issues.
+
+To disable an interface - web-based manager
+1 Go to System > Network > Interface.
+2 Select the interface from the list and select Edit.
+3 For Administrative Access, select Down.
+4 Select OK.
+
+To disable an interface - CLI
+
+config system interface
+ edit <inerface_name>
+  set status down
+end"
+  cmd         : "get system interface physical"
+  regex       : ".+"
+  expect      : ".+"
+  severity    : MEDIUM
+</custom_item>
+
+#certs - not self signed
+
+<custom_item>
+  description : "Fortigate - Does not use self-signed certificate - 'admin'"
+  info        : "The web interface does not use the system self-signed certificate. A certificate from a trusted CA allows for secure identification of the appliance to clients."
+  reference   : "800-53|IA-5(2),CSF|PR.AC-1,ITSG-33|IA-5(2),PCI-DSS|4.1,SANS-CSC|17"
+  solution    : "From the web based manager go to System->Certificates->Import."
+  context     : "config system global"
+  regex       : "set[\s]+admin-server-cert"
+  not_expect  : "set[\s]+admin-server-cert[\s]+\"self-sign\""
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Does not use self-signed certificate - 'user'"
+  info        : "The web interface does not use the system self-signed certificate. A certificate from a trusted CA allows for secure identification of the appliance to clients."
+  reference   : "800-53|IA-5(2),CSF|PR.AC-1,ITSG-33|IA-5(2),PCI-DSS|4.1,SANS-CSC|17"
+  solution    : "From the web based manager go to System->Certificates->Import."
+  context     : "config system global"
+  regex       : "set[\s]+user-server-cert"
+  not_expect  : "set[\s]+user-server-cert[\s]+\"self-sign\""
+</custom_item>
+
+#strong crypto
+
+<custom_item>
+  description : "Fortigate - HTTPS/SSH admin access strong ciphers"
+  info        : "Only allow strong ciphers (AES, 3DES) and digest (SHA1) for HTTPS/SSH admin access."
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,PCI-DSS|4.1,SANS-CSC|17,SWIFT-CSCv1|2.6"
+  solution    : "Issue the following command to enable strong-crypto.
+
+config system global
+ set strong-crypto enable
+end"
+  context     : "config system global"
+  regex       : "set[\s]+strong-crypto"
+  expect      : "set[\s]+strong-crypto[\s]+enable"
+</custom_item>
+
+#default admin username not used
+
+<custom_item>
+  description : "Fortigate - Ensure default admin usernames are not used"
+  info        : "Ensure the default admin username is not used. The default super_admin administrator account, admin, is a well known administrator name so if this account is available it could be easier for attackers to access the FortiGate unit because they know they can log in with this name, only having to determine the password. You can improve security by changing this name to one more difficult for an attacker to guess."
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2.3,SANS-CSC|12"
+  solution    : "To do this, create a new administrator account with the super_admin admin profile and log in as that administrator. Then go to System > Admin > Administrators and Edit the admin administrator and change the Administrator name.
+Once the account has been renamed you could delete the super_admin account that you just added. Consider also only using the super-admin account for adding or changing administrators. The less this account is used to less likely that it could be compromised. You could also store the account name and password for this account in a secure location in case for some reason the account name or password is forgotten."
+  cmd         : "get system admin"
+  regex       : "name[\s]*:"
+  not_expect  : "name[\s]*:[\s]*([aA][dD][mM][iI][nN]|[rR][oO][oO][tT]|[mM][aA][nN][aA][gG][eE][rR]|[oO][pP][eE][rR][aA][tT][oO][rR])"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Disable SSHv1 admin access"
+  info        : "Disable SSHv1 admin access. SSHv2 offers better security in the form of enhanced encryption, MAC and certificates."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|4.1,SANS-CSC|17,SWIFT-CSCv1|2.3"
+  solution    : "Issue the following command to disable SSHv1 admin access.
+
+config system global
+ set admin-ssh-v1 disable
+end"
+  context     : "config system global"
+  regex       : "set[\s]+admin-ssh-v1"
+  expect      : "set[\s]+admin-ssh-v1[\s]+disable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - SSH login grace time <= 30 seconds"
+  info        : "SSH login grace time <= 30 seconds. When logging into the console using SSH, the default time of inactivity to successfully log into the FortiGate unit is 120 seconds (2 minutes). You can configure the time to be shorter which in turn will provide a less desirable target for attackers."
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,SANS-CSC|16"
+  solution    : "Issue the following command to configure SSH login grace time.
+
+config system global
+ set admin-ssh-grace-time <time_int>
+end"
+  context     : "config system global"
+  regex       : "set[\s]+admin-ssh-grace-time"
+  expect      : "set[\s]+admin-ssh-grace-time[\s]+([1-2][0-9]|30)$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Admin password lockout threshold - '1'"
+  info        : "Administrator password lockout threshold - 1. Reduce the number of unsuccessful login attempts before they are locked out for a set amount of time. Enforcing this threshold will provide a less desirable target for attackers."
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),CSCv6|16.7,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,PCI-DSS|2.2.3,SANS-CSC|16,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  solution    : "Issue the following command to configure the admin-lockout-threshold.
+
+config system global
+ set admin-lockout-threshold <failed_int>
+end"
+  context     : "config system global"
+  regex       : "set[\s]+admin-lockout-threshold"
+  expect      : "set[\s]+admin-lockout-threshold[\s]+1$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Admin password lockout >= 300 seconds"
+  info        : "Admin password lockout >= 300 seconds. Enforcing a longer wait time for subsequent login attempts will provide for a less desirable target for attackers."
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),CSCv6|16.7,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,PCI-DSS|2.2.3,SANS-CSC|16,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  solution    : "Issue the following command to configure the admin-lockout-duration.
+
+config system global
+ set admin-lockout-duration <time_int>
+end"
+  context     : "config system global"
+  regex       : "set[\s]+admin-lockout-duration"
+  expect      : "set[\s]+admin-lockout-duration[\s]+([3-9][0-9][0-9]|[1-9][0-9][0-9][0-9]+)$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Inactivity timeout - 'global' <= 5"
+  info        : "Users are logged out after 5 minutes of inactivity or less - global. Set a timeout to avoid the possibility of an administrator walking away from the management computer and leaving it exposed to unauthorized personnel."
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,SANS-CSC|16"
+  solution    : "Issue the following command to configure the admintimeout.
+
+config system global
+ set admintimeout <admin_timeout_minutes>
+end"
+  context     : "config system global"
+  regex       : "set[\s]+admintimeout"
+  expect      : "set[\s]+admintimeout[\s]+[1-5]$"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Fortigate - admin-console-timeout"
+      context     : "config system global"
+      expect      : "admin-console-timeout"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Fortigate - Inactivity timeout - 'console' <= 300"
+      info        : "Users are logged out after 5 minutes of inactivity or less - console."
+      reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,SANS-CSC|16"
+      solution    : "Issue the following command to configure the admin-console-timeout.
+
+config system global
+ set admin-console-timeout <secs_int>
+end"
+      context     : "config system global"
+      regex       : "set[\s]+admin-console-timeout"
+      expect      : "set[\s]+admin-console-timeout[\s]+([1-9]|[1-9][0-9]|[1-2][0-9][0-9]|300)$"
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      description : "Fortigate - Inactivity timeout - 'console' <= 5"
+      info        : "Users are logged out after 5 minutes of inactivity or less - console."
+      reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|2.2.3,SANS-CSC|16"
+      solution    : "Issue the following command to configure the admin-console-timeout.
+
+config system global
+ set admin-console-timeout <secs_int>
+end"
+      context     : "config system global"
+      regex       : "set[\s]+admintimeout"
+      expect      : "set[\s]+admintimeout[\s]+[1-5]$"
+    </custom_item>
+  </else>
+</if>
+
+<custom_item>
+  description : "Fortigate - Open port TCP 113 on external interface"
+  info        : "Unsolicited requests to this port are stopped by the FortiGate unit, which sends a response saying that the port is closed. In doing so, it also lets the requesting server know there is a device at the given address, and thus announcing its presence. By enabling traffic on port 113, requests will travel to this port, and will most likely, be ignored and never responded to."
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|10,SWIFT-CSCv1|2.3"
+  solution    : "To open the port on the wan1 interface, use the following CLI command:
+
+config system interface
+ edit wan1
+  set inden_accept enable
+end"
+  context     : "config system interface"
+  context     : "edit \"wan1\""
+  expect      : "set[\s]+inden_accept[\s]+enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Obfuscate HTTP headers"
+  info        : "The FortiGate unit can obfuscate the HTTP header information being sent to external web servers to better cloak the source."
+  reference   : "800-53|SC-30,ITSG-33|SC-30,SANS-CSC|17"
+  solution    : "To obfuscate HTTP headers, use the following CLI command:
+
+config system global
+ set http-obfuscate {none |header-only | modified | no-error}
+end
+
+Where:
+none - do not hide the FortiGate web server identity.
+header-only - hides the HTTP server banner.
+modified - provides modified error responses.
+no-error - suppresses error responses"
+  context     : "config system global"
+  regex       : "set[\s]+http-obfuscate"
+  not_expect  : "set[\s]+http-obfuscate[\s]+none$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Use non default admin access ports - 'HTTPS'"
+  info        : "Defense in depth - Use non-default administrative access ports - HTTPS."
+  solution    : "Issue the following command to change the port used for HTTPS:
+
+config system global
+ set admin-sport <port_number>
+end"
+  context     : "config system global"
+  regex       : "set[\s]+admin-sport"
+  not_expect  : "set[\s]+admin-sport[\s]+443$"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Use non default admin access ports - 'SSH'"
+  info        : "Defense in depth - Use non-default administrative access ports - SSH."
+  solution    : "Issue the following command to change the port used for SSH:
+
+config system global
+ set admin-ssh-port <port_number>
+end"
+  context     : "config system global"
+  regex       : "set[\s]+admin-ssh-port"
+  not_expect  : "set[\s]+admin-ssh-port[\s]+22$"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - VPN SSL cipher suite > than 128 bits"
+  info        : "Ensure VPN SSL settings use a cipher suite that is greater than 128 bits."
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,PCI-DSS|4.1,SANS-CSC|13,SWIFT-CSCv1|2.6"
+  solution    : "Issue the following command to use a cipher suite that is greater than 128 bits for VPN SSL:
+
+config vpn ssl settings
+ set algorithm high
+end"
+  context     : "config vpn ssl settings"
+  regex       : "set[\s]+algorithm"
+  expect      : "set[\s]+algorithm[\s]+high$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Disable insecure services - HTTP"
+  info        : "HTTP is insecure by nature as it sends all traffic across the wire in clear text."
+  solution    : "Use the following command to specific access protocols for a given interface:
+
+config system interface
+ edit <interface_name>
+  set allowaccess <protocols>
+end"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  context     : "config system interface"
+  regex       : "set[\s]+allowaccess"
+  not_expect  : "set[\s]+allowaccess[\s]+.*?(http[\s]|http$)"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Disable insecure services - TELNET"
+  info        : "Telnet is insecure by nature as it sends all traffic across the wire in clear text."
+  solution    : "Use the following command to specific access protocols for a given interface:
+
+config system interface
+ edit <interface_name>
+  set allowaccess <protocols>
+end"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  context     : "config system interface"
+  regex       : "set[\s]+allowaccess"
+  not_expect  : "set[\s]+allowaccess[\s]+.*?(telnet[\s]|telnet$)"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Login Banner - pre-login-banner"
+  info        : "The pre-login banner should be reviewed to ensure it complies with organizational standards."
+  solution    : "Use the following command to enable use of the pre-login banner:
+
+config system global
+ set pre-login-banner enable
+end"
+  reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,PCI-DSS|2.2.3,TBA-FIISB|45.2.4"
+  context     : "config system global"
+  regex       : "set[\s]+pre-login-banner"
+  expect      : "set[\s]+pre-login-banner[\s]+enable$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Login Banner - post-login-banner"
+  info        : "The post login banner should be reviewed to ensure it complies with organizational standards."
+  solution    : "Use the following command to enable use of the post-login banner:
+
+config system global
+ set post-login-banner enable
+end"
+  reference   : "800-53|AC-9,ITSG-33|AC-9,NESA|T5.5.1,PCI-DSS|2.2.3,TBA-FIISB|45.2.4"
+  context     : "config system global"
+  regex       : "set[\s]+post-login-banner"
+  expect      : "set[\s]+post-login-banner[\s]+enable$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - DNS - primary server"
+  info        : "The DNS server IP address should be reviewed. A DNS server may return malicious IP addresses in response to requests for domains that are normally good. This provides an avenue to leak information about the appliance or to download untrusted content."
+  solution    : "Use the following command to configure the primary DNS server address:
+
+config system dns
+ set primary <dns_ipv4>
+end"
+  reference   : "800-53|SC-20,ITSG-33|SC-20,PCI-DSS|2.2.3,SANS-CSC|19"
+  context     : "config system dns"
+  regex       : "set[\s]+primary"
+  expect      : "set[\s]+primary[\s]+.+"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - DNS - secondary server"
+  info        : "The DNS server IP address should be reviewed. A DNS server may return malicious IP addresses in response to requests for domains that are normally good. This provides an avenue to leak information about the appliance or to download untrusted content."
+  solution    : "Use the following command to configure the primary DNS server address:
+
+config system dns
+ set secondary <dns_ipv4>
+end"
+  reference   : "800-53|SC-20,ITSG-33|SC-20,PCI-DSS|2.2.3,SANS-CSC|19"
+  context     : "config system dns"
+  regex       : "set[\s]+secondary"
+  expect      : "set[\s]+secondary[\s]+.+"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - AAA - TACACS+ server is trusted"
+  info        : "AAA - TACACS+ - ensure TACACS+ server is trusted - review configuration.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|2.2.3,SANS-CSC|19,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  context     : "config user tacacs+"
+  regex       : ".+"
+  expect      : ".+"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - AAA - RADIUS server is trusted"
+  info        : "AAA - RADIUS - ensure RADIUS server is trusted - review configuration.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|2.2.3,SANS-CSC|19,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  context     : "config user radius"
+  regex       : ".+"
+  expect      : ".+"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - AAA - LDAP server is trusted"
+  info        : "AAA - LDAP - ensure LDAP server is trusted - review configuration.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|2.2.3,SANS-CSC|19,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  context     : "config user ldap"
+  regex       : ".+"
+  expect      : ".+"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Admin access - trusted hosts"
+  info        : "Note - this reports on the trusted hosts for the default user 'admin'. You can choose to copy this check and replace the username 'admin' with other user names. Setting trusted hosts for an administrator limits what computer/location an administrator can log into the FortiGate unit from. When you identify a trusted host, the FortiGate unit will only accept the administrator's login from the configured IP address of the trusted host. Any attempt to log in with the same credentials from any other IP address will be dropped.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  reference   : "800-171|3.1.1,800-171|3.1.2,800-53|AC-17,CIP|005-5-R2,CN-L3|8.1.10.6(i),CN-L3|8.1.4.4(c),CSF|PR.AC-3,CSF|PR.PT-4,ISO/IEC-27001|A.6.2.2,ITSG-33|AC-17,NESA|T5.4.5,PCI-DSS|2.2.3,SANS-CSC|12,SWIFT-CSCv1|2.6"
+  solution    : "To add a trusted host for an administrative user, use the following command:
+
+config system admin
+ edit <name_str>
+  set {trusthost1 | trusthost2 | trusthost3 | trusthost4
+| trusthost5 | trusthost6 | trusthost7 | trusthost8
+| trusthost9 | trusthost10} <address_ipv4mask>
+end"
+  context     : "config system admin"
+  context     : "edit \"admin\""
+  regex       : "set[\s]+trusthost.+"
+  expect      : ".+"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - SNMP is enabled"
+  info        : "Enables support for remote access by Simple Network Management Protocol (SNMP)."
+  reference   : "800-171|3.4.8,800-53|CM-7(5),CSCv6|2.2,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,PCI-DSS|2.2.3,SANS-CSC|11,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+  solution    : "To enable snmp, use the following command:
+
+config system snmp sysinfo
+ set status enable
+end"
+  context     : "config system snmp sysinfo"
+  regex       : "set[\s]+status"
+  expect      : "set[\s]+status[\s]+enable"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Fortigate - SNMP is enabled"
+      context     : "config system snmp sysinfo"
+      regex       : "set[\s]+status"
+      expect      : "set[\s]+status[\s]+enable"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Fortigate - SNMP community string - 'public'"
+      info        : "Ensure SNMP does not use an easy to guess or default community string - 'public'."
+      reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3,PCI-DSS|2.2.3"
+      solution    : "To set the SNMP community string use the following command:
+
+config system snmp community
+ edit <index_number>
+  set name <community_name>
+end"
+      context     : "config system snmp community"
+      context     : "edit"
+      regex       : "set[\s]+name"
+      not_expect  : "set[\s]+name[\s]+\"public\""
+    </custom_item>
+
+    <custom_item>
+      description : "Fortigate - SNMP community string - 'private'"
+      info        : "Ensure SNMP does not use an easy to guess or default community string - 'private'."
+      reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3,PCI-DSS|2.2.3"
+      solution    : "To set the SNMP community string use the following command:
+
+config system snmp community
+ edit <index_number>
+  set name <community_name>
+end"
+      context     : "config system snmp community"
+      context     : "edit"
+      regex       : "set[\s]+name"
+      not_expect  : "set[\s]+name[\s]+\"private\""
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "SNMP is not enabled. SNMP specific checks not performed."
+      info        : "SNMP is not enabled. SNMP specific checks not performed.
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+    </report>
+  </else>
+</if>
+
+#snmp v3 check
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "Fortigate - SNMP v3 is enabled"
+      context     : "config system snmp user"
+      regex       : ".+"
+      expect      : ".+"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description : "Fortigate - SNMP v3 uses SHA instead of MD5"
+      info        : "SNMP v3 uses SHA instead of MD5"
+      solution    : "To set the SNMP MD type use the following command:
+
+config system snmp user
+  set auth-proto sha
+end"
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,PCI-DSS|2.2.3,SANS-CSC|17,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      context     : "config system snmp user"
+      context     : "edit"
+      regex       : "set[\s]+auth-proto"
+      expect      : "set[\s]+auth-proto[\s]+sha$"
+    </custom_item>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          description : "Fortigate - SNMP v3 users have passwords"
+          context     : "config system snmp user"
+          context     : "edit"
+          regex       : "set[\s]+security-level"
+          expect      : "set[\s]+security-level[\s]+auth-priv$"
+        </custom_item>
+
+        <custom_item>
+          description : "Fortigate - SNMP v3 users have passwords"
+          context     : "config system snmp user"
+          context     : "edit"
+          regex       : "set[\s]+security-level"
+          expect      : "set[\s]+security-level[\s]+auth-no-priv$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "Fortigate - SNMP v3 users have passwords"
+          info        : "SNMP v3 users have passwords"
+          solution    : "To set up SNMP to use passwords use the following command:
+
+config system snmp user
+  set security-level <slevel>
+end
+
+where slevel can be
+'auth-no-priv' - authentication but no privacy
+
+or
+
+'auth-priv' - authentication and privacy"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "Fortigate - SNMP v3 users have passwords"
+          info        : "SNMP v3 users have passwords"
+          solution    : "To set up SNMP to use passwords use the following command:
+
+config system snmp user
+  set security-level <slevel>
+end
+
+where slevel can be
+'auth-no-priv' - authentication but no privacy
+
+or
+
+'auth-priv' - authentication and privacy"
+        </report>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          description : "Fortigate - SNMP v3 uses AES instead of DES"
+          context     : "config system snmp user"
+          context     : "edit"
+          regex       : "set[\s]+security-level"
+          expect      : "set[\s]+security-level[\s]+auth-priv$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          description : "Fortigate - SNMP v3 uses AES instead of DES"
+          info        : "SNMP v3 uses AES instead of DES"
+          solution    : "To configure SNMP to use AES, use the following command:
+
+config system snmp user
+  set priv-proto aes
+end"
+          reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,PCI-DSS|2.2.3,SANS-CSC|17,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+          context     : "config system snmp user"
+          context     : "edit"
+          regex       : "set[\s]+priv-proto"
+          expect      : "set[\s]+priv-proto[\s]+aes$"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"WARNING">
+          description : "Fortigate - SNMP v3 auth-priv is not enabled"
+          info        : "SNMP v3 auth-priv is not enabled. SNMP v3 privacy protocol check not performed.
+
+          NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+          reference   : "800-53|CM-6,800-53|SC-13,PCI-DSS|2.2.3,SANS-CSC|11"
+        </report>
+      </else>
+    </if>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Fortigate - SNMP v3 is not enabled"
+      info        : "SNMP v3 is not enabled. SNMP v3 specific checks not performed.
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "800-53|CM-6,800-53|SC-13,PCI-DSS|2.2.3,SANS-CSC|11"
+    </report>
+  </else>
+</if>
+
+<custom_item>
+  description : "Fortigate - Access Banner is enabled"
+  info        : "The access banner should be reviewed to ensure it complies with organizational standards."
+  solution    : "To enable the access banner, use the following command:
+
+config system global
+  set access-banner enable
+end"
+  reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,PCI-DSS|2.2.3,TBA-FIISB|45.2.4"
+  context     : "config system global"
+  regex       : "set[\s]+access-banner"
+  expect      : "set[\s]+access-banner[\s]+enable$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Enable logs of failed connection attempts"
+  info        : "Enable or disable logging of failed connection attempts to the FortiGate unit that use TCP/IP ports other than the TCP/IP ports configured for management access (443 for https, 22 for ssh, 23 for telnet, and 80 for HTTP by default)."
+  solution    : "To enable logging, use the following command:
+
+config log setting
+  set local-in-deny-unicast enable
+  set local-in-deny-broadcast enable
+end"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.2,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  regex       : "set[\s]*local-in-deny-(unicast|broadcast)[\s]*"
+  expect      : "set[\s]*local-in-deny-(unicast|broadcast)[\s]*enable"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - RADIUS, LDAP, or TACACS+ response wait period"
+  info        : "The number of seconds that the FortiGate unit waits for responses from remote RADIUS, LDAP, or TACACS+ authentication servers. The range is 0 to 300 seconds, 0 means no timeout. To improve security keep the remote authentication timeout at the default value of 5 seconds. However, if a RADIUS request needs to traverse multiple hops or several RADIUS requests are made, the default timeout of 5 seconds may not be long enough to receive a response."
+  solution    : "To set the remote auth timeout, use the following command:
+
+config system global
+  set remoteauthtimeout 5
+end"
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,SANS-CSC|10"
+  context     : "config system global"
+  regex       : "set[\s]+remoteauthtimeout"
+  expect      : "set[\s]+remoteauthtimeout[\s]+5$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - reset-sessionless-tcp disabled"
+  info        : "Enabling this option may help resolve issues with a problematic server, but it can make the FortiGate unit more vulnerable to denial of service attacks. In most cases you should leave resetsessionless-tcp disabled."
+  solution    : "To set the reset-sessionless-tcp to disabled, use the following command:
+
+config system global
+  set reset-sessionless-tcp disable
+end"
+  reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,SANS-CSC|10"
+  context     : "config system global"
+  regex       : "set[\s]+reset-sessionless-tcp"
+  expect      : "set[\s]+reset-sessionless-tcp[\s]+disable$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - Antispam License - Not Expired"
+  info        : "Ensuring licenses are valid and timely updates are applied helps to remediate vulnerabilities or technical issues in the appliance."
+  solution    : "Verify the status of the FortiGuard services on the FortiGate unit. You can view the status of FortiGuard services from the License Information dashboard widget or from the System > Config > FortiGuard page. Renew any expired licenses."
+  reference   : "800-171|3.4.1,800-53|CM-8,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,HIPAA|164.308(a)(5)(ii)(B),ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35,PCI-DSS|5.2,SANS-CSC|5"
+  cmd         : "get system fortiguard"
+  regex       : "antispam-license[\s]+:[\s]+.*$"
+  not_expect  : "Expired"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description : "check for entry-level devices"
+      cmd         : "get system status"
+      regex       : "Version[\s]*:[\s]+.*$"
+      expect      : "FortiGate-[3-9][0-9][A-Z]"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"WARNING">
+      description : "Fortigate - AV License - Not Expired"
+      info        : "Ensuring licenses are valid and timely updates are applied helps to remediate vulnerabilities or technical issues in the appliance."
+      solution    : "Verify the status of the FortiGuard services on the FortiGate unit. You can view the status of FortiGuard services from the License Information dashboard widget or from the System > Config > FortiGuard page. Renew any expired licenses.
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "800-171|3.4.1,800-53|CM-8,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,HIPAA|164.308(a)(5)(ii)(B),ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35,PCI-DSS|5.2,SANS-CSC|5"
+    </report>
+  </then>
+
+  <else>
+    <custom_item>
+      description : "Fortigate - AV License - Not Expired"
+      info        : "Ensuring licenses are valid and timely updates are applied helps to remediate vulnerabilities or technical issues in the appliance."
+      solution    : "Verify the status of the FortiGuard services on the FortiGate unit. You can view the status of FortiGuard services from the License Information dashboard widget or from the System > Config > FortiGuard page. Renew any expired licenses."
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,HIPAA|164.308(a)(5)(ii)(B),ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35,PCI-DSS|5.2,SANS-CSC|5"
+      cmd         : "get system fortiguard"
+      regex       : "avquery-license"
+      not_expect  : "avquery-license[\s]*:[\s]*Expired"
+    </custom_item>
+  </else>
+</if>
+
+<custom_item>
+  description : "Fortigate - Webfilter License - Not Expired"
+  info        : "Ensuring licenses are valid and timely updates are applied helps to remediate vulnerabilities or technical issues in the appliance."
+  solution    : "Verify the status of the FortiGuard services on the FortiGate unit. You can view the status of FortiGuard services from the License Information dashboard widget or from the System > Config > FortiGuard page. Renew any expired licenses."
+  reference   : "800-171|3.4.1,800-53|CM-8,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,HIPAA|164.308(a)(5)(ii)(B),ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35,PCI-DSS|5.2,SANS-CSC|5"
+  cmd         : "get system fortiguard"
+  regex       : "webfilter-license[\s]+:[\s]+.*$"
+  not_expect  : "Expired"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - full-final-warning-threshold <= 95%"
+  info        : "The FortiGate system memory has a limited capacity and displays only the most recent log entries. Traffic logs are not stored in the memory buffer, due to the high volume of traffic information. After all available memory is used, by default, the FortiGate unit begins to overwrite the oldest log messages. All log entries are deleted when the FortiGate unit restarts."
+  solution    : "To set the full-final-warning-threshold, use the following command:
+
+config log memory global-setting
+  set full-final-warning-threshold 95
+end"
+  reference   : "800-53|AU-5(1),CN-L3|7.1.3.7(e),CSF|PR.PT-1,ITSG-33|AU-5(1),NESA|T3.3.1,PCI-DSS|10.7,SANS-CSC|14,TBA-FIISB|37.3.2"
+  context     : "config log memory global-setting"
+  regex       : "set[\s]+full-final-warning-threshold"
+  expect      : "set[\s]+full-final-warning-threshold[\s]+([1-9]|[1-8][0-9]|[9][0-5])$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - full-first-warning-threshold <= 75%"
+  info        : "The FortiGate system memory has a limited capacity and displays only the most recent log entries. Traffic logs are not stored in the memory buffer, due to the high volume of traffic information. After all available memory is used, by default, the FortiGate unit begins to overwrite the oldest log messages. All log entries are deleted when the FortiGate unit restarts."
+  solution    : "To set the full-final-warning-threshold, use the following command:
+
+config log memory global-setting
+  set full-first-warning-threshold 75
+end"
+  reference   : "800-53|AU-5(1),CN-L3|7.1.3.7(e),CSF|PR.PT-1,ITSG-33|AU-5(1),NESA|T3.3.1,PCI-DSS|10.7,SANS-CSC|14,TBA-FIISB|37.3.2"
+  context     : "config log memory global-setting"
+  regex       : "set[\s]+full-first-warning-threshold"
+  expect      : "set[\s]+full-first-warning-threshold[\s]+([1-9]|[1-6][0-9]|[7][0-5])$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - full-second-warning-threshold <= 90%"
+  info        : "The FortiGate system memory has a limited capacity and displays only the most recent log entries. Traffic logs are not stored in the memory buffer, due to the high volume of traffic information. After all available memory is used, by default, the FortiGate unit begins to overwrite the oldest log messages. All log entries are deleted when the FortiGate unit restarts."
+  solution    : "To set the full-final-warning-threshold, use the following command:
+
+config log memory global-setting
+  set full-second-warning-threshold 90
+end"
+  reference   : "800-53|AU-5(1),CN-L3|7.1.3.7(e),CSF|PR.PT-1,ITSG-33|AU-5(1),NESA|T3.3.1,PCI-DSS|10.7,SANS-CSC|14,TBA-FIISB|37.3.2"
+  context     : "config log memory global-setting"
+  regex       : "set[\s]+full-second-warning-threshold"
+  expect      : "set[\s]+full-second-warning-threshold[\s]+([1-9]|[1-8][0-9]|90)$"
+</custom_item>
+
+<custom_item>
+  description : "Fortigate - IPS database - extended"
+  info        : "Use the extended database for IPS definitions."
+  solution    : "To set the IPS database to extended, use the following command:
+
+config ips global
+  set database extended
+end"
+  reference   : "800-171|3.14.6,800-171|3.14.7,800-53|SI-4,CN-L3|7.1.3.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.10.6(f),CSF|DE.AE-1,CSF|DE.AE-2,CSF|DE.AE-3,CSF|DE.AE-4,CSF|DE.CM-1,CSF|DE.CM-5,CSF|DE.CM-6,CSF|DE.CM-7,CSF|DE.DP-2,CSF|DE.DP-3,CSF|DE.DP-4,CSF|DE.DP-5,CSF|ID.RA-1,CSF|PR.DS-5,CSF|PR.IP-8,CSF|RS.AN-1,CSF|RS.CO-3,ITSG-33|SI-4,NESA|M1.2.2,SANS-CSC|19"
+  context     : "config ips global"
+  regex       : "set[\s]+database"
+  expect      : "set[\s]+database[\s]+extended$"
+</custom_item>
+
+</check_type>

@@ -1,0 +1,1148 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.20 $
+# $Date: 2020/04/22 $
+#
+#<ui_metadata>
+#<display_name>TNS Best Practice RackSpace</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Best Practice RackSpace</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>rackspace,tenable</labels>
+#<variables>
+#  <variable>
+#    <name>SERVER_UN</name>
+#    <default></default>
+#    <description>Server Owner Username</description>
+#    <info>This 'Server Owner Username' variable is used in the audit to query for servers owned by a specific username.</info>
+#    <optional />
+#  </variable>
+#  <variable>
+#    <name>LB_ALG</name>
+#    <default>ROUND_ROBIN</default>
+#    <description>LB Algorithm</description>
+#    <info>The algorithm used by the LoadBalancers</info>
+#  </variable>
+#  <variable>
+#    <name>ROLE_NAME</name>
+#    <default>.*admin.*</default>
+#    <description>Role Name for User List</description>
+#    <info>This is the role name (regex) used in searching for and listing out a list of users with that role assigned to them</info>
+#  </variable>
+#  <variable>
+#    <name>SCAN_INTERVAL</name>
+#    <default>30</default>
+#    <description>Days since the last Nessus scan</description>
+#    <info>This is a 'Days Since' value for Nessus Scans. This will be used in determining Servers, DB backups, Domains and LBs created or updated within 'VALUE' amount of days</info>
+#  </variable>
+#  <variable>
+#    <name>DBC_MAX_USER_CONN</name>
+#    <default>NOT DEFINED</default>
+#    <description>DBC Var - max_user_connections</description>
+#    <info>This is the value of the parameter 'max_user_connections' as used in database configuration templates</info>
+#  </variable>
+#  <variable>
+#    <name>DBC_MAX_CONN</name>
+#    <default>NOT DEFINED</default>
+#    <description>DBC Var - max_connections</description>
+#    <info>This is the value of the parameter 'max_connections' as used in database configuration templates</info>
+#  </variable>
+#  <variable>
+#    <name>DBC_MAX_ALLOW_PACKET</name>
+#    <default>NOT DEFINED</default>
+#    <description>DBC Var - max_allowed_packet</description>
+#    <info>This is the value of the parameter 'max_allowed_packet' as used in database configuration templates</info>
+#  </variable>
+#  <variable>
+#    <name>DBC_MAX_CONN_ERRS</name>
+#    <default>NOT DEFINED</default>
+#    <description>DBC Var - max_connect_errors</description>
+#    <info>This is the value of the parameter 'max_connect_errors' as used in database configuration templates</info>
+#  </variable>
+#  <variable>
+#    <name>DBC_WAIT_TIMEOUT</name>
+#    <default>NOT DEFINED</default>
+#    <description>DBC Var - wait_timeout</description>
+#    <info>This is the value of the parameter 'wait_timeout' as used in database configuration templates</info>
+#  </variable>
+#  <variable>
+#    <name>DBC_SQL_MODE</name>
+#    <default>NOT DEFINED</default>
+#    <description>DBC Var - sql_mode</description>
+#    <info>This is the value of the parameter 'sql_mode' as used in database configuration templates</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Rackspace">
+
+#Servers
+
+<if>
+  <condition type:"AND">
+#servers service check
+
+    <custom_item>
+      description    : "Server Resource Check - Do Server resources exist?"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/servers/detail'
+      any_region     : 'yes'
+      json_transform : '"Servers Enabled: \([.servers[]|.name]|length | . > 0)"'
+      regex          : "Servers Enabled:[\s]true"
+      expect         : "Servers Enabled:[\s]true"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description    : "Rackspace Servers and their details"
+      info           : "The Servers and their current state will determine what services are available."
+      solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-8,CCM-3|IVS-07,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/servers/detail'
+      json_transform : '.servers[]|
+                    "\n\nName: "    + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Active Servers"
+      info           : "The Servers and their current state will determine what services are available."
+      solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-8,CCM-3|IVS-07,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/servers/detail'
+      json_transform : '.servers[]|select(.status=="ACTIVE")|
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Inactive Servers"
+      info           : "The Servers and their current state will determine what services are available."
+      solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-8,CCM-3|IVS-07,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/servers/detail'
+      json_transform : '.servers[]|select(.status!="ACTIVE")|
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Servers created since the last scan"
+      info           : "The Servers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-8,CCM-3|IVS-07,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/servers/detail'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+      json_transform : '.servers[] |
+                    select((.created | iso_8601_days_ago) < 30) |
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Servers updated since the last scan"
+      info           : "The Servers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-8,CCM-3|IVS-07,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/servers/detail'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+      json_transform : '.servers[] |
+    select((.updated | iso_8601_days_ago) < 30) |
+                    "\n\nName: "        + .name
+  +                 "\nID: "        + .id
+  +                 "\nStatus: "    + .status
+  +                 "\nUser_ID: "   + .user_id
+  +                 "\nCreated: "   + .created
+  +                 "\nUpdated: "   + .updated
+  +                 "\nHost_ID: "   + .hostId
+  +                 "\nTenant_ID: " + .tenant_id
+  +                 "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+# Note: Variable @SERVER_UN@ replaced with "" in field "description".
+      description    : "Rackspace Servers owned by ''"
+      info           : "The Servers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Review the list of Servers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-8,CCM-3|IVS-07,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/servers/detail'
+# Note: Variable @SERVER_UN@ replaced with "" in field "json_transform".
+      json_transform : '.servers.[]|
+                      "\(select(
+                              .user_id == (rackspace_users | .[] | select(.username == "") |.id))|
+                               "\n\nName: "        + .name
+  +                            "\nID: "        + .id
+  +                            "\nStatus: "    + .status
+  +                            "\nUser_ID: "   + .user_id
+  +                            "\nCreated: "   + .created
+  +                            "\nUpdated: "   + .updated
+  +                            "\nHost_ID: "   + .hostId
+  +                            "\nTenant_ID: " + .tenant_id
+  +                            "\n- addresses: - " + ([.addresses.[].[].addr] | join("\n - "))
+                              )"
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Server Flavors"
+      info           : "The Servers and their current state will determine what services are available."
+      solution       : "Review the list of Server Flavors. If any are unknown they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/flavors/detail'
+      json_transform : '.flavors[]|
+                    "\n\nName: " + .name
+  +                 "\nID: " + .id
+  +                 "\nVCPUS: \(.vcpus)"
+  +                 "\nDisk: \(.disk)"
+  +                 "\nRam: \(.ram)"
+  +                 "\nSwap: \(.swap)"
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Server Images"
+      info           : "The Servers and their current state will determine what services are available."
+      solution       : "Review the list of Server Images. If any are unknown they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'servers'
+      request        : 'v2/[tenant-id]/images'
+      json_transform : '.images[]|
+                     "\n\nName: " + .name
++                    "\nID: " + .id
++                    "\nLinks:\n" + ([.links[].href] | join("\n"))"
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Server Checks Not Run - No Server Resources Found"
+      info        : "Server Checks Not Run - No Server Resources Found
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+#server backup check
+
+    <custom_item>
+      description    : "Server Backup Check - Do Server Backups exist?"
+      service        : 'backup'
+      request        : 'v1.0/[tenant-id]/user/agents'
+      any_region     : 'yes'
+      json_transform : '"Server Backups: \([.[]|.MachineAgentId]|length | . > 0)"'
+      regex          : "Server Backups:[\s]true"
+      expect         : "Server Backups:[\s]true"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description    : "Rackspace Server Backup details"
+      info           : "The Servers and their current state will determine what services are available. Recent backups ensure that relevant data is available in the event that the system needs to be restored.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      reference      : "800-171|3.8.9,800-53|CP-9,CCM-3|BCR-02,CSF|PR.IP-4,HIPAA|164.310(d)(1),HIPAA|164.310(d)(2)(i),HIPAA|164.310(d)(2)(ii),HIPAA|164.310(d)(2)(iii),ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4"
+      service        : 'backup'
+      request        : 'v1.0/[tenant-id]/agent/[MachineAgentId]'
+      json_transform : '.|
+                    "\nMachine Agent ID: \(.MachineAgentId)"
++                   "\nMachine Name: \(.MachineName)"
++                   "\nOperating System: \(.OperatingSystem)"
++                   "\nArchitecture: \(.Architecture)"
++                   "\nStatus: \(.Status)"
++                   "\nIsDisabled: \(.IsDisabled)"
++                   "\nCleanup Allowed: \(.CleanupAllowed)"
++                   "\nTime Of Last Successful Backup: \(.TimeOfLastSuccessfulBackup)"
++                   "\nIs Encrypted: \(.IsEncrypted)"
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Server Backup Checks Not Run - No Server Backups Found"
+      info        : "Server Backup Checks Not Run - No Server Backups Found
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+    </report>
+  </else>
+</if>
+
+<custom_item>
+  description    : "Review the list of Rackspace Tenants"
+  info           : "The Tenants and their current state will determine what services are available."
+  solution       : "Review the list of Tenants. If any are unknown they should be investigated."
+  reference      : "800-171|3.1.1,800-53|AC-2,CCM-3|IVS-07,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'identity'
+  request        : 'v2.0/tenants'
+  json_transform : '.tenants[]|
+                      "Name: " + .name
++                     "\nID: " + .id
++                     "\nEnabled: \(.enabled)\n"
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Review the list of Current Rackspace Users"
+  info           : "Identifying and managing users is an important function in protecting your assets and information."
+  solution       : "Users should be periodically reviewed. If any users are not documented they should be investigated and/or removed."
+  reference      : "800-171|3.1.1,800-53|AC-2,CCM-3|IAM-02,CCM-3|IAM-09,CCM-3|IAM-11,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.312(a)(1),HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|12.5.4,PCI-DSS|3.5.1,PCI-DSS|7.1,PCI-DSS|7.1.1,PCI-DSS|7.1.2,PCI-DSS|7.1.3,PCI-DSS|7.2.1,PCI-DSS|7.2.2,PCI-DSS|8.5.1"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'identity'
+  request        : 'v2.0/users'
+  json_transform : '.users[]|
+                      "\nUser Name: "  + .username
++                     "\nID: "        + .id
++                     "\nEmail: "     + .email
++                     "\nenabled: \(.enabled)"
++                     "\nRAX-AUTH:domainId: " + .["RAX-AUTH:domainId"]
++                     "\nRAX-AUTH:multiFactorEnabled: \(.["RAX-AUTH:multiFactorEnabled"])"
++                     "\nRAX-AUTH:defaultRegion:  \(.["RAX-AUTH:defaultRegion"])"
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Review the list of active Rackspace Role Names (RBAC)"
+  info           : "Identifying and managing roles assigned to users is an important function in protecting your assets and information."
+  solution       : "Users and their roles should be periodically reviewed. If any user role assignments are not documented they should be investigated and/or removed."
+  reference      : "800-171|3.1.1,800-53|AC-3(7),CCM-3|IAM-02,CCM-3|IAM-09,CCM-3|IAM-11,CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii),PCI-DSS|12.5.4,PCI-DSS|3.5.1,PCI-DSS|7.1,PCI-DSS|7.1.1,PCI-DSS|7.1.2,PCI-DSS|7.1.3,PCI-DSS|7.2.1,PCI-DSS|7.2.2,PCI-DSS|8.5.1"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'identity'
+  request        : 'v2.0/users/[userid]/roles'
+  json_transform : '.roles[]|
+                    "Role Name: " + .name'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Review the List of Rackspace Users with Admin Roles"
+  info           : "Identifying and managing admin roles assigned to users is an important function in protecting your assets and information."
+  solution       : "Users and their roles should be periodically reviewed. If any user role assignments are not documented they should be investigated and/or removed."
+  reference      : "800-171|3.1.1,800-53|AC-2,CCM-3|IAM-02,CCM-3|IAM-09,CCM-3|IAM-11,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.312(a)(1),HIPAA|164.312(a)(2)(i),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|12.5.4,PCI-DSS|3.5.1,PCI-DSS|7.1,PCI-DSS|7.1.1,PCI-DSS|7.1.2,PCI-DSS|7.1.3,PCI-DSS|7.2.1,PCI-DSS|7.2.2,PCI-DSS|8.5.1"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'identity'
+  request        : 'v2.0/users'
+  json_transform : 'rackspace_users|.[]|
+                    "UserName : "+ .username
++                  " - Role : " + .roles[].name
+'
+  regex          : "Role :.*admin.*"
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+# Note: Variable @ROLE_NAME@ replaced with ".*admin.*" in field "description".
+  description    : "Review the List of Users with '.*admin.*' Role"
+  info           : "Identifying and managing roles assigned to users is an important function in protecting your assets and information.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+  solution       : "Users and their roles should be periodically reviewed. If any user role assignments are not documented they should be investigated and/or removed."
+  reference      : "800-171|3.1.1,800-53|AC-3(7),CCM-3|IAM-02,CCM-3|IAM-09,CCM-3|IAM-11,CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,HIPAA|164.310(a)(2)(iii),PCI-DSS|12.5.4,PCI-DSS|3.5.1,PCI-DSS|7.1,PCI-DSS|7.1.1,PCI-DSS|7.1.2,PCI-DSS|7.1.3,PCI-DSS|7.2.1,PCI-DSS|7.2.2,PCI-DSS|8.5.1"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'identity'
+  request        : 'v2.0/users/[userid]/roles'
+  json_transform : 'rackspace_users|.[]|
+                    "UserName : " + .username
++                   " - Role : " + .roles[].name + "\n"
+'
+# Note: Variable @ROLE_NAME@ replaced with ".*admin.*" in field "regex".
+  regex          : "Role :.*admin.*"
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Rackspace Users with MFA status - Enabled"
+  info           : "Multi-factor authentication (MFA) provides an extra level of security for sign-in credentials. With MFA enabled, when users signs in to their Rackspace Cloud account, they will be prompted for their user name and password (the first factor - what they know), as well as for an SMS authentication code from their MFA assoicated phone device (the second factor - what they have)."
+  solution       : "Review the users who have MFA not enabled."
+  reference      : "800-53|IA-5(11),CCM-3|IAM-02,CCM-3|IAM-09,CCM-3|IAM-11,CN-L3|7.1.3.1(f),CSF|PR.AC-1,HIPAA|164.312(a)(1),HIPAA|164.312(a)(2)(i),PCI-DSS|12.5.4,PCI-DSS|3.5.1,PCI-DSS|7.1,PCI-DSS|7.1.1,PCI-DSS|7.1.2,PCI-DSS|7.1.3,PCI-DSS|7.2.1,PCI-DSS|7.2.2,PCI-DSS|8.5.1,SWIFT-CSCv1|4.2,SWIFT-CSCv1|5.2"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'identity'
+  request        : '/v2.0/users'
+  json_transform : '.users | map(select(."RAX-AUTH:multiFactorEnabled"==true))|.[]|
+                      "\nUser Name: "  + .username
++                     "\nID: "        + .id
++                     "\nEmail: "     + .email
++                     "\nenabled: \(.enabled)"
++                     "\nRAX-AUTH:domainId: " + .["RAX-AUTH:domainId"]
++                     "\nRAX-AUTH:multiFactorEnabled: \(.["RAX-AUTH:multiFactorEnabled"])"
++                     "\nRAX-AUTH:defaultRegion:  \(.["RAX-AUTH:defaultRegion"])"
+'
+</custom_item>
+
+<custom_item>
+  description    : "Rackspace Users with MFA status - Not Enabled"
+  info           : "Multi-factor authentication (MFA) provides an extra level of security for sign-in credentials. With MFA enabled, when users signs in to their Rackspace Cloud account, they will be prompted for their user name and password (the first factor - what they know), as well as for an SMS authentication code from their MFA assoicated phone device (the second factor - what they have)."
+  solution       : "Review the users who have MFA not enabled."
+  reference      : "800-53|IA-5(11),CCM-3|IAM-02,CCM-3|IAM-09,CCM-3|IAM-11,CN-L3|7.1.3.1(f),CSF|PR.AC-1,HIPAA|164.312(a)(1),HIPAA|164.312(a)(2)(i),PCI-DSS|12.5.4,PCI-DSS|3.5.1,PCI-DSS|7.1,PCI-DSS|7.1.1,PCI-DSS|7.1.2,PCI-DSS|7.1.3,PCI-DSS|7.2.1,PCI-DSS|7.2.2,PCI-DSS|8.5.1,SWIFT-CSCv1|4.2,SWIFT-CSCv1|5.2"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'identity'
+  request        : '/v2.0/users'
+  json_transform : '.users | map(select(."RAX-AUTH:multiFactorEnabled"!=true))|.[]|
+                      "\nUser Name: "  + .username
++                     "\nID: "        + .id
++                     "\nEmail: "     + .email
++                     "\nenabled: \(.enabled)"
++                     "\nRAX-AUTH:domainId: " + .["RAX-AUTH:domainId"]
++                     "\nRAX-AUTH:multiFactorEnabled: \(.["RAX-AUTH:multiFactorEnabled"])"
++                     "\nRAX-AUTH:defaultRegion:  \(.["RAX-AUTH:defaultRegion"])"
+'
+</custom_item>
+
+<if>
+  <condition type:"AND">
+#db service check
+
+    <custom_item>
+      description    : "DB Resource Check - Do DB resources exist?"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/instances'
+      any_region     : 'yes'
+      json_transform : '"DB Enabled: \([.instances[]|.name]|length | . > 0)"'
+      regex          : "DB Enabled:[\s]true"
+      expect         : "DB Enabled:[\s]true"
+    </custom_item>
+  </condition>
+
+  <then>
+#List database instances
+
+    <custom_item>
+      description    : "Review the list of Databases Deployed In Rackspace"
+      info           : "The Databases and their current state will determine what services are available."
+      solution       : "Review the list of Databases. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/instances'
+      json_transform : '.instances[]|
+                     "\nName: "     + .name
++                    "\nStatus: "   + .status
++                    "\nID: "       + .id
++                    "\nHostname: " + .hostname
++                    "\nVolume Size: \(.volume.size)"
++                    "\nFlavor ID: \(.flavor.id)"
++                    "\nDatastore Version: \(.datastore.version)"
++                    "\nDatastore Type: \(.datastore.type)"
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Review the list of Rackspace Database Flavors"
+      info           : "The Databases and their current state will determine what services are available."
+      solution       : "Review the list of Database Flavors. If any are unknown they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/flavors'
+      json_transform : '.flavors[]|
+                    "\nName: " + .name
+  +                 "\nID: \(.id)"
+  +                 "\nRam: \(.ram)"
+  +                 "\nLinks:\n" + ([.links[].href] | join("\n"))"
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Instances - 'root access enabled != true'"
+      info           : "The Databases and their current state will determine what services are available. Changes you make as a root user may cause detrimental effects to the database instance."
+      solution       : "Review the list of Database Instances with 'root access enabled = true'. If any are found they should be investigated and if possible, root access should be disabled."
+      reference      : "800-171|3.1.5,800-53|AC-6(5),CCM-3|IVS-07,CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,PCI-DSS|2.2,SWIFT-CSCv1|1.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/instances/[dbinstance]/root'
+      json_transform : 'dbinstance + " - Root Access Enabled: \(.rootEnabled)"'
+      required       : NO
+      regex          : "Root[\s]+Access[\s]+Enabled:"
+      not_expect     : "Root[\s]+Access[\s]+Enabled:[\s]+true"
+    </custom_item>
+
+    <custom_item>
+      description    : "Review Users per Rackspace Database Instance"
+      info           : "Identifying and managing users is an important function in protecting your assets and information."
+      solution       : "Users should be periodically reviewed. If any users are not documented they should be investigated and/or removed."
+      reference      : "800-171|3.1.1,800-53|AC-2,CCM-3|IVS-07,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/instances/[dbinstance]/users'
+      json_transform : '.users[]|
+                    "\nHost: "     + .host
++                   "\nName: "     + .name
++                   "\nDatabase: " + .databases[].name
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Backups - Every DB instance backed up since the last scan."
+      info           : "The Databases and their current state will determine what services are available. Recent backups ensure that relevant data is available in the event that the system needs to be restored.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Update database backups for each database within today - X (scan_interval) days"
+      reference      : "800-171|3.8.9,800-53|CP-9,CCM-3|BCR-02,CSF|PR.IP-4,HIPAA|164.310(d)(1),HIPAA|164.310(d)(2)(i),HIPAA|164.310(d)(2)(ii),HIPAA|164.310(d)(2)(iii),ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/instances'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+      json_transform : 'rackspace_data.instances | .[] |
+        .id as $id |
+        (rackspace_data.backups | [.[] | select(.instance_id == $id) | select((.updated | iso_8601_days_ago) < 30 )]) as $relevant_backups |
+        "Recent Backups for database \(.name) (Total = \($relevant_backups | length)):"
+    '
+      required       : NO
+      regex          : "Total"
+      not_expect     : "Total[\s]=[\s]0"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Backups updated since the last scan"
+      info           : "The Databases and their current state will determine what services are available. Recent backups ensure that relevant data is available in the event that the system needs to be restored.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Update database backups for each database within each scan interval period."
+      reference      : "800-171|3.8.9,800-53|CP-9,CCM-3|BCR-02,CSF|PR.IP-4,HIPAA|164.310(d)(1),HIPAA|164.310(d)(2)(i),HIPAA|164.310(d)(2)(ii),HIPAA|164.310(d)(2)(iii),ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/backups'
+      any_region     : 'yes'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+      json_transform : '.backups[]|
+                      select((.updated | iso_8601_days_ago) < 30) |
+                      "Name: "                   + .name
++                     "\nSize:  \(.size)"
++                     "\nID: "                   + .id
++                     "\nStatus: "               + .status
++                     "\nUpdated: "              + .updated
++                     "\nCreated: "              + .created
++                     "\nInstance ID: "          + .instance_id
++                     "\nParent ID: "            + .parent_id
++                     "\nDescription: "          + .description
++                     "\nDatastore Version: "    + .datastore.version
++                     "\nDatastore Version ID: " + .datastore.version_id
++                     "\nDatastore Type: "       + .datastore.type
++                     "\nLocation Ref: "         + .locationRef
+'
+      expect         : "Name: [a-zA-Z0-9]"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Backups created since the last scan"
+      info           : "The Databases and their current state will determine what services are available. Recent backups ensure that relevant data is available in the event that the system needs to be restored.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Create database backups for each database within each scan interval period."
+      reference      : "800-171|3.8.9,800-53|CP-9,CCM-3|BCR-02,CSF|PR.IP-4,HIPAA|164.310(d)(1),HIPAA|164.310(d)(2)(i),HIPAA|164.310(d)(2)(ii),HIPAA|164.310(d)(2)(iii),ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/backups'
+      any_region     : 'yes'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+      json_transform : '.backups[]|
+                      select((.created | iso_8601_days_ago) < 30) |
+                      "Name: "                   + .name
++                     "\nSize:  \(.size)"
++                     "\nID: "                   + .id
++                     "\nStatus: "               + .status
++                     "\nUpdated: "              + .updated
++                     "\nCreated: "              + .created
++                     "\nInstance ID: "          + .instance_id
++                     "\nParent ID: "            + .parent_id
++                     "\nDescription: "          + .description
++                     "\nDatastore Version: "    + .datastore.version
++                     "\nDatastore Version ID: " + .datastore.version_id
++                     "\nDatastore Type: "       + .datastore.type
++                     "\nLocation Ref: "         + .locationRef
+'
+      expect         : "Name: [a-zA-Z0-9]"
+    </custom_item>
+
+    <custom_item>
+      description    : "Review the list of Database Backups"
+      info           : "The Databases and their current state will determine what services are available. Recent backups ensure that relevant data is available in the event that the system needs to be restored."
+      reference      : "800-171|3.8.9,800-53|CP-9,CCM-3|BCR-02,CSF|PR.IP-4,HIPAA|164.310(d)(1),HIPAA|164.310(d)(2)(i),HIPAA|164.310(d)(2)(ii),HIPAA|164.310(d)(2)(iii),ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      request        : 'v1.0/[tenant-id]/backups'
+      any_region     : 'yes'
+      json_transform : '.backups[]|
+                      "\nName: "                   + .name
++                     "\nSize:  \(.size)"
++                     "\nID: "                   + .id
++                     "\nStatus: "               + .status
++                     "\nUpdated: "              + .updated
++                     "\nCreated: "              + .created
++                     "\nInstance ID: "          + .instance_id
++                     "\nParent ID: "            + .parent_id
++                     "\nDescription: "          + .description
++                     "\nDatastore Version: "    + .datastore.version
++                     "\nDatastore Version ID: " + .datastore.version_id
++                     "\nDatastore Type: "       + .datastore.type
++                     "\nLocation Ref: "         + .locationRef
+'
+      severity       : LOW
+      expect         : ""
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "DB Checks Not Run - No DB Resources Found"
+      info        : "DB Checks Not Run - No DB Resources Found
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+#db configurations service check
+
+    <custom_item>
+      description    : "Database Configurations Resource Check - Do DB Configurations Exist?"
+      service        : 'databases'
+      any_region     : 'yes'
+      request        : 'v1.0/[tenant-id]/configurations/[configId]'
+      json_transform : '"DB Configurations Enabled: \([.configuration.name]|length | . > 0)"'
+      regex          : "DB Configurations Enabled:[\s]true"
+      expect         : "DB Configurations Enabled:[\s]true"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      description    : "Rackspace Database Config Templates - MySQL - max_user_connections"
+      info           : "RackSpace offers the option to create customized database configuration templates. These templates can be applied to any existing database instances and allow the user to modify system variable parameters from their default values. Establishing and maintaining baseline configurations is a security best practice.
+
+  One means of restricting client use of MySQL server resources is to set the global max_user_connections system variable to a nonzero value. This limits the number of simultaneous connections that can be made by any given account.
+
+  NOTE - The default behavior of this check is to 'PASS' when the system variable parameter has not been modified. Please use an appropriate value that matches the policy of your organization or leave the .audit variable in its default state if the system variable parameter is not applicable for your environment."
+      reference      : "800-53|SC-5(2),CCM-3|IVS-07,CSF|PR.DS-4,ITSG-33|SC-5(2),PCI-DSS|2.2,SWIFT-CSCv1|6.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      required       : NO
+      request        : 'v1.0/[tenant-id]/configurations/[configId]'
+      json_transform : '.configuration.name + " - " + configId + " - " + "max_user_connections: \(.configuration.values.max_user_connections // "NOT DEFINED")"'
+      regex          : "max_user_connections: "
+# Note: Variable @DBC_MAX_USER_CONN@ replaced with "NOT DEFINED" in field "expect".
+      expect         : "max_user_connections: NOT DEFINED"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Config Templates - MySQL - max_connections"
+      info           : "RackSpace offers the option to create customized database configuration templates. These templates can be applied to any existing database instances and allow the user to modify system variable parameters from their default values. Establishing and maintaining baseline configurations is a security best practice.
+
+  max_connections (default 151) - The maximum permitted number of simultaneous client connections.
+
+  NOTE - The default behavior of this check is to 'PASS' when the system variable parameter has not been modified. Please use an appropriate value that matches the policy of your organization or leave the .audit variable in its default state if the system variable parameter is not applicable for your environment."
+      reference      : "800-53|SC-5(2),CCM-3|IVS-07,CSF|PR.DS-4,ITSG-33|SC-5(2),PCI-DSS|2.2,SWIFT-CSCv1|6.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      required       : NO
+      request        : 'v1.0/[tenant-id]/configurations/[configId]'
+      json_transform : '.configuration.name + " - " + configId + " - " + "max_connections: \(.configuration.values.max_connections // "NOT DEFINED")"'
+      regex          : "max_connections: "
+# Note: Variable @DBC_MAX_CONN@ replaced with "NOT DEFINED" in field "expect".
+      expect         : "max_connections: NOT DEFINED"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Config Templates - MySQL - max_allowed_packet"
+      info           : "RackSpace offers the option to create customized database configuration templates. These templates can be applied to any existing database instances and allow the user to modify system variable parameters from their default values. Establishing and maintaining baseline configurations is a security best practice.
+
+  max_allowed_packet - The maximum size of one packet or any generated/intermediate string.
+
+  NOTE - The default behavior of this check is to 'PASS' when the system variable parameter has not been modified. Please use an appropriate value that matches the policy of your organization or leave the .audit variable in its default state if the system variable parameter is not applicable for your environment."
+      reference      : "800-53|SC-5(2),CCM-3|IVS-07,CSF|PR.DS-4,ITSG-33|SC-5(2),PCI-DSS|2.2,SWIFT-CSCv1|6.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      required       : NO
+      request        : 'v1.0/[tenant-id]/configurations/[configId]'
+      json_transform : '.configuration.name + " - " + configId + " - " +"max_allowed_packet: \(.configuration.values.max_allowed_packet // "NOT DEFINED")"'
+      regex          : "max_allowed_packet: "
+# Note: Variable @DBC_MAX_ALLOW_PACKET@ replaced with "NOT DEFINED" in field "expect".
+      expect         : "max_allowed_packet: NOT DEFINED"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Config Templates - MySQL - max_connect_errors"
+      info           : "RackSpace offers the option to create customized database configuration templates. These templates can be applied to any existing database instances and allow the user to modify system variable parameters from their default values. Establishing and maintaining baseline configurations is a security best practice.
+
+  max_connect_errors- If more than this many successive connection requests from a host are interrupted without a successful connection, the server blocks that host from further connections.
+
+  NOTE - The default behavior of this check is to 'PASS' when the system variable parameter has not been modified. Please use an appropriate value that matches the policy of your organization or leave the .audit variable in its default state if the system variable parameter is not applicable for your environment."
+      reference      : "800-53|SC-5(2),CCM-3|IVS-07,CSF|PR.DS-4,ITSG-33|SC-5(2),PCI-DSS|2.2,SWIFT-CSCv1|6.4"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      required       : NO
+      request        : 'v1.0/[tenant-id]/configurations/[configId]'
+      json_transform : '.configuration.name + " - " + configId + " - " +"max_connect_errors: \(.configuration.values.max_connect_errors // "NOT DEFINED")"'
+      regex          : "max_connect_errors: "
+# Note: Variable @DBC_MAX_CONN_ERRS@ replaced with "NOT DEFINED" in field "expect".
+      expect         : "max_connect_errors: NOT DEFINED"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Config Templates - MySQL - wait_timeout"
+      info           : "RackSpace offers the option to create customized database configuration templates. These templates can be applied to any existing database instances and allow the user to modify system variable parameters from their default values. Establishing and maintaining baseline configurations is a security best practice.
+
+  wait_timeout - The number of seconds the server waits for activity on a noninteractive connection before closing it.
+
+  NOTE - The default behavior of this check is to 'PASS' when the system variable parameter has not been modified. Please use an appropriate value that matches the policy of your organization or leave the .audit variable in its default state if the system variable parameter is not applicable for your environment."
+      reference      : "800-53|SC-5,CCM-3|IVS-07,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      required       : NO
+      request        : 'v1.0/[tenant-id]/configurations/[configId]'
+      json_transform : '.configuration.name + " - " + configId + " - " + "wait_timeout: \(.configuration.values.wait_timeout // "NOT DEFINED")"'
+      regex          : "wait_timeout: "
+# Note: Variable @DBC_WAIT_TIMEOUT@ replaced with "NOT DEFINED" in field "expect".
+      expect         : "wait_timeout: NOT DEFINED"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Database Config Templates - MySQL - sql_mode"
+      info           : "RackSpace offers the option to create customized database configuration templates. These templates can be applied to any existing database instances and allow the user to modify system variable parameters from their default values. Establishing and maintaining baseline configurations is a security best practice.
+
+  sql_mode - The current server SQL mode, which can be set dynamically.
+
+  NOTE - The default behavior of this check is to 'PASS' when the system variable parameter has not been modified. Please use an appropriate value that matches the policy of your organization or leave the .audit variable in its default state if the system variable parameter is not applicable for your environment."
+      reference      : "800-53|SC-5,CCM-3|IVS-07,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'databases'
+      required       : NO
+      request        : 'v1.0/[tenant-id]/configurations/[configId]'
+      json_transform : '.configuration.name + " - " + configId + " - " + "sql_mode: \(.configuration.values.sql_mode // "NOT DEFINED")"'
+      regex          : "sql_mode: "
+# Note: Variable @DBC_SQL_MODE@ replaced with "NOT DEFINED" in field "expect".
+      expect         : "sql_mode: NOT DEFINED"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "DB Configurations Checks Not Run - No DB Configuration Resources Found"
+      info        : "DB COnfigurations Checks Not Run - No DB COnfiguration Resources Found
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description    : "LB service check - do LBs exist?"
+      service        : 'Loadbalancers'
+      request        : '/v1.0/[tenant-id]/loadbalancers'
+      any_region     : 'yes'
+      json_transform : '"LBs Enabled: \([.loadBalancers[]]|length | . > 0)"'
+      regex          : "LBs Enabled:[\s]true"
+      expect         : "LBs Enabled:[\s]true"
+    </custom_item>
+  </condition>
+
+  <then>
+#LoadBalancers
+
+    <custom_item>
+# Note: Variable @LB_ALG@ replaced with "ROUND_ROBIN" in field "description".
+      description    : "Rackspace Load Balancer Algorithm Check - ROUND_ROBIN"
+      info           : "The Load Balancer's scheduling algorithm must meet the needs of the attached Servers' operating requirements.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Review the Load Balancer's scheduling algorithm. Choose and assign an algorithm that meets the needs of the attached Servers' operating requirements."
+      reference      : "800-53|SC-5,CCM-3|IVS-07,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      required       : NO
+      service        : 'Loadbalancers'
+      request        : '/v1.0/[tenant-id]/loadbalancers'
+      json_transform : '.loadBalancers[]|
+                      .name + " - " + "Algorithm: " + .algorithm
+  '
+      regex          : "Algorithm: "
+# Note: Variable @LB_ALG@ replaced with "ROUND_ROBIN" in field "expect".
+      expect         : "Algorithm: ROUND_ROBIN"
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Load Balancers created since the last scan"
+      info           : "The Load Balancers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Review the list of Load Balancers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'Loadbalancers'
+      request        : '/v1.0/[tenant-id]/loadbalancers'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+      json_transform : '.loadBalancers[]|
+                    select((.created.time | iso_8601_days_ago) < 30) |
+                    "\nName: " + .name
+  +                 "\nID: \(.id)"
+  +                 "\nProtocol: \(.protocol)"
+  +                 "\nPort: \(.port)"
+  +                 "\nAlgorithm: \(.algorithm)"
+  +                 "\nCreated: \(.created.time)"
+  +                 "\nUpdated: \(.updated.time)"
+
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Load Balancers updated since the last scan"
+      info           : "The Load Balancers and their current state will determine what services are available.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+      solution       : "Review the list of Load Balancers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'Loadbalancers'
+      request        : '/v1.0/[tenant-id]/loadbalancers'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+      json_transform : '.loadBalancers[]|
+                    select((.updated.time | iso_8601_days_ago) < 30) |
+                    "\nName: " + .name
+  +                 "\nID: \(.id)"
+  +                 "\nProtocol: \(.protocol)"
+  +                 "\nPort: \(.port)"
+  +                 "\nAlgorithm: \(.algorithm)"
+  +                 "\nCreated: \(.created.time)"
+  +                 "\nUpdated: \(.updated.time)"
+  '
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Load Balancers"
+      info           : "The Load Balancers and their current state will determine what services are available."
+      solution       : "Review the list of Load Balancers. If any are unknown or not in the expected state they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-8,CCM-3|IVS-07,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'Loadbalancers'
+      request        : '/v1.0/[tenant-id]/loadbalancers/[lbinstance]'
+      json_transform : '.loadBalancer|
+                    "\nName: " + .name
+  +                 "\nID: \(.id)"
+  +                 "\nProtocol: \(.protocol)"
+  +                 "\nPort: \(.port)"
+  +                 "\nAlgorithm: \(.algorithm)"
+  +                 "\nCreated: \(.created.time)"
+  +                 "\nUpdated: \(.updated.time)"
+  +                 "\nStatus: \(.status)"
+  +                 "\nTimeout: \(.timeout)"
+  +                 "\nCluster Name: \(.cluster.name)"
+  +                 "\nHTTPS Redirect: \(.httpsRedirect)"
+  +                 "\nHalf Closed: \(.halfClosed)"
+  +                 "\nConnection Logging Enabled: \(.connectionLogging.enabled)"
+  +                 "\nContent Caching Enabled: \(.contentCaching.enabled)"
+  +                 (["\nNodes: \n \(.nodes[] |"IP Addr: " + .address + "\n ID: \(.id)" + "\n Type: " + .type+ "\n Port: \(.port)" + "\n Status: " + .status+ "\n Condition: " + .condition)"]|join("\n - "))
+  +                 (["\nVirtual IPs: \n \(.virtualIps[] |"IP Addr: " + .address + "\n ID: \(.id)" + "\n Type: " + .type+ "\n IP Vers: \(.ipVersion)")"]|join("\n - "))
+  +                 "\n\nPublic IPv6 Source Address : " + .sourceAddresses.ipv6Public
+  +                 "\nPublic IPv4 Source Address : " + .sourceAddresses.ipv4Public
+  +                 "\nPublic IPv4 Service Net : " + .sourceAddresses.ipv4Servicenet
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Load Balancer Checks Not Run - No Load Balancer Resources Found"
+      info        : "Load Balancer Checks Not Run - No Load Balancer Resources Found
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+    </report>
+  </else>
+</if>
+
+#DNS
+
+<custom_item>
+  description    : "Review the list of Domains"
+  info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls."
+  solution       : "Review the list of Domains. If any are missing or undocumented they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'dns'
+  request        : 'v1.0/[tenant-id]/domains'
+  json_transform : '.domains[]|
+                   "\nName: \(.name)"
+  +                "\nID: \(.id)"
+  +                "\nAccount ID: \(.accountId)"
+  +                "\nEmail: " + .emailAddress
+  +                "\nUpdated: " + .updated
+  +                "\nCreated: " + .created
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Review the list of all Domains created since the last scan"
+  info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+  solution       : "Review the list of Domains. If any are missing or undocumented they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'dns'
+  request        : 'v1.0/[tenant-id]/domains'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+  json_transform : '.domains[]|
+                     select((.created | iso_8601_days_ago) < 30) |
+                      "\nName: \(.name)"
++                     "\nID: \(.id)"
++                     "\nAccount ID: \(.accountId)"
++                     "\nEmail: " + .emailAddress
++                     "\nUpdated: " + .updated
++                     "\nCreated: " + .created
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Review the list of all Domains updated since the last scan"
+  info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls.
+  Note - This check uses a variable supplied at .audit scan time via the User Interface. Please ensure the variable value is populated correctly."
+  solution       : "Review the list of Domains. If any are missing or undocumented they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'dns'
+  request        : 'v1.0/[tenant-id]/domains'
+# Note: Variable @SCAN_INTERVAL@ replaced with "30" in field "json_transform".
+  json_transform : '.domains[]|
+                     select((.updated | iso_8601_days_ago) < 30) |
+                      "\nName: \(.name)"
++                     "\nID: \(.id)"
++                     "\nAccount ID: \(.accountId)"
++                     "\nEmail: " + .emailAddress
++                     "\nUpdated: " + .updated
++                     "\nCreated: " + .created
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<if>
+  <condition type:"AND">
+#Networks Service Checks
+
+    <custom_item>
+      description    : "Networks service check - do Networks exist?"
+      service        : 'networks'
+      request        : '/v2.0/networks'
+      any_region     : 'yes'
+      json_transform : '"Networks Enabled: \([.name]|length | . > 0)"'
+      regex          : "Networks Enabled:[\s]true"
+      expect         : "Networks Enabled:[\s]true"
+    </custom_item>
+  </condition>
+
+  <then>
+#Networks
+
+    <custom_item>
+      description    : "Rackspace Networks and their attached subnets"
+      info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls."
+      solution       : "Review the list of Networks. If any are missing or undocumented they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'networks'
+      request        : '/v2.0/networks'
+      json_transform : '.networks[]|
+                      "Name: \(.name)"
++                     "\nID: \(.id)"
++                     "\nSubnets: " + .subnets[]
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+
+    <custom_item>
+      description    : "Rackspace Subnet Details"
+      info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls."
+      solution       : "Review the list of Subnet Details. If any are missing or undocumented they should be investigated."
+      reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+      see_also       : "http://docs.rackspace.com/"
+      service        : 'networks'
+      request        : '/v2.0/subnets'
+      json_transform : '.subnets[]|
+                      "ID: \(.id)"
++                     "\nCIDR: " + .cidr
++                     "\nGateway IP: " + .gateway_ip
++                     "\nIP Version: \(.ip_version)"
++                     "\nName: " + .name
++                     "\nDHCP Enabled: " + .enable_dhcp
++                     "\nNetwork ID: " + .network_id
++                     "\nTenant ID: " + .tenant_id
++                     "\nAllocation Pool: " + .allocation_pools[].start + " - " + .allocation_pools[].end
+'
+      expect         : ""
+      severity       : LOW
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Network Checks Not Run - No Network Resources Found"
+      info        : "Network Checks Not Run - No Network Resources Found
+
+      NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+    </report>
+  </else>
+</if>
+
+<custom_item>
+  description    : "Review the list of Ports and their details"
+  info           : "Different security requirements mandate different security controls. It is a security best practice to segment infrastructure into zones that impose similar security controls."
+  solution       : "Review the list of Ports. If any are missing or undocumented they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.rackspace.com/"
+  service        : 'networks'
+  request        : '/v2.0/ports'
+  json_transform : '.ports[]|
+                      "\nID: \(.id)"
++                     "\nStatus: " + .status
++                     "\nAdmin State Up: \(.admin_state_up)"
++                     "\nNetwork ID: " + .network_id
++                     "\nTenant ID: " + .tenant_id
++                     "\nDevice Owner: " + .device_owner
++                     "\nMac_address: " + .mac_address
++                      (["\nFixed IPs: \n \(.fixed_ips[] |"IP: " + .ip_address + "\n Subnet ID: " + .subnet_id)"]|join("\n - "))
+'
+  expect         : ""
+  severity       : LOW
+</custom_item>
+
+<custom_item>
+  description    : "Rackspace Deployment Snapshot"
+  info           : "The RackSpace resources and their current state will determine what services are available."
+  solution       : "Review the list of RackSpace resources. If any are unknown they should be investigated."
+  reference      : "800-171|3.4.1,800-53|CM-2,800-53|CM-6,800-53|CM-8,800-53|PM-7,CCM-3|IVS-07,CIP|002-5.1-R1,CSCv6|1.4,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,PCI-DSSv3.1|9.9.1,PCI-DSSv3.2|9.9.1,PCI-DSS|2.2"
+  see_also       : "http://docs.rackspace.com/"
+  json_transform : 'rackspace_data |
+     "  Database Instances: \(.instances | length)\n"
++    ([.instances[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Users: \(.users | length)\n"
++    ([.users[] | "     \(.id) - \(.username)\n"] | sort | join(""))
+
++    "   Servers: \(.servers | length)\n"
++    ([.servers[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Database Backups: \(.backups | length)\n"
++    ([.backups[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Agent Backups: \(.agent_backups | length)\n"
++    ([.agent_backups[] | "     \(.MachineAgentId) - \(.MachineName)\n"] | sort | join(""))
+
++    "   Load-Balancers: \(.loadBalancers | length)\n"
++    ([.loadBalancers[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Networks: \(.networks | length)\n"
++    ([.networks[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Images: \(.images | length)\n"
++    ([.images[] | "     \(.id) - \(.name)\n"] | sort | join(""))
+
++    "   Ports: \(.ports | length)\n"
++    ([.ports[] | "     \(.id)\n"] | sort | join(""))
+'
+</custom_item>
+
+</check_type>

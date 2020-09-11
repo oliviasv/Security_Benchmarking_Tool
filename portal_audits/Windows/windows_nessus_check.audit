@@ -1,0 +1,183 @@
+#
+# This script is Copyright (C) 2004-2019 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.11 $
+# $Date: 2019/02/08 $
+#
+# Description	:	This audit checks for the presence of Tenable's Windows Nessus
+# 			and ensures that the service state is set to 'AUTOMATIC'
+#
+# NOTE		:	This audit is not intended for *NIX installations of Nessus.
+#
+#<ui_metadata>
+#<display_name>Windows Nessus Installation Check</display_name>
+#<spec>
+#  <type>Windows</type>
+#  <name>Windows Nessus Installation Check</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>windows,nessus,check</labels>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"Windows Nessus">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : REG_CHECK
+      description : "Windows Nessus is installed"
+      value_type  : POLICY_TEXT
+      value_data  : "HKLM\SOFTWARE\Tenable\Nessus"
+      key_item    : "NESSUS_DIR"
+      reg_option  : MUST_EXIST
+    </custom_item>
+
+    <custom_item>
+      type         : SERVICE_POLICY
+      description  : "The Windows Nessus service is set to run at boot."
+      value_type   : SERVICE_SET
+      value_data   : "Automatic"
+      service_name : "Tenable Nessus"
+      svc_option   : CAN_NOT_BE_NULL
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "Windows Nessus is installed and active."
+      info        : "Windows Nessus is installed and the service is set to run at boot."
+    </report>
+  </then>
+
+  <else>
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : REG_CHECK
+          description : "Windows Nessus is installed"
+          value_type  : POLICY_TEXT
+          value_data  : "HKLM\SOFTWARE\Tenable\Nessus"
+          key_item    : "NESSUS_DIR"
+          reg_option  : MUST_EXIST
+        </custom_item>
+
+        <custom_item>
+          type         : SERVICE_POLICY
+          description  : "Windows Nessus"
+          value_type   : SERVICE_SET
+          value_data   : "Manual" || "Disabled"
+          service_name : "Tenable Nessus"
+          svc_option   : CAN_NOT_BE_NULL
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "Windows Nessus is installed and active."
+          info        : "Windows Nessus is installed, however the service is NOT set to run at boot."
+        </report>
+      </then>
+
+      <else>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : REG_CHECK
+              description : "Windows Nessus is installed"
+              value_type  : POLICY_TEXT
+              value_data  : "HKLM\SOFTWARE\Tenable\Nessus"
+              key_item    : "NESSUS_DIR"
+              reg_option  : MUST_NOT_EXIST
+            </custom_item>
+          </condition>
+
+          <then>
+            <report type:"FAILED">
+              description : "Windows Nessus is installed and active."
+              info        : "Windows Nessus is not installed on the host."
+            </report>
+          </then>
+        </if>
+      </else>
+    </if>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : REG_CHECK
+      description : "Windows Nessus is installed"
+      value_type  : POLICY_TEXT
+      value_data  : "HKLM\SOFTWARE\Tenable\Nessus"
+      key_item    : "NESSUS_DIR"
+      reg_option  : MUST_EXIST
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "Nessus Professional Feed check."
+      value_type  : POLICY_TEXT
+      value_data  : "C:\ProgramData\Tenable\Nessus\nessus\plugins\plugin_feed_info.inc"
+      expect      : "ProfessionalFeed"
+      regex       : "ProfessionalFeed"
+      info        : "This is used to determine if a Nessus scanner is using the Professional Feed or a Home Feed."
+    </custom_item>
+  </then>
+</if>
+
+## This section is an example of how one may examine the parameters set on a remote scanner.
+#<if>
+#
+# <condition type : "and">
+#  <custom_item>
+#   type		: FILE_CHECK
+#   description	: "Config file exists."
+#   value_type	: POLICY_TEXT
+#   value_data	: "C:\Program Files\Tenable\Nessus\conf\nessusd.conf"
+#   file_option	: MUST_EXIST
+#  </custom_item>
+# </condition>
+#
+# <then>
+## This Max Hosts check will ensure the value is set to exactly 15.
+## Use only one of these or you may get duplicate, conflicting reports.
+#  <custom_item>
+#   type		: FILE_CONTENT_CHECK
+#   description	: "Max Hosts = 15"
+#   value_type	: POLICY_TEXT
+#   value_data	: "C:\Program Files\Tenable\Nessus\conf\nessusd.conf"
+#   expect		: "max_hosts"
+#   regex		: "^[^#]*max_hosts *= *15.$"
+#   info		: "Ensures that Nessus is set to examine only 15 hosts at a time."
+#  </custom_item>
+#
+## Alternately this Max Hosts check can be used instead of the above, which will check for
+## any value from 1 to 15 inclusive.
+#  <custom_item>
+#   type		: FILE_CONTENT_CHECK
+#   description	: "Max Hosts = 15"
+#   value_type	: POLICY_TEXT
+#   value_data	: "C:\Program Files\Tenable\Nessus\conf\nessusd.conf"
+#   expect		: "max_hosts"
+#   regex		: "^[^#]*max_hosts *= *([1-9]|1[0-5]).$"
+#   info		: "Ensures that Nessus is set to examine 15 or less hosts at a time."
+#  </custom_item>
+# </then>
+#
+#</if>
+
+</group_policy>
+</check_type>

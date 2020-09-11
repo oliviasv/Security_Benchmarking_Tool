@@ -1,0 +1,398 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.21 $
+# $Date: 2020/04/17 $
+#
+# Description : This .audit examines security configurations found on HP ProCurve Switches, which are based
+# 				upon the recommendations found in the following HP white paper:
+# 			http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf
+#
+# Note		  : Some queries in this .audit require site-specific data to be
+# 			known to the query in order to function properly.  Please note
+# 			the following queries and edit their values accordingly.
+#
+# 			HP ProCurve - 'Secure Management VLAN is configured'
+# 			HP ProCurve - 'RADIUS Authentication is configured'
+# 			HP ProCurve - 'TACACS Authentication is configured'
+#
+# # Insecure Protocols and Secure Alternatives
+# Telnet vs. Secure Shell
+#
+#<ui_metadata>
+#<display_name>TNS HP ProCurve Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>HP ProCurve Best Practices</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>hpprocurve,tenable,procurve</labels>
+#<variables>
+#  <variable>
+#    <name>MANAGEMENT_NETWORK</name>
+#    <default>192\.168\.1\.0 255\.255\.255\.0</default>
+#    <description>Management network</description>
+#    <info>The network IP address and network mask allowed to access the management port of the switch.</info>
+#  </variable>
+#  <variable>
+#    <name>MANAGEMENT_NETWORK_ACCESS</name>
+#    <default>operator</default>
+#    <description>Management network access</description>
+#    <info>The level of access granted to connections from the allowed management network. Valid values are operator or manager.</info>
+#  </variable>
+#  <variable>
+#    <name>RADIUS_AUTH_INTERFACES</name>
+#    <default>(console|telnet|ssh|web)</default>
+#    <description>RADIUS authenticated interfaces</description>
+#    <info>The interface or list of interfaces that are authenticated by RADIUS. Valid values are console, telnet, ssh, and web.</info>
+#  </variable>
+#  <variable>
+#    <name>RADIUS_AUTH_LEVEL</name>
+#    <default>(login|enable)</default>
+#    <description>RADIUS authentication level</description>
+#    <info>The level of access RADIUS authentication grants. Valid values are login or enable.</info>
+#  </variable>
+#  <variable>
+#    <name>TACACS_AUTH_INTERFACES</name>
+#    <default>(console|telnet|ssh|web)</default>
+#    <description>TACACS+ authenticated interfaces</description>
+#    <info>The interface or list of interfaces that are authenticated by TACACS+. Valid values are console, telnet, ssh, and web.</info>
+#  </variable>
+#  <variable>
+#    <name>TACACS_AUTH_LEVEL</name>
+#    <default>(login|enable)</default>
+#    <description>TACACS+ authentication level</description>
+#    <info>The level of access TACACS+ authentication grants. Valid values are login or enable.</info>
+#  </variable>
+#  <variable>
+#    <name>AAA_AUTH_ATTEMPTS</name>
+#    <default>3</default>
+#    <description>AAA authentication attempts</description>
+#    <info>The number of authentication attempts allowed before access is denied. Valid values are 1 to 10.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"HPProCurve">
+
+<custom_item>
+  type        : CONFIG_CHECK_NOT
+  description : "HP ProCurve - 'Enable SSH'"
+  info        : "SSH uses asymmetric authentication to exchange keys and create a secure encrypted session.
+
+  It is recommended that you use Secure Shell (SSH) instead of Telnet."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "Make sure SSH is enabled. Follow these steps\n
+
+ ProCurve Switch(config)# crypto key generate ssh\n
+
+ ProCurve Switch(config)# ip ssh\n
+
+ ProCurve Switch(config)# no telnet-server\n"
+  item        : "no ssh"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Disable Telnet'"
+  info        : "It is recommended that you use Secure Shell (SSH) instead of Telnet.
+
+  Telnet is insecure by nature as it sends all traffic across the wire in clear text."
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to disable Telnet is as follows\n
+
+ ProCurve Switch(config)# no telnet-server\n"
+  item        : "no telnet-server"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+</custom_item>
+
+# HTTP vs. HTTPS
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Enable HTTPS'"
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled.
+
+  HTTPS is HTTP traffic running over a Secure Sockets Layer (SSL)."
+  reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to enable HTTPS is as follows\n
+
+ ProCurve Switch(config)# crypto key generate cert <key_size>\n
+
+ ProCurve Switch(config)# web-management ssl\n"
+  item        : "web-management ssl"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Disable HTTP'"
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled.
+
+  The HTTP interface that is started by default has the same limitations as Telnet."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to disable HTTP is as follows\n
+
+ ProCurve Switch(config)# no web-management plaintext\n"
+  item        : "no web-management"
+</custom_item>
+
+# TFTP vs. SFTP and SCP
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Enable SFTP'"
+  info        : "Secure File Transfer Protocol (SFTP) and Secure Copy Protocol (SCP) are part of the SSH protocol suite.
+
+  They provide an encrypted session using public/private keys between client and server."
+  reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to enable SFTP is as follows\n
+
+ ProCurve Switch(config)# crypto key generate ssh\n
+
+ ProCurve Switch(config)# ip ssh filetransfer\n"
+  item        : "ip ssh filetransfer"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Disable TFTP client'"
+  info        : "TFTP client and server should be disabled as they do not require any authentication.
+
+  Secure File Transfer Protocol (SFTP) and Secure Copy Protocol (SCP) are part of the SSH protocol suite."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to disable TFTP client is as follows\n
+
+ ProCurve Switch(config)# no tftp client\n"
+  item        : "no tftp client"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Disable TFTP server'"
+  info        : "TFTP client and server should be disabled as they do not require any authentication.
+
+  Secure File Transfer Protocol (SFTP) and Secure Copy Protocol (SCP) are part of the SSH protocol suite."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to disable TFTP server is as follows\n
+
+ ProCurve Switch(config)# no tftp server\n"
+  item        : "no tftp server"
+</custom_item>
+
+# SNMPv1/2c vs. SNMPv3
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Enable SNMPv3'"
+  info        : "SNMP version 3 was developed to overcome the weaknesses of SNMPv2.
+
+  SNMPv3 uses asymmetric cryptography to encrypt SNMP traffic over the wire."
+  reference   : "800-171|3.14.1,800-171|3.4.2,800-53|CM-6,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.10.6(d),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSCv6|3.1,CSF|ID.RA-1,CSF|PR.IP-1,CSF|PR.IP-12,ITSG-33|CM-6,ITSG-33|SI-2,NESA|T3.2.1,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.2,SWIFT-CSCv1|2.3"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to enable SNMPv3 is as follows\n
+
+ ProCurve Switch(config)# snmpv3 enable\n"
+  item        : "snmpv3 enable"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Disable SNMPv2'"
+  info        : "SNMPv2 uses community names for read and write access which are sent across the wire in clear text.
+
+  SNMP version 3 was developed to overcome the weaknesses of SNMPv2."
+  reference   : "800-171|3.14.1,800-171|3.4.2,800-53|CM-6,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.10.6(d),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSCv6|3.1,CSF|ID.RA-1,CSF|PR.IP-1,CSF|PR.IP-12,ITSG-33|CM-6,ITSG-33|SI-2,NESA|T3.2.1,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.2,SWIFT-CSCv1|2.3"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to disable SNMPv2 is as follows\n
+
+ ProCurve Switch(config)# snmpv3 only\n"
+  item        : "snmpv3 only"
+</custom_item>
+
+# IP Stack Management
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Disable IP Stack Management'"
+  info        : "It is advisable to disable IP Stack Management to prevent potential hijacking of the switch.
+
+  IP Stack Management allows ProCurve stackable devices to be managed as a group using a single IP address."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to disable IP Stack Management is as follows\n
+
+ ProCurve Switch(config)# no stack\n"
+  item        : "no stack"
+</custom_item>
+
+## Access Control
+# Secure Management VLAN
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Configure Management VLAN'"
+  info        : "Secure Management VLANs are designed to restrict management access to the switch to only those nodes connected to the Management VLAN."
+  reference   : "800-171|3.13.1,800-53|AC-2,800-53|SC-7,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7,PCI-DSS|2.2.3,SANS-CSC|10"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to configure Management VLAN is as follows\n
+
+ ProCurve Switch(config)# management-vlan <vid | vlan-name>\n"
+  item        : "^management-vlan.*"
+</custom_item>
+
+### Authorized IP Managers
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Secure Management VLAN is enabled'"
+  info        : "In cases where configuring a Secure Management VLAN is too restrictive, it is possible to identify up to 10 IP addresses or address groups that are allowed management access to the switch via the network."
+  reference   : "800-171|3.13.1,800-53|AC-2,800-53|CM-2,800-53|CM-6,800-53|SC-7,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7,PCI-DSS|2.2.3,SANS-CSC|10"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to configure the management stations is as follows\n
+
+ ProCurve Switch(config)# ip authorized-manager <IP address> mask <mask bits> <operator | manager>\n"
+  item        : "^ip authorized-managers.*"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Secure Management VLAN is configured'"
+  info        : "In cases where configuring a Secure Management VLAN is too restrictive, it is possible to identify up to 10 IP addresses or address groups that are allowed management access to the switch via the network.
+
+  Once configured, only those addresses identified will be granted access to the switch over the network.
+
+  Update MANAGEMENT_NETWORK and MANAGEMENT_NETWORK_ACCESS with the appropriate values for the local environment"
+  reference   : "800-171|3.13.1,800-53|AC-2,800-53|CM-2,800-53|CM-6,800-53|SC-7,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7,PCI-DSS|2.2.3,SANS-CSC|10"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to configure the management stations is as follows\n
+
+ ProCurve Switch(config)# ip authorized-manager <IP address> mask <mask bits> <operator | manager>\n"
+# Note: Variable @MANAGEMENT_NETWORK@ replaced with "192\\.168\\.1\\.0 255\\.255\\.255\\.0" in field "item".
+# Note: Variable @MANAGEMENT_NETWORK_ACCESS@ replaced with "operator" in field "item".
+  item        : "^ip authorized-managers 192\\.168\\.1\\.0 255\\.255\\.255\\.0 access operator"
+</custom_item>
+
+# Authentication
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Configure login attempts'"
+  info        : "The default number of login attempts is '3,' meaning the user has three chances to successfully supply access credentials.
+
+  Once this limit is reached the user must re-initiate a login.
+
+  Update AAA_AUTH_ATTEMPTS with the appropriate value for the local environment"
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),CSCv6|16.7,ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,PCI-DSS|2.2.3,SANS-CSC|10,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to configure login attempts is as follows\n
+
+ ProCurve Switch(config)# aaa authentication num-attempts <1-10>\n"
+# Note: Variable @AAA_AUTH_ATTEMPTS@ replaced with "3" in field "item".
+  item        : "aaa authentication num-attempts 3"
+</custom_item>
+
+# RADIUS Authentication and TACACS Authentication
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "HP ProCurve - 'RADIUS Authentication is configured'"
+# Note: Variable @RADIUS_AUTH_INTERFACES@ replaced with "(console|telnet|ssh|web)" in field "item".
+# Note: Variable @RADIUS_AUTH_LEVEL@ replaced with "(login|enable)" in field "item".
+      item        : "aaa authentication (console|telnet|ssh|web) (login|enable) radius local"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "HP ProCurve - 'TACACS Authentication is configured'"
+# Note: Variable @TACACS_AUTH_INTERFACES@ replaced with "(console|telnet|ssh|web)" in field "item".
+# Note: Variable @TACACS_AUTH_LEVEL@ replaced with "(login|enable)" in field "item".
+      item        : "aaa authentication (console|telnet|ssh|web) (login|enable) tacacs local"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "HP ProCurve - 'RADIUS or TACACS Authentication is configured'"
+      info        : "This allows the administrator to make modifications to the set of authorized users without having to make changes"
+      see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+    </report>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "HP ProCurve - 'RADIUS or TACACS Authentication is configured'"
+      info        : "This allows the administrator to make modifications to the set of authorized users without having to make changes"
+      see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+      solution    : "The command to configure RADIUS Authentication is as follows\n
+
+   ProCurve Switch (config)# aaa authentication <console|telnet|ssh|web> <enable|login> radius local\n"
+    </report>
+  </else>
+</if>
+
+# Server-Supplied Privilege Level
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Privilege mode is configured'"
+  info        : "Login privilege level instructs the switch to accept the authenticating users command level that is supplied by the server.
+
+  This allows manager-level users to skip the login context and proceed immediately to enable context thus eliminating the need for a manager-level user to login twice"
+  reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,PCI-DSS|2.2.3,SANS-CSC|10,TBA-FIISB|35.1,TBA-FIISB|36.1"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to configure RADIUS Authentication is as follows\n
+
+ ProCurve Switch(config)# aaa authentication login privilege-mode\n"
+  item        : "aaa authentication login privilege-mode"
+</custom_item>
+
+## Attack Prevention
+# Dynamic ARP Protection
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Enable DHCP snooping'"
+  info        : "ARP Protection authenticates IP to MAC bindings stored from a lease maintained by DHCP Snooping.
+
+  Enabling ARP protection without first configuring DHCP Snooping and/or static bindings will cause all ARP packets to be dropped"
+  reference   : "800-171|3.13.1,800-171|3.13.5,800-53|SC-7,CN-L3|8.1.10.6(j),CSF|DE.CM-1,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,ISO/IEC-27001|A.13.1.3,ITSG-33|SC-7,NESA|T4.5.4,NIAv2|GS1,NIAv2|GS2a,NIAv2|GS2b,PCI-DSS|2.2.3,SANS-CSC|10,TBA-FIISB|43.1"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to configure DHCP snooping is as follows\n
+
+ ProCurve Switch(config)# dhcp-snooping\n"
+  item        : "dhcp-snooping"
+</custom_item>
+
+<custom_item>
+  type        : CONFIG_CHECK
+  description : "HP ProCurve - 'Enable ARP protection'"
+  info        : "Address Resolution Protocol (ARP) allows hosts to communicate over the network by creating an IP to MAC address mapping used in the transmission of packets.
+
+  Dynamic ARP Protection works by intercepting ARP packets and verifying their authenticity before forwarding them"
+  reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,PCI-DSS|2.2.3,SANS-CSC|10"
+  see_also    : "http://www.hp.com/rnd/pdfs/Hardening_ProCurve_Switches_White_Paper.pdf"
+  solution    : "The command to configure ARP protection is as follows\n
+
+ ProCurve Switch(config)# arp-protect\n"
+  item        : "arp-protect"
+</custom_item>
+
+</check_type>

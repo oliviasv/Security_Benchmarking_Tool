@@ -1,0 +1,1539 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/07/26 $
+#
+# Description   : This .audit is designed to review the configuration of a F5 BIG-IP device
+#               and validate its settings against a comprehensive list of relevant best
+#               practice settings.
+#
+#<ui_metadata>
+#<display_name>Tenable F5 BIG-IP Best Practice Audit</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Tenable F5 BIG-IP Best Practice Audit</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>tns,f5,f5_big-ip,tenable</labels>
+#<variables>
+#  <variable>
+#    <name>MINIMUM_LENGTH</name>
+#    <default>(1[2-9]|[2-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])</default>
+#    <description>Specifies the minimum number of characters required for a password.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Minimum Length</info>
+#  </variable>
+#  <variable>
+#    <name>REQUIRED_NUMERIC</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])</default>
+#    <description>Specifies the number of numeric characters required for a password.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Required Numeric Characters</info>
+#  </variable>
+#  <variable>
+#    <name>REQUIRED_UPPERCASE</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])</default>
+#    <description>Specifies the number of uppercase characters required for a password.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Required Uppercase Characters</info>
+#  </variable>
+#  <variable>
+#    <name>REQUIRED_LOWERCASE</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])</default>
+#    <description>Specifies the number of lowercase characters required for a password.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Required Lowercase Characters</info>
+#  </variable>
+#  <variable>
+#    <name>REQUIRED_SPECIAL</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])</default>
+#    <description>Specifies the number of special characters required for a password.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Required Special Characters</info>
+#  </variable>
+#  <variable>
+#    <name>PASSWORD_MEMORY</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])</default>
+#    <description>Specifies the number of former passwords that the system retains.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Password Memory</info>
+#  </variable>
+#  <variable>
+#    <name>MINIMUM_DURATION</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])</default>
+#    <description>Specifies the minimum number of days before users change their password.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Minimum Duration</info>
+#  </variable>
+#  <variable>
+#    <name>MAXIMUM_DURATION</name>
+#    <default>30</default>
+#    <description>Specifies the maximum number of days that users' passwords are valid.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Maximum Duration</info>
+#  </variable>
+#  <variable>
+#    <name>EXPIRATION_WARNING</name>
+#    <default>7</default>
+#    <description>Specifies the number of days prior to password expiration.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Expiration Warning</info>
+#  </variable>
+#  <variable>
+#    <name>LOGIN_FAILURES</name>
+#    <default>3</default>
+#    <description>Specifies the number of consecutive unsuccessful login attempts.</description>
+#    <info>Configuring a secure password policy for the BIG-IP system - Maximum Login Failures</info>
+#  </variable>
+#  <variable>
+#    <name>IDLE_TIMEOUT</name>
+#    <default>([1-9]|[1-9][0-9]|[1-5][0-9]{2}|600)</default>
+#    <description>Number of seconds an administrative session should remain idle.</description>
+#    <info>Configuring an automatic logout for idle sessions - Configuration utility</info>
+#  </variable>
+#  <variable>
+#    <name>SSH_TIMEOUT</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|[1-5][0-9]{2}|600)</default>
+#    <description>Number of seconds a SSH session should remain idle.</description>
+#    <info>Configuring an automatic logout for idle sessions - SSH</info>
+#  </variable>
+#  <variable>
+#    <name>CONSOLE_TIMEOUT</name>
+#    <default>([1-9]|[1-8][0-9]|9[0-9]|[1-5][0-9]{2}|600)</default>
+#    <description>Number of seconds a Console session should remain idle.</description>
+#    <info>Configuring an automatic logout for idle sessions - Console Sessions</info>
+#  </variable>
+#  <variable>
+#    <name>TMSH_TIMEOUT</name>
+#    <default>15</default>
+#    <description>The TMSH idle timeout configuration uses minutes for the timeout value.</description>
+#    <info>Configuring an automatic logout for idle sessions - TMSH</info>
+#  </variable>
+#  <variable>
+#    <name>BANNER_TEXT</name>
+#    <default>I've read & consent to terms in IS user agreem't\.</default>
+#    <description>Security Banner Text</description>
+#    <info>Configuring a pre-login or post-login message banner for the BIG-IP or Enterprise Manager system - Banner Text</info>
+#  </variable>
+#  <variable>
+#    <name>TCP_PROFILE_NAME</name>
+#    <default>TCP</default>
+#    <description>The TCP profile name associated with mitigating SLOWRead attacks.</description>
+#    <info>Mitigating an attack using TCP profiles</info>
+#  </variable>
+#  <variable>
+#    <name>HTTP_PROFILE_NAME</name>
+#    <default>HTTP</default>
+#    <description>The HTTP profile name associated with configuring cookie encryption.</description>
+#    <info>Configuring cookie encryption within the HTTP profile</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"F5">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      description    : "Verify the target returns expected F5 data"
+      f5_command     : "/tm/sys/software/volume"
+      json_transform : ".items[] | .product"
+      expect         : "^BIG-IP$"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "Tenable_Best_Practices_F5_BIG-IP_v1.0.0.audit from K53108777: Hardening your F5 system"
+      see_also    : "https://support.f5.com/csp/article/K53108777#link_01"
+    </report>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Secure Password Enforcement"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Secure Password Enforcement setting and configure it to meet your needs.
+         For example, if you want to enable character restrictions, select Enabled in the Secure Password Enforcement list. This extends the setting for the Minimum Length and Required Characters on the configuration page.
+         Retain or change the values for these settings as required.
+      4. Select Update."
+      reference      : "800-171|3.5.2,800-53|IA-5,CSF|PR.AC-1,ITSG-33|IA-5,NESA|T5.2.3"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".policyEnforcement"
+      expect         : "^enabled$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Minimum Length"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Minimum Length setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".minimumLength"
+      regex          : "[0-9]+"
+# Note: Variable @MINIMUM_LENGTH@ replaced with "(1[2-9]|[2-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])" in field "expect".
+      expect         : "(1[2-9]|[2-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Required Numeric Characters"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Required Characters - Numeric setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".requiredNumeric"
+      regex          : "[0-9]+"
+# Note: Variable @REQUIRED_NUMERIC@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])" in field "expect".
+      expect         : "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Required Uppercase Characters"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Required Characters - Uppercase setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".requiredUppercase"
+      regex          : "[0-9]+"
+# Note: Variable @REQUIRED_UPPERCASE@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])" in field "expect".
+      expect         : "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Required Lowercase Characters"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Required Characters - Lowercase setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".requiredLowercase"
+      regex          : "[0-9]+"
+# Note: Variable @REQUIRED_LOWERCASE@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])" in field "expect".
+      expect         : "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Required Special Characters"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Required Characters - Other setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".requiredSpecial"
+      regex          : "[0-9]+"
+# Note: Variable @REQUIRED_SPECIAL@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])" in field "expect".
+      expect         : "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Password Memory"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Password Memory setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-171|3.5.8,800-53|IA-5(1),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM22c,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.3"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".passwordMemory"
+      regex          : "[0-9]+"
+# Note: Variable @PASSWORD_MEMORY@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])" in field "expect".
+      expect         : "([1-9]|[1-8][0-9]|9[0-9]|1[01][0-9]|12[0-7])"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Minimum Duration"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Minimum Duration setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".minDuration"
+      regex          : "[0-9]+"
+# Note: Variable @MINIMUM_DURATION@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])" in field "expect".
+      expect         : "([1-9]|[1-8][0-9]|9[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Maximum Duration"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Maximum Duration setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".maxDuration"
+      regex          : "[0-9]+"
+# Note: Variable @MAXIMUM_DURATION@ replaced with "30" in field "expect".
+      expect         : "30"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Expiration Warning"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Expiration Warning setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".expirationWarning"
+      regex          : "[0-9]+"
+# Note: Variable @EXPIRATION_WARNING@ replaced with "7" in field "expect".
+      expect         : "7"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a secure password policy for the BIG-IP system - Maximum Login Failures"
+      info           : "You have the option to create a security policy for generating passwords for local BIG-IP system user accounts. A secure password policy ensures that BIG-IP system users who have local user accounts create and maintain passwords that are as secure as possible. The secure password policy feature includes two distinct types of password restrictions:
+
+ - Enforcement restrictions are character restrictions that you can enable or disable. They consist of the minimum password length and the required character types (numeric, uppercase, lowercase, and other kinds of characters). When you enable them, the system applies enforcement restrictions to all user accounts.
+ - Policy restrictions represent the minimum and maximum lengths of time that passwords can be active. This type of policy restriction also includes values for the number of days prior to password expiration on which the system warns users and the number of previous passwords that the BIG-IP system stores to prevent users from reusing former passwords. When you configure policy restrictions using the Configuration utility, policy restrictions apply to all user accounts. These restrictions are always enabled, although the default values provide a minimal amount of restriction.
+   The secure password policy feature affects passwords for the BIG-IP system's local user accounts only. Passwords for remotely stored user accounts are not subject to this local password policy but may be subject to a remote system's separate password policy.
+
+Note: You can configure only one user authentication scheme for the system. When you select a remote authentication source, the page displays relevant configuration options."
+      solution       : "To use the Configuration utility to configure the password policy for BIG-IP local user accounts, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Go to System > Users > Authentication.
+      3. Under Password Policy, locate the Maximum Login Failures setting and configure it to meet your needs.
+      4. Select Update."
+      reference      : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/password-policy"
+      json_transform : ".maxLoginFailures"
+      regex          : "[0-9]+"
+# Note: Variable @LOGIN_FAILURES@ replaced with "3" in field "expect".
+      expect         : "3"
+    </custom_item>
+
+    <custom_item>
+      description    : "Disabling the admin account"
+      info           : "Beginning in BIG-IP 11.6.0, it is possible to disable and replace the admin and root accounts with alternative logins using the Configuration utility or TMOS Shell (tmsh)."
+      solution       : "Before you disable the admin login, you must also create a new administrative user account. To accomplish both tasks, perform the following procedure:
+      1. Log in to the Configuration utility as the administrative user.
+      2. Navigate to System > Users.
+      3. To create a new user, click .
+      4. Enter a username, password, and user role of Administrator.
+      5. Click Finished.
+      6. Navigate to System > Platform.
+      7. Under the Admin Account section, select the Disable default admin, use alternate check box.
+      Note: If you have not created an alternate administrative account, this option will not appear.
+      8.From the menu that appears, select the newly created administrator role user account.
+      9. Enter the new password for the selected user.
+      10. Click Update."
+      reference      : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NESA|M4.4.3,NESA|T5.2.1,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14d,NIAv2|SS14e"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="systemauth.primaryadminuser") |  .]'
+      regex          : '"value" :'
+      not_expect     : "admin"
+    </custom_item>
+
+    <custom_item>
+      description    : "Disabling the root shell login account"
+      info           : "Beginning in BIG-IP 11.6.0, it is possible to disable and replace the admin and root accounts with alternative logins using the Configuration utility or TMOS Shell (tmsh)."
+      solution       : "To disable the root shell login account, perform the following procedure:
+      1. Log in to the Configuration utility as the administrative user.
+      2. Navigate to System > Platform.
+      3. Under Root Account, select the Disable login check box.
+      4. Click Update."
+      reference      : "800-171|3.1.15,800-171|3.1.2,800-53|AC-17(4),CAT|II,CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(4),Rule-ID|SV-106833r1_rule,STIG-ID|F5BI-DM-000284,SWIFT-CSCv1|5.1,Vuln-ID|V-97729"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="systemauth.disablerootlogin") |  .]'
+      regex          : '"value" :'
+      expect         : "true"
+    </custom_item>
+
+    <custom_item>
+      description    : "Restricting access to the Configuration utility by source IP address"
+      info           : "The Configuration utility provides the graphical user interface to manage the BIG-IP system. Depending on your organizational security requirements, one method to secure access to the Configuration utility is to allow only trusted IP addresses or range of IP addresses.
+
+By default, the current list allows all IP addresses to connect to the Configuration utility. If you are adding an IP address or range of IP addresses to the current list the first time, you should perform the Replacing the current allowed list with a new list procedure."
+      solution       : "To add an IP address or range of IP addresses to the current list of hosts that are allowed to access the Configuration utility, perform the following procedure:
+      1. Log in to the TMOS Shell (tmsh) by typing the following command:
+tmsh
+
+      2. To add an IP address or range of IP addresses to the current allowed list of hosts, type the following command:
+modify /sys httpd allow add { <IP address or IP address range> }
+
+For example, to add 172.28.31.140 and 172.28.65.150 to the current list, you would type the following command:
+
+modify /sys httpd allow add { 172.28.31.140 172.28.65.150 }
+
+      3.To add the subnet 172.28.31.0/255.255.255.0 to the current list, you would type the following command:
+
+modify /sys httpd allow add { 172.28.31.0/255.255.255.0 }
+
+      4. To list the IP addresses of the current allowed hosts, type the following command:
+list /sys httpd allow
+
+      5. Save the change by typing the following command:
+save /sys config"
+      reference      : "800-171|3.13.1,800-53|SC-7(11),CAT|I,CCI|CCI-002385,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),NESA|T5.5.1,NIAv2|GS7c,Rule-ID|SV-74647r1_rule,STIG-ID|F5BI-DM-000239,TBA-FIISB|31.3,Vuln-ID|V-60217"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/httpd"
+      json_transform : ".allow"
+      regex          : ".*"
+      not_expect     : "All"
+    </custom_item>
+
+    <custom_item>
+      description    : "Specifying allowable IP ranges for SSH access"
+      info           : "You can update the SSH access list from both the Configuration utility and the command line."
+      solution       : "1. Log in to the Configuration utility.
+      2. Go to System > Platform.
+      3. For SSH IP Allow, select Specify Range and then enter the IP addresses or address ranges for the remote systems allowed to use SSH to communicate with this system.
+Important: Separate the IP address entries with a space. If you separate the IP addresses with a comma, a non-working entry is added to the /etc/hosts.allow file which potentially prevents you from reconnecting to the network through SSH.
+
+For example, to restrict access to only systems on the 192.168.0.0 network, and host 10.10.10.1, enter the IP addresses in the following format:
+
+192.168.*.* 10.10.10.1
+
+      4. Select Update."
+      reference      : "800-171|3.1.15,800-171|3.1.2,800-53|AC-17(4),CAT|I,CCI|CCI-002385,CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(4),NESA|T5.5.1,Rule-ID|SV-74647r1_rule,STIG-ID|F5BI-DM-000239,SWIFT-CSCv1|5.1,Vuln-ID|V-60217"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/sshd"
+      json_transform : ".allow"
+      regex          : ".*"
+      not_expect     : "All"
+    </custom_item>
+
+    <custom_item>
+      description    : "Settings to Lock Down your BIG-IP - Remote Role"
+      info           : "Next, if you haven't done this already, configure the BIG-IP for remote authentication against, say, the enterprise Active Directory repository. Make this happen from the System > Users > Authentication screen and ensure that the default role is Application Editor or less.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "1. Log in to the Configuration utility as the administrative user.
+      2. Navigate to System > Users > Remote Role Groups.
+      3. Select Group Name and edit Assigned Role.
+      4. Click Update.
+
+      You can use the /auth remote-role command to provide somewhat granular authorization to each user group.
+
+(tmos)# help /auth remote-role"
+      reference      : "800-171|3.5.1,800-53|IA-2,CAT|II,CCI|CCI-001813,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.4,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,Rule-ID|SV-74639r1_rule,STIG-ID|F5BI-DM-000213,SWIFT-CSCv1|5.1,TBA-FIISB|35.1,TBA-FIISB|36.1,Vuln-ID|V-60209"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/remote-role/role-info"
+      json_transform : ".items"
+      regex          : "\\"role\\" :"
+      expect         : ".*"
+      severity       : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description    : "Settings to Lock Down your BIG-IP - Admin Terminal Access"
+      info           : "Ensure that the oft-forgotten 'admin' user has no terminal access."
+      solution       : "(tmos)# modify /sys auth user admin shell none
+(tmos)# save /sys config"
+      reference      : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-001813,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.4,ITSG-33|CM-7,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-74639r1_rule,STIG-ID|F5BI-DM-000213,SWIFT-CSCv1|2.3,Vuln-ID|V-60209"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/user"
+      json_transform : ".items[] | \"Username: \(.name) - Shell: \(.shell)\""
+      regex          : ".*"
+      expect         : "Username: admin - Shell: null"
+    </custom_item>
+
+    <custom_item>
+      description    : "Overview of port lockdown behavior"
+      info           : "The port lockdown feature allows you to secure the BIG-IP system from unwanted connection attempts by controlling the level of access to each self IP address defined on the system.
+  Each port lockdown list setting, defined later in this document, specifies the protocols and services from which a self IP can accept connections. The system refuses traffic and connections made to a service or protocol port that is not on the list."
+      solution       : "1. Log in to the Configuration utility.
+  2. Go to Network > Self IPs.
+  3. Select the relevant self IP address.
+  4. For Port Lockdown, choose the setting you want to use.
+  5. Select Update."
+      reference      : "800-171|3.13.1,800-53|SC-7(14),CAT|II,CCI|CCI-001813,CN-L3|8.1.3.1(b),CN-L3|8.1.3.1(c),CSF|PR.DS-5,CSF|PR.PT-4,ISO/IEC-27001|A.9.4.4,ITSG-33|SC-7(14),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|CS1,NIAv2|CS2,NIAv2|CS3,NIAv2|NS5b,NIAv2|PH6,Rule-ID|SV-74639r1_rule,STIG-ID|F5BI-DM-000213,SWIFT-CSCv1|2.1,Vuln-ID|V-60209"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/net/self"
+      json_transform : ".items[] | \"Name: \(.name) - Port Lockdown: \(.allowService) \""
+      regex          : "Port Lockdown: .+"
+      expect         : "null"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring an automatic logout for idle sessions - Configuration utility"
+      info           : "A session lock is a temporary network device- or administrator-initiated action taken when the administrator stops work but does not log out of the network device. Rather than relying on the user to manually lock their management session prior to vacating the vicinity, network devices need to be able to identify when a management session has idled and take action to initiate the session lock. Once invoked, the session lock shall remain in place until the administrator re-authenticates. No other system activity aside from re-authentication shall unlock the management session."
+      solution       : "To automatically log out inactive Configuration utility sessions after a specified idle time, perform the following procedure:
+
+      1. Log in to the Configuration utility.
+      2. Click System.
+      3. Click Preferences.
+      4. For Security Settings, enter an appropriate value for the Idle time before automatic logout setting."
+      reference      : "800-171|3.1.11,800-53|AC-12,CAT|II,CCI|CCI-000057,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49,Rule-ID|SV-74523r2_rule,STIG-ID|F5BI-DM-000007,Vuln-ID|V-60093"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/httpd"
+      json_transform : "\"Configuration Utility Timeout: \(.authPamIdleTimeout)\""
+      regex          : "Configuration Utility Timeout:[\s]*"
+# Note: Variable @IDLE_TIMEOUT@ replaced with "([1-9]|[1-9][0-9]|[1-5][0-9]{2}|600)" in field "expect".
+      expect         : "^Configuration Utility Timeout:[\s]*([1-9]|[1-9][0-9]|[1-5][0-9]{2}|600)$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring an automatic logout for idle sessions - SSH"
+      info           : "A session lock is a temporary network device- or administrator-initiated action taken when the administrator stops work but does not log out of the SSH session. Rather than relying on the user to manually lock their management session prior to vacating the vicinity, network devices need to be able to identify when a management session has idled and take action to initiate the session lock. Once invoked, the session lock shall remain in place until the administrator re-authenticates. No other system activity aside from re-authentication shall unlock the management session."
+      solution       : "1. Log in to tmsh by typing the following command:
+
+  tmsh
+
+  2. To configure an automatic logout idle time for SSH sessions, use the following command syntax:
+
+  modify /sys sshd inactivity-timeout <seconds>
+
+  3. For example, to configure a 15-minute automatic logout idle time, type the following command:
+
+  modify /sys sshd inactivity-timeout 900
+
+  4. Save the change by typing the following command:
+
+  save /sys config"
+      reference      : "800-171|3.1.11,800-53|AC-12,CAT|II,CCI|CCI-000057,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49,Rule-ID|SV-74523r2_rule,STIG-ID|F5BI-DM-000007,Vuln-ID|V-60093"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/sshd"
+      json_transform : "\"SSH Idle Timeout: \(.inactivityTimeout)\""
+      regex          : "SSH Idle Timeout:[\s]*"
+# Note: Variable @SSH_TIMEOUT@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|[1-5][0-9]{2}|600)" in field "expect".
+      expect         : "^SSH Idle Timeout:[\s]*([1-9]|[1-8][0-9]|9[0-9]|[1-5][0-9]{2}|600)$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring an automatic logout for idle sessions - Console Sessions"
+      info           : "A session lock is a temporary network device- or administrator-initiated action taken when the administrator stops work but does not log out of the console session. Rather than relying on the user to manually lock their management session prior to vacating the vicinity, network devices need to be able to identify when a management session has idled and take action to initiate the session lock. Once invoked, the session lock shall remain in place until the administrator re-authenticates. No other system activity aside from re-authentication shall unlock the management session."
+      solution       : "To configure an automatic logout for serial console idle sessions, perform the following procedure:
+
+  1. Log in to tmsh by typing the following command:
+  tmsh
+
+  2. To configure an automatic logout idle time for serial console sessions, use the following command syntax:
+  modify /sys global-settings console-inactivity-timeout <seconds>
+
+  For example, to configure a 15 minute automatic logout idle time, type the following command:
+
+  modify /sys global-settings console-inactivity-timeout 900
+
+  3. Save the change by typing the following command:
+  save /sys config"
+      reference      : "800-171|3.1.11,800-53|AC-12,CAT|II,CCI|CCI-000057,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49,Rule-ID|SV-74523r2_rule,STIG-ID|F5BI-DM-000007,Vuln-ID|V-60093"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/global-settings"
+      json_transform : "\"Console Idle Timeout: \(.consoleInactivityTimeout)\""
+      regex          : "Console Idle Timeout:[\s]*"
+# Note: Variable @CONSOLE_TIMEOUT@ replaced with "([1-9]|[1-8][0-9]|9[0-9]|[1-5][0-9]{2}|600)" in field "expect".
+      expect         : "^Console Idle Timeout:[\s]*([1-9]|[1-8][0-9]|9[0-9]|[1-5][0-9]{2}|600)$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring an automatic logout for idle sessions - TMSH"
+      info           : "A session lock is a temporary network device- or administrator-initiated action taken when the administrator stops work but does not log out of the network device. Rather than relying on the user to manually lock their management session prior to vacating the vicinity, network devices need to be able to identify when a management session has idled and take action to initiate the session lock. Once invoked, the session lock shall remain in place until the administrator re-authenticates. No other system activity aside from re-authentication shall unlock the management session."
+      solution       : "To configure an automatic logout for tmsh idle sessions, perform the following procedure:
+
+      1. Log in to tmsh by typing the following command:
+      tmsh
+
+      2. To configure an automatic logout idle time for tmsh sessions, use the following command syntax:
+      modify /cli global-settings idle-timeout <minutes>
+
+      3. For example, to configure a 15-minute automatic logout idle time, type the following command:
+      modify /cli global-settings idle-timeout 15
+
+      4. Save the change by typing the following command:
+      save /sys config"
+      reference      : "800-171|3.1.11,800-53|AC-12,CAT|II,CCI|CCI-000057,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49,Rule-ID|SV-74523r2_rule,STIG-ID|F5BI-DM-000007,Vuln-ID|V-60093"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/cli/global-settings"
+      json_transform : "\"TMSH Timeout: \(.idleTimeout)\""
+      regex          : "TMSH Timeout:[\s]*"
+# Note: Variable @TMSH_TIMEOUT@ replaced with "15" in field "expect".
+      expect         : "^TMSH Timeout:[\s]*15$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Mitigating risk from SSH brute force login attacks - Monitor login attempts"
+      info           : "Beginning in BIG-IP 10.2.0, you can view the number of failed login attempts for each user by logging into the BIG-IP Configuration utility and browsing to the Account Security section of the System > Users : User List  <username> screen.
+      The information displayed indicates whether the user failed a sufficient number of login attempts to be locked out of the system. Locked out users must contact the BIG-IP system administrator to have accessibility reinstated.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "1. Log in to the Configuration utility.
+      2. Click System.
+      3. Select Users : User List  <username>.
+      4. Review Failed Logins for each User."
+      reference      : "800-171|3.1.8,800-53|AC-7,CAT|II,CCI|CCI-000057,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,Rule-ID|SV-74523r2_rule,STIG-ID|F5BI-DM-000007,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2,Vuln-ID|V-60093"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/login-failures"
+      json_transform : ".entries[] | \"Userame: \(.nestedStats.entries.username.description) - Login Failures: \(.nestedStats.entries.loginAttempts.value) \""
+      not_expect     : ".*Login Failures: [1-9]\d*"
+      severity       : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a pre-login or post-login message banner for the BIG-IP or Enterprise Manager system - Banner Enabled"
+      info           : "The pre-login message banner sends a message to the remote user who attempts to log in to the system using SSH. The pre-login message banner is useful for enforcing security policy; for example, to inform the remote user all activities are logged."
+      solution       : "1. Log in to the Configuration utility.
+      2. Navigate to System > Configuration > Device
+      3. Click SSHD.
+      4. Enter the desired pre-login message banner in the text box and enable appropriate options.
+      5. To enable this banner message, check the Show The Security Banner On The Login Screen option.
+         To disable this message banner, clear the Show The Security Banner On The Login Screen option.
+      6. Click Update."
+      reference      : "800-171|3.1.9,800-53|AC-8,CAT|III,CCI|CCI-000048,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,Rule-ID|SV-74671r1_rule,STIG-ID|F5BI-DM-000033,TBA-FIISB|45.2.4,Vuln-ID|V-60241"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/sshd"
+      json_transform : ".banner"
+      expect         : "enabled"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring a pre-login or post-login message banner for the BIG-IP or Enterprise Manager system - Banner Text"
+      info           : "The pre-login message banner sends a message to the remote user who attempts to log in to the system using SSH. The pre-login message banner is useful for enforcing security policy; for example, to inform the remote user all activities are logged."
+      solution       : "1. Log in to the Configuration utility.
+      2. Navigate to System > Configuration > Device
+      3. Click SSHD.
+      4. Enter the desired pre-login message banner in the text box and enable appropriate options.
+      5. To enable this banner message, check the Show The Security Banner On The Login Screen option.
+         To disable this message banner, clear the Show The Security Banner On The Login Screen option.
+      6. Click Update."
+      reference      : "800-171|3.1.9,800-53|AC-8,CAT|III,CCI|CCI-000048,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,Rule-ID|SV-74671r1_rule,STIG-ID|F5BI-DM-000033,TBA-FIISB|45.2.4,Vuln-ID|V-60241"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/sshd"
+      json_transform : ".bannerText"
+      regex          : ".*"
+# Note: Variable @BANNER_TEXT@ replaced with "I've read & consent to terms in IS user agreem't\\." in field "expect".
+      expect         : "I've read & consent to terms in IS user agreem't\\."
+    </custom_item>
+
+    <custom_item>
+      description    : "Defining advanced NTP configurations on the BIG-IP system"
+      info           : "NTP is a protocol for synchronizing the clocks of computer systems over the network. On BIG-IP systems, accurate time stamps are essential to guarantee the correct behavior of a number of features.
+  While in most cases it is sufficient to configure a couple of time servers that the BIG-IP system will use to update its system time, it is also possible to define more advanced NTP configurations on the BIG-IP system."
+      solution       : "Secure NTPD to work only as a client using ntp.conf"
+      f5_command     : "/tm/sys/ntp"
+      json_transform : ".servers"
+      regex          : "[0-9.]+"
+      reference      : "800-171|3.3.7,800-53|AU-8(1),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring the BIG-IP system to exclude inode information from Etags"
+      info           : "When connecting to the Configuration utility, responses from the Apache server contain an Etag HTTP header that includes the file's inode information.
+
+For example:
+
+ETag: \"8d74-ced-eeed38c0\"
+
+In this example, 8d74 is the inode of the file printed in hex.
+
+This information is only provided while accessing the management GUI. Therefore, F5 Product Development considers the impact or risk of revealing this information as low.
+
+Some security scanners may detect the system as vulnerable to Apache vulnerability CVE-2003-1418 because the inode information is disclosed. The Apache vulnerability was addressed with the addition of the FileETag httpd setting, which allows the Etag header to be configurable.
+However, the default behavior of the Apache service was not changed. The versions of Apache used by the BIG-IP system support the FileETag httpd setting required to configure the Etag header."
+      solution       : "Customers who need to comply with local security requirements can configure the BIG-IP system to exclude inode information from Etags. To do so, perform the following procedure:
+      1. Log in to tmsh by entering the following command:
+         tmsh
+
+      2. To specify the format to be used for the Etag header, enter the following command:
+         modify /sys httpd include \"FileETag MTime Size\"
+
+      3. Save the configuration change by entering the following command:
+         save /sys config
+
+      4. To restart the httpd service, enter the following command:
+         restart /sys service httpd"
+      reference      : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000054,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,SWIFT-CSCv1|2.3,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/httpd"
+      json_transform : ".include"
+      expect         : "^[\s]*FileETag[\s]*MTime[\s]*Size[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Modifying the list of ciphers and MAC and key exchange algorithms used by the SSH service on the BIG-IP system or BIG-IQ system"
+      info           : "You can configure the SSH service (also known as sshd) to use a desired set of encryption ciphers, KEX algorithms, and MAC algorithms to meet the
+      security policy enforced in your environment. This article discusses how to accomplish this by modifying the SSH service configuration using the TMOS shell (tmsh).
+
+By default, the TMOS sys sshd configuration does not include a specific set of ciphers or MAC algorithms for BIG-IP and BIG-IQ systems. The default sys sshd configuration for BIG-IP 15.0.1 appears similar to the following example:
+
+sys sshd {
+    allow { ALL }
+    banner disabled
+    banner-text none
+    description none
+    fips-cipher-version 0
+    inactivity-timeout 0
+    include none
+    log-level info
+    login enabled
+    port 22
+}
+
+The include statement is the line in the TMOS sys sshd configuration where you can include a list of specific encryption ciphers, KEX algorithms, or MAC algorithms into the /config/ssh/sshd_config configuration file. The keywords Ciphers, KexAlgorithms, and MACs are used with the include statement when you specify a list of desired ciphers, KEX algorithms, or MACs. These override pre-existing keywords in the /config/ssh/sshd_config configuration file."
+      solution       : "1. Log in to tmsh by typing the following command:
+       tmsh
+
+      2. To modify the sshd configuration, type the following command to start the vi editor:
+         edit /sys sshd all-properties
+
+      3. To change the list of ciphers, you can navigate to the line that starts with the include statement, and use the keyword Ciphers to add or modify the list of ciphers for the SSH service.
+      4. Save the changes for the sys sshd configuration and exit the vi editor.
+      5. Respond y to the prompt asking to save the changes.
+      6. To save the configuration to disk, type the following command:
+         save /sys config"
+      reference      : "800-53|AC-10,CAT|II,CCI|CCI-000054,ITSG-33|AC-10,NESA|T5.5.1,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/sshd"
+      json_transform : ".include"
+      regex          : ".*"
+      not_expect     : "^none$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Overview of Appliance mode"
+      info           : "BIG-IP systems have the option of running in Appliance mode. Appliance mode is designed to meet the needs of customers in especially sensitive sectors by limiting the BIG-IP system administrative access to match that of a typical network appliance and not a multi-user UNIX device.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "You can verify that a device is running in Appliance mode from the License screen of the Configuration utility. A line similar to the following example is displayed under Active Modules:
+
+      Appliance Mode (TMSH Only, No Root or Bash Access)
+
+      F5 licenses the Appliance mode option free of charge upon request. For questions regarding licensing the Appliance mode option, contact your F5 Sales Representative."
+      reference      : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000054,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,SWIFT-CSCv1|2.3,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/license"
+      json_transform : ".entries[] | .nestedStats.entries.\"https://localhost/mgmt/tm/sys/license/0/active-modules\".nestedStats.entries[] | .nestedStats.entries.featureModules.description"
+      regex          : ".*"
+      expect         : "App Mode \(TMSH Only, No Root/Bash\)"
+      severity       : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - enabled"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell."
+      solution       : "1. Log in to tmsh by typing the following command:
+      tmsh
+
+      2. If packet filtering has not been enabled, type the following command:
+         modify /sys db packetfilter value enable"
+      reference      : "800-171|3.13.1,800-53|SC-7(12),CAT|II,CCI|CCI-000054,ITSG-33|SC-7(12),NESA|T5.5.1,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="packetfilter") |  .]'
+      regex          : '"value" :'
+      expect         : "enable"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - Unhandled Packet Action"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell."
+      solution       : "Log in to tmsh by typing the following command:
+      tmsh
+      2. modify /sys db packetfilter.defaultaction value <action>"
+      reference      : "800-53|SC-11,CAT|II,CCI|CCI-000054,ITSG-33|SC-11,NESA|T5.5.1,NIAv2|NS8,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="packetfilter.defaultaction") |  .]'
+      regex          : '"value" :'
+      expect         : "discard"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - Filter established connections"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell."
+      solution       : "Log in to tmsh by typing the following command:
+      tmsh
+      2. modify /sys db packetfilter.established value <enable/disable>"
+      reference      : "800-171|3.13.1,800-53|SC-7(12),CAT|II,CCI|CCI-000054,ITSG-33|SC-7(12),NESA|T5.5.1,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="packetfilter.established") |  .]'
+      regex          : '"value" :'
+      expect         : "enable"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - Send ICMP error on packet reject"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell."
+      solution       : "Log in to tmsh by typing the following command:
+      tmsh
+      2. modify /sys db packetfilter.sendicmperrors value <enable/disable>"
+      reference      : "800-171|3.13.1,800-53|SC-7(12),CAT|II,CCI|CCI-000054,ITSG-33|SC-7(12),NESA|T5.5.1,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="packetfilter.sendicmperrors") |  .]'
+      regex          : '"value" :'
+      expect         : "enable"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - Always accept ARP"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell."
+      solution       : "Log in to tmsh by typing the following command:
+      tmsh
+      2. modify /sys db packetfilter.allow.arp value <enable/disable>"
+      reference      : "800-53|SC-5,CAT|II,CCI|CCI-000054,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="packetfilter.allow.arp") |  .]'
+      regex          : '"value" :'
+      expect         : "enable"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - Always accept important ICMP"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell."
+      solution       : "Log in to tmsh by typing the following command:
+      tmsh
+      2. modify /sys db packetfilter.allow.important.icmp value <enable/disable>"
+      reference      : "800-171|3.13.1,800-53|SC-7(12),CAT|II,CCI|CCI-000054,ITSG-33|SC-7(12),NESA|T5.5.1,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="packetfilter.allow.important.icmp") |  .]'
+      regex          : '"value" :'
+      expect         : "enable"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - Packet filter logging"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell."
+      solution       : "Log in to tmsh by typing the following command:
+      tmsh
+      2. modify /sys db packetfilter.defaultlog value <enable/disable>"
+      reference      : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000054,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="packetfilter.defaultlog") |  .]'
+      regex          : '"value" :'
+      expect         : "enable"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring CIDR Network Addresses for the BIG-IP packet filter - Review Packet-Filter Rules"
+      info           : "You can use the BIG-IP packet filter functionality to enhance network security by enforcing an access policy on traffic ingressing or egressing a VLAN on the BIG-IP system. You must configure packet filter functionality to block CIDR network addresses from the TMOS Shell.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "1. Log in to the Configuration utility.
+      2. Go to Network > Packet Filters > Rules.
+      3. Select Packet-Filter rule to review."
+      reference      : "800-171|3.13.1,800-53|SC-7(12),CAT|II,CCI|CCI-000054,ITSG-33|SC-7(12),NESA|T5.5.1,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/net/packet-filter"
+      json_transform : ".items[]"
+      regex          : ".*"
+      expect         : "ManualReviewRequired"
+      severity       : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description    : "Unable to limit Configuration utility access to clients using only TLSv1.1 or TLSv1.2"
+      info           : "You are unable to limit Configuration utility access to clients that are configured to use only TLSv1.1 or TLSv1.2.
+
+This issue occurs when all of the following conditions are met:
+
+You attempt to limit Configuration utility access to TLSv1.1 or TLSv1.2 using one of the following Traffic Management Shell (tmsh) commands:
+
+tmsh modify sys httpd ssl-protocol 'TLSv1.1'
+tmsh modify sys httpd ssl-protocol 'TLSv1.2'
+tmsh modify sys httpd ssl-protocol 'TLSv1.1 TLSv1.2'
+tmsh modify sys httpd ssl-protocol 'ALL -TLSv1 -SSLv2 -SSLv3'"
+      solution       : "1. tmsh modify sys httpd ssl-protocol 'ALL -SSLv2 -SSLv3'"
+      reference      : "800-171|3.13.8,800-53|SC-8(1),CAT|II,CCI|CCI-000054,CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,SWIFT-CSCv1|2.1,TBA-FIISB|29.1,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/httpd"
+      json_transform : "\"SSL Protocol: \(.sslProtocol)\""
+      regex          : "^[\s]*SSL[\s]*Protocol:[\s]*"
+      expect         : "^[\s]*SSL[\s]*Protocol:[\s]*all[\s]*-SSLv2[\s]*-SSLv3[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring the BIG-IP system to enforce the use of strict passwords"
+      info           : "You can configure the BIG-IP system to use strict password checking for user accounts. Strict password checking tests the password in several different ways. The BIG-IP system will perform the following key tests:
+
+ - Try to match patterns in the user name to information in the user's gecos field
+ - Check for any simple patterns
+ - Attempt to match the password against dictionary words
+
+The BIG-IP system normally performs these checks when a new password is entered, but in its default configuration, the system will only warn the user if the password fails the tests. When strict password checking is enforced, the BIG-IP system will not allow the user's password if it fails any of the tests."
+      solution       : "To enable strict password enforcement, log in to the command line and type the following command:
+
+      tmsh modify /sys db users.strictpasswords value enable"
+      reference      : "800-171|3.5.2,800-53|IA-5,CAT|II,CCI|CCI-000054,CSF|PR.AC-1,ITSG-33|IA-5,NESA|T5.2.3,Rule-ID|SV-74521r2_rule,STIG-ID|F5BI-DM-000003,Vuln-ID|V-60091"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/sys/db"
+      json_transform : '[.items.[] | select(.name=="users.strictpasswords") |  .]'
+      regex          : '"value" :'
+      expect         : "enable"
+    </custom_item>
+
+    <custom_item>
+      description    : "Overview of BIG-IP administrative access controls"
+      info           : "The BIG-IP system provides a number of access control mechanisms to maintain secure access to the device, to ensure interoperability in a variety of environments with established requirements, and to assist in meeting industry standards, such as PCI compliance. These include a hierarchy of user accounts and access privileges, password enforcement options, and support for various authentication technologies.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "The BIG-IP system supports both local and remote authentication schemas. You can configure only one user authentication scheme for the system. A BIG-IP administrator can use the Configuration utility, the TMOS Shell (tmsh) (11.x and later), or the bigpipe utility (9.x through 10.x) to create and delete BIG-IP user accounts, change passwords, and enforce a global password policy, which includes password strength, password aging, password re-use, allowed number of login failures, and other security settings. By contrast, when you use remote user accounts, the creation, management, and password policies for the system user accounts are maintained through a remote authentication server."
+      reference      : "800-171|3.1.1,800-53|AC-3(7),CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/remote-role/role-info"
+      json_transform : ".items"
+      regex          : ".*"
+      expect         : "ManualReviewRequired"
+      severity       : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring LDAP remote authentication for Active Directory - Servers"
+      info           : "This document defines F5 best practice recommendations for configuring and verifying remote Active Directory Lightweight Directory Access Protocol (LDAP) authentication of administrative connections.
+
+Note: As is true for all remote authentication configurations, if the configured LDAP server is unavailable to answer authentication requests, the BIG-IP system uses the local user account database for authentication, and only locally defined user accounts, such as the default admin WebUI account and the root command line account, can log in to the system. Beginning in BIG-IP 13.0.0, you can use other local user accounts besides admin to fallback if the LDAP server is unavailable. More information about this feature is provided in the contents of this article.
+
+Note: For more information about LDAP, refer to RFC 2251: Lightweight Directory Access Protocol (v3). This link takes you to a resource outside of AskF5, and it is possible that the information may be removed without our knowledge."
+      solution       : "1. User Directory
+
+The User Directory option specifies the authentication source. To configure the BIG-IP system to use a remote Active Directory server for authentication of administrative sessions, select Remote - LDAP.
+
+2. Host
+
+The Host option specifies the remote system hosting the LDAP database that the system will use for remote authentication. Only one host may be specified. In 9.0.0 through 9.4.7, and in 9.6.x, this should be the IP address of the Active Directory authentication server. In 9.4.8 and later, you may specify either a host name or an IP address.
+
+3. Port
+
+The Port option specifies the port that the system uses for access to the remote LDAP host server. The default port is 389. If your Active Directory server uses an alternate port, specify it here.
+
+4. Remote Directory Tree
+
+The Remote Directory Tree option specifies the file location of the user authentication database in the remote directory tree of the Active Directory LDAP server. At minimum, you must specify a domain component.
+
+5. Scope
+
+The Scope option specifies the level of the remote LDAP directory that the system should search for the user authentication. The following three options are available:
+
+Note: The default setting is Sub.
+
+Base
+Specifies that the system searches the remote directory based on the access permissions of the DN that you specify in the Bind setting.
+
+One
+Specifies that the system searches one level of the remote directory.
+
+Sub
+Specifies that the system searches all subdirectories of the remote directory.
+
+6. Bind
+
+The Bind option specifies the distinguished name for binding to the LDAP server.
+
+7. User Template
+
+The User Template option defines which part of the supplied login credentials is used to construct the distinguished name when binding to the LDAP server.
+
+8. SSL
+
+The SSL option specifies whether the system uses an SSL port to communicate with the LDAP server. If you enable this setting, the port number changes automatically to 636, and the page presents additional options for specifying SSL certificate-related values.
+
+9. SSL CA Certificate
+
+The SSL CA Certificate option specifies the name of an SSL certificate from a certificate authority (CA)."
+      reference      : "800-171|3.13.8,800-53|SC-8(1),CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,SWIFT-CSCv1|2.1,TBA-FIISB|29.1,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/ldap"
+      json_transform : ".items[] | \"LDAP Servers: \(.servers)\""
+      regex          : "^[\s]*LDAP[\s]*Servers:[\s]*"
+      expect         : "^[\s]*LDAP[\s]*Servers:[\s]*[\"[0-9.]+\"]"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring LDAP remote authentication for Active Directory - Scope"
+      info           : "This document defines F5 best practice recommendations for configuring and verifying remote Active Directory Lightweight Directory Access Protocol (LDAP) authentication of administrative connections.
+
+Note: As is true for all remote authentication configurations, if the configured LDAP server is unavailable to answer authentication requests, the BIG-IP system uses the local user account database for authentication, and only locally defined user accounts, such as the default admin WebUI account and the root command line account, can log in to the system. Beginning in BIG-IP 13.0.0, you can use other local user accounts besides admin to fallback if the LDAP server is unavailable. More information about this feature is provided in the contents of this article.
+
+Note: For more information about LDAP, refer to RFC 2251: Lightweight Directory Access Protocol (v3). This link takes you to a resource outside of AskF5, and it is possible that the information may be removed without our knowledge."
+      solution       : "1. User Directory
+
+The User Directory option specifies the authentication source. To configure the BIG-IP system to use a remote Active Directory server for authentication of administrative sessions, select Remote - LDAP.
+
+2. Host
+
+The Host option specifies the remote system hosting the LDAP database that the system will use for remote authentication. Only one host may be specified. In 9.0.0 through 9.4.7, and in 9.6.x, this should be the IP address of the Active Directory authentication server. In 9.4.8 and later, you may specify either a host name or an IP address.
+
+3. Port
+
+The Port option specifies the port that the system uses for access to the remote LDAP host server. The default port is 389. If your Active Directory server uses an alternate port, specify it here.
+
+4. Remote Directory Tree
+
+The Remote Directory Tree option specifies the file location of the user authentication database in the remote directory tree of the Active Directory LDAP server. At minimum, you must specify a domain component.
+
+5. Scope
+
+The Scope option specifies the level of the remote LDAP directory that the system should search for the user authentication. The following three options are available:
+
+Note: The default setting is Sub.
+
+Base
+Specifies that the system searches the remote directory based on the access permissions of the DN that you specify in the Bind setting.
+
+One
+Specifies that the system searches one level of the remote directory.
+
+Sub
+Specifies that the system searches all subdirectories of the remote directory.
+
+6. Bind
+
+The Bind option specifies the distinguished name for binding to the LDAP server.
+
+7. User Template
+
+The User Template option defines which part of the supplied login credentials is used to construct the distinguished name when binding to the LDAP server.
+
+8. SSL
+
+The SSL option specifies whether the system uses an SSL port to communicate with the LDAP server. If you enable this setting, the port number changes automatically to 636, and the page presents additional options for specifying SSL certificate-related values.
+
+9. SSL CA Certificate
+
+The SSL CA Certificate option specifies the name of an SSL certificate from a certificate authority (CA)."
+      reference      : "800-171|3.13.8,800-53|SC-8(1),CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,SWIFT-CSCv1|2.1,TBA-FIISB|29.1,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/ldap"
+      json_transform : ".items[] | \"LDAP Scope: \(.scope)\""
+      regex          : "^[\s]*LDAP[\s]*Scope:[\s]*"
+      expect         : "^[\s]*LDAP[\s]*Scope:[\s]*base[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring LDAP remote authentication for Active Directory - SSL"
+      info           : "This document defines F5 best practice recommendations for configuring and verifying remote Active Directory Lightweight Directory Access Protocol (LDAP) authentication of administrative connections.
+
+Note: As is true for all remote authentication configurations, if the configured LDAP server is unavailable to answer authentication requests, the BIG-IP system uses the local user account database for authentication, and only locally defined user accounts, such as the default admin WebUI account and the root command line account, can log in to the system. Beginning in BIG-IP 13.0.0, you can use other local user accounts besides admin to fallback if the LDAP server is unavailable. More information about this feature is provided in the contents of this article.
+
+Note: For more information about LDAP, refer to RFC 2251: Lightweight Directory Access Protocol (v3). This link takes you to a resource outside of AskF5, and it is possible that the information may be removed without our knowledge."
+      solution       : "1. User Directory
+
+The User Directory option specifies the authentication source. To configure the BIG-IP system to use a remote Active Directory server for authentication of administrative sessions, select Remote - LDAP.
+
+2. Host
+
+The Host option specifies the remote system hosting the LDAP database that the system will use for remote authentication. Only one host may be specified. In 9.0.0 through 9.4.7, and in 9.6.x, this should be the IP address of the Active Directory authentication server. In 9.4.8 and later, you may specify either a host name or an IP address.
+
+3. Port
+
+The Port option specifies the port that the system uses for access to the remote LDAP host server. The default port is 389. If your Active Directory server uses an alternate port, specify it here.
+
+4. Remote Directory Tree
+
+The Remote Directory Tree option specifies the file location of the user authentication database in the remote directory tree of the Active Directory LDAP server. At minimum, you must specify a domain component.
+
+5. Scope
+
+The Scope option specifies the level of the remote LDAP directory that the system should search for the user authentication. The following three options are available:
+
+Note: The default setting is Sub.
+
+Base
+Specifies that the system searches the remote directory based on the access permissions of the DN that you specify in the Bind setting.
+
+One
+Specifies that the system searches one level of the remote directory.
+
+Sub
+Specifies that the system searches all subdirectories of the remote directory.
+
+6. Bind
+
+The Bind option specifies the distinguished name for binding to the LDAP server.
+
+7. User Template
+
+The User Template option defines which part of the supplied login credentials is used to construct the distinguished name when binding to the LDAP server.
+
+8. SSL
+
+The SSL option specifies whether the system uses an SSL port to communicate with the LDAP server. If you enable this setting, the port number changes automatically to 636, and the page presents additional options for specifying SSL certificate-related values.
+
+9. SSL CA Certificate
+
+The SSL CA Certificate option specifies the name of an SSL certificate from a certificate authority (CA)."
+      reference      : "800-171|3.13.8,800-53|SC-8(1),CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,SWIFT-CSCv1|2.1,TBA-FIISB|29.1,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/ldap"
+      json_transform : ".items[] | \"LDAP SSL: \(.ssl)\""
+      regex          : "^[\s]*LDAP[\s]*SSL:[\s]*"
+      expect         : "^[\s]*LDAP[\s]*SSL:[\s]*enabled[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring LDAP remote authentication for Active Directory - SSL Client Key"
+      info           : "This document defines F5 best practice recommendations for configuring and verifying remote Active Directory Lightweight Directory Access Protocol (LDAP) authentication of administrative connections.
+
+Note: As is true for all remote authentication configurations, if the configured LDAP server is unavailable to answer authentication requests, the BIG-IP system uses the local user account database for authentication, and only locally defined user accounts, such as the default admin WebUI account and the root command line account, can log in to the system. Beginning in BIG-IP 13.0.0, you can use other local user accounts besides admin to fallback if the LDAP server is unavailable. More information about this feature is provided in the contents of this article.
+
+Note: For more information about LDAP, refer to RFC 2251: Lightweight Directory Access Protocol (v3). This link takes you to a resource outside of AskF5, and it is possible that the information may be removed without our knowledge."
+      solution       : "1. User Directory
+
+The User Directory option specifies the authentication source. To configure the BIG-IP system to use a remote Active Directory server for authentication of administrative sessions, select Remote - LDAP.
+
+2. Host
+
+The Host option specifies the remote system hosting the LDAP database that the system will use for remote authentication. Only one host may be specified. In 9.0.0 through 9.4.7, and in 9.6.x, this should be the IP address of the Active Directory authentication server. In 9.4.8 and later, you may specify either a host name or an IP address.
+
+3. Port
+
+The Port option specifies the port that the system uses for access to the remote LDAP host server. The default port is 389. If your Active Directory server uses an alternate port, specify it here.
+
+4. Remote Directory Tree
+
+The Remote Directory Tree option specifies the file location of the user authentication database in the remote directory tree of the Active Directory LDAP server. At minimum, you must specify a domain component.
+
+5. Scope
+
+The Scope option specifies the level of the remote LDAP directory that the system should search for the user authentication. The following three options are available:
+
+Note: The default setting is Sub.
+
+Base
+Specifies that the system searches the remote directory based on the access permissions of the DN that you specify in the Bind setting.
+
+One
+Specifies that the system searches one level of the remote directory.
+
+Sub
+Specifies that the system searches all subdirectories of the remote directory.
+
+6. Bind
+
+The Bind option specifies the distinguished name for binding to the LDAP server.
+
+7. User Template
+
+The User Template option defines which part of the supplied login credentials is used to construct the distinguished name when binding to the LDAP server.
+
+8. SSL
+
+The SSL option specifies whether the system uses an SSL port to communicate with the LDAP server. If you enable this setting, the port number changes automatically to 636, and the page presents additional options for specifying SSL certificate-related values.
+
+9. SSL CA Certificate
+
+The SSL CA Certificate option specifies the name of an SSL certificate from a certificate authority (CA)."
+      reference      : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,SWIFT-CSCv1|2.3,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/ldap"
+      json_transform : ".items[] | \"LDAP SSL Client Key: \(.sslClientKey)\""
+      regex          : "^[\s]*LDAP[\s]*SSL Client Key:[\s]*"
+      not_expect     : "^[\s]*LDAP[\s]*SSL Client Key:[\s]*null[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring LDAP remote authentication for Active Directory - SSL Client Cert"
+      info           : "This document defines F5 best practice recommendations for configuring and verifying remote Active Directory Lightweight Directory Access Protocol (LDAP) authentication of administrative connections.
+
+Note: As is true for all remote authentication configurations, if the configured LDAP server is unavailable to answer authentication requests, the BIG-IP system uses the local user account database for authentication, and only locally defined user accounts, such as the default admin WebUI account and the root command line account, can log in to the system. Beginning in BIG-IP 13.0.0, you can use other local user accounts besides admin to fallback if the LDAP server is unavailable. More information about this feature is provided in the contents of this article.
+
+Note: For more information about LDAP, refer to RFC 2251: Lightweight Directory Access Protocol (v3). This link takes you to a resource outside of AskF5, and it is possible that the information may be removed without our knowledge."
+      solution       : "1. User Directory
+
+The User Directory option specifies the authentication source. To configure the BIG-IP system to use a remote Active Directory server for authentication of administrative sessions, select Remote - LDAP.
+
+2. Host
+
+The Host option specifies the remote system hosting the LDAP database that the system will use for remote authentication. Only one host may be specified. In 9.0.0 through 9.4.7, and in 9.6.x, this should be the IP address of the Active Directory authentication server. In 9.4.8 and later, you may specify either a host name or an IP address.
+
+3. Port
+
+The Port option specifies the port that the system uses for access to the remote LDAP host server. The default port is 389. If your Active Directory server uses an alternate port, specify it here.
+
+4. Remote Directory Tree
+
+The Remote Directory Tree option specifies the file location of the user authentication database in the remote directory tree of the Active Directory LDAP server. At minimum, you must specify a domain component.
+
+5. Scope
+
+The Scope option specifies the level of the remote LDAP directory that the system should search for the user authentication. The following three options are available:
+
+Note: The default setting is Sub.
+
+Base
+Specifies that the system searches the remote directory based on the access permissions of the DN that you specify in the Bind setting.
+
+One
+Specifies that the system searches one level of the remote directory.
+
+Sub
+Specifies that the system searches all subdirectories of the remote directory.
+
+6. Bind
+
+The Bind option specifies the distinguished name for binding to the LDAP server.
+
+7. User Template
+
+The User Template option defines which part of the supplied login credentials is used to construct the distinguished name when binding to the LDAP server.
+
+8. SSL
+
+The SSL option specifies whether the system uses an SSL port to communicate with the LDAP server. If you enable this setting, the port number changes automatically to 636, and the page presents additional options for specifying SSL certificate-related values.
+
+9. SSL CA Certificate
+
+The SSL CA Certificate option specifies the name of an SSL certificate from a certificate authority (CA)."
+      reference      : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,SWIFT-CSCv1|2.3,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/ldap"
+      json_transform : ".items[] | \"LDAP SSL Client Cert: \(.sslClientCert)\""
+      regex          : "^[\s]*LDAP[\s]*SSL Client Cert:[\s]*"
+      not_expect     : "^[\s]*LDAP[\s]*SSL Client Cert:[\s]*null[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring LDAP remote authentication for Active Directory - SSL CA Cert"
+      info           : "This document defines F5 best practice recommendations for configuring and verifying remote Active Directory Lightweight Directory Access Protocol (LDAP) authentication of administrative connections.
+
+Note: As is true for all remote authentication configurations, if the configured LDAP server is unavailable to answer authentication requests, the BIG-IP system uses the local user account database for authentication, and only locally defined user accounts, such as the default admin WebUI account and the root command line account, can log in to the system. Beginning in BIG-IP 13.0.0, you can use other local user accounts besides admin to fallback if the LDAP server is unavailable. More information about this feature is provided in the contents of this article.
+
+Note: For more information about LDAP, refer to RFC 2251: Lightweight Directory Access Protocol (v3). This link takes you to a resource outside of AskF5, and it is possible that the information may be removed without our knowledge."
+      solution       : "1. User Directory
+
+The User Directory option specifies the authentication source. To configure the BIG-IP system to use a remote Active Directory server for authentication of administrative sessions, select Remote - LDAP.
+
+2. Host
+
+The Host option specifies the remote system hosting the LDAP database that the system will use for remote authentication. Only one host may be specified. In 9.0.0 through 9.4.7, and in 9.6.x, this should be the IP address of the Active Directory authentication server. In 9.4.8 and later, you may specify either a host name or an IP address.
+
+3. Port
+
+The Port option specifies the port that the system uses for access to the remote LDAP host server. The default port is 389. If your Active Directory server uses an alternate port, specify it here.
+
+4. Remote Directory Tree
+
+The Remote Directory Tree option specifies the file location of the user authentication database in the remote directory tree of the Active Directory LDAP server. At minimum, you must specify a domain component.
+
+5. Scope
+
+The Scope option specifies the level of the remote LDAP directory that the system should search for the user authentication. The following three options are available:
+
+Note: The default setting is Sub.
+
+Base
+Specifies that the system searches the remote directory based on the access permissions of the DN that you specify in the Bind setting.
+
+One
+Specifies that the system searches one level of the remote directory.
+
+Sub
+Specifies that the system searches all subdirectories of the remote directory.
+
+6. Bind
+
+The Bind option specifies the distinguished name for binding to the LDAP server.
+
+7. User Template
+
+The User Template option defines which part of the supplied login credentials is used to construct the distinguished name when binding to the LDAP server.
+
+8. SSL
+
+The SSL option specifies whether the system uses an SSL port to communicate with the LDAP server. If you enable this setting, the port number changes automatically to 636, and the page presents additional options for specifying SSL certificate-related values.
+
+9. SSL CA Certificate
+
+The SSL CA Certificate option specifies the name of an SSL certificate from a certificate authority (CA)."
+      reference      : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,SWIFT-CSCv1|2.3,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/ldap"
+      json_transform : ".items[] | \"LDAP SSL CA Cert: \(.sslCaCertFile)\""
+      regex          : "^[\s]*LDAP[\s]*SSL CA Cert:[\s]*"
+      not_expect     : "^[\s]*LDAP[\s]*SSL CA Cert:[\s]*null[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring LDAP remote authentication for Active Directory - SSL Check Peer"
+      info           : "This document defines F5 best practice recommendations for configuring and verifying remote Active Directory Lightweight Directory Access Protocol (LDAP) authentication of administrative connections.
+
+Note: As is true for all remote authentication configurations, if the configured LDAP server is unavailable to answer authentication requests, the BIG-IP system uses the local user account database for authentication, and only locally defined user accounts, such as the default admin WebUI account and the root command line account, can log in to the system. Beginning in BIG-IP 13.0.0, you can use other local user accounts besides admin to fallback if the LDAP server is unavailable. More information about this feature is provided in the contents of this article.
+
+Note: For more information about LDAP, refer to RFC 2251: Lightweight Directory Access Protocol (v3). This link takes you to a resource outside of AskF5, and it is possible that the information may be removed without our knowledge."
+      solution       : "1. User Directory
+
+The User Directory option specifies the authentication source. To configure the BIG-IP system to use a remote Active Directory server for authentication of administrative sessions, select Remote - LDAP.
+
+2. Host
+
+The Host option specifies the remote system hosting the LDAP database that the system will use for remote authentication. Only one host may be specified. In 9.0.0 through 9.4.7, and in 9.6.x, this should be the IP address of the Active Directory authentication server. In 9.4.8 and later, you may specify either a host name or an IP address.
+
+3. Port
+
+The Port option specifies the port that the system uses for access to the remote LDAP host server. The default port is 389. If your Active Directory server uses an alternate port, specify it here.
+
+4. Remote Directory Tree
+
+The Remote Directory Tree option specifies the file location of the user authentication database in the remote directory tree of the Active Directory LDAP server. At minimum, you must specify a domain component.
+
+5. Scope
+
+The Scope option specifies the level of the remote LDAP directory that the system should search for the user authentication. The following three options are available:
+
+Note: The default setting is Sub.
+
+Base
+Specifies that the system searches the remote directory based on the access permissions of the DN that you specify in the Bind setting.
+
+One
+Specifies that the system searches one level of the remote directory.
+
+Sub
+Specifies that the system searches all subdirectories of the remote directory.
+
+6. Bind
+
+The Bind option specifies the distinguished name for binding to the LDAP server.
+
+7. User Template
+
+The User Template option defines which part of the supplied login credentials is used to construct the distinguished name when binding to the LDAP server.
+
+8. SSL
+
+The SSL option specifies whether the system uses an SSL port to communicate with the LDAP server. If you enable this setting, the port number changes automatically to 636, and the page presents additional options for specifying SSL certificate-related values.
+
+9. SSL CA Certificate
+
+The SSL CA Certificate option specifies the name of an SSL certificate from a certificate authority (CA)."
+      reference      : "800-171|3.13.11,800-53|SC-13,CAT|II,CCI|CCI-000366,CCI|CCI-002169,CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-74623r1_rule,STIG-ID|F5BI-DM-000179,Vuln-ID|V-60193"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/auth/ldap"
+      json_transform : ".items[] | \"LDAP SSL Check Peer: \(.sslCheckPeer)\""
+      regex          : "^[\s]*LDAP[\s]*SSL Check Peer:[\s]*"
+      expect         : "^[\s]*LDAP[\s]*SSL Check Peer:[\s]*enabled[\s]*$"
+    </custom_item>
+
+    <custom_item>
+      description    : "The BIG-IP Core implementation must be configured to protect against or limit the effects of known and unknown types of Denial of Service (DoS) attacks by employing pattern recognition pre-processors when providing content filtering to virtual servers."
+      info           : "If the network does not provide safeguards against DoS attacks, network resources will be unavailable to users.
+
+  Installation of content filtering gateways and application layer firewalls at key boundaries in the architecture mitigates the risk of DoS attacks. These attacks can be detected by matching observed communications traffic with patterns of known attacks.
+
+  Detection components that use pattern recognition pre-processors can detect attacks when signatures for the attack do not exist or are not installed. These attacks include zero-day attacks, which are new attacks for which vendors have not yet developed signatures.
+
+  This requirement applies to the communications traffic functionality of the ALG as it pertains to handling communications traffic, rather than to the ALG device itself.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "If the BIG-IP Core performs content filtering as part of the traffic management functionality, configure the BIG-IP Core as follows:
+
+  Configure a policy in the BIG-IP ASM module to protect against or limit the effects of known and unknown types of DoS attacks by employing pattern recognition pre-processors.
+
+  Apply ASM policy to the applicable Virtual Server(s) in the BIG-IP LTM module to protect against or limit the effects of known and unknown types of DoS attacks by employing pattern recognition pre-processors when providing content filtering to virtual servers."
+      reference      : "800-53|SC-5,CAT|I,CCI|CCI-002385,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,Rule-ID|SV-74797r1_rule,STIG-ID|F5BI-LT-000221,Vuln-ID|V-60367"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/security/dos/profile"
+      json_transform : ".items[] | \"DoS Profile Name: \(.name)\""
+      regex          : "DoS[\s]*Profile[\s]*Name:"
+      expect         : "ManualReviewRequired"
+      severity       : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description    : "Mitigating an attack using TCP profiles"
+      info           : "Because SLOWRead attacks require the target server to keep the connection open while the client keeps the TCP window size at zero to effectively stall the connection for long periods, you can use the TCP Zero Window Timeout setting within the TCP profile to effectively mitigate these attacks. By default, this timeout is set to 20,000 milliseconds (20 seconds), which is ample to service clients on very low bandwidth links. However, in attack scenarios or if you know that most clients are on modern links, you should consider reducing this timeout until the stress on the target server or BIG-IP system is reduced to an acceptable level.
+
+The attacker can, of course, reduce the amount of time they wait with the TCP window at zero, but doing so increases the bandwidth requirement at the attacker end. Ultimately, this renders the attack unsustainable unless the attacker has access to a distributed attack (bot-net), which can more effectively be mitigated using other mechanisms."
+      solution       : "1. Log in to the Configuration utility.
+2. Navigate to Local Traffic > Profiles > Protocol > TCP.
+3. Click Create.
+4. Enter a name for your profile.
+5. For Parent Profile, click the TCP profile already assigned to the virtual server under attack.
+6. For Zero Window Timeout, select the Custom check box and enter a reduced value, such as 10000.
+7. Click Finished.
+8. Navigate to Local Traffic > Virtual Servers > Virtual Server List.
+9. Click the name of the virtual server under attack.
+10. For Protocol Profile (client), click the profile you created in step 3.
+11. Click Update."
+      reference      : "800-171|3.1.10,800-53|AC-11(1),CAT|I,CCI|CCI-002385,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|AC-11(1),NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,Rule-ID|SV-74797r1_rule,STIG-ID|F5BI-LT-000221,Vuln-ID|V-60367"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/ltm/profile/tcp"
+      json_transform : ".items[] | \"TCP Profile Name: \(.name) - Zero Window Timeout: \(.zeroWindowTimeout)\""
+      regex          : "TCP[\s]*Profile[\s]*Name:"
+# Note: Variable @TCP_PROFILE_NAME@ replaced with "TCP" in field "expect".
+      expect         : "TCP[\s]*Profile[\s]*Name:[\s]*TCP[\s]*-[\s]*Zero[\s]*Window[\s]*Timeout:[\s]*1000[\s]*"
+    </custom_item>
+
+    <custom_item>
+      description    : "Configuring cookie encryption within the HTTP profile"
+      info           : "You can configure the BIG-IP LTM system to encrypt HTTP cookies before sending them to the client system. The BIG-IP LTM system can encrypt BIG-IP persistence cookies, as well as cookies that are embedded in the response from the server. You can also configure the BIG-IP LTM system to encrypt cookies to keep information private if the cookie contains sensitive information about the web application.
+
+      When cookie encryption is enabled, the BIG-IP LTM system extracts the unencrypted cookie from the server response, encrypts it using a 192-bit AES cipher, and then encodes it using the Base64 encoding scheme. The BIG-IP LTM system then embeds the encrypted cookie into the HTTP response to the client. On subsequent requests, when the client presents the encrypted cookie to the BIG-IP LTM system, BIG-IP LTM removes the cookie, decodes it using the Base64 encoding scheme, and decrypts it. The BIG-IP LTM system then re-embeds the decrypted cookie in the HTTP request to the server."
+      solution       : "1. Log in to the Configuration utility.
+2. Navigate to Local Traffic > Profiles.
+3. For Services, click HTTP.
+4. Click Create.
+5. Enter a name for the HTTP profile.
+6. In the Encrypt Cookies box, enter one or more cookie names.
+7. In the Cookie Encryption Passphrase box, enter a passphrase for the cookie.
+8. In the Confirm Cookie Encryption Passphrase box, re-type the passphrase.
+9. Click Update.
+10. Associate the HTTP profile with the virtual server."
+      reference      : "800-171|3.13.8,800-53|SC-8,CAT|I,CCI|CCI-002385,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,CSF|PR.DS-2,CSF|PR.DS-5,ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,Rule-ID|SV-74797r1_rule,STIG-ID|F5BI-LT-000221,Vuln-ID|V-60367"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/ltm/profile/http"
+      json_transform : ".items[] | \"HTTP Profile Name: \(.name) - Encrypted Cookies: \(.encryptCookies)\""
+      regex          : "HTTP[\s]*Profile[\s]*Name:"
+# Note: Variable @HTTP_PROFILE_NAME@ replaced with "HTTP" in field "not_expect".
+      not_expect     : "HTTP[\s]*Profile[\s]*Name:[\s]*HTTP[\s]*-[\s]*Encrypted[\s]*Cookies:[\s]*null[\s]*"
+    </custom_item>
+
+    <custom_item>
+      description    : "Preserving or modifying HTTP response headers removed by the BIG-IP ASM system"
+      info           : "Certain HTTP headers allow an HTTP server to provide information about the software that the server uses to handle HTTP requests. These HTTP headers may contain product and version information, as well as comments identifying the server and any significant sub-products. While this information may be useful for some clients, it is considered unnecessary information leakage. As a result, the BIG-IP ASM system removes these HTTP headers from responses to increase application security.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "1. Log in to the Configuration utility.
+2. Navigate to Local Traffic > iRules > iRule List.
+3. Click Create.
+4. In the Name field, type a name for the iRule.
+For example:
+
+K14342-ASMVS
+5. In the Definition field, copy and paste the iRule you want.
+6. To save the iRule, click Finished."
+      reference      : "800-171|3.13.1,800-53|SC-7(12),CAT|I,CCI|CCI-002385,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-7(12),NESA|T3.3.1,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-74797r1_rule,STIG-ID|F5BI-LT-000221,Vuln-ID|V-60367"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/ltm/rule"
+      json_transform : ".items[] | \"iRule Name: \(.name)\""
+      regex          : "iRule[\s]*Name[\s]*:"
+      expect         : "ManualReviewRequired"
+      severity       : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      description    : "Overview of the HTTP profile"
+      info           : "A virtual server with an associated HTTP profile processes connections using the BIG-IP system's full proxy architecture for the purpose of making requests on behalf of clients. In this mode, the BIG-IP system processes the three-way TCP handshake and initial data packet on the client-side connection before initiating the TCP handshake on the server-side connection; the client's data packet triggers the BIG-IP system to initiate the server-side connection.
+
+      NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution       : "1. Log in to the Configuration utility.
+2. Navigate to Local Traffic > Profiles > Services > HTTP.
+3. Click Create or Click on HTTP Profile to Review.
+4. To save the Profile, click Finished."
+      reference      : "800-171|3.4.2,800-53|CM-6,CAT|I,CCI|CCI-002385,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,NIAv2|GS10c,NIAv2|GS8e,Rule-ID|SV-74797r1_rule,STIG-ID|F5BI-LT-000221,SWIFT-CSCv1|2.3,Vuln-ID|V-60367"
+      see_also       : "https://support.f5.com/csp/article/K53108777#link_01"
+      f5_command     : "/tm/ltm/profile/http"
+      json_transform : ".items[]"
+      regex          : ".*"
+      expect         : "ManualReviewRequired"
+      severity       : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "Tenable_Best_Practices_F5_BIG-IP_v1.0.0.audit from K53108777: Hardening your F5 system"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://support.f5.com/csp/article/K53108777#link_01"
+    </report>
+  </else>
+</if>
+
+</check_type>

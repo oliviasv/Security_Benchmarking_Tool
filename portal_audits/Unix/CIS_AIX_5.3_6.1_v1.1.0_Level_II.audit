@@ -1,0 +1,2757 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.17 $
+# $Date: 2020/04/17 $
+#
+# description	: This .audit file is written again the Center for Internet Security benchmark for IBM AIX 5.3 and 6.1, version 1.1.0 - Level II Scorable
+# 			setttings
+#
+# 			https://workbench.cisecurity.org/files/525
+#
+# NOTE			: Some queries in this .audit require site-specific data to be known to the query in order to function properly.  Please note the following
+# 			queries and edit their values accordingly.
+#
+# 			2.1.2 - Configuring syslog - remote logging
+# 			2.6.4 - NIS - restrict NIS server communications
+#
+#<ui_metadata>
+#<display_name>CIS AIX 5.3/6.1 L2 v1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>AIX 5.3/6.1 L2</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/525</link>
+#</spec>
+#<labels>unix,cis,aix,aix_5.3,aix_6.1</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SYSLOG_HOST</name>
+#    <default>192\\.168\\.100\\.1</default>
+#    <description>Logging Host</description>
+#    <info>This is the IP address assigned to your organization's central logging server</info>
+#  </variable>
+#  <variable>
+#    <name>NIS_SECURENETS</name>
+#    <default>127\.0\.0\.1[\\s]+255\.255\.255\.255</default>
+#    <description>/var/yp/securenets Local Networks</description>
+#    <info>This is the list of trusted networks that should exist in /var/yp/securenets</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "AIX 5.3 or 6.1 is installed"
+      cmd         : "/usr/bin/oslevel -s"
+      expect      : "^(5300|6100)"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS AIX 5.3 and 6.1 v1.1.0 Level 2"
+    </report>
+
+##
+## 1. AIX Security Expert Recommendations
+##
+###
+### 1.1 AIX Security Expert - Password Policy
+###
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "1.1.11 - /etc/security/login.cfg - 'pwd_algorithm = ssha256 (AIX 5.3 TL7+ only)'"
+          cmd         : "/usr/bin/oslevel -r"
+          expect      : "^5300-007$"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "1.1.11 - /etc/security/login.cfg - 'pwd_algorithm = ssha256 (AIX 5.3 TL7+ only)'"
+          info        : "Checks the current pwd_algorithm setting."
+          reference   : "800-171|3.5.2,800-53|IA-5,800-53|SI-7(6),CSF|PR.AC-1,CSF|PR.DS-6,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.3,SWIFT-CSCv1|6.2"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/bin/lssec -f /etc/security/login.cfg -s usw -a pwd_algorithm"
+          expect      : "^usw[\\s]+pwd_algorithm[\\s]*=[\\s]*ssha256$"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "1.1.11 - /etc/security/login.cfg - 'pwd_algorithm = ssha256 (AIX 5.3 TL7+ only)'"
+          info        : "This system is not running AIX 5.3 TL7 or higher."
+          reference   : "800-171|3.5.2,800-53|IA-5,800-53|SI-7,CSF|PR.AC-1,CSF|PR.DS-6,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.3,SWIFT-CSCv1|6.2"
+        </report>
+      </else>
+    </if>
+
+###
+### 1.2 AIX Security Expert - Login Policy
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.2.9 - System account lockdown - 'daemon login=false rlogin=false'"
+      info        : "Checks whether direct login is available to the generic system account daemon."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser -a login rlogin daemon"
+      expect      : "^daemon[\\s]+login=false[\\s]+rlogin=false$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.2.9 - System account lockdown - 'bin login=false rlogin=false'"
+      info        : "Checks whether direct login is available to the generic system account bin."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser -a login rlogin bin"
+      expect      : "^bin[\\s]+login=false[\\s]+rlogin=false$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.2.9 - System account lockdown - 'sys login=false rlogin=false'"
+      info        : "Checks whether direct login is available to the generic system account sys."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser -a login rlogin sys"
+      expect      : "^sys[\\s]+login=false[\\s]+rlogin=false$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.2.9 - System account lockdown - 'adm login=false rlogin=false'"
+      info        : "Checks whether direct login is available to the generic system account adm."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser -a login rlogin adm"
+      expect      : "^adm[\\s]+login=false[\\s]+rlogin=false$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.2.9 - System account lockdown - 'uucp login=false rlogin=false'"
+      info        : "Checks whether direct login is available to the generic system account uucp."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser -a login rlogin uucp"
+      expect      : "^uucp[\\s]+login=false[\\s]+rlogin=false$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.2.9 - System account lockdown - 'nobody login=false rlogin=false'"
+      info        : "Checks whether direct login is available to the generic system account nobody."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser -a login rlogin nobody"
+      expect      : "^nobody[\\s]+login=false[\\s]+rlogin=false$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.2.9 - System account lockdown - 'lpd login=false rlogin=false'"
+      info        : "Checks whether direct login is available to the generic system account lpd."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser -a login rlogin lpd"
+      expect      : "^lpd[\\s]+login=false[\\s]+rlogin=false$"
+    </custom_item>
+
+###
+### 1.3 AIX Security Expert - System Services Management
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.3.1 - /etc/inittab - 'qdaemon has been disabled'"
+      info        : "Checks whether the qdaemon service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab qdaemon | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.3.2 - /etc/inittab - 'lpd has been disabled'"
+      info        : "Checks whether the lpd service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab lpd | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.3.3 - /etc/inittab - 'piobe has been disabled'"
+      info        : "Checks whether the piobe service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab piobe | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.3.4 - /etc/inittab - 'dt has been disabled'"
+      info        : "Checks whether the dt service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab dt | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.3.5 - /etc/inittab - 'rcnfs has been disabled'"
+      info        : "Checks whether the rcnfs service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab rcnfs | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.6 - /etc/rc.tcpip - 'sendmail has been disabled'"
+      info            : "Checks whether the sendmail service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/lib\/sendmail"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/sendmail.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.7 - /etc/rc.tcpip - 'snmpd has been disabled'"
+      info            : "Checks whether the snmpd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/snmpd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/snmpd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.8 - /etc/rc.tcpip - 'dhcpcd has been disabled'"
+      info            : "Checks whether the dhcpcd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/dhcpcd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/dhcpcd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.9 - /etc/rc.tcpip - 'dhcprd has been disabled'"
+      info            : "Checks whether the dhcprd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/dhcprd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/dhcprd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.10 - /etc/rc.tcpip - 'dhcpsd has been disabled'"
+      info            : "Checks whether the dhcpsd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/dhcpsd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/dhcpsd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.11 - /etc/rc.tcpip - 'autoconf6 has been disabled'"
+      info            : "Checks whether the autoconf6 service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/autoconf6"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/autoconf6.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.12 - /etc/rc.tcpip - 'gated has been disabled'"
+      info            : "Checks whether the gated service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/gated"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/gated.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.13 - /etc/rc.tcpip - 'mrouted has been disabled'"
+      info            : "Checks whether the mrouted service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/mrouted"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/mrouted.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.14 - /etc/rc.tcpip - 'named has been disabled'"
+      info            : "Checks whether the named service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/named"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/named.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.15 - /etc/rc.tcpip - 'routed has been disabled'"
+      info            : "Checks whether the routed service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/routed"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/routed.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.16 - /etc/rc.tcpip - 'rwhod has been disabled'"
+      info            : "Checks whether the rwhod service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/rwhod"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/rwhod.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.17 - /etc/rc.tcpip - 'timed has been disabled'"
+      info            : "Checks whether the timed service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/timed"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/timed.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.18 - /etc/rc.tcpip - 'dpid2 has been disabled'"
+      info            : "Checks whether the dpid2 service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/dpid2"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/dpid2.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.19 - /etc/rc.tcpip - 'hostmibd has been disabled'"
+      info            : "Checks whether the hostmibd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/hostmibd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/hostmibd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.20 - /etc/rc.tcpip - 'snmpmibd has been disabled'"
+      info            : "Checks whether the snmpmibd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/snmpmibd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/snmpmibd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.21 - /etc/rc.tcpip - 'aixmibd has been disabled'"
+      info            : "Checks whether the aixmibd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/aixmibd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/aixmibd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.22 - /etc/rc.tcpip - 'ndpd-host has been disabled'"
+      info            : "Checks whether the ndpd-host service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/ndpd-host"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/ndpd-host.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.23 - /etc/rc.tcpip - 'ndpd-router has been disabled'"
+      info            : "Checks whether the ndpd-router service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/ndpd-router"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/ndpd-router.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.24 - /etc/inetd.conf - 'telnet has been disabled'"
+      info            : "Checks whether the telnet service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?telnet"
+      expect          : "^#[\\s]*telnet[\\s]+.*\/usr\/sbin\/telnetd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.25 - /etc/inetd.conf - 'exec has been disabled'"
+      info            : "Checks whether the rexecd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?exec"
+      expect          : "^#[\\s]*exec[\\s]+.*\/usr\/sbin\/rexecd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.26 - /etc/inetd.conf - 'daytime-tcp has been disabled'"
+      info            : "Checks whether the daytime-tcp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?daytime.*tcp"
+      expect          : "^#[\\s]*daytime[\\s]+.*tcp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.26 - /etc/inetd.conf - 'daytime-udp has been disabled'"
+      info            : "Checks whether the daytime-udp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?daytime.*udp"
+      expect          : "^#[\\s]*daytime[\\s]+.*udp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.27 - /etc/inetd.conf - 'shell has been disabled'"
+      info            : "Checks whether the rshd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?shell"
+      expect          : "^#[\\s]*shell[\\s]+.*\/usr\/sbin\/rshd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.28 - /etc/inetd.conf - 'cmsd has been disabled'"
+      info            : "Checks whether the cmsd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?cmsd"
+      expect          : "^#[\\s]*cmsd[\\s]+.*\/usr\/dt\/bin\/rpc\.cmsd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.29 - /etc/inetd.conf - 'ttdbserver has been disabled'"
+      info            : "Checks whether the ttdbserver service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?ttdbserver"
+      expect          : "^#[\\s]*ttdbserver[\\s]+.*\/usr\/dt\/bin\/rpc\.ttdbserver.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.30 - /etc/inetd.conf - 'uucp has been disabled'"
+      info            : "Checks whether the uucp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?uucp"
+      expect          : "^#[\\s]*uucp[\\s]+.*\/usr\/sbin\/uucpd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.31 - /etc/inetd.conf - 'time-tcp has been disabled'"
+      info            : "Checks whether the time-tcp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?time.*tcp"
+      expect          : "^#[\\s]*time[\\s]+.*tcp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.31 - /etc/inetd.conf - 'time-udp has been disabled'"
+      info            : "Checks whether the time-udp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?time.*udp"
+      expect          : "^#[\\s]*time[\\s]+.*udp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.32 - /etc/inetd.conf - 'login has been disabled'"
+      info            : "Checks whether the rlogin service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?login"
+      expect          : "^#[\\s]*login[\\s]+.*\/usr\/sbin\/rlogind.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.33 - /etc/inetd.conf - 'talk has been disabled'"
+      info            : "Checks whether the talkd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?talk"
+      expect          : "^#[\\s]*talk[\\s]+.*\/usr\/sbin\/talkd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.34 - /etc/inetd.conf - 'ntalk has been disabled'"
+      info            : "Checks whether the ntalk service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?ntalk"
+      expect          : "^#[\\s]*ntalk[\\s]+.*\/usr\/sbin\/talkd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.35 - /etc/inetd.conf - 'ftp has been disabled'"
+      info            : "Checks whether the ftpd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?ftp"
+      expect          : "^#[\\s]*ftp[\\s]+.*\/usr\/sbin\/ftpd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.36 - /etc/inetd.conf - 'chargen-tcp has been disabled'"
+      info            : "Checks whether the chargen-tcp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?chargen.*tcp"
+      expect          : "^#[\\s]*chargen[\\s]+.*tcp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.36 - /etc/inetd.conf - 'chargen-udp has been disabled'"
+      info            : "Checks whether the chargen-udp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?chargen.*udp"
+      expect          : "^#[\\s]*chargen[\\s]+.*udp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.37 - /etc/inetd.conf - 'discard-tcp has been disabled'"
+      info            : "Checks whether the discard-tcp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?discard.*tcp"
+      expect          : "^#[\\s]*discard[\\s]+.*tcp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.37 - /etc/inetd.conf - 'discard-udp has been disabled'"
+      info            : "Checks whether the discard-udp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?discard.*udp"
+      expect          : "^#[\\s]*discard[\\s]+.*udp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.38 - /etc/inetd.conf - 'dtspc has been disabled'"
+      info            : "Checks whether the dtspc service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?dtspcd"
+      expect          : "^#[\\s]*dtspcd[\\s]+.*\/usr\/dt\/bin\/dtspcd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.39 - /etc/inetd.conf - 'echo-tcp has been disabled'"
+      info            : "Checks whether the echo-tcp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?echo.*tcp"
+      expect          : "^#[\\s]*echo[\\s]+.*tcp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.39 - /etc/inetd.conf - 'echo-udp has been disabled'"
+      info            : "Checks whether the echo-udp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?echo.*udp"
+      expect          : "^#[\\s]*echo[\\s]+.*udp.*internal.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.40 - /etc/inetd.conf - 'pcnfs has been disabled'"
+      info            : "Checks whether the pcnfsd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?pcnfsd"
+      expect          : "^#[\\s]*pcnfsd[\\s]+.*\/usr\/sbin\/rpc\.pcnfsd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.41 - /etc/inetd.conf - 'rstatd has been disabled'"
+      info            : "Checks whether the rstatd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?rstatd"
+      expect          : "^#[\\s]*rstatd[\\s]+.*\/usr\/sbin\/rpc\.rstatd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.42 - /etc/inetd.conf - 'rusersd has been disabled'"
+      info            : "Checks whether the rusersd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?rusersd"
+      expect          : "^#[\\s]*rusersd[\\s]+.*\/usr\/lib\/netsvc\/rusers\/rpc\.rusersd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.43 - /etc/inetd.conf - 'rwalld has been disabled'"
+      info            : "Checks whether the rwalld service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?rwalld"
+      expect          : "^#[\\s]*rwalld[\\s]+.*\/usr\/lib\/netsvc\/rwall\/rpc\.rwalld.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.44 - /etc/inetd.conf - 'sprayd has been disabled'"
+      info            : "Checks whether the sprayd service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?sprayd"
+      expect          : "^#[\\s]*sprayd[\\s]+.*\/usr\/lib\/netsvc\/spray\/rpc\.sprayd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.45 - /etc/inetd.conf - 'klogin has been disabled'"
+      info            : "Checks whether the klogin service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?klogin"
+      expect          : "^#[\\s]*klogin[\\s]+.*\/usr\/sbin\/krlogind.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.46 - /etc/inetd.conf - 'kshell has been disabled'"
+      info            : "Checks whether the kshell service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?kshell"
+      expect          : "^#[\\s]*kshell[\\s]+.*\/usr\/sbin\/krshd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.47 - /etc/inetd.conf - 'rquotad has been disabled'"
+      info            : "Checks whether the rquotad service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?rquotad"
+      expect          : "^#[\\s]*rquotad[\\s]+.*\/usr\/sbin\/rpc\.rquotad.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.48 - /etc/inetd.conf - 'tftp has been disabled'"
+      info            : "Checks whether the tftp service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?tftp"
+      expect          : "^#[\\s]*tftp[\\s]+.*\/usr\/sbin\/tftpd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.49 - /etc/inetd.conf - 'imap has been disabled'"
+      info            : "Checks whether the imap service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?imap2"
+      expect          : "^#[\\s]*imap2[\\s]+.*\/usr\/sbin\/imapd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.50 - /etc/inetd.conf - 'pop3 has been disabled'"
+      info            : "Checks whether the pop3 service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?pop3"
+      expect          : "^#[\\s]*pop3[\\s]+.*\/usr\/sbin\/pop3d.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.51 - /etc/inetd.conf - 'fingerd has been disabled'"
+      info            : "Checks whether the finger service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?finger"
+      expect          : "^#[\\s]*finger[\\s]+.*\/usr\/sbin\/fingerd.*$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.3.52 - /etc/inetd.conf - 'instsrv has been disabled'"
+      info            : "Checks whether the instsrv service has been disabled in /etc/inetd.conf."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/inetd.conf"
+      regex           : "^[#]?instsrv"
+      expect          : "^#[\\s]*instsrv[\\s]+.*\/u\/netinst\/bin\/instsrv.*$"
+      string_required : NO
+    </custom_item>
+
+###
+### 1.4 AIX Security Expert - Disabling Remote Services
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "1.4.1 - Remote command lockdown - 'rcp mode 000'"
+      info        : "Checks all permissions have been removed from /usr/bin/rcp."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/usr/bin/j_rcp"
+      mask        : "777"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "1.4.1 - Remote command lockdown - 'rsh mode 000'"
+      info        : "Checks all permissions have been removed from /usr/bin/rsh."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/usr/bin/rsh"
+      mask        : "777"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "1.4.1 - Remote command lockdown - 'rlogin mode 000'"
+      info        : "Checks all permissions have been removed from /usr/bin/rlogin."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/usr/bin/rlogin"
+      mask        : "777"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "1.4.2 - Remote daemon lockdown - 'rlogind mode 000'"
+      info        : "Checks all permissions have been removed from /usr/sbin/rlogind."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/usr/sbin/j_rlogind"
+      mask        : "777"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "1.4.2 - Remote daemon lockdown - 'rshd mode 000'"
+      info        : "Checks all permissions have been removed from /usr/sbin/rshd."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/usr/sbin/rshd"
+      mask        : "777"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "1.4.2 - Remote daemon lockdown - 'tftpd mode 000'"
+      info        : "Checks all permissions have been removed from /usr/sbin/tftpd."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/usr/sbin/tftpd"
+      mask        : "777"
+      required    : NO
+    </custom_item>
+
+###
+### 1.5 AIX Security Expert - Automated Authentication
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK_NOT
+      description : "1.5.1 - Removal of .rhosts and .netrc files - .rhosts"
+      info        : "Check that no .rhosts files exist in user home directories."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "~/.rhosts"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK_NOT
+      description : "1.5.1 - Removal of .rhosts and .netrc files - .netrc"
+      info        : "Check that no .netrc files exist in user home directories."
+      reference   : "800-53|IA-5(7),CIP|007-6-R1,CSCv6|9.1,CSF|PR.AC-1,ITSG-33|IA-5(7),LEVEL|2S,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "~/.netrc"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.5.2 - Removal of entries from /etc/hosts.equiv file - 'hosts.equiv has no entries'"
+      info        : "Checks whether ipsrcrouteforward has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/egrep '^[^#].+$' /etc/hosts.equiv | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+###
+### 1.6 AIX Security Expert - TCP/IP Hardening
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.1 - TCP/IP Tuning - 'ipsrcrouteforward = 0'"
+      info        : "Checks whether ipsrcrouteforward has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*ipsrcrouteforward"
+      expect      : "^[\\s]*ipsrcrouteforward[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.2 - TCP/IP Tuning - 'ipignoreredirects = 1'"
+      info        : "Checks whether ipignoreredirects has been enabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*ipignoreredirects"
+      expect      : "^[\\s]*ipignoreredirects[\\s]*=[\\s]*\"1\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.3 - TCP/IP Tuning - 'clean_partial_conns = 1'"
+      info        : "Checks whether clean_partial_conns has been enabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*clean_partial_conns"
+      expect      : "^[\\s]*clean_partial_conns[\\s]*=[\\s]*\"1\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.4 - TCP/IP Tuning - 'ipsrcroutesend = 0'"
+      info        : "Checks whether ipsrcroutesend has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*ipsrcroutesend"
+      expect      : "^[\\s]*ipsrcroutesend[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.5 - TCP/IP Tuning - 'ipforwarding = 0'"
+      info        : "Checks whether ipforwarding has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*ipforwarding"
+      expect      : "^[\\s]*ipforwarding[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.6 - TCP/IP Tuning - 'ipsendredirects = 0'"
+      info        : "Checks whether ipsendredirects has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*ipsendredirects"
+      expect      : "^[\\s]*ipsendredirects[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.7 - TCP/IP Tuning - 'ip6srcrouteforward = 0'"
+      info        : "Checks whether ip6srcrouteforward has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*ip6srcrouteforward"
+      expect      : "^[\\s]*ip6srcrouteforward[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.8 - TCP/IP Tuning - 'directed_broadcast = 0'"
+      info        : "Checks whether directed_broadcast has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*directed_broadcast"
+      expect      : "^[\\s]*directed_broadcast[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.9 - TCP/IP Tuning - 'tcp_pmtu_discover = 0'"
+      info        : "Checks whether tcp_pmtu_discover has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*tcp_pmtu_discover"
+      expect      : "^[\\s]*tcp_pmtu_discover[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.10 - TCP/IP Tuning - 'bcastping = 0'"
+      info        : "Checks whether bcastping has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*bcastping"
+      expect      : "^[\\s]*bcastping[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.11 - TCP/IP Tuning - 'icmpaddressmask = 0'"
+      info        : "Checks whether icmpaddressmask has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*icmpaddressmask"
+      expect      : "^[\\s]*icmpaddressmask[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.12 - TCP/IP Tuning - 'udp_pmtu_discover = 0'"
+      info        : "Checks whether udp_pmtu_discover has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*udp_pmtu_discover"
+      expect      : "^[\\s]*udp_pmtu_discover[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.13 - TCP/IP Tuning - 'ipsrcrouterecv = 0'"
+      info        : "Checks whether ipsrcrouterecv has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*ipsrcrouterecv"
+      expect      : "^[\\s]*ipsrcrouterecv[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.14 - TCP/IP Tuning - 'nonlocsrcroute = 0'"
+      info        : "Checks whether nonlocsrcroute has been disabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*nonlocsrcroute"
+      expect      : "^[\\s]*nonlocsrcroute[\\s]*=[\\s]*\"0\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.15 - TCP/IP Tuning - 'tcp_tcpsecure = 7'"
+      info        : "Checks whether tcp_tcpsecure has been set appropriately in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*tcp_tcpsecure"
+      expect      : "^[\\s]*tcp_tcpsecure[\\s]*=[\\s]*\"7\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.16 - TCP/IP Tuning - 'sockthresh <= 60'"
+      info        : "Checks whether sockthresh has been set to reserve up to 60% of network memory for new socket connections in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*sockthresh"
+      expect      : "^[\\s]*sockthresh[\\s]*=[\\s]*\"(60|[0-5][0-9])\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.17 - TCP/IP Tuning - 'rfc1323 = 1'"
+      info        : "Checks whether rfc1323 has been enabled to allow TCP windows >64KB in /etc/tunables/nextboot."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*rfc1323"
+      expect      : "^[\\s]*rfc1323[\\s]*=[\\s]*\"1\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.18 - TCP/IP Tuning - 'tcp_sendspace >= 262144'"
+      info        : "Checks whether tcp_sendspace has been set to at least 262KB in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*tcp_sendspace"
+      expect      : "^[\\s]*tcp_sendspace[\\s]*=[\\s]*\"([2-9][6-9][2-9][1-9][4-9][4-9]|[2-9][6-9][2-9][1-9][5-9][0-9]|[2-9][6-9][2-9][2-9][0-9][0-9]|[2-9][6-9][3-9][0-9][0-9][0-9]|[2-9][7-9][0-9][0-9][0-9][0-9]|[3-9][0-9][0-9][0-9][0-9][0-9]|[1-9][0-9][0-9][0-9][0-9][0-9][0-9]+)\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.19 - TCP/IP Tuning - 'tcp_recvspace >= 262144'"
+      info        : "Checks whether tcp_recvspace has been set to 262KB in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*tcp_recvspace"
+      expect      : "^[\\s]*tcp_recvspace[\\s]*=[\\s]*\"([2-9][6-9][2-9][1-9][4-9][4-9]|[2-9][6-9][2-9][1-9][5-9][0-9]|[2-9][6-9][2-9][2-9][0-9][0-9]|[2-9][6-9][3-9][0-9][0-9][0-9]|[2-9][7-9][0-9][0-9][0-9][0-9]|[3-9][0-9][0-9][0-9][0-9][0-9]|[1-9][0-9][0-9][0-9][0-9][0-9][0-9]+)\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.20 - TCP/IP Tuning - 'tcp_mssdflt <= 1448'"
+      info        : "Checks whether tcp_mssdflt has been set to 1448 or less (this is the packet size minus the TCP/IP headers) in /etc/tunables/nextboot."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*tcp_mssdflt"
+      expect      : "^[\\s]*tcp_mssdflt[\\s]*=[\\s]*\"(144[0-8]|14[0-3][0-9]|1[0-3][0-9][0-9]|[1-9][0-9][0-9]|[1-9][0-9]|[1-9])\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.21 - TCP/IP Tuning - nfs_use_reserved_ports - 'portcheck = 1'"
+      info        : "Checks whether portcheck has been enabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*portcheck"
+      expect      : "^[\\s]*portcheck[\\s]*=[\\s]*\"1\"$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.6.21 - TCP/IP Tuning - nfs_use_reserved_ports - 'nfs_use_reserved_ports = 1'"
+      info        : "Checks whether nfs_use_reserved_ports has been enabled in /etc/tunables/nextboot."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/tunables/nextboot"
+      regex       : "^[\\s]*nfs_use_reserved_ports"
+      expect      : "^[\\s]*nfs_use_reserved_ports[\\s]*=[\\s]*\"1\"$"
+    </custom_item>
+
+###
+### 1.7 AIX Security Expert - Miscellaneous Enhancements
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.7.1 - Miscellaneous Enhancements - crontab access - 'cron.allow includes root'"
+      info        : "Checking that an entry for root exists in /var/adm/cron/cron.allow."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/cron/cron.allow"
+      regex       : "root"
+      expect      : "^root$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.7.1 - Miscellaneous Enhancements - crontab access - 'cron.allow includes adm'"
+      info        : "Checking that an entry for adm exists in /var/adm/cron/cron.allow."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/cron/cron.allow"
+      regex       : "adm"
+      expect      : "^adm$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.1 - Miscellaneous Enhancements - crontab access - 'cron.allow includes no other users'"
+      info        : "Checking that no other entries except for root and adm exists in /var/adm/cron/cron.allow."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "grep -v -E -e 'root|adm' /var/adm/cron/cron.allow | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK_NOT
+      description : "1.7.1 - Miscellaneous Enhancements - crontab access - 'cron.deny does not exist'"
+      info        : "Check that no cron.deny files exist in /var/adm/cron."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CIP|007-6-R1,CSCv6|9.1,CSF|PR.AC-4,LEVEL|2S,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/cron/cron.deny"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "1.7.2 - Miscellaneous Enhancements - at access - 'at.allow includes root'"
+      info        : "Checking that an entry for root exists in /var/adm/cron/at.allow."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/cron/at.allow"
+      regex       : "root"
+      expect      : "^root$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.2 - Miscellaneous Enhancements - at access - 'at.allow includes no other users'"
+      info        : "Checking that no other entries except for root exist in /var/adm/cron/at.allow."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "grep -v -E -e 'root' /var/adm/cron/at.allow | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK_NOT
+      description : "1.7.2 - Miscellaneous Enhancements - at access - 'at.deny does not exist'"
+      info        : "Check that no at.deny files exist in /var/adm/cron."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CIP|007-6-R1,CSCv6|9.1,CSF|PR.AC-4,LEVEL|2S,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/cron/at.deny"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.7 - Miscellaneous Enhancements - 'default umask = 27'"
+      info        : "Checks the default umask in /etc/security/user."
+      reference   : "800-171|3.1.1,800-53|AC-3(4),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(4),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lssec -f /etc/security/user -s default -a umask"
+      expect      : "^default[\\s]+umask=27$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.8 - Miscellaneous Enhancements - disable core dumps - 'core = 0'"
+      info        : "Checks that the core setting is false in /etc/security/limits."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lssec -f /etc/security/limits -s default -a core"
+      expect      : "^default[\\s]+core=0$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.8 - Miscellaneous Enhancements - disable core dumps - 'core_hard = 0'"
+      info        : "Checks that the core_hard setting is false in /etc/security/limits."
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lssec -f /etc/security/limits -s default -a core_hard"
+      expect      : "^default[\\s]+core_hard=0$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.8 - Miscellaneous Enhancements - disable core dumps - 'fullcore false'"
+      info        : "Checks that the fullcore kernel parameter setting is false."
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),LEVEL|2S,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsattr -El sys0 -a fullcore"
+      expect      : "^fullcore[\\s]+false[\\s]+.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - '/audit directory exists'"
+      info        : "Check that the /audit directory exists."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/audit"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - binmode = on'"
+      info        : "Checks that binmode is turned on in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/start:/,/bin:/' /etc/security/audit/config | /usr/bin/grep 'binmode'"
+      expect      : "^[\\s]*binmode[\\s]*=[\\s]*[Oo][Nn][\\s]*.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - streammode = off'"
+      info        : "Checks that streammode is turned off in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/start:/,/bin:/' /etc/security/audit/config | /usr/bin/grep 'streammode'"
+      expect      : "^[\\s]*streammode[\\s]*=[\\s]*[Oo][Ff][Ff][\\s]*.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - trail = /audit/trail'"
+      info        : "Checks that trail is configured in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/bin:/,/stream:/' /etc/security/audit/config | /usr/bin/grep 'trail'"
+      expect      : "^[\\s]*trail[\\s]*=[\\s]*\/audit\/trail[\\s]*.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - bin1 = /audit/bin1'"
+      info        : "Checks that bin1 is configured in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/bin:/,/stream:/' /etc/security/audit/config | /usr/bin/grep 'bin1'"
+      expect      : "^[\\s]*bin1[\\s]*=[\\s]*\/audit\/bin1[\\s]*.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - bin2 = /audit/bin2'"
+      info        : "Checks that bin2 is configured in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/bin:/,/stream:/' /etc/security/audit/config | /usr/bin/grep 'bin2'"
+      expect      : "^[\\s]*bin2[\\s]*=[\\s]*\/audit\/bin2[\\s]*.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - binsize <= 10240'"
+      info        : "Checks that binsize is greater than or equal to 10240 in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/bin:/,/stream:/' /etc/security/audit/config | /usr/bin/grep 'binsize'"
+      expect      : "^[\\s]*binsize[\\s]*=[\\s]*([1-9][0-9][2-9][4-9][0-9]|[0-9][0-9][0-9][0-9][0-9][0-9]+).*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - cmds = /etc/security/audit/bincmds'"
+      info        : "Checks that cmds is configured in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/bin:/,/stream:/' /etc/security/audit/config | /usr/bin/grep 'cmds'"
+      expect      : "^[\\s]*cmds[\\s]*=[\\s]*\/etc\/security\/audit\/bincmds.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - root = general,SRC,mail,cron,tcpip,ipsec,lvm'"
+      info        : "Checks that auditing entries for root are configured in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/users:/,EOF' /etc/security/audit/config | /usr/bin/grep 'root'"
+      expect      : "^[\\s]*root[\\s]*=[\\s]*general,SRC,mail,cron,tcpip,ipsec,lvm$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'validate /etc/security/audit/config - <user> = general,SRC,cron,tcpip'"
+      info        : "Checks that auditing entries for root are configured in /etc/security/audit/config."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/awk '/users:/,EOF' /etc/security/audit/config | /usr/bin/grep -E -v -e '(users|root|^$)' | /usr/bin/grep -E -v -e 'general,SRC,cron,tcpip' | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'user auditclasses = general,SRC,cron,tcpip'"
+      info        : "Checks that the default user auditclasses entry has been updated."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lssec -f /usr/lib/security/mkuser.default -s user -a auditclasses"
+      expect      : "^[\\s]*user[\\s]+auditclasses[\\s]*=[\\s]*general,SRC,cron,tcpip$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'cron audit rotation has been implemented'"
+      info        : "Checks that cron audit rotation has been implemented."
+      reference   : "800-53|AU-11,CSF|PR.PT-1,ITSG-33|AU-11,LEVEL|2S,NESA|M5.2.3,NESA|T3.6.2,NIAv2|SM7"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/crontab -l | /usr/bin/grep -E 'cronaudit'"
+      expect      : "^[\\s]*0[\\s]+\\*[\\s]+\\*[\\s]+\\*[\\s]+\\*[\\s]+\/etc\/security\/aixpert\/bin\/cronaudit$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "1.7.9 - Miscellaneous Enhancements - AIX Auditing - 'audit has been enabled'"
+      info        : "Checks whether the audit service has been enabled in /etc/inittab."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-2,CN-L3|8.1.4.3(a),CSF|PR.PT-1,ITSG-33|AU-2,LEVEL|2S,NESA|M1.2.2,NESA|M5.5.1,NIAv2|AM11a,NIAv2|AM11b,NIAv2|AM11c,NIAv2|AM11d,NIAv2|AM11e,NIAv2|AM7,NIAv2|SS30,NIAv2|VL8,SWIFT-CSCv1|6.4"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab audit"
+      expect      : "^[\\s]*audit:2:boot:audit[\\s]+start[\\s]+\>[\\s]+\/dev\/console[\\s]+2\>\&1.*$"
+    </custom_item>
+
+##
+## 2. Non AIX Security Expert Managed Recommendations
+##
+###
+### 2.1 Configuring syslog
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.1.1 - Configuring syslog - local logging - 'auth.info entry exists in /etc/syslog.conf'"
+      info        : "Checking that the authlog entry has been added to /etc/syslog.conf."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/syslog.conf"
+      regex       : "auth\.info"
+      expect      : "^[\\s]*auth.info[\\s]+\/var\/adm\/authlog[\\s]+rotate[\\s]+time[\\s]+1w[\\s]+files[\\s]+4$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.1.1 - Configuring syslog - local logging - '*.info;auth.none entry exists in /etc/syslog.conf'"
+      info        : "Checking that the authlog entry has been added to /etc/syslog.conf."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/syslog.conf"
+      regex       : "\\*\.info;auth\.none"
+      expect      : "^[\\s]*\\*\.info;auth\.none[\\s]+\/var\/adm\/syslog[\\s]+rotate[\\s]+time[\\s]+1w[\\s]+files[\\s]+4$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "2.1.1 - Configuring syslog - local logging - '/var/adm/authlog exists'"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/authlog"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "2.1.1 - Configuring syslog - local logging - '/var/adm/syslog exists'"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/syslog"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.1.2 - Configuring syslog - remote logging - 'auth.info remote entry exists in /etc/syslog.conf'"
+      info        : "Checking that the remote syslog entry for auth.info has been added to /etc/syslog.conf."
+      info        : "NOTE: Update SYSLOG_HOST with the appropriate value for the local environment"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/syslog.conf"
+      regex       : "auth\.info"
+# Note: Variable @SYSLOG_HOST@ replaced with "192\\\\.168\\\\.100\\\\.1" in field "expect".
+      expect      : "^[\\s]*auth.info[\\s]+192\\\\.168\\\\.100\\\\.1$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.1.2 - Configuring syslog - remote logging - '*.info;auth.none remote entry exists in /etc/syslog.conf'"
+      info        : "Checking that the remote syslog entry for *.info;auth.none has been added to /etc/syslog.conf."
+      info        : "NOTE: Update SYSLOG_HOST with the appropriate value for the local environment"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/syslog.conf"
+      regex       : "\\*\.info;auth\.none"
+# Note: Variable @SYSLOG_HOST@ replaced with "192\\\\.168\\\\.100\\\\.1" in field "expect".
+      expect      : "^[\\s]*\\*\.info;auth\.none[\\s]+192\\\\.168\\\\.100\\\\.1$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.1.3 - Configuring syslog - remote messages"
+      info        : "Checks that syslogd is running with the -r flag to avoid accepting remote messages."
+      reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/ps -ef | /usr/bin/grep '/usr/sbin/syslogd'"
+      expect      : "^.+\/usr\/sbin\/syslogd[\\s]+-r$"
+    </custom_item>
+
+###
+### 2.2 Secure Remote Access
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssh.base.client is installed'"
+      info        : "Checks that the openssh.base.client filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssh.base.client"
+      expect      : "^[\\s]*openssh\.base\.client.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssh.base.server is installed'"
+      info        : "Checks that the openssh.base.server filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssh.base.server"
+      expect      : "^[\\s]*openssh\.base\.server.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssh.license is installed'"
+      info        : "Checks that the openssh.license filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssh.license"
+      expect      : "^[\\s]*openssh\.license.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssh.msg.en_US is installed'"
+      info        : "Checks that the openssh.msg.en_US filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssh.msg.en_US"
+      expect      : "^[\\s]*openssh\.msg\.en_US.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssl.base is installed'"
+      info        : "Checks that the openssl.base filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssl.base"
+      expect      : "^[\\s]*openssl\.base.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssl.license is installed'"
+      info        : "Checks that the openssl.license filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssl.license"
+      expect      : "^[\\s]*openssl\.license.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssl.man.en_US is installed'"
+      info        : "Checks that the openssl.man.en_US filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssl.man.en_US"
+      expect      : "^[\\s]*openssl\.man\.en_US.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.2.1 - Configuring SSH - installation - 'openssl is installed'"
+      info        : "Checks that the openssl filesets have been installed on the system."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L openssl"
+      expect      : "^[\\s]*openssl[\\s]+.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.2.8 - Configuring SSH - disallow host based authentication - 'HostbasedAuthentication = no'"
+      info        : "Checking that /etc/ssh/sshd_config has been editied to disallow host based authentication."
+      reference   : "800-171|3.5.2,800-53|AC-14,800-53|IA-5,CSF|PR.AC-1,ITSG-33|AC-14,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.3,NESA|T5.6.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ssh/sshd_config"
+      regex       : "^[\\s]*HostbasedAuthentication.*"
+      expect      : "HostbasedAuthentication[\\s]*[Nn][Oo]"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK_NOT
+      description : "2.2.12 - Configuring SSH - removal of .shosts files - 'no .shosts files exist in user home directories'"
+      info        : "Check that no .shosts files exist in user home directories."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "~/.shosts"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK_NOT
+      description : "2.2.13 - Configuring SSH - removal of /etc/shosts.equiv file"
+      info        : "Check that the /etc/shosts.equiv file does not exist."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/shosts.equiv"
+    </custom_item>
+
+###
+### 2.3 Sendmail Configuration
+###
+### There are no applicable Level II Scorable items in this section
+###
+### 2.4 Common Desktop Environment (CDE)
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.4.1 - CDE - de-installing CDE"
+      info        : "Checks that the CDE filesets have been removed from the system."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -l | /usr/bin/grep -i 'CDE' | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.4.2 - CDE - disabling dtlogin"
+      info        : "Checks that CDE does not autostart on system boot."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab dt | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "2.4.4 - CDE - remote GUI login disabled"
+      info            : "Checks that the XDMCP service is disabled and remote systems are unable to start local X login sessions."
+      reference       : "800-171|3.1.1,800-171|3.1.2,800-53|AC-17,CN-L3|7.1.2.2(h),CN-L3|7.1.3.7(a),CN-L3|8.1.10.6(i),CN-L3|8.1.4.4(c),CSF|PR.AC-3,CSF|PR.PT-4,ISO/IEC-27001|A.6.2.2,ITSG-33|AC-17,LEVEL|2S,NESA|T4.2.1,NESA|T4.5.1,NESA|T5.1.1,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.7.1,NESA|T5.7.2,NIAv2|AM40,NIAv2|AM41,NIAv2|NS48,NIAv2|NS51,NIAv2|NS5g,NIAv2|NS5h,SWIFT-CSCv1|2.6"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/dt/config/Xconfig"
+      regex           : "Dtlogin\.requestPort.*"
+      expect          : "^Dtlogin.requestPort:[\\s]+0$"
+      string_required : NO
+    </custom_item>
+
+###
+### 2.5 NFS
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.5.1 - NFS - de-install NFS"
+      info        : "Checks that the NFS filesets have been removed from the system."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -l | /usr/bin/grep -i 'nfs' | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.5.4 - NFS - restrict NFS access - 'all exported filesystems have explicit access defined'"
+      info        : "Checks that all exports defined in /etc/exports have explicit client access options defined."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/grep -E -v -e '^[\\s]*\/.*access=' /etc/exports | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.5.6 - NFS - secure NFS - 'all entries in /etc/exports contain sec='"
+      info        : "Checks that all exports defined in /etc/exports have sec options defined."
+      reference   : "800-53|SI-7(6),CSF|PR.DS-6,LEVEL|2S,SWIFT-CSCv1|6.2"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/grep -E -v -e 'sec[\\s]*=[\\s]*(dh|sys|krb5i|krb5p|krb5)' /etc/exports | /usr/bin/awk '{print} END {if (NR == 0) print \"not found\"}'"
+      expect      : "not found"
+    </custom_item>
+
+###
+### 2.6 NIS
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.6.1 - NIS - disable NIS client - 'bos.net.nis.client is not installed'"
+      info        : "Checks that the NIS client filesets have been removed from the system."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -l bos.net.nis.client | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.6.2 - NIS - disable NIS server - 'bos.net.nis.server is not installed'"
+      info        : "Checks that the NIS server filesets have been removed from the system."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -l bos.net.nis.server | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "2.6.3 - NIS - remove NIS markers from password and group files - '/etc/passwd does not include NIS + entries'"
+      info        : "Checks that the NIS server filesets have been removed from the system."
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|2S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/passwd"
+      regex       : "^\\+"
+      expect      : ".+"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "2.6.3 - NIS - remove NIS markers from password and group files - '/etc/group does not include NIS + entries'"
+      info        : "Checks that the NIS server filesets have been removed from the system."
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,LEVEL|2S,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/group"
+      regex       : "^\\+"
+      expect      : ".+"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "2.6.4 - NIS - restrict NIS server communications - '/var/yp/securenets mode 600'"
+      info        : "Checks that the mode of /var/yp/securenets are set appropriately."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/yp/securenets"
+      mask        : "177"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.6.4 - NIS - restrict NIS server communications - '/var/yp/securenets includes allowed subnets'"
+      info        : "Checks that /var/yp/securenets includes allowed subnets."
+      info        : "NOTE: Update NIS_SECURENETS with the appropriate value for the local environment"
+      reference   : "800-171|3.13.1,800-53|SC-7(11),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),LEVEL|2S,NIAv2|GS7c,TBA-FIISB|31.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/yp/securenets"
+      regex       : "^.+$"
+# Note: Variable @NIS_SECURENETS@ replaced with "127\\.0\\.0\\.1[\\\\s]+255\\.255\\.255\\.255" in field "expect".
+      expect      : "^127\\.0\\.0\\.1[\\\\s]+255\\.255\\.255\\.255$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.6.4 - NIS - restrict NIS server communications - '/var/yp/securenets includes no other subnets'"
+      info        : "Checks that /var/yp/securenets includes no other subnets."
+      info        : "NOTE: Update NIS_SECURENETS with the appropriate value for the local environment"
+      reference   : "800-171|3.13.1,800-53|SC-7(11),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),LEVEL|2S,NIAv2|GS7c,TBA-FIISB|31.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+# Note: Variable @NIS_SECURENETS@ replaced with "127\\.0\\.0\\.1[\\\\s]+255\\.255\\.255\\.255" in field "cmd".
+      cmd         : "/usr/bin/grep -E -v -e '127\\.0\\.0\\.1[\\\\s]+255\\.255\\.255\\.255' /var/yp/securenets | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+###
+### 2.7 SNMP
+###
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "2.7.1 - SNMP - 'disable private community'"
+      info            : "Checks that the private community string has been disabled in /etc/snmpd.conf."
+      reference       : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/snmpd.conf"
+      regex           : "community[\\s]+private"
+      expect          : "#[\\s]*community[\\s]+private[\\s]+127\.0\.0\.1[\\s]+255\.255\.255\.255[\\s]+readWrite$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "2.7.2 - SNMP - 'disable system community'"
+      info            : "Checks that the system community string has been disabled in /etc/snmpd.conf."
+      reference       : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/snmpd.conf"
+      regex           : "community[\\s]+system"
+      expect          : "#[\\s]*community[\\s]+system[\\s]+127\.0\.0\.1[\\s]+255\.255\.255\.255[\\s]+readWrite[\\s]+1\.17\.2$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "2.7.3 - SNMP - 'disable public community'"
+      info            : "Checks that the public community string has been disabled in /etc/snmpd.conf."
+      reference       : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/snmpd.conf"
+      regex           : "community[\\s]+public"
+      expect          : "#[\\s]*community[\\s]+public$"
+      string_required : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.7.4 - SNMP - restrict public community access - 'all communities have IP access restrictions'"
+      info        : "Checks that all communities in /etc/snmpd.conf have IP access restrictions."
+      reference   : "800-171|3.13.1,800-53|SC-7(11),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),LEVEL|2S,NIAv2|GS7c,TBA-FIISB|31.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/grep -E -e '^[\\s]*community' /etc/snmpd.conf | /usr/bin/grep -E -v -e 'community.*[1-9][0-9]*\.[1-9][0-9]*\.[1-9][0-9]*\.[1-9][0-9]*.*readOnly' | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "2.7.5 - SNMP - disable Readwrite community - 'no communities have readWrite set'"
+      info        : "Checks that no readWrite permissions exist in any community strings in /etc/snmpd.conf."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/snmpd.conf"
+      regex       : "^community"
+      expect      : "^[\\s]*community[\\s]+.*[\\s]+readWrite[\\s]+.*$"
+    </custom_item>
+
+###
+### 2.8 Securing inetd
+###
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "2.8.1 - inetd - disabling inetd - 'inetd has been disabled'"
+      info            : "Checks whether the inetd service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/inetd"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/inetd.*$"
+      string_required : NO
+    </custom_item>
+
+###
+### 2.9 Portmap Lockdown
+###
+
+    <custom_item>
+      system          : "AIX"
+      type            : FILE_CONTENT_CHECK
+      description     : "2.9.1 - /etc/rc.tcpip - portmap - 'portmap has been disabled'"
+      info            : "Checks whether the portmap service has been disabled in /etc/rc.tcpip."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also        : "https://workbench.cisecurity.org/files/525"
+      file            : "/etc/rc.tcpip"
+      regex           : "start[\\s]+\/usr\/sbin\/portmap"
+      expect          : "^#[\\s]*start[\\s]+\/.*\/portmap.*$"
+      string_required : NO
+    </custom_item>
+
+###
+### 2.10 TCP Wrappers
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.10.1 - TCP Wrappers - installing TCP Wrappers - 'netsec.options.idprotocol is installed'"
+      info        : "Checks that the netsec.options.idprotocol filesets have been installed on the system."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9.2,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L netsec.options.idprotocol"
+      expect      : "^[\\s]*netsec\.options\.idprotocol.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.10.1 - TCP Wrappers - installing TCP Wrappers - 'netsec.options.tcpwrapper.base is installed'"
+      info        : "Checks that the netsec.options.tcpwrapper.base filesets have been installed on the system."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L netsec.options.tcpwrapper.base"
+      expect      : "^[\\s]*netsec\.options\.tcpwrapper\.base.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.10.1 - TCP Wrappers - installing TCP Wrappers - 'netsec.options.tcpwrapper.license is installed'"
+      info        : "Checks that the netsec.options.tcpwrapper.license filesets have been installed on the system."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L netsec.options.tcpwrapper.license"
+      expect      : "^[\\s]*netsec\.options\.tcpwrapper\.license.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.10.1 - TCP Wrappers - installing TCP Wrappers - 'netsec.options.tcpwrapper.man.en_US is installed'"
+      info        : "Checks that the netsec.options.tcpwrapper.man.en_US filesets have been installed on the system."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L netsec.options.tcpwrapper.man.en_US"
+      expect      : "^[\\s]*netsec\.options\.tcpwrapper\.man\.en_US.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.10.1 - TCP Wrappers - installing TCP Wrappers - 'netsec.options.tcpwrapper.msg.en_US is installed'"
+      info        : "Checks that the netsec.options.tcpwrapper.msg.en_US filesets have been installed on the system."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/lslpp -L netsec.options.tcpwrapper.msg.en_US"
+      expect      : "^[\\s]*netsec\.options\.tcpwrapper\.msg\.en_US.*$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.10.4 - TCP Wrappers - wrapping inetd services - 'all enabled inetd.conf services use TCP wrappers'"
+      info        : "Checks that all enabled TCP and UDP services in /etc/inetd.conf have TCP wrappers implemented."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/grep -E -e '^[^#][A-Za-z0-9]+[ ]+stream[ ]+tcp' /etc/inetd.conf | /usr/bin/grep -E -v -e '\/usr\/sbin\/tcpd' | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+###
+### 2.11 Permissions and Ownership
+###
+### There are no applicable Level II Scorable items in this section
+###
+### 2.12 Miscellaneous Configuration Changes
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.1 - Miscellaneous Config - serial port restriction - 'on:/usr/sbin/getty does not exist in /etc/inittab'"
+      info        : "Checks that logins have been disabled for all tty devices."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab -a | /usr/bin/grep -E '^[\\s]*tty.*(respawn|on):\/usr\/sbin\/getty' | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.2 - Miscellaneous Config - disable i4ls - 'i4ls has been disabled'"
+      info        : "Checks whether the i4ls service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab i4ls | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.3 - Miscellaneous Config - disable NCS - 'rcncs has been disabled'"
+      info        : "Checks whether the rcncs service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab rcncs | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.4 - Miscellaneous Config - disable httpdlite - 'httpdlite has been disabled'"
+      info        : "Checks whether the httpdlite service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab httpdlite | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.5 - Miscellaneous Config - disable pmd - 'pmd has been disabled'"
+      info        : "Checks whether the pmd service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab pmd | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.6 - Miscellaneous Config - disable writesrv - 'writesrv has been disabled'"
+      info        : "Checks whether the writesrv service has been disabled in /etc/inittab."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsitab writesrv | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "2.12.7 - Miscellaneous Config - Block talk/write"
+      info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+    </report>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.7 - Miscellaneous Config - Block talk/write - '/etc/profile contains mesg n'"
+      info        : "Checks whether mesg n has been added to /etc/profile."
+      reference   : "800-171|3.4.2,800-53|CM-6,CIP|007-6-R1,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/profile"
+      regex       : "^[\\s]*mesg"
+      expect      : "^mesg[\\s]*n$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.7 - Miscellaneous Config - Block talk/write - '/etc/csh.login contains mesg n'"
+      info        : "Checks whether mesg n has been added to /etc/csh.login."
+      reference   : "800-171|3.4.2,800-53|CM-6,CIP|007-6-R1,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/csh.login"
+      regex       : "^[\\s]*mesg"
+      expect      : "^mesg[\\s]*n$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CHECK
+      description : "2.12.8 - Miscellaneous Config - enable sar accounting - '/var/adm/sa adm:adm 755'"
+      info        : "Checks that the owner, group and mode of /var/adm/sa are set appropriately."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/adm/sa"
+      owner       : "adm"
+      mask        : "022"
+      group       : "adm"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.8 - Miscellaneous Config - enable sar accounting - 'activity reports are generated every 20 minutes or less on weekday 8a-5p'"
+      info        : "Checks whether weekday activity reports are scheduled in /var/spool/cron/crontabs/adm."
+      reference   : "800-53|AU-6(1),CSF|DE.AE-2,CSF|DE.AE-3,CSF|DE.DP-4,CSF|PR.PT-1,CSF|RS.AN-1,CSF|RS.CO-2,ITSG-33|AU-6(1),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/spool/cron/crontabs/adm"
+      regex       : "^[\\s]*0[\\s]+8-17[\\s]+\\*[\\s]+\\*[\\s]+1-5"
+      expect      : "^[\\s]*0[\\s]+8-17[\\s]+\\*[\\s]+\\*[\\s]+1-5[\\s]+\/usr\/lib\/sa\/sa1[\\s]+[0-1]?[0-2]00[\\s]+3[\\s]+&$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.8 - Miscellaneous Config - enable sar accounting - 'activity reports are generated hourly on weekends'"
+      info        : "Checks whether weekend activity reports are scheduled in /var/spool/cron/crontabs/adm."
+      reference   : "800-53|AU-6(1),CSF|DE.AE-2,CSF|DE.AE-3,CSF|DE.DP-4,CSF|PR.PT-1,CSF|RS.AN-1,CSF|RS.CO-2,ITSG-33|AU-6(1),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/spool/cron/crontabs/adm"
+      regex       : "^[\\s]*0[\\s]+\\*[\\s]+\\*[\\s]+\\*[\\s]+0,6"
+      expect      : "^[\\s]*0[\\s]+\\*[\\s]+\\*[\\s]+\\*[\\s]+0,6[\\s]+\/usr\/lib\/sa\/sa1[\\s]+&$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.8 - Miscellaneous Config - enable sar accounting - 'activity reports are generated hourly on weekday 6p-7a'"
+      info        : "Checks whether weekend activity reports are scheduled in /var/spool/cron/crontabs/adm."
+      reference   : "800-53|AU-6(1),CSF|DE.AE-2,CSF|DE.AE-3,CSF|DE.DP-4,CSF|PR.PT-1,CSF|RS.AN-1,CSF|RS.CO-2,ITSG-33|AU-6(1),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/spool/cron/crontabs/adm"
+      regex       : "^[\\s]*0[\\s]+18-7[\\s]+\\*[\\s]+\\*[\\s]+1-5"
+      expect      : "^[\\s]*0[\\s]+18-7[\\s]+\\*[\\s]+\\*[\\s]+1-5[\\s]+\/usr\/lib\/sa\/sa1[\\s]+&$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.8 - Miscellaneous Config - enable sar accounting - 'daily summaries are being prepared'"
+      info        : "Checks whether daily summary reports are scheduled in /var/spool/cron/crontabs/adm."
+      reference   : "800-53|AU-6(1),CSF|DE.AE-2,CSF|DE.AE-3,CSF|DE.DP-4,CSF|PR.PT-1,CSF|RS.AN-1,CSF|RS.CO-2,ITSG-33|AU-6(1),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/var/spool/cron/crontabs/adm"
+      regex       : "^[\\s]*5[\\s]+18[\\s]+\\*[\\s]+\\*[\\s]+1-5"
+      expect      : "^[\\s]*5[\\s]+18[\\s]+\\*[\\s]+\\*[\\s]+1-5[\\s]+\/usr\/lib\/sa\/sa2[\\s]+-s[\\s]+8:00[\\s]+-e[\\s]+18:01[\\s]+-i[\\s]+3600[\\s]+-ubcwyaqvm[\\s]+&$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains daemon'"
+      info        : "Checks whether deamon account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "daemon"
+      expect      : "^daemon$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains bin'"
+      info        : "Checks whether bin account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "bin"
+      expect      : "^bin$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains sys'"
+      info        : "Checks whether sys account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "sys"
+      expect      : "^sys$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains adm'"
+      info        : "Checks whether adm account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "adm"
+      expect      : "^adm$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains uucp'"
+      info        : "Checks whether uucp account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "^uucp"
+      expect      : "^uucp$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains guest'"
+      info        : "Checks whether guest account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "guest"
+      expect      : "^guest$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains lpd'"
+      info        : "Checks whether lpd account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "lpd"
+      expect      : "^lpd$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains lp'"
+      info        : "Checks whether lp account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "^lp$"
+      expect      : "^lp$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains invscout'"
+      info        : "Checks whether invscout account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "invscout"
+      expect      : "^invscout$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : FILE_CONTENT_CHECK
+      description : "2.12.9 - Miscellaneous Config - /etc/ftpusers - '/etc/ftpusers contains nuucp'"
+      info        : "Checks whether nuucp account has been added to /etc/ftpusers."
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      file        : "/etc/ftpusers"
+      regex       : "nuucp"
+      expect      : "^nuucp$"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.18 - Miscellaneous Config - unnecessary user and group removal - 'uucp account has been removed'"
+      info        : "Checks that the uucp account has been removed."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser uucp | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.18 - Miscellaneous Config - unnecessary user and group removal - 'lpd account has been removed'"
+      info        : "Checks that the lpd account has been removed."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser lpd | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.18 - Miscellaneous Config - unnecessary user and group removal - 'printq account has been removed'"
+      info        : "Checks that the printq account has been removed."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsuser printq | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.18 - Miscellaneous Config - unnecessary user and group removal - 'uucp group has been removed'"
+      info        : "Checks that the uucp group has been removed."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsgroup uucp | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.12.18 - Miscellaneous Config - unnecessary user and group removal - 'printq group has been removed'"
+      info        : "Checks that the printq group has been removed."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/sbin/lsgroup printq | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect      : "none"
+    </custom_item>
+
+###
+### 2.13 Privileged Command Management
+###
+
+    <custom_item>
+      system      : "AIX"
+      type        : CMD_EXEC
+      description : "2.13.1 - PCM - sudo"
+      info        : "Checks that sudo is installed."
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      cmd         : "/usr/bin/rpm -q sudo1"
+      expect      : "sudo-.+"
+      required    : YES
+    </custom_item>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'System is AIX 6.1'"
+          cmd         : "/usr/bin/oslevel"
+          expect      : "^6.1"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'Enhanced RBAC is enabled'"
+          info        : "Checks that Enhanced RBAC is enabled."
+          reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,LEVEL|2NS"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/lsattr -El sys0 -a enhanced_RBAC"
+          expect      : "^[\\s]*enhanced_RBAC[\\s]*[Tt][Rr][Uu][Ee]"
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'lskst -t auth info'"
+          info        : "Returns the current RBAC authorizations table."
+          reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,LEVEL|2NS"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/lskst -t auth"
+          expect      : ""
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'lskst -t role info'"
+          info        : "Returns the current RBAC role table."
+          reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,LEVEL|2NS"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/lskst -t role"
+          expect      : ""
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'lskst -t cmd info'"
+          info        : "Returns the current RBAC cmd table."
+          reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,LEVEL|2NS"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/lskst -t cmd"
+          expect      : ""
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'lskst -t dev info'"
+          info        : "Returns the current RBAC dev table."
+          reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,LEVEL|2NS"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/lskst -t dev"
+          expect      : ""
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'lskst -t dom info'"
+          info        : "Returns the current RBAC dom table."
+          reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,LEVEL|2NS"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/lskst -t dom"
+          expect      : ""
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'lskst -t domobj info'"
+          info        : "Returns the current RBAC domobj table."
+          reference   : "800-171|3.1.1,800-53|AC-3(7),CN-L3|7.1.2.2(g),CN-L3|7.1.3.2(c),CSF|PR.AC-4,CSF|PR.PT-3,LEVEL|2NS"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/lskst -t domobj"
+          expect      : ""
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "2.13.2 - PCM - enhanced RBAC (AIX 6.1 only) - 'System is AIX 6.1'"
+          info        : "This system is not running AIX 6.1."
+          reference   : "LEVEL|2NS"
+        </report>
+      </else>
+    </if>
+
+###
+### 2.14 Encrypted Filesystems (EFS) (AIX 6.1 only)
+###
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.14.1 - EFS - implementation (AIX 6.1 only) - 'System is AIX 6.1'"
+          cmd         : "/usr/bin/oslevel"
+          expect      : "^6.1"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.14.1 - EFS - implementation (AIX 6.1 only) - 'clic.rte.includes is installed'"
+          info        : "Checks that the CLiC software filesets have been installed on the system."
+          reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/bin/lslpp -l clic.rte.includes"
+          expect      : "^[\\s]*clic\.rte\.includes.*$"
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.14.1 - EFS - implementation (AIX 6.1 only) - 'clic.rte.kernext is installed'"
+          info        : "Checks that the CLiC software filesets have been installed on the system."
+          reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/bin/lslpp -l clic.rte.kernext"
+          expect      : "^[\\s]*clic\.rte\.kernext.*$"
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.14.1 - EFS - implementation (AIX 6.1 only) - 'clic.rte.lib is installed'"
+          info        : "Checks that the CLiC software filesets have been installed on the system."
+          reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/bin/lslpp -l clic.rte.lib"
+          expect      : "^[\\s]*clic\.rte\.lib.*$"
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.14.1 - EFS - implementation (AIX 6.1 only) - 'clic.rte.pkcs11 is installed'"
+          info        : "Checks that the CLiC software filesets have been installed on the system."
+          reference   : "800-171|3.4.8,800-53|CM-7(5),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/bin/lslpp -l clic.rte.pkcs11"
+          expect      : "^[\\s]*clic\.rte\.pkcs11.*$"
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.14.1 - EFS - implementation (AIX 6.1 only) - 'CLiC kernel extension has loaded'"
+          info        : "Checks that the CLiC software filesets have been installed on the system."
+          reference   : "800-171|3.13.16,800-171|3.4.8,800-53|CM-7(5),800-53|SC-28(1),CSF|PR.DS-1,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,ITSG-33|SC-28(1),LEVEL|2S,SWIFT-CSCv1|2.3,TBA-FIISB|28.1,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/bin/genkex | /usr/bin/grep 'crypt'"
+          expect      : "^438b000[\\s]+39000[\\s]+\/usr\/lib\/drivers\/crypto\/clickext$"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "2.14.1 - EFS - implementation (AIX 6.1 only) - 'System is AIX 6.1'"
+          info        : "This system is not running AIX 6.1."
+          reference   : "LEVEL|2S"
+        </report>
+      </else>
+    </if>
+
+###
+### 2.15 Trusted Execution (TE) (AIX 6.1 only)
+###
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.15.1 - TE - implementation (AIX 6.1 only) - 'System is AIX 6.1'"
+          cmd         : "/usr/bin/oslevel"
+          expect      : "^6.1"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.15.1 - TE - implementation (AIX 6.1 only) - 'TE is enabled'"
+          info        : "Checks that the TE is enabled on the system."
+          reference   : "800-53|SI-7(6),CSF|PR.DS-6,LEVEL|2S,SWIFT-CSCv1|6.2"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/trustchk -p TE"
+          expect      : "^[\\s]*TE[\\s]*=[\\s]*[Oo][Nn]$"
+        </custom_item>
+
+        <custom_item>
+          system      : "AIX"
+          type        : CMD_EXEC
+          description : "2.15.1 - TE - implementation (AIX 6.1 only) - 'TEP is enabled'"
+          info        : "Checks that the TE is enabled on the system."
+          reference   : "800-53|SI-7(6),CSF|PR.DS-6,LEVEL|2S,SWIFT-CSCv1|6.2"
+          see_also    : "https://workbench.cisecurity.org/files/525"
+          cmd         : "/usr/sbin/trustchk -p TEP"
+          expect      : "^[\\s]*TEP[\\s]*=[\\s]*[Oo][Nn]$"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "2.15.1 - TE - implementation (AIX 6.1 only) - 'System is AIX 6.1'"
+          info        : "This system is not running AIX 6.1."
+          reference   : "LEVEL|2S"
+        </report>
+      </else>
+    </if>
+
+###
+### 2.16 General Permissions Management
+###
+
+    <item>
+      description : "2.16.1 - General permissions management - 'no SUID or SGID files exist'"
+      info        : "Checks that no SUID or SGID files exist."
+      reference   : "800-53|AC-6(8),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      name        : "find_suid_sgid_files"
+      basedir     : "/"
+    </item>
+
+    <item>
+      description : "2.16.2 - General permissions management - un-owned files and directories - 'no unowned files exist'"
+      info        : "Checks for the existence of unowned files on the system."
+      reference   : "800-53|AC-16(3),CSF|PR.AC-4,ITSG-33|AC-16(3),LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      name        : "find_orphan_files"
+    </item>
+
+    <item>
+      description : "2.16.3 - General permissions management - world writable files - 'no world writable files exist'"
+      info        : "Checks for the existence of world writable files on the system."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      name        : "find_world_writeable_files"
+    </item>
+
+    <item>
+      description : "2.16.3 - General permissions management - world writable files - 'no world writable directories exist'"
+      info        : "Checks for the existence of world writable directories on the system."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/525"
+      name        : "find_world_writeable_directories"
+    </item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS AIX 5.3 and 6.1 v1.1.0 Level 2"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/525"
+    </report>
+  </else>
+</if>
+
+</check_type>

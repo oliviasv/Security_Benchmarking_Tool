@@ -1,0 +1,304 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.20 $
+# $Date: 2020/04/22 $
+#
+# Description	: This audit is based on the Security Configuration Benchmark For MySQL 4.1, 5.0, 5.1 Community Editions
+# 	  Version 1.0.2 April 2009
+# 	  https://workbench.cisecurity.org/files/1613
+#
+# NOTE		: The CIS benchmark refers to MySQL 5.1 as beta software as of the benchmark date of 2009.
+# 	  MySQL 5.1 and 5.5 are both currently GA, 5.6 is current development release.  This .audit is based on MySQL 5.1.66, and
+# 	  as such does not include some queries which are relevent only to lower versions of MySQL.
+#
+# NOTE		: Some queries in this .audit require site-specific data to be known to the query in order to function properly.
+# 	  7.2 SSL Connection 'ssl_cert'
+# 	  7.2 SSL Connection 'ssl_key'
+# 	  7.2 SSL Connection 'ssl_ca'
+#
+# Note		: The following have been commented out for various reasons :
+# 	   This setting would prevent all network access, including auditing :
+# 	    6.8 Skip networking
+#
+# Note		: For the following, please see .audit file CIS_MySQL_4.1_5.1_Benchmark_v1.0.2_OS_UNIX.audit
+# 	  6.11 Client password
+#
+# Note		: For the following, please see .audit file CIS_MySQL_4.1_5.1_Benchmark_v1.0.2_OS_Windows.audit
+# 	  6.11 Client password
+#
+#<ui_metadata>
+#<display_name>CIS MySQL 4.1 5.1 L2 v1.0.2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MySQL 4.1 5.1 L2</name>
+#  <version>1.0.2</version>
+#  <link>https://workbench.cisecurity.org/files/1613</link>
+#</spec>
+#<labels>database,cis,mysql,mysql_4,mysql_4.1,mysql_5,mysql_5.1</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SSL_CERT</name>
+#    <default>server-cert.pem</default>
+#    <description>SSL Cert</description>
+#    <info>This is your server's SSL certificate.</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_KEY</name>
+#    <default>server-key.pem</default>
+#    <description>SSL Key</description>
+#    <info>This is your server's SSL key.</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_CA</name>
+#    <default>ca-cert.pem</default>
+#    <description>SSL CA Cert</description>
+#    <info>This is your Certificate Authority (CA) certificate.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Database" db_type:"MySQL" version:"1">
+<group_policy:"MySQL CIS 1.0.2">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "MySQL 4.1, 5.0, 5.1 Community Editions is installed"
+      sql_request  : "show variables like 'version' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "version", regex:"(4\.1|5\.[01])"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "MySQL 4.1, 5.0, 5.1 Community Editions is installed"
+    </report>
+
+    <report type:"WARNING">
+      description : "1.2 Dedicated Machine"
+      info        : "Limiting the number of services executing on the machine hosting MySQL will reduce the probability of the data within MySQL being compromised.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Install MySQL on a machine dedicated to running MySQL"
+      reference   : "LEVEL|2NS"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "4.1 Supported version of MySQL"
+      info         : "Versions 4.0 and 3.23 only receive critical fixes. Utilizing a supported version of MySQL will help ensure the remediation of identified MySQL vulnerabilities."
+      solution     : "Migrate to version 4.1 or 5.0"
+      reference    : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,HIPAA|164.308(a)(5)(ii)(A),ITSG-33|SI-2,LEVEL|2S,NESA|T7.6.2,NESA|T7.7.1,NIAv2|PR9,SWIFT-CSCv1|2.2"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'version' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "version", regex:"^(4\.1|([5-9]|1[0-9]+)\.[0-9]+)"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "4.2 Latest security patches"
+      info        : "Maintaining currency with MySQL patches will help protect the confidentiality, integrity, and availability of the data housed in MySQL.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Verify latest security patches."
+      reference   : "LEVEL|2NS"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "4.9 Wildcards in user hostname"
+      info        : "Avoiding the use of wildcards within hostnames will ensure that only trusted principals are capable of interacting with MySQL. When possible, host parameters for users should not contain wildcards ('%'). This can be checked using select user from mysql.user where host = '%';."
+      solution    : "Verify if users have wildcard ('%') in hostname"
+      reference   : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|2S,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+      sql_request : "select user,host from mysql.user where host = '%' ;"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : NULL, NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "6.2 Disable Load data local"
+      info         : "In a web environment where clients are connecting from a web server an attacker could use a SQL Injection vulnerability to read files from the web server. Local loading allows loading files from the client machine. This feature is sometimes used to perform data loading from remote machines."
+      solution     : "Must use: --local-infile=0"
+      reference    : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'local_infile' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "local_infile", "OFF"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "6.5 Secure auth"
+      info         : "This is an added measure to prevent potentially compromised credentials from being used for authentication. Disallow authentication for accounts that have old (pre-4.1) passwords."
+      solution     : "Must use: --secure-auth"
+      reference    : "800-171|3.13.11,800-171|3.5.10,800-53|IA-5(1),800-53|SC-13,CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|IA-5(1),ITSG-33|SC-13,LEVEL|2S,NESA|M5.2.6,NESA|T5.2.3,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY6,NIAv2|CY7,NIAv2|NS5e,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'secure_auth' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "secure_auth","ON"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : SQL_POLICY
+          description : "6.7 Skip merge - 'have_merge_engine does not exist'"
+          sql_request : "show variables like 'have_merge_engine' ;"
+          sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+          sql_expect  : NULL,NULL
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "6.7 Skip merge"
+          info        : "Prevent continued table access using a merge table even after permission is revoked. This option will disable use of MERGE tables."
+          solution    : "Must not use: --skip-merge"
+          reference   : "LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type         : SQL_POLICY
+          description  : "6.7 Skip merge"
+          info         : "Prevent continued table access using a merge table even after permission is revoked. This option will disable use of MERGE tables."
+          solution     : "Must not use: --skip-merge"
+          reference    : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+          see_also     : "https://workbench.cisecurity.org/files/1613"
+          sql_request  : "show variables like 'have_merge_engine' ;"
+          sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+          sql_expect   : "have_merge_engine","DISABLED"
+          check_option : CAN_NOT_BE_NULL
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "6.8 Skip networking"
+      info         : "If remote access is not required, preventing MySQL from binding to a network socket may reduce the exposure of a MySQL-born vulnerability. Do not allow TCP/IP connections; do not bind to a port. Use if no remote access is needed."
+      solution     : "Use --skip-networking startup option"
+      reference    : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'skip_networking' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "skip_networking", "ON"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "6.10 Skip Symbolic Links"
+      info         : "Prevents sym links being used for data base files. This is especially important when MySQL is executing as root as arbitrary files may be overwritten."
+      solution     : "Must use --skip-symbolic-links"
+      reference    : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'have_symlink' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "have_symlink", "DISABLED"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "7.2 SSL Connection 'have_openssl'"
+      info         : "SSL will protect the confidentiality and integrity of sensitive information as it traverses untrusted networks."
+      solution     : "Must use SSL over untrusted networks (internet) or when restricted PII is transferred"
+      reference    : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'have_openssl' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "have_openssl", regex: "(YES|DISABLED)"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "7.2 SSL Connection 'ssl_cert'"
+      info         : "SSL will protect the confidentiality and integrity of sensitive information as it traverses untrusted networks."
+      solution     : "Must use SSL over untrusted networks (internet) or when restricted PII is transferred"
+      reference    : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'ssl_cert' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+# Note: Variable @SSL_CERT@ replaced with "server-cert.pem" in field "sql_expect".
+      sql_expect   : "ssl_cert","server-cert.pem"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "7.2 SSL Connection 'ssl_key'"
+      info         : "SSL will protect the confidentiality and integrity of sensitive information as it traverses untrusted networks."
+      solution     : "Must use SSL over untrusted networks (internet) or when restricted PII is transferred"
+      reference    : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'ssl_key' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+# Note: Variable @SSL_KEY@ replaced with "server-key.pem" in field "sql_expect".
+      sql_expect   : "ssl_key","server-key.pem"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "7.2 SSL Connection 'ssl_ca'"
+      info         : "SSL will protect the confidentiality and integrity of sensitive information as it traverses untrusted networks."
+      solution     : "Must use SSL over untrusted networks (internet) or when restricted PII is transferred"
+      reference    : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "show variables like 'ssl_ca' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+# Note: Variable @SSL_CA@ replaced with "ca-cert.pem" in field "sql_expect".
+      sql_expect   : "ssl_ca","ca-cert.pem"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "7.2 SSL Connection 'mysql.user.ssl_type'"
+      info         : "SSL will protect the confidentiality and integrity of sensitive information as it traverses untrusted networks."
+      solution     : "Must use SSL over untrusted networks (internet) or when restricted PII is transferred"
+      reference    : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|2S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+      see_also     : "https://workbench.cisecurity.org/files/1613"
+      sql_request  : "use mysql ; select mysql.user.Host,mysql.user.User,mysql.user.ssl_type from user ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : regex: ".+", regex:".+", regex:"(ANY|X509|SPECIFIED)"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "MySQL 4.1, 5.0, 5.1 Community Editions is installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

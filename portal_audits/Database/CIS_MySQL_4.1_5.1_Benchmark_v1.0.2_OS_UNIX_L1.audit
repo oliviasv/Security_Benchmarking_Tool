@@ -1,0 +1,1135 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.22 $
+# $Date: 2020/04/22 $
+#
+# Description	: This audit is based on the Security Configuration Benchmark For MySQL 4.1, 5.0, 5.1 Community Editions
+# 	  Version 1.0.2 April 2009
+# 	  https://workbench.cisecurity.org/files/1613
+#
+# NOTE		: The CIS benchmark refers to MySQL 5.1 as beta software as of the benchmark date of 2009.
+# 	  MySQL 5.1 and 5.5 are both currently GA, 5.6 is current development release.  This .audit is based on MySQL 5.1.66, and as such
+# 	  does not include some queries which are relevent only to lower versions of MySQL.
+#
+# NOTE		: Some queries in this .audit require site-specific data to be known to the query in order to function properly.
+# 	  Please note the following queries and edit their values accordingly.
+# 	  1.3 Unix Run in Chroot
+# 	  2.4 Log files
+# 	  2.5 SSL files '*'
+# 	  7.1 Client Verify Server Cert '*'
+#
+#<ui_metadata>
+#<display_name>CIS MySQL 4.1/5.1 OS L1 v1.0.2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MySQL 4.1/5.1 OS L1</name>
+#  <version>1.0.2</version>
+#  <link>https://workbench.cisecurity.org/files/1613</link>
+#</spec>
+#<labels>unix,cis,mysql,mysql_4,mysql_4.1,mysql_5,mysql_5.1</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>MYSQL_CHROOT_PATH</name>
+#    <default>/PATH/TO/CHROOT</default>
+#    <description>MySQL chroot Path</description>
+#    <info>This is your MySQL chroot path.</info>
+#  </variable>
+#  <variable>
+#    <name>SYSCONFDIR</name>
+#    <default>SYSCONFDIR/my.cnf</default>
+#    <description>sysconfdir Path</description>
+#    <info>This is the directory specified with the --sysconfdir option to configure when MySQL was built.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_USER</name>
+#    <default>mysql</default>
+#    <description>MySQL User Account</description>
+#    <info>This is your MySQL user account.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_DATA</name>
+#    <default>/var/lib/mysql/</default>
+#    <description>MySQL Data Directory</description>
+#    <info>This is your MySQL data directory.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_BIN</name>
+#    <default>/usr/sbin/mysqld</default>
+#    <description>MySQL bin Directory</description>
+#    <info>This is your MySQL bin directory.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_MYSQLADMIN</name>
+#    <default>/usr/bin/mysqladmin</default>
+#    <description>mysqladmin Path</description>
+#    <info>This is the path to your MySQL mysqladmin binary.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_MYSQL</name>
+#    <default>/usr/bin/mysql</default>
+#    <description>mysql Path</description>
+#    <info>This is the path to your MySQL mysql binary.</info>
+#  </variable>
+#  <variable>
+#    <name>MYSQL_LOG</name>
+#    <default>/var/log/mysqld.log</default>
+#    <description>MySQL Log File</description>
+#    <info>This is your MySQL log file.</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_CA_PATH</name>
+#    <default>/PATH/TO/ca-cert.pem</default>
+#    <description>SSL CA Cert Path</description>
+#    <info>This is the path to your Certificate Authority (CA) certificate.</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_CERT_PATH</name>
+#    <default>/PATH/TO/server-cert.pem</default>
+#    <description>SSL Cert Path</description>
+#    <info>This is the path to your server's SSL certificate.</info>
+#  </variable>
+#  <variable>
+#    <name>SSL_KEY_PATH</name>
+#    <default>/PATH/TO/server-key.pem</default>
+#    <description>SSL Key Path</description>
+#    <info>This is the path to your server's SSL key.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 5.1 is installed"
+      rpm         : "mysql-server-5.1.0"
+      operator    : "gte"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 5.0 is installed"
+      rpm         : "mysql-server-5.0.0"
+      operator    : "gte"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 4.1 is installed"
+      rpm         : "mysql-server-4.1.0"
+      operator    : "gte"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "MySQL 4.1, 5.0 or 5.1 is installed"
+      cmd         : "/usr/bin/dpkg -s mysql-server 2>&1"
+      regex       : "^[\\s]*Version:"
+      expect      : "^[\\s]*Version:[\\s]*(4\.1|5\.[01])"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "MySQL 4.1, 5.0, 5.1 Community Editions is installed"
+    </report>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "1.3 Unix Run in Chroot - /etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+          description     : "1.3 Unix Run in Chroot - /etc/my.cnf"
+          info            : "Running MySQL in a chroot environment may reduce the impact of a MySQL-born vulnerability by making portions of the file system inaccessible to the MySQL instance."
+          solution        : "Run MySQL in Jail or Chroot"
+          reference       : "800-171|3.13.3,800-53|SC-2,ITSG-33|SC-2,LEVEL|1NS,NESA|T3.4.1,NIAv2|SS15b"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+          file            : "/etc/my.cnf"
+          regex           : "^[\\s]*chroot="
+# Note: Variable @MYSQL_CHROOT_PATH@ replaced with "/PATH/TO/CHROOT" in field "expect".
+          expect          : "^[\\s]*chroot=/PATH/TO/CHROOT"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "1.3 Unix Run in Chroot - /etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+          description     : "1.3 Unix Run in Chroot - /etc/mysql/my.cnf"
+          info            : "Running MySQL in a chroot environment may reduce the impact of a MySQL-born vulnerability by making portions of the file system inaccessible to the MySQL instance."
+          solution        : "Run MySQL in Jail or Chroot"
+          reference       : "800-171|3.13.3,800-53|SC-2,ITSG-33|SC-2,LEVEL|1NS,NESA|T3.4.1,NIAv2|SS15b"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+          file            : "/etc/mysql/my.cnf"
+          regex           : "^[\\s]*chroot="
+# Note: Variable @MYSQL_CHROOT_PATH@ replaced with "/PATH/TO/CHROOT" in field "expect".
+          expect          : "^[\\s]*chroot=/PATH/TO/CHROOT"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "1.3 Unix Run in Chroot - SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description     : "1.3 Unix Run in Chroot - SYSCONFDIR/my.cnf/my.cnf"
+          info            : "Running MySQL in a chroot environment may reduce the impact of a MySQL-born vulnerability by making portions of the file system inaccessible to the MySQL instance."
+          solution        : "Run MySQL in Jail or Chroot"
+          reference       : "800-171|3.13.3,800-53|SC-2,ITSG-33|SC-2,LEVEL|1NS,NESA|T3.4.1,NIAv2|SS15b"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file            : "SYSCONFDIR/my.cnf/my.cnf"
+          regex           : "^[\\s]*chroot="
+# Note: Variable @MYSQL_CHROOT_PATH@ replaced with "/PATH/TO/CHROOT" in field "expect".
+          expect          : "^[\\s]*chroot=/PATH/TO/CHROOT"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "1.3 Unix Run in Chroot - /etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "1.3 Unix Run in Chroot - /etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "1.3 Unix Run in Chroot - SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "1.3 Unix Run in Chroot"
+          info        : "Running MySQL in a chroot environment may reduce the impact of a MySQL-born vulnerability by making portions of the file system inaccessible to the MySQL instance."
+          info        : "No MySQL configuration files were found."
+          solution    : "Run MySQL in Jail or Chroot"
+          reference   : "LEVEL|1NS"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+        </report>
+      </then>
+    </if>
+
+    <custom_item>
+      system        : "Linux"
+      type          : CMD_EXEC
+      description   : "1.4 Dedicated Account"
+      info          : "Utilizing a least privilege account for MySQL to execute as may reduce the impact of a MySQL-born vulnerability. A restricted account will be unable to access resources unrelated to MySQL, such as operating system configurations."
+      solution      : "Dedicated non-administrative account for MySQL daemon/service"
+      reference     : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1NS,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also      : "https://workbench.cisecurity.org/files/1613"
+      cmd           : "/bin/ps  -ef | /bin/egrep \"^mysql.*$\""
+      expect        : ".+"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "~/.mysql_history Exists"
+          file        : "~/.mysql_history"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system        : "Linux"
+          type          : CMD_EXEC
+          description   : "1.7 Command history - .mysql_history"
+          info          : "All commands run in the MySQL console application are saved to a history file. Disabling the MySQL command history reduces the probability of exposing sensitive information, such as passwords."
+          solution      : "Admin and DBA's should disable command history by setting MYSQL_HISTFILE to /dev/null or linking .mysql_history to /dev/null"
+          reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+          see_also      : "https://workbench.cisecurity.org/files/1613"
+          cmd           : "for f in $(/bin/find / -name \".mysql_history\"); do /usr/bin/file $f | /bin/egrep -v \"symbolic link to '/dev/null'\" | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}' ; done"
+          expect        : "none"
+          dont_echo_cmd : YES
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "1.7 Command history - ~/.mysql_history"
+          info        : "All commands run in the MySQL console application are saved to a history file. Disabling the MySQL command history reduces the probability of exposing sensitive information, such as passwords."
+          solution    : "Admin and DBA's should disable command history by setting MYSQL_HISTFILE to /dev/null or linking .mysql_history to /dev/null"
+          reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+          file        : "~/.mysql_history"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      system        : "Linux"
+      type          : CMD_EXEC
+      description   : "1.8 MYSQL_PWD"
+      info          : "The use of the MYSQL_PWD environment variable implies the clear text storage of MySQL credentials. Avoiding this may increase assurance that the confidentiality of MySQL credentials is preserved."
+      solution      : "MySQL can read the database password from an environmental variable called MYSQL_PWD. Verify MYSQL_PWD environmental variable not used"
+      reference     : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also      : "https://workbench.cisecurity.org/files/1613"
+      cmd           : "/bin/egrep MYSQL_PWD /proc/*/environ | /usr/bin/awk '{print} END {if (NR == 0) print \"none\"}'"
+      expect        : "none"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "1.8 MYSQL_PWD - .bashrc"
+      info        : "The use of the MYSQL_PWD environment variable implies the clear text storage of MySQL credentials. Avoiding this may increase assurance that the confidentiality of MySQL credentials is preserved."
+      solution    : "MySQL can read the database password from an environmental variable called MYSQL_PWD. Verify MYSQL_PWD environmental variable not used"
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+      file        : "~/.bashrc"
+      regex       : "^[\\s]*MYSQL_PWD"
+      expect      : "^[\\s]*MYSQL_PWD"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "1.8 MYSQL_PWD - .profile"
+      info        : "The use of the MYSQL_PWD environment variable implies the clear text storage of MySQL credentials. Avoiding this may increase assurance that the confidentiality of MySQL credentials is preserved."
+      solution    : "MySQL can read the database password from an environmental variable called MYSQL_PWD. Verify MYSQL_PWD environmental variable not used"
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+      file        : "~/.profile"
+      regex       : "^[\\s]*MYSQL_PWD"
+      expect      : "^[\\s]*MYSQL_PWD"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "1.8 MYSQL_PWD - .bash_profile"
+      info        : "The use of the MYSQL_PWD environment variable implies the clear text storage of MySQL credentials. Avoiding this may increase assurance that the confidentiality of MySQL credentials is preserved."
+      solution    : "MySQL can read the database password from an environmental variable called MYSQL_PWD. Verify MYSQL_PWD environmental variable not used"
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|1S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+      file        : "~/.bash_profile"
+      regex       : "^[\\s]*MYSQL_PWD"
+      expect      : "^[\\s]*MYSQL_PWD"
+    </custom_item>
+
+    <custom_item>
+      system          : "Linux"
+      type            : FILE_CONTENT_CHECK
+      description     : "1.9 MySQL User"
+      info            : "Preventing the MySQL user from logging in interactively may reduce the impact of a compromised MySQL account."
+      solution        : "Disable interactive login. Deny the user the 'Log on locally' right"
+      reference       : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also        : "https://workbench.cisecurity.org/files/1613"
+      file            : "/etc/passwd"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "regex".
+      regex           : "^[\\s]*mysql:"
+      expect          : ":\\/sbin\\/nologin\\s*$"
+      string_required : YES
+    </custom_item>
+
+    <report type:"PASSED">
+      description : "1.10 Windows Network Service Account"
+      info        : "Executing the MySQL user as the NETWORK_SERVICE account may reduce the impact of a MySQL-born vulnerability because this account has a restricted privilege set."
+      solution    : "MySQL should run as a network service account [Windows 2003, Windows XP]."
+      reference   : "LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+
+    <report type:"PASSED">
+      description : "1.11 Windows Platform Selection"
+      info        : "Installing MySQL on a non-domain controller may reduce the impact of a MySQL-born vulnerability."
+      solution    : "Do not install MySQL on a domain controller."
+      reference   : "LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.1 Data Directory"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+      solution    : "Read and write by MySQL user only."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @MYSQL_DATA@ replaced with "/var/lib/mysql/" in field "file".
+      file        : "/var/lib/mysql/"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "root" || "mysql"
+      mask        : "0117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "root" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.2 Binaries 'mysqld'"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+      solution    : "Verify and set permissions such that binaries are accessible only by database administrators and database users. Typically these are located on Unix systems in the /usr/bin and /usr/sbin folders. For Windows they are located in the installation folder. Can be found by locating the mysqld, mysqladmin, and mysql executables."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @MYSQL_BIN@ replaced with "/usr/sbin/mysqld" in field "file".
+      file        : "/usr/sbin/mysqld"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "root" || "mysql"
+      mask        : "0007"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "root" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.2 Binaries 'mysqladmin'"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+      solution    : "Verify and set permissions such that binaries are accessible only by database administrators and database users. Typically these are located on Unix systems in the /usr/bin and /usr/sbin folders. For Windows they are located in the installation folder. Can be found by locating the mysqld, mysqladmin, and mysql executables."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @MYSQL_MYSQLADMIN@ replaced with "/usr/bin/mysqladmin" in field "file".
+      file        : "/usr/bin/mysqladmin"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "root" || "mysql"
+      mask        : "0007"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "root" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.2 Binaries 'mysql'"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+      solution    : "Verify and set permissions such that binaries are accessible only by database administrators and database users. Typically these are located on Unix systems in the /usr/bin and /usr/sbin folders. For Windows they are located in the installation folder. Can be found by locating the mysqld, mysqladmin, and mysql executables."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @MYSQL_MYSQL@ replaced with "/usr/bin/mysql" in field "file".
+      file        : "/usr/bin/mysql"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "root" || "mysql"
+      mask        : "0007"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "root" || "mysql"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "2.3 Configuration File - /etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "2.3 Configuration File - /etc/my.cnf"
+          info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+          solution    : "Set permissions so that configuration files are readable by database administrators and database users. Typically the MySQL configuration file on Unix systems is located in /etc/mysql/my.cnf. On Windows it will be located in the %SYSTEMDIR% or install folder."
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+          file        : "/etc/my.cnf"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+          owner       : "root" || "mysql"
+          mask        : "0117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+          group       : "root" || "mysql"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "2.3 Configuration File - /etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "2.3 Configuration File - /etc/mysql/my.cnf"
+          info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+          solution    : "Set permissions so that configuration files are readable by database administrators and database users. Typically the MySQL configuration file on Unix systems is located in /etc/mysql/my.cnf. On Windows it will be located in the %SYSTEMDIR% or install folder."
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+          file        : "/etc/mysql/my.cnf"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+          owner       : "root" || "mysql"
+          mask        : "0117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+          group       : "root" || "mysql"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "2.3 Configuration File - SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "2.3 Configuration File - SYSCONFDIR/my.cnf/my.cnf"
+          info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+          solution    : "Set permissions so that configuration files are readable by database administrators and database users. Typically the MySQL configuration file on Unix systems is located in /etc/mysql/my.cnf. On Windows it will be located in the %SYSTEMDIR% or install folder."
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+          owner       : "root" || "mysql"
+          mask        : "0117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+          group       : "root" || "mysql"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "2.3 Configuration File - /etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "2.3 Configuration File - /etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "2.3 Configuration File - SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "2.3 Configuration File"
+          info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL database."
+          info        : "No MySQL configuration files were found."
+          solution    : "Set permissions so that configuration files are readable by database administrators and database users. Typically the MySQL configuration file on Unix systems is located in /etc/mysql/my.cnf. On Windows it will be located in the %SYSTEMDIR% or install folder."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+        </report>
+      </then>
+    </if>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.4 Log files"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "Permission log files to be readable and writeable by MySQL user and authorized administrators only."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @MYSQL_LOG@ replaced with "/var/log/mysqld.log" in field "file".
+      file        : "/var/log/mysqld.log"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "root" || "mysql"
+      mask        : "117"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "root" || "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.5 SSL files 'ssl_ca'"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "SSL files should be readable by MySQL user. No other read or write permissions."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SSL_CA_PATH@ replaced with "/PATH/TO/ca-cert.pem" in field "file".
+      file        : "/PATH/TO/ca-cert.pem"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql"
+      mask        : "277"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.5 SSL files 'ssl_cert'"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "SSL files should be readable by MySQL user. No other read or write permissions."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SSL_CERT_PATH@ replaced with "/PATH/TO/server-cert.pem" in field "file".
+      file        : "/PATH/TO/server-cert.pem"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql"
+      mask        : "277"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "2.5 SSL files 'ssl_key'"
+      info        : "Limiting the accessibility of these objects will protect the confidentiality, integrity, and availability of the MySQL logs."
+      solution    : "SSL files should be readable by MySQL user. No other read or write permissions."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SSL_KEY_PATH@ replaced with "/PATH/TO/server-key.pem" in field "file".
+      file        : "/PATH/TO/server-key.pem"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "owner".
+      owner       : "mysql"
+      mask        : "277"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "group".
+      group       : "mysql"
+    </custom_item>
+
+    <custom_item>
+      system          : "Linux"
+      type            : FILE_CONTENT_CHECK
+      description     : "3.2 Logs not on system partition - 'log partition exists'"
+      info            : "Moving the MySQL logs off the system partition will reduce the probability of denial of service via the   exhaustion of available disk space to the operating system."
+      info            : "NOTE : This query assumes that MySQL logs are under /var or /var/log."
+      solution        : "Logs should be on a non-system partition."
+      reference       : "800-53|AU-4,CSCv6|6.3,CSF|PR.DS-4,CSF|PR.PT-1,ITSG-33|AU-4,LEVEL|1S,NESA|T3.3.1,NESA|T3.6.2,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4"
+      see_also        : "https://workbench.cisecurity.org/files/1613"
+      file            : "/etc/fstab"
+      regex           : "^[\\s]*.*[\\s]+\\/var([\\s]+|\\/log)"
+      expect          : "^[\\s]*.*[\\s]+\\/var([\\s]+|\\/log)"
+      string_required : YES
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "3.2 Logs not on system partition - /etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+          description     : "3.2 Logs not on system partition - '/etc/my.cnf log-bin = /var or /var/log'"
+          info            : "Moving the MySQL logs off the system partition will reduce the probability of denial of service via the   exhaustion of available disk space to the operating system."
+          solution        : "Logs should be on a non-system partition."
+          reference       : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+          file            : "/etc/my.cnf"
+          regex           : "^[\\s]*log-bin[\\s]*="
+          expect          : "^[\\s]*log-bin[\\s]*=[\\s]*(\\/var|\\/var\\/log)"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "3.2 Logs not on system partition - /etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+          description     : "3.2 Logs not on system partition - '/etc/mysql/my.cnf log-bin = /var or /var/log'"
+          info            : "Moving the MySQL logs off the system partition will reduce the probability of denial of service via the   exhaustion of available disk space to the operating system."
+          solution        : "Logs should be on a non-system partition."
+          reference       : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+          file            : "/etc/mysql/my.cnf"
+          regex           : "^[\\s]*log-bin[\\s]*="
+          expect          : "^[\\s]*log-bin[\\s]*=[\\s]*(\\/var|\\/var\\/log)"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "3.2 Logs not on system partition - SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description     : "3.2 Logs not on system partition - 'SYSCONFDIR/my.cnf/my.cnf log-bin = /var or /var/log'"
+          info            : "Moving the MySQL logs off the system partition will reduce the probability of denial of service via the   exhaustion of available disk space to the operating system."
+          solution        : "Logs should be on a non-system partition."
+          reference       : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file            : "SYSCONFDIR/my.cnf/my.cnf"
+          regex           : "^[\\s]*log-bin[\\s]*="
+          expect          : "^[\\s]*log-bin[\\s]*=[\\s]*(\\/var|\\/var\\/log)"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "3.2 Logs not on system partition - /etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "3.2 Logs not on system partition - /etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "3.2 Logs not on system partition - SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "3.2 Logs not on system partition"
+          info        : "Moving the MySQL logs off the system partition will reduce the probability of denial of service via the   exhaustion of available disk space to the operating system."
+          info        : "No MySQL configuration files were found."
+          solution    : "Logs should be on a non-system partition."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+        </report>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "3.3 Logs not on database partition - /etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK_NOT
+          description     : "3.3 Logs not on database partition - log file location - /etc/my.cnf"
+          info            : "Moving the MySQL logs off the database partition will reduce the probability of denial of service via the exhaustion of available disk space to MySQL."
+          solution        : "Logs should be on their own partition."
+          reference       : "800-53|SC-5,CSF|PR.DS-4,ITSG-33|SC-5,LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+          file            : "/etc/my.cnf"
+          regex           : "^[\\s]*log-bin[\\s]*="
+# Note: Variable @MYSQL_DATA@ replaced with "/var/lib/mysql/" in field "expect".
+          expect          : "^[\\s]*log-bin[\\s]*=[\\s]*/var/lib/mysql/"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "3.3 Logs not on database partition - /etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+          description     : "3.3 Logs not on database partition - log file location - /etc/mysql/my.cnf"
+          info            : "Moving the MySQL logs off the database partition will reduce the probability of denial of service via the exhaustion of available disk space to MySQL."
+          solution        : "Logs should be on their own partition."
+          reference       : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+          file            : "/etc/my.cnf"
+          regex           : "^[\\s]*log-bin[\\s]*="
+# Note: Variable @MYSQL_DATA@ replaced with "/var/lib/mysql/" in field "expect".
+          expect          : "^[\\s]*log-bin[\\s]*=[\\s]*/var/lib/mysql/"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "3.3 Logs not on database partition - SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system          : "Linux"
+          type            : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description     : "3.3 Logs not on database partition - log file location - SYSCONFDIR/my.cnf/my.cnf"
+          info            : "Moving the MySQL logs off the database partition will reduce the probability of denial of service via the exhaustion of available disk space to MySQL."
+          solution        : "Logs should be on their own partition."
+          reference       : "800-53|SC-5(2),CSF|PR.DS-4,ITSG-33|SC-5(2),LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1613"
+          file            : "/etc/my.cnf"
+          regex           : "^[\\s]*log-bin[\\s]*="
+# Note: Variable @MYSQL_DATA@ replaced with "/var/lib/mysql/" in field "expect".
+          expect          : "^[\\s]*log-bin[\\s]*=[\\s]*/var/lib/mysql/"
+          string_required : YES
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "3.3 Logs not on database partition - /etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "3.3 Logs not on database partition - /etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "3.3 Logs not on database partition - SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "3.3 Logs not on database partition"
+          info        : "Moving the MySQL logs off the system partition will reduce the probability of denial of service via the   exhaustion of available disk space to the operating system."
+          info        : "No MySQL configuration files were found."
+          solution    : "Logs should be on a non-system partition."
+          reference   : "LEVEL|1S"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+        </report>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "3.4 Do not use Update log - /etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "3.4 Do not use Update log - 'log-update does not exist' - /etc/my.cnf"
+          info        : "The update log is now deprecated and the binary log should be used instead. The update log is not transaction safe. Avoiding the --log-update option may increase the integrity and availability of MySQL log files."
+          solution    : "Do not use --log-update"
+          reference   : "800-171|3.4.8,800-53|CM-7(4),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,LEVEL|1NS,NIAv2|SS13a,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+          file        : "/etc/my.cnf"
+          regex       : "^[\\s]*log-update[\\s]*="
+          expect      : "^[\\s]*log-update[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "3.4 Do not use Update log - /etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "3.4 Do not use Update log - 'log-update does not exist' - /etc/mysql/my.cnf"
+          info        : "The update log is now deprecated and the binary log should be used instead. The update log is not transaction safe. Avoiding the --log-update option may increase the integrity and availability of MySQL log files."
+          solution    : "Do not use --log-update"
+          reference   : "800-171|3.4.8,800-53|CM-7(4),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,LEVEL|1NS,NIAv2|SS13a,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+          file        : "/etc/mysql/my.cnf"
+          regex       : "^[\\s]*log-update[\\s]*="
+          expect      : "^[\\s]*log-update[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "3.4 Do not use Update log - SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "3.4 Do not use Update log - 'log-update does not exist' - SYSCONFDIR/my.cnf/my.cnf"
+          info        : "The update log is now deprecated and the binary log should be used instead. The update log is not transaction safe. Avoiding the --log-update option may increase the integrity and availability of MySQL log files."
+          solution    : "Do not use --log-update"
+          reference   : "800-171|3.4.8,800-53|CM-7(4),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,LEVEL|1NS,NIAv2|SS13a,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+          regex       : "^[\\s]*log-update[\\s]*="
+          expect      : "^[\\s]*log-update[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "3.4 Do not use Update log - /etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "3.4 Do not use Update log - /etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "3.4 Do not use Update log - SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "3.4 Do not use Update log - 'log-update does not exist'"
+          info        : "The update log is now deprecated and the binary log should be used instead. The update log is not transaction safe. Avoiding the --log-update option may increase the integrity and availability of MySQL log files."
+          info        : "No MySQL configuration files were found."
+          solution    : "Do not use --log-update"
+          reference   : "LEVEL|1NS"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+        </report>
+      </then>
+    </if>
+
+    <custom_item>
+      system        : "Linux"
+      type          : CMD_EXEC
+      description   : "6.1 Suspicious UDFs"
+      info          : "This will help prevent an attacker from executing arbitrary code. This option prevents attaching arbitrary shared library functions as user-defined functions by checking for at least one corresponding method named _init, _deinit, _reset, _clear, or _add."
+      solution      : "Avoid using the --allow-suspicious-udfs parameter"
+      reference     : "800-171|3.4.7,800-53|CM-7(2),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|1S,SWIFT-CSCv1|2.3"
+      see_also      : "https://workbench.cisecurity.org/files/1613"
+      cmd           : "/bin/ps aux | /bin/grep mysqld\\  | /bin/grep -v grep | /bin/grep -q -e --allow-suspicious-udfs ; /bin/echo $?"
+      expect        : "1"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <custom_item>
+      system        : "Linux"
+      type          : CMD_EXEC
+      description   : "7.1 Client Verify Server Cert 'ssl_verify_server_cert'"
+      info          : "Verifying the server's certificate will help protect against man in the middle attacks. Causes the server's common name (CN) to be verified against the server's hostname."
+      solution      : "Must use: --ssl-verify-server-cert"
+      reference     : "800-53|IA-5(2),CSF|PR.AC-1,ITSG-33|IA-5(2),LEVEL|1S"
+      see_also      : "https://workbench.cisecurity.org/files/1613"
+      cmd           : "/bin/ps aux | /bin/grep mysqld\\  | /bin/grep -v grep | /bin/grep -q -e --ssl-verify-server-cert ; /bin/echo $?"
+      expect        : "1"
+      dont_echo_cmd : YES
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "7.3 Unique Key/Cert"
+      info        : "Do not use a default or example certificate. Generate a key specifically for MySQL
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+
+    <report type:"WARNING">
+      description : "8.1 Backup of databases"
+      info        : "Regularly occurring backup
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+
+    <report type:"WARNING">
+      description : "8.2 Verify backups"
+      info        : "Verify backups are good
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+
+    <report type:"WARNING">
+      description : "8.3 Replication slave backups"
+      info        : "Verify master.info, relay-log.info, and SQL_LOAD-* files.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "LEVEL|1S"
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "MySQL 4.1, 5.0, 5.1 Community Editions is installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+  </else>
+</if>
+
+</check_type>

@@ -1,0 +1,217 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.18 $
+# $Date: 2020/04/22 $
+#
+# Description	: This audit is based on the Security Configuration Benchmark For MySQL 4.1, 5.0, 5.1 Community Editions
+# 	  Version 1.0.2 April 2009
+# 	  https://workbench.cisecurity.org/files/1613
+#
+# NOTE		: The CIS benchmark refers to MySQL 5.1 as beta software as of the benchmark date of 2009.
+# 	  MySQL 5.1 and 5.5 are both currently GA, 5.6 is current development release.  This .audit is based on MySQL 5.1.66, and as such
+# 	  does not include some queries which are relevent only to lower versions of MySQL.
+#
+#<ui_metadata>
+#<display_name>CIS MySQL 4.1/5.1 OS L2 v1.0.2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MySQL 4.1/5.1 OS L2</name>
+#  <version>1.0.2</version>
+#  <link>https://workbench.cisecurity.org/files/1613</link>
+#</spec>
+#<labels>unix,cis,mysql,mysql_4,mysql_4.1,mysql_5,mysql_5.1</labels>
+#<benchmark_refs>LEVEL,CSCv6</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SYSCONFDIR</name>
+#    <default>SYSCONFDIR/my.cnf</default>
+#    <description>sysconfdir Path</description>
+#    <info>This is the directory specified with the --sysconfdir option to configure when MySQL was built.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 5.1 is installed"
+      rpm         : "mysql-server-5.1.0"
+      operator    : "gte"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 5.0 is installed"
+      rpm         : "mysql-server-5.0.0"
+      operator    : "gte"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 4.1 is installed"
+      rpm         : "mysql-server-4.1.0"
+      operator    : "gte"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "MySQL 4.1, 5.0 or 5.1 is installed"
+      cmd         : "/usr/bin/dpkg -s mysql-server 2>&1"
+      regex       : "^[\\s]*Version:"
+      expect      : "^[\\s]*Version:[\\s]*(4\.1|5\.[01])"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "MySQL 4.1, 5.0, 5.1 Community Editions is installed"
+    </report>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "6.11 Client password - '/etc/my.cnf password does not exist'"
+          info        : "The use of this parameter may negatively impact the confidentiality of the user's password. The [Client] section of the MySQL configuration file allows setting a password to be used. Verify this option is not used."
+          solution    : "Do not use password= configuration option"
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+          file        : "/etc/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "6.11 Client password - '/etc/mysql/my.cnf password does not exist'"
+          info        : "The use of this parameter may negatively impact the confidentiality of the user's password. The [Client] section of the MySQL configuration file allows setting a password to be used. Verify this option is not used."
+          solution    : "Do not use password= configuration option"
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+          file        : "/etc/mysql/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "6.11 Client password - 'SYSCONFDIR/my.cnf/my.cnf password does not exist'"
+          info        : "The use of this parameter may negatively impact the confidentiality of the user's password. The [Client] section of the MySQL configuration file allows setting a password to be used. Verify this option is not used."
+          solution    : "Do not use password= configuration option"
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "6.11 Client password - 'my.cnf password does not exist'"
+          info        : "The use of this parameter may negatively impact the confidentiality of the user's password. The [Client] section of the MySQL configuration file allows setting a password to be used. Verify this option is not used."
+          info        : "No MySQL configuration files were found."
+          solution    : "Do not use password= configuration option"
+          reference   : "LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/1613"
+        </report>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "MySQL 4.1, 5.0, 5.1 Community Editions is installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1613"
+    </report>
+  </else>
+</if>
+
+</check_type>

@@ -1,0 +1,236 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.19 $
+# $Date: 2020/07/14 $
+#
+# Description 	: This .audit file verifies most of the standard configuration parameters
+# 			for a TEM Client on Linux as recommended in the IBM TEM Administrator's Guide
+# 			and the IBM DeveloperWorks TEM wiki.
+#
+# 			http://pic.dhe.ibm.com/infocenter/tivihelp/v26r1/topic/com.ibm.tem.doc_8.2/Tivoli_Endpoint_Manager_Administrators_Guide.pdf
+# 			https://www.ibm.com/developerworks/community/wikis/home?lang=en#/wiki/Tivoli%20Endpoint%20Manager
+#
+# NOTE			: Some queries in this .audit require site-specific data to be known to the query in order to function properly.
+# 	 		Please note the following queries and edit their values accordingly.
+#
+# 			TEM Client Version - 'Client version is correct'
+# 			TEM Client Service Account - 'Client service account is configured'
+# 			TEM Client Listen Port - 'Client listening port is configured'
+# 			TEM Client Server - 'Client server name is configured'
+# 			TEM Client Server - 'Client local storage path is configured'
+# 			TEM Client Logs - '_BESClient_Log_Days has been configured'
+# 			TEM Client Logs - '_BESClient_Download_InactivityTimeout has been configured'
+#
+#<ui_metadata>
+#<display_name>TNS IBM Tivoli Enterprise Client Linux Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>IBM Tivoli Enterprise Client Linux Best Practices</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>unix,ibm,tivoli,enterprise,client,linux,agent</labels>
+#<variables>
+#  <variable>
+#    <name>CLIENT_VERSION</name>
+#    <default>BESAgent-8.2.1310.0-rhe5</default>
+#    <description>Client version</description>
+#    <info>The version of the Tivoli Enterprise Client software approved for your organization, as reported by rpm.</info>
+#  </variable>
+#  <variable>
+#    <name>CLIENT_PORT</name>
+#    <default>52311</default>
+#    <description>Client listening port</description>
+#    <info>The port the client software listens on. The default port is 52311.</info>
+#  </variable>
+#  <variable>
+#    <name>SERVER_NAME</name>
+#    <default>1\.1\.1\.1</default>
+#    <description>Server address</description>
+#    <info>The hostname or IP address of the Tivoli server.</info>
+#  </variable>
+#  <variable>
+#    <name>STORAGE_PATH</name>
+#    <default>\\/var\\/opt\\/BESClient</default>
+#    <description>Local storage path</description>
+#    <info>The absolute path to the client's local storage space.</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DAYS</name>
+#    <default>10</default>
+#    <description>Log retention days</description>
+#    <info>The number of days clients should retain logs.</info>
+#  </variable>
+#  <variable>
+#    <name>TIMEOUT_SEC</name>
+#    <default>(300|[1-2][0-9][0-9]|[1-9][0-9]|[0-9])</default>
+#    <description>Download inactivity timeout</description>
+#    <info>The number of seconds downloads may be inactive before timing out.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CHECK
+      description : "TEM Client is installed"
+      file        : "/var/opt/BESClient"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "IBM_Tivoli_Enterprise_Client-Linux.audit"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "TEM Client Version - 'Client version is correct'"
+      info        : "The client version is an appropriate version for the local environment."
+      info        : "NOTE: Update CLIENT_VERSION to the appropriate value for the local environment"
+      reference   : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+# Note: Variable @CLIENT_VERSION@ replaced with "BESAgent-8.2.1310.0-rhe5" in field "rpm".
+      rpm         : "BESAgent-8.2.1310.0-rhe5"
+      operator    : "gte"
+      required    : YES
+    </custom_item>
+
+    <custom_item>
+      type        : CHKCONFIG
+      description : "TEM Client Service - 'Agent run-level configuration'"
+      info        : "The agent is configured for the correct run levels."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      service     : "besclient"
+      levels      : "2345"
+      status      : ON
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "TEM Client Listen Port - 'Client listening port is configured'"
+      info        : "Client is listening on the appropriate port for the local environment."
+      info        : "NOTE: Update CLIENT_PORT to the appropriate value for the local environment"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      file        : "/var/opt/BESClient/besclient.config"
+      regex       : "^[\\s\\t]*ListenPort[\\s\\t]+="
+# Note: Variable @CLIENT_PORT@ replaced with "52311" in field "expect".
+      expect      : "^[\\s\\t]*ListenPort[\\s\\t]+=[\\s\\t]+52311"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "TEM Client Server - 'Client server name is configured'"
+      info        : "Client is using the proper server for the local environment."
+      info        : "NOTE: Update SERVER_NAME to the appropriate value for the local environment"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      file        : "/var/opt/BESClient/besclient.config"
+      regex       : "^[\\s\\t]*ServerName[\\s\\t]+="
+# Note: Variable @SERVER_NAME@ replaced with "1\\.1\\.1\\.1" in field "expect".
+      expect      : "^[\\s\\t]*ServerName[\\s\\t]+=[\\s\\t]+1\\.1\\.1\\.1"
+    </custom_item>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "TEM Client Server - 'Client local storage path is configured'"
+      info        : "Client is using the proper server for the local environment."
+      info        : "NOTE: Update STORAGE_PATH to the appropriate value for the local environment"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      file        : "/var/opt/BESClient/besclient.config"
+      regex       : "^[\\s\\t]*StoragePath[\\s\\t]+="
+# Note: Variable @STORAGE_PATH@ replaced with "\\\\/var\\\\/opt\\\\/BESClient" in field "expect".
+      expect      : "^[\\s\\t]*StoragePath[\\s\\t]+=[\\s\\t]+\\\\/var\\\\/opt\\\\/BESClient"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "TEM Client Locking - '__LockState value = false'"
+      info        : "Locking Clients lets you exclude specific computers or groups of computers from the effects of Fixlet actions. This could be useful, for"
+      info        : "example, if you wanted to exclude certain development computers from any changes or updates."
+      reference   : "800-53|AC-6(4),CSF|PR.AC-4,ITSG-33|AC-6(4)"
+      cmd         : "sed -n '/__LockState\\]/,/^\\[/p' /var/opt/BESClient/besclient.config | /bin/egrep '^value'"
+      expect      : "^[\\s\\t]*value[\\s\\t]+=[\\s\\t]+false[\\s\\t]*"
+      quiet       : YES
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "TEM Client Encryption - '_BESClient_Report_Encryption value = required'"
+      info        : "Enabling encryption on clients allows clients to encrypt all outgoing reports to protect data such as credit card numbers, passwords,"
+      info        : "and other sensitive information."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      cmd         : "sed -n '/__BESClient_Report_Encryption\\]/,/^\\[/p' /var/opt/BESClient/besclient.config | /bin/egrep '^value'"
+      expect      : "^[\\s\\t]*value[\\s\\t]+=[\\s\\t]+required[\\s\\t]*"
+      quiet       : YES
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "TEM Client Logs - '_BESClient_Log_Days has been configured'"
+      info        : "The number of days for clients to retain logs should be configured."
+      info        : "NOTE: Update LOG_DAYS to the appropriate value for the local environment."
+      reference   : "800-53|AU-11,CSF|PR.PT-1,ITSG-33|AU-11,NESA|M5.2.3,NESA|T3.6.2,NIAv2|SM7"
+      cmd         : "sed -n '/_BESClient_Log_Days\\]/,/^\\[/p' /var/opt/BESClient/besclient.config | /bin/egrep '^value'"
+# Note: Variable @LOG_DAYS@ replaced with "10" in field "expect".
+      expect      : "^[\\s\\t]*value[\\s\\t]+=[\\s\\t]+10[\\s\\t]*"
+      quiet       : YES
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "TEM Client Downloads - '_BESClient_Download_Direct value = 0'"
+      info        : "Clients should not directly download from the internet."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      cmd         : "sed -n '/_BESClient_Download_Direct\\]/,/^\\[/p' /var/opt/BESClient/besclient.config | /bin/egrep '^value'"
+      expect      : "^[\\s\\t]*value[\\s\\t]+=[\\s\\t]+0[\\s\\t]*"
+      quiet       : YES
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "TEM Client Downloads - '_BESClient_Download_DirectOnFail value = 0'"
+      info        : "Clients should not directly download from the internet."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      cmd         : "sed -n '/_BESClient_Download_DirectOnFail\\]/,/^\\[/p' /var/opt/BESClient/besclient.config | /bin/egrep '^value'"
+      expect      : "^[\\s\\t]*value[\\s\\t]+=[\\s\\t]+0[\\s\\t]*"
+      quiet       : YES
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "TEM Client Logs - '_BESClient_Download_InactivityTimeout has been configured'"
+      info        : "The number of seconds downloads may be inactive before timing out."
+      info        : "NOTE: Update TIMEOUT_SEC to the appropriate value for the local environment."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      cmd         : "sed -n '/_BESClient_Download_InactivityTimeout\\]/,/^\\[/p' /var/opt/BESClient/besclient.config | /bin/egrep '^value'"
+# Note: Variable @TIMEOUT_SEC@ replaced with "(300|[1-2][0-9][0-9]|[1-9][0-9]|[0-9])" in field "expect".
+      expect      : "^[\\s\\t]*value[\\s\\t]+=[\\s\\t]+(300|[1-2][0-9][0-9]|[1-9][0-9]|[0-9])[\\s\\t]*"
+      quiet       : YES
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "IBM_Tivoli_Enterprise_Client-Linux.audit"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

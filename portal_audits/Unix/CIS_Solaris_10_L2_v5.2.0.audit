@@ -1,0 +1,413 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.11 $
+# $Date: 2020/04/17 $
+#
+# Description: This .audit is designed against the CIS Benchmark
+#        for Solaris 10 v5.2.0 based on: https://workbench.cisecurity.org/files/614
+#
+#
+# NOTE		: The following audit will need to be edited for your organization by replacing
+# 	  HOSTS_ALLOW_NETWORK with the network block in use at your organization.
+# 	  2.4 Configure TCP Wrappers
+#
+#<ui_metadata>
+#<display_name>CIS Solaris 10 L2 v5.2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Solaris 10 L2</name>
+#  <version>5.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/614</link>
+#</spec>
+#<labels>unix,cis,solaris,solaris_10</labels>
+#<variables>
+#  <variable>
+#    <name>SMB_CONF</name>
+#    <default>/usr/local/samba/lib/smb.conf</default>
+#    <description>Full path to smb.conf file</description>
+#    <info>Common paths for smb.conf include: /usr/local/samba/lib/smb.conf, /etc/smb.conf, /etc/sfw/smb.conf, /etc/samba/smb.conf, /etc/sfw/samba/smb.conf.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK
+      description : "Solaris 10 is installed"
+      file        : "/etc/release"
+      regex       : ".*Solaris[\\s]+10"
+      expect      : ".*Solaris[\\s]+10"
+    </custom_item>
+
+    <custom_item>
+      type          : CMD_EXEC
+      description   : "Solaris 10 is installed - uanme"
+      cmd           : "/usr/bin/uname -a | /usr/bin/awk '{print$3}'"
+      expect        : "5\\.10"
+      dont_echo_cmd : YES
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_Solaris_10_L2_v5.2.0.audit Level 2"
+    </report>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK
+      description : "7.10 Ensure Password Encryption Uses SHA algorithms 'CRYPT_DEFAULT'"
+      info        : "Solaris supports several different algorithms for password storage, including unix crypt, SHA256 and SHA512. The CRYPT_DEFAULT determines the default encryption algorithm used, while CRYPT_ALGORITHMS_ALLOW determines algorithms allowed by the system for new passwords.
+
+By default Solaris uses the old unix crypt algorithm for password storage. Unix crypt is easy to crack with readily available tools. Using a more advanced algorithm decreases the capability of cracking passwords on the system."
+      solution    : "Edit the /etc/security/policy.conf file and set the CRYPT_DEFAULT setting as follows: CRYPT_DEFAULT=6"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|2S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/security/policy.conf"
+      regex       : "^CRYPT_DEFAULT\\s*=\\s*[0-9]+"
+      expect      : "^CRYPT_DEFAULT\\s*=\\s*6$"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK
+      description : "7.10 Ensure Password Encryption Uses SHA algorithms 'CRYPT_ALGORITHMS_ALLOW'"
+      info        : "Solaris supports several different algorithms for password storage, including unix crypt, SHA256 and SHA512. The CRYPT_DEFAULT determines the default encryption algorithm used, while CRYPT_ALGORITHMS_ALLOW determines algorithms allowed by the system for new passwords.
+
+By default Solaris uses the old unix crypt algorithm for password storage. Unix crypt is easy to crack with readily available tools. Using a more advanced algorithm decreases the capability of cracking passwords on the system."
+      solution    : "Edit the /etc/security/policy.conf file and set the CRYPT_ALGORITHMS_ALLOW setting as follows: CRYPT_ALGORITHMS_ALLOW=5,6"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|2S,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/security/policy.conf"
+      regex       : "^CRYPT_ALGORITHMS_ALLOW\\s*=\\s*[0-9]+"
+      expect      : "^CRYPT_ALGORITHMS_ALLOW\\s*=\\s*5,6$"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "10.1 Enable process accounting at boot time"
+      info        : "Process accounting logs information about every process that runs to completion on the system, including the amount of CPU time, memory, etc. consumed by each process."
+      solution    : "Perform the following to implement the recommended state:
+# ln -s /etc/init.d/acct /etc/rc3.d/S99acct
+# /etc/init.d/acct start"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/rc3.d/S99acct"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "10.2 Use full path names in /etc/dfs/dfstab file"
+      info        : "The commands in the dfstab file are executed via the /usr/sbin/shareall script at boot time, as well as by administrators executing the shareall command during the uptime of the machine."
+      solution    : "Perform the following to implement the recommended state:
+# cd /etc/dfs
+# awk '($1 == \"share\") { $1 = \"/usr/sbin/share\" }; { print }' dfstab \ >dfstab.new
+# mv dfstab.new dfstab
+# pkgchk -f -n -p /etc/dfs/dfstab"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/dfs/dfstab"
+      regex       : "^[\\s]*share[\\s]*"
+      expect      : "share"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK
+      description : "10.3 Restrict access to power management functions - PMCHANGEPERM"
+      info        : "The settings in /etc/default/power control which users have access to the configuration settings for the system power management and checkpoint and resume features. By setting both values to -, configuration changes are restricted to only the root user."
+      solution    : "Perform the following to implement the recommended state:
+# cd /etc/default
+# awk '/^PMCHANGEPERM=/ { $1 = \"PMCHANGEPERM=-\" }
+/^CPRCHANGEPERM=/ { $1 = \"CPRCHANGEPERM=-\" }
+{ print }' power >power.new
+# mv power.new power
+# pkgchk -f -n -p /etc/default/power"
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),LEVEL|2NS,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/default/power"
+      regex       : "^PMCHANGEPERM="
+      expect      : "^PMCHANGEPERM=-"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK
+      description : "10.3 Restrict access to power management functions - CPRCHANGEPERM"
+      info        : "The settings in /etc/default/power control which users have access to the configuration settings for the system power management and checkpoint and resume features. By setting both values to -, configuration changes are restricted to only the root user."
+      solution    : "Perform the following to implement the recommended state:
+# cd /etc/default
+# awk '/^PMCHANGEPERM=/ { $1 = \"PMCHANGEPERM=-\" }
+/^CPRCHANGEPERM=/ { $1 = \"CPRCHANGEPERM=-\" }
+{ print }' power >power.new
+# mv power.new power
+# pkgchk -f -n -p /etc/default/power"
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),LEVEL|2NS,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/default/power"
+      regex       : "^CPRCHANGEPERM="
+      expect      : "^CPRCHANGEPERM=-"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK
+      description : "10.4 Restrict access to sys-suspend feature"
+      info        : "The /etc/default/sys-suspend settings control which users are allowed to use the syssuspend command to shut down the system."
+      solution    : "Perform the following to implement the recommended state:
+# cd /etc/default
+# awk '/^PERMS=/ { $1 = \"PERMS=-\" }
+{ print }' sys-suspend >sys-suspend.new
+# mv sys-suspend.new sys-suspend
+# pkgchk -f -n -p /etc/default/sys-suspend"
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),LEVEL|2NS,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/default/sys-suspend"
+      regex       : "^PERMS="
+      expect      : "^PERMS=-"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : CMD_EXEC
+      description : "10.5 Create symlinks for dangerous files - /.rhosts"
+      info        : "The /.rhosts, /.shosts, and /etc/hosts.equiv files enable a weak form of access control. Attackers will often target these files as part of their exploit scripts. By linking these files to /dev/null, any data that an attacker writes to these files is simply discarded (though an astute attacker can still remove the link prior to writing their malicious data)."
+      solution    : "Perform the following to implement the recommended state:
+# for file in /.rhosts /.shosts /etc/hosts.equiv; do
+rm -f $file
+ln -s /dev/null $file
+done"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      cmd         : "ls -l /.rhosts"
+      regex       : "/dev/null"
+      expect      : "/dev/null"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : CMD_EXEC
+      description : "10.5 Create symlinks for dangerous files - /.shosts"
+      info        : "The /.rhosts, /.shosts, and /etc/hosts.equiv files enable a weak form of access control. Attackers will often target these files as part of their exploit scripts. By linking these files to /dev/null, any data that an attacker writes to these files is simply discarded (though an astute attacker can still remove the link prior to writing their malicious data)."
+      solution    : "Perform the following to implement the recommended state:
+# for file in /.rhosts /.shosts /etc/hosts.equiv; do
+rm -f $file
+ln -s /dev/null $file
+done"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      cmd         : "ls -l /.shosts"
+      regex       : "/dev/null"
+      expect      : "/dev/null"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : CMD_EXEC
+      description : "10.5 Create symlinks for dangerous files - /etc/hosts.equiv"
+      info        : "The /.rhosts, /.shosts, and /etc/hosts.equiv files enable a weak form of access control. Attackers will often target these files as part of their exploit scripts. By linking these files to /dev/null, any data that an attacker writes to these files is simply discarded (though an astute attacker can still remove the link prior to writing their malicious data)."
+      solution    : "Perform the following to implement the recommended state:
+# for file in /.rhosts /.shosts /etc/hosts.equiv; do
+rm -f $file
+ln -s /dev/null $file
+done"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      cmd         : "ls -l /etc/hosts.equiv"
+      regex       : "/dev/null"
+      expect      : "/dev/null"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : SVC_PROP
+      description : "10.6 Remove Support for Internet Services (inetd)"
+      info        : "If the actions in this section result in disabling all inetd-based services, then there is no point in running inetd at boot time."
+      solution    : "Perform the following to implement the recommended state:
+# svcadm disable svc:/network/inetd"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2NS,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      service     : "network/inetd"
+      regex       : "disabled"
+      property    : "restarter/state"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CONTENT_CHECK
+      description : "11.1 Samba: Enable SSH Port Forwarding in Web Admin Tool"
+      info        : "Samba supports use of SSH to secure the client server connection."
+      solution    : "Perform the following to implement the recommended state:
+# awk '/^AllowTcpForwarding/ { $2 = \"yes\" } \
+{ print }' /etc/ssh/sshd_config > /etc/ssh/sshd_config.new
+# /usr/bin/mv /etc/ssh/sshd_config.new /etc/ssh/sshd_config
+# /usr/sbin/pkgchk -f -n -p /etc/ssh/sshd_config
+# /usr/sbin/svcadm restart svc:/network/ssh"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/ssh/sshd_config"
+      regex       : "^AllowTcpForwarding"
+      expect      : "^AllowTcpForwarding[\\s]+yes"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.2 Samba: Set Secure Permissions on smb.conf File"
+      info        : "The smb.conf file is only to be writeable by root to prevent unauthorized changes of the configuration file"
+      solution    : "The default location for smb.conf is /usr/local/samba/lib. However, the file can be installed in other places by samba installation packages. If the configuration is not placed in the /usr/local/samba/lib directory, change the remediation and audit commands to reflect the correct location.
+# chmod 644 /usr/local/samba/lib/smb.conf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+# Note: Variable @SMB_CONF@ replaced with "/usr/local/samba/lib/smb.conf" in field "file".
+      file        : "/usr/local/samba/lib/smb.conf"
+      mask        : "7133"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.3 Samba: Set Group Ownership of smb.conf File"
+      info        : "The owner smb.conf is to be set to root, so that root can properly control the file."
+      solution    : "Perform the following to implement the recommended state:
+# chown root /usr/local/samba/lib/smb.conf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+# Note: Variable @SMB_CONF@ replaced with "/usr/local/samba/lib/smb.conf" in field "file".
+      file        : "/usr/local/samba/lib/smb.conf"
+      required    : NO
+      group       : "root"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.4 Samba: Set Secure Permissions on smbpasswd File"
+      info        : "Set the permissions of the smbpasswd file to 600, so that the contents of the file can not be viewed by any user other than root"
+      solution    : "Perform the following to implement the recommended state:
+# chmod 600 /etc/sfw/private/smbpasswd"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/sfw/private/smbpasswd"
+      mask        : "7177"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.5 Samba: Set Group Ownership of smbpasswd File"
+      info        : "The smbpasswd file contains the encrypted passwords for Samba users."
+      solution    : "Perform the following to implement the recommended state:
+# chgrp root /etc/sfw/private/smbpasswd"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/sfw/private/smbpasswd"
+      required    : NO
+      group       : "root"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.6 Samba: Set Secure smb.conf File Options - permissions"
+      info        : "The smb.conf file is the configuration file for the Samba suite and contains runtime configuration information for Samba."
+      solution    : "Perform the following to implement the recommended state:
+# chmod 644 /etc/samba/smb.conf
+# chown root /etc/samba/smb.conf
+# chgrp root /etc/samba/smb.conf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/samba/smb.conf"
+      mask        : "7133"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.6 Samba: Set Secure smb.conf File Options - owner"
+      info        : "The smb.conf file is the configuration file for the Samba suite and contains runtime configuration information for Samba."
+      solution    : "Perform the following to implement the recommended state:
+# chmod 644 /etc/samba/smb.conf
+# chown root /etc/samba/smb.conf
+# chgrp root /etc/samba/smb.conf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/samba/smb.conf"
+      owner       : "root"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.6 Samba: Set Secure smb.conf File Options - group"
+      info        : "The smb.conf file is the configuration file for the Samba suite and contains runtime configuration information for Samba."
+      solution    : "Perform the following to implement the recommended state:
+# chmod 644 /etc/samba/smb.conf
+# chown root /etc/samba/smb.conf
+# chgrp root /etc/samba/smb.conf"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/etc/samba/smb.conf"
+      required    : NO
+      group       : "root"
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.7 sendmail: Set Secure Logfile Ownership to the root User"
+      info        : "Set the ownership of the sendmail log file (by default on Solaris 10, /var/log/syslog) to be owned by root."
+      solution    : "Perform the following to implement the recommended state:
+# chown root /var/log/syslog"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/var/log/syslog"
+      owner       : "root"
+      required    : NO
+    </custom_item>
+
+    <custom_item>
+      system      : "SunOS"
+      type        : FILE_CHECK
+      description : "11.8 sendmail: Set Secure Permissions on Log File"
+      info        : "The log file for sendmail (by default in Solaris 10, /var/log/syslog) is set to 644 so that sendmail (running as root) can write to the file and anyone can read the file."
+      solution    : "Perform the following to implement the recommended state:
+# chmod 644 /var/log/syslog"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/614"
+      file        : "/var/log/syslog"
+      mask        : "7133"
+      required    : NO
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_Solaris_10_L2_v5.2.0.audit Level 2"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

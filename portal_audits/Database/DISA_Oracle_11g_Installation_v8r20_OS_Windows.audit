@@ -1,0 +1,2468 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.4 $
+# $Date: 2020/05/06 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA Oracle Database 11g v8r20 STIG.
+#
+#               http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip
+#
+#<ui_metadata>
+#<display_name>DISA STIG Oracle 11 Installation v8r20 Windows</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>Oracle 11 Installation Windows</name>
+#  <version>8.20.0</version>
+#  <link>http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip</link>
+#</spec>
+#<labels>windows,disa,oracle,oracle_11g,installation</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>ORACLE_USER</name>
+#    <default>oracle_user</default>
+#    <description>Oracle User Account</description>
+#    <info>An Oracle User account configured for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_BASE</name>
+#    <default>C:\u01\app\oracle</default>
+#    <description>Oracle Base</description>
+#    <info>The directory where your Oracle base installation is located.</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_HOME</name>
+#    <default>C:\u01\app\oracle\product\11.2.0\dbhome_1</default>
+#    <description>Oracle Home</description>
+#    <info>The directory where your Oracle installation is located.</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_FILE</name>
+#    <default>oracle.log</default>
+#    <description>Oracle LOG_FILE</description>
+#    <info>Oracle LOG_FILE</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_DIRECTORY</name>
+#    <default>ORACLE_BASE\Inventory\logs</default>
+#    <description>Oracle LOG_DIRECTORY</description>
+#    <info>Oracle LOG_DIRECTORY</info>
+#  </variable>
+#  <variable>
+#    <name>TRACE_DIRECTORY</name>
+#    <default>ORACLE_BASE\Inventory\logs\trace</default>
+#    <description>TRACE_DIRECTORY</description>
+#    <info>TRACE_DIRECTORY</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_DBA</name>
+#    <default>oracle_dba</default>
+#    <description>Oracle DBA Account</description>
+#    <info>The unique Oracle DBA account configured for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_SVC_ACCOUNT</name>
+#    <default>oracleSVC</default>
+#    <description>Oracle Service Account</description>
+#    <info>The unique Oracle service account configured for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_DBA_GROUP</name>
+#    <default>oracle_dba_group</default>
+#    <description>Oracle DBA Group</description>
+#    <info>The Oracle DBA group configured for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_SID_DBA_GROUP</name>
+#    <default>oracle_sid_dba_group</default>
+#    <description>Oracle SID DBA group</description>
+#    <info>The unique Oracle SID DBA group configured for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>ORACLE_SID_DBA</name>
+#    <default>oracle_sid_dba</default>
+#    <description>Oracle SID DBA Account</description>
+#    <info>The unique Oracle SID DBA account configured for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>EXTPROC_DLL_PATH</name>
+#    <default>ORACLE_HOME\bin</default>
+#    <description>Oracle DLL path for extproc</description>
+#    <info>The DLL path used with the EXTPROC agent.</info>
+#  </variable>
+#  <variable>
+#    <name>INVITED_NODES</name>
+#    <default>192.168.*</default>
+#    <description>Invited Nodes</description>
+#    <info>The list of clients allowed to access the database. Defined in the tcp.invited_nodes value.</info>
+#  </variable>
+#  <variable>
+#    <name>SOURCE_IP_RANGE</name>
+#    <default>SOURCE_IP_RANGE</default>
+#    <description>CMAN.ORA SOURCE_IP_RANGE</description>
+#    <info>'%ORACLE_HOME%\NETWORK\ADMIN\CMAN.ORA SOURCE_IP_RANGE</info>
+#  </variable>
+#  <variable>
+#    <name>DEST_IP</name>
+#    <default>DEST_IP</default>
+#    <description>CMAN.ORA DEST_IP</description>
+#    <info>'%ORACLE_HOME%\NETWORK\ADMIN\CMAN.ORA DEST_IP</info>
+#  </variable>
+#  <variable>
+#    <name>WALLET_PATH</name>
+#    <default>C:\u01\app\oracle</default>
+#    <description>WALLET_PATH</description>
+#    <info>Path to the Oracle wallet</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"DISA STIG Oracle 11 Installation v8r20 - Windows">
+
+<file_acl:"ORACLE_BASEDir">
+# Note: Variable @ORACLE_USER@ replaced with "oracle_user" in field "<user".
+  <user:"oracle_user">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"CREATOR OWNER">
+    acl_inheritance : "inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"TrustedInstaller">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder and subfolders"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"Users">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+</file_acl>
+
+<file_acl:"ORACLEHomeDir">
+# Note: Variable @ORACLE_USER@ replaced with "oracle_user" in field "<user".
+  <user:"oracle_user">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"CREATOR OWNER">
+    acl_inheritance : "inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"TrustedInstaller">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder and subfolders"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"Users">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+</file_acl>
+
+<file_acl:"ListenerLog">
+# Note: Variable @ORACLE_USER@ replaced with "oracle_user" in field "<user".
+  <user:"oracle_user">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"ORA_DBA">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+</file_acl>
+
+<file_acl:"SQLNetLog">
+# Note: Variable @ORACLE_USER@ replaced with "oracle_user" in field "<user".
+  <user:"oracle_user">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+
+# Note: Variable @ORACLE_DBA@ replaced with "oracle_dba" in field "<user".
+  <user:"oracle_dba">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+</file_acl>
+
+<file_acl:"ORACLEBaseDir">
+# Note: Variable @ORACLE_USER@ replaced with "oracle_user" in field "<user".
+  <user:"oracle_user">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"Authenticated Users">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+</file_acl>
+
+<file_acl:"ORACLEDir">
+# Note: Variable @ORACLE_USER@ replaced with "oracle_user" in field "<user".
+  <user:"oracle_user">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"CREATOR OWNER">
+    acl_inheritance : "inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"TrustedInstaller">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder and subfolders"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"Users">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+</file_acl>
+
+<file_acl:"PWDorcl">
+# Note: Variable @ORACLE_USER@ replaced with "oracle_user" in field "<user".
+  <user:"oracle_user">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"ORA_DBA">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"Authenticated Users">
+    acl_inheritance : "inherited"
+    acl_apply       : "this folder only"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+</file_acl>
+
+<report type:"PASSED">
+  description : "DISA_Oracle_11g_Installation_v8r20_OS_Windows.audit from DISA Oracle Database 11g v8r20 STIG"
+</report>
+
+<report type:"WARNING">
+  description : "DG0010: DBMS software monitoring"
+  reference   : "8500.2|DCSL-1,CAT|III,Rule-ID|SV-24597r1_rule,STIG-ID|DG0010-ORACLE11,Vuln-ID|V-2420"
+  info        : "Database executable and configuration files should be monitored for unauthorized modifications.
+Changes to files in the DBMS software directory including executable, configuration, script, or batch files can indicate malicious compromise of the software files. Changes to non-executable files, such as log files and data files, do not usually reflect unauthorized changes, but are modified by the DBMS as part of normal operation. These modifications can be ignored."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures to monitor changes made to the DBMS software.
+
+Identify all database files and directories to be included in the host system or database backups and provide these to the person responsible for backups.
+
+For Windows systems, you can use the dir /s > filename.txt run weekly to store and compare file modification/creation dates and file sizes using the DOS fc command.
+
+For UNIX systems, you can use the ls -as >filename.txt command to store and compare (diff command) file statistics for comparison.
+
+These are not as comprehensive as some tools available, but may be enhanced by including checks for checksums or file hashes."
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "DG0040: DBMS software owner account access - 'Oracle base directory file permissions are correct'"
+  info        : "The DBMS software installation account should be restricted to authorized users.
+DBA and other privileged administrative or application owner accounts are granted privileges that allow actions that can have a greater impact on database security and operation. It is especially important to grant access to privileged accounts to only those persons who are qualified and authorized to use them."
+  solution    : "Develop, document and implement procedures to restrict use of the Oracle DBMS software installation account.
+
+Unix environments:
+Ensure that the Oracle DBMS software installation account is disabled when not in use, except in cases where this would interfere with required functionality. In such cases, prevent direct logon as the Oracle DBMS software installation account by locking its password; authorize the appropriate administrative users to operate as the Oracle DBMS software installation account via the 'su' or 'sudo' command.
+
+Other environments:
+Ensure that the Oracle DBMS software installation account is disabled when not in use."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,8500.2|ECLP-1,8500.2|ECPA-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24374r2_rule,STIG-ID|DG0040-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-2422"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : FILE_ACL
+  value_data  : "ORACLE_BASEDir"
+# Note: Variable @ORACLE_BASE@ replaced with "C:\\u01\\app\\oracle" in field "file".
+  file        : "C:\\u01\\app\\oracle"
+  acl_option  : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "DG0040: DBMS software owner account access - 'Oracle home directory file permissions are correct'"
+  info        : "The DBMS software installation account should be restricted to authorized users.
+DBA and other privileged administrative or application owner accounts are granted privileges that allow actions that can have a greater impact on database security and operation. It is especially important to grant access to privileged accounts to only those persons who are qualified and authorized to use them."
+  solution    : "Develop, document and implement procedures to restrict use of the Oracle DBMS software installation account.
+
+Unix environments:
+Ensure that the Oracle DBMS software installation account is disabled when not in use, except in cases where this would interfere with required functionality. In such cases, prevent direct logon as the Oracle DBMS software installation account by locking its password; authorize the appropriate administrative users to operate as the Oracle DBMS software installation account via the 'su' or 'sudo' command.
+
+Other environments:
+Ensure that the Oracle DBMS software installation account is disabled when not in use."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,8500.2|ECLP-1,8500.2|ECPA-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24374r2_rule,STIG-ID|DG0040-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-2422"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : FILE_ACL
+  value_data  : "ORACLEHomeDir"
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "file".
+  file        : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1"
+  acl_option  : CAN_NOT_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0050: DBMS software and configuration file monitoring"
+  info        : "Database software, applications and configuration files should be monitored to discover unauthorized changes.
+Unmanaged changes that occur to the database software libraries or configuration can lead to unauthorized or compromised installations."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures to monitor for unauthorized changes to DBMS software libraries, related software application libraries and configuration files.
+
+If a third-party automated tool is not employed, an automated job that reports file information on the directories and files of interest and compares them to the baseline report for the same will meet the requirement.
+
+File hashes or checksums should be used for comparisons as file dates may be manipulated by malicious users."
+  reference   : "8500.2|DCSL-1,8500.2|DCSW-1,CAT|II,Rule-ID|SV-24383r1_rule,STIG-ID|DG0050-ORACLE11,Vuln-ID|V-2423"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "DO3630: Oracle listener authentication - 'No listeners are running'"
+  info          : "The Oracle Listener should be configured to require administration authentication.
+Oracle listener authentication helps prevent unauthorized administration of the Oracle listener. Unauthorized administration of the listener could lead to DoS exploits; loss of connection audit data, unauthorized reconfiguration or other unauthorized access. This is a Category I finding because privileged access to the listener is not restricted to authorized users. Unauthorized access can result in stopping of the listener (DoS) and overwriting of listener audit logs."
+  solution      : "Configure the listener to use Local OS Authentication. This setting prevents remote administration of the listener, restricts management to the Oracle listener owner account (UNIX) and accounts with administrator privileges (WIN).
+
+Remote administration of the listener should not be permitted. If listener administration from a remote system is required, granting secure remote access to the Oracle DBMS server and performing local administration is preferred. Authorize and document this requirement in the System Security Plan."
+  reference     : "800-171|3.1.5,800-53|AC-6(1),8500.2|EBRP-1,CAT|II,CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,Rule-ID|SV-24934r1_rule,STIG-ID|DO3630-ORACLE11,SWIFT-CSCv1|5.1,Vuln-ID|V-2608"
+  see_also      : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type    : POLICY_TEXT
+  wmi_namespace : "root/CIMV2"
+  wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'Oracle%TNSListener'"
+  wmi_attribute : "DisplayName"
+  wmi_key       : "DisplayName"
+  value_data    : ""
+</custom_item>
+
+<report type:"WARNING">
+  description : "DO3630: Oracle listener authentication - 'LSNRCTL Security'"
+  info        : "The Oracle Listener should be configured to require administration authentication.
+Oracle listener authentication helps prevent unauthorized administration of the Oracle listener. Unauthorized administration of the listener could lead to DoS exploits; loss of connection audit data, unauthorized reconfiguration or other unauthorized access. This is a Category I finding because privileged access to the listener is not restricted to authorized users. Unauthorized access can result in stopping of the listener (DoS) and overwriting of listener audit logs."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure the listener to use Local OS Authentication. This setting prevents remote administration of the listener, restricts management to the Oracle listener owner account (UNIX) and accounts with administrator privileges (WIN).
+
+Remote administration of the listener should not be permitted. If listener administration from a remote system is required, granting secure remote access to the Oracle DBMS server and performing local administration is preferred. Authorize and document this requirement in the System Security Plan."
+  reference   : "8500.2|EBRP-1,CAT|II,Rule-ID|SV-24934r1_rule,STIG-ID|DO3630-ORACLE11,Vuln-ID|V-2608"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "DO5037: Oracle SQLNet and listener log files protection - 'TRACE_LEVEL_SERVER not defined'"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\\s]*TRACE_LEVEL_SERVER[\\s]*="
+      expect      : "^[\\s]*TRACE_LEVEL_SERVER[\\s]*="
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - 'TRACE_LEVEL_SERVER = OFF or 0'"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\\s]*TRACE_LEVEL_SERVER[\\s]*="
+      expect      : "^[\\s]*TRACE_LEVEL_SERVER[\\s]*=([[Oo][Ff][Ff]|0)"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ORA LOG_FILE_SERVER is configured'"
+      info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+      solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+      reference   : "800-171|3.3.8,800-53|AU-9,8500.2|ECTP-1,CAT|II,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,Vuln-ID|V-2612"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\s\t]*LOG_FILE_SERVER[\s\t]*="
+# Note: Variable @LOG_FILE@ replaced with "oracle.log" in field "expect".
+      expect      : "LOG_FILE_SERVER[\s\t]*=[\s\t]*oracle.log"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ORA LOG_DIRECTORY_SERVER is configured'"
+      info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+      solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+      reference   : "800-171|3.3.8,800-53|AU-9,8500.2|ECTP-1,CAT|II,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,Vuln-ID|V-2612"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\s\t]*LOG_DIRECTORY_SERVER[\s\t]*="
+# Note: Variable @LOG_DIRECTORY@ replaced with "ORACLE_BASE\\Inventory\\logs" in field "expect".
+      expect      : "LOG_DIRECTORY_SERVER[\s\t]*=[\s\t]*ORACLE_BASE\\Inventory\\logs"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"PASSED">
+      description : "DO5037: Oracle SQLNet and listener log files protection - 'TRACE_LEVEL_SERVER'"
+      info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+      solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+      reference   : "8500.2|ECTP-1,CAT|II,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,Vuln-ID|V-2612"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+    </report>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora DIAG_ADR_ENABLED_{listener} = off'"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+      regex       : "^[\s\t]*DIAG_ADR_ENABLED_.+[\s\t]*="
+      expect      : "DIAG_ADR_ENABLED_.+[\s\t]*=[\s\t]*[Oo][Ff][Ff]"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora LOG_DIRECTORY_{listener} is configured'"
+      info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+      solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+      reference   : "800-171|3.3.8,800-53|AU-9,8500.2|ECTP-1,CAT|II,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,Vuln-ID|V-2612"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+      regex       : "^[\s\t]*LOG_DIRECTORY_.+[\s\t]*="
+# Note: Variable @LOG_DIRECTORY@ replaced with "ORACLE_BASE\\Inventory\\logs" in field "expect".
+      expect      : "LOG_DIRECTORY_.+[\s\t]*=[\s\t]*ORACLE_BASE\\Inventory\\logs"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora LOG_FILE_{listener} is configured'"
+      info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+      solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+      reference   : "800-171|3.3.8,800-53|AU-9,8500.2|ECTP-1,CAT|II,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,Vuln-ID|V-2612"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+      regex       : "^[\s\t]*LOG_FILE_.+[\s\t]*="
+# Note: Variable @LOG_FILE@ replaced with "oracle.log" in field "expect".
+      expect      : "LOG_FILE_.+[\s\t]*=[\s\t]*oracle.log"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - 'listener.ora TRACE_DIRECTORY_{listener} is configured'"
+      info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+      solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+      reference   : "800-171|3.3.8,800-53|AU-9,8500.2|ECTP-1,CAT|II,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,Vuln-ID|V-2612"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+      regex       : "^[\s\t]*TRACE_DIRECTORY_.+[\s\t]*="
+# Note: Variable @TRACE_DIRECTORY@ replaced with "ORACLE_BASE\\Inventory\\logs\\trace" in field "expect".
+      expect      : "TRACE_DIRECTORY_.+[\s\t]*=[\s\t]*ORACLE_BASE\\Inventory\\logs\\trace"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora DIAG_ADR_ENABLED_[listener name] = ON'"
+      info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+      solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+      reference   : "800-171|3.3.8,800-53|AU-9,8500.2|ECTP-1,CAT|II,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,Vuln-ID|V-2612"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+      regex       : "^[\s\t]*DIAG_ADR_ENABLED_.+[\s\t]*="
+      expect      : "DIAG_ADR_ENABLED_.+[\s\t]*=[\s\t]*[Oo][Nn]"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </else>
+</if>
+
+<report type:"WARNING">
+  description : "DO0360: Connections by mid-tier web and application systems to the DBMS should be protected, encrypted and authenticated according to req's."
+  info        : "Multi-tier systems may be configured with the database and connecting middle-tier system located on an internal network, with the database located on an internal network behind a firewall and the middle-tier system located in a DMZ. In cases where systems are located in the DMZ, network communications between both systems must be encrypted. In all cases, the application account requires PKI authentication. IP address restriction to the backend database system, under a separate requirement, provides an additional level of protection.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure PKI authentication to help protect access to the shared account.
+
+PKI authentication may be accomplished using Oracle Advanced Security on most platforms.
+
+On a Windows host, user authentication using PKI may be used with Active Directory or NTS authentication using the DoD CAC.
+
+On UNIX and other hosts, Oracle Advanced Security may be used to authenticate via LDAP or SSL.
+
+The application may require storage of the authentication certificate in the Oracle Wallet or on a hardware security module (HSM) to authenticate.
+
+Please see the Oracle Security Guides and the Oracle Advanced Security Guides for instructions on configuring PKI authentication."
+  reference   : "CAT|II,Rule-ID|SV-24537r3_rule,STIG-ID|DO0360-ORACLE11,Vuln-ID|V-3440"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\Network\Log\listener.log file permissions are correct'"
+  info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+  solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+  reference   : "800-171|3.3.8,800-171|3.3.9,800-171|3.4.2,800-53|AC-6(7),800-53|AU-9(4),800-53|CM-6,8500.2|ECTP-1,CAT|II,CN-L3|8.1.10.6(d),CN-L3|8.1.4.3(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,CSF|PR.PT-1,ISO/IEC-27001|A.9.2.5,ITSG-33|AU-9(4),ITSG-33|CM-6,NESA|M1.1.3,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,SWIFT-CSCv1|2.3,SWIFT-CSCv1|5.1,Vuln-ID|V-2612"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : FILE_ACL
+  value_data  : "ListenerLog"
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "file".
+  file        : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\Network\Log\listener.log"
+  acl_option  : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "DO5037: Oracle SQLNet and listener log files protection - '%ORACLE_HOME%\NETWORK\Log\sqlnet.log file permissions are correct'"
+  info        : "Oracle SQLNet and listener log files should not be accessible to unauthorized users.
+The SQLNet and Listener log files provide audit data useful to the discovery of suspicious behavior. The log files may contain usernames and passwords in clear text as well as other information that could aid a malicious user with unauthorized access attempts to the database. Generation and protection of these files helps support security monitoring efforts."
+  solution    : "Restrict access to the listener and sqlnet log files.
+
+Restrict access to the tnslsnr service account to DBAs, SAs and auditors where they are required by assigned responsibilities."
+  reference   : "800-171|3.3.8,800-171|3.3.9,800-171|3.4.2,800-53|AC-6(7),800-53|AU-9(4),800-53|CM-6,8500.2|ECTP-1,CAT|II,CN-L3|8.1.10.6(d),CN-L3|8.1.4.3(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,CSF|PR.PT-1,ISO/IEC-27001|A.9.2.5,ITSG-33|AU-9(4),ITSG-33|CM-6,NESA|M1.1.3,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24946r1_rule,STIG-ID|DO5037-ORACLE11,SWIFT-CSCv1|2.3,SWIFT-CSCv1|5.1,Vuln-ID|V-2612"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : FILE_ACL
+  value_data  : "SQLNetLog"
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "file".
+  file        : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\Log\sqlnet.log"
+  acl_option  : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DO6740: Oracle listener ADMIN_RESTRICTIONS parameter - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora ADMIN_RESTRICTIONS_{listener} = on'"
+  info        : "The Oracle listener process can be dynamically configured. By connecting to the listener process directly, usually through the Oracle LSNRCTL utility, a user may change any of the parameters available through the set command. This vulnerability has been used to overwrite the listener log and trace files. The ADMIN_RESTRICTIONS parameter, set in the listener.ora file, prohibits dynamic listener configuration changes and protects the configuration using host operating system security controls."
+  solution    : "Edit the listener.ora file and add the following line for each listener in use on the system:
+
+ADMIN_RESTRICTIONS_[listener-name] = ON
+
+Restart the listener to activate the setting."
+  reference   : "800-53|SC-5,8500.2|EBRP-1,CAT|II,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e,Rule-ID|SV-24949r1_rule,STIG-ID|DO6740-ORACLE11,Vuln-ID|V-3497"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+  regex       : "^[\s\t]*ADMIN_RESTRICTIONS_.+[\s\t]*="
+  expect      : "ADMIN_RESTRICTIONS_.+[\s\t]*=[\s\t]*[Oo][Nn]"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0011: DBMS Configuration Management"
+  info        : "Uncontrolled, untested, or unmanaged changes result in an unreliable security posture. All changes to software libraries related to the database and its use need to be reviewed, considered, and the responsibility for CM assigned. CM responsibilities may appear to cross boundaries. It is important, however, for the boundaries of CM responsibility to be clearly defined and assigned to ensure no libraries or configurations are left unaddressed. Related database application libraries may include third-party DBMS management tools, DBMS stored procedures, or other end-user applications."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement configuration management procedures or processes.
+
+Ensure the 4 major requirements listed in the check are documented at a minimum.
+
+Assign responsibilities for oversight and approval for any and all changes made to DBMS software and configuration."
+  reference   : "8500.2|DCPR-1,CAT|III,Rule-ID|SV-24599r1_rule,STIG-ID|DG0011-ORACLE11,Vuln-ID|V-3726"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0016: DBMS unused components"
+  info        : "Unused, unnecessary DBMS components increase the attack surface for the DBMS by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+However, dependencies exist among Oracle components that could result in the removal of an apparently unnecessary component interfering with the operation of a required component. Therefore, thorough testing is required before removing components from a production server."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Review the list of installed products available for the DBMS install. If any are required and licensed for operation of applications that will be accessing the DBMS, include them in the application design specification and list them in the System Security Plan. If any are not, but have been installed, uninstall them and remove any database schemas, objects, applications and security principals that exclusively support them.
+
+Verify correct operation of the required Oracle components in a test environment before aplying these changes to a production system."
+  reference   : "8500.2|DCFA-1,CAT|III,Rule-ID|SV-24359r2_rule,STIG-ID|DG0016-ORACLE11,Vuln-ID|V-3728"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "DG0017: DBMS shared production/development use - 'All Oracle instances are documented and approved'"
+  info          : "Production, development and other non-production DBMS installations have different access and security requirements. Shared production/non-production DBMS installations secured at a production-level can impede development efforts whereas production/non-production DBMS installations secured at a development-level can lead to exploitation of production-level installations. Production DBMS installations should be kept separate from development, QA, TEST and other non-production DBMS systems."
+  solution      : "Recommend establishing a dedicated DBMS host for production DBMS installations (See Checks DG0109 and DG0110).
+
+A dedicated host system in this case refers to an instance of the operating system at a minimum.
+
+The operating system may reside on a virtual host machine where supported by the DBMS vendor."
+  reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|ECSD-1,8500.2|ECSD-2,CAT|II,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-24606r1_rule,STIG-ID|DG0017-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-3803"
+  see_also      : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type    : POLICY_TEXT
+  wmi_namespace : "root/cimv2"
+  wmi_request   : "SELECT DisplayName FROM Win32_Service WHERE DisplayName like '%OracleService%'"
+  wmi_attribute : "DisplayName"
+  wmi_key       : "DisplayName"
+  value_data    : ""
+  wmi_option    : WMI_ENUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "DG0019: DBMS software ownership - 'Oracle base directory file permissions are correct'"
+  info        : "File and directory ownership imparts full privileges to the owner. These privileges should be restricted to a single, dedicated account to preserve proper chains of ownership and privilege assignment management."
+  solution    : "Assign DBMS file and directory ownership to a dedicated Oracle OS owner account.
+
+Document the locations of Oracle DBMS files and directories in the System Security Plan.
+
+On Windows systems:
+
+Launch a Windows Explorer window. In the Right Pane, Right-Click on one of the display headers and select Owner from the list. Move the Owner column after the Name column. Size the Owner column to fit the current contents.
+
+NOTE: This will show the owner column for this folder only. If you want to see the owner column in all folders, select Tools -> Options -> View tab and click on the Apply to All Folders button.
+
+The Oracle DBMS software is usually installed using an account with administrator privileges and ownership is assigned either to the account used to install the DBMS software or to the Administrators group.
+
+For DBMS systems with multiple Oracle Homes using a common Oracle Base, ensure an ownership review for files and directories in the %ORACLE_BASE% that are not addressed above is performed.
+
+If any files or directories belonging to an Oracle DBMS software installation are not owned by a dedicated Oracle OS owner account, this is a Finding."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,8500.2|DCSL-1,8500.2|ECSD-1,8500.2|ECSD-2,CAT|III,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24363r1_rule,STIG-ID|DG0019-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-3805"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : FILE_ACL
+  value_data  : "ORACLEBaseDir"
+# Note: Variable @ORACLE_BASE@ replaced with "C:\\u01\\app\\oracle" in field "file".
+  file        : "C:\\u01\\app\\oracle"
+  acl_option  : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "DG0019: DBMS software ownership - 'Oracle home directory file permissions are correct'"
+  info        : "File and directory ownership imparts full privileges to the owner. These privileges should be restricted to a single, dedicated account to preserve proper chains of ownership and privilege assignment management."
+  solution    : "Assign DBMS file and directory ownership to a dedicated Oracle OS owner account.
+
+Document the locations of Oracle DBMS files and directories in the System Security Plan.
+
+On Windows systems:
+
+Launch a Windows Explorer window. In the Right Pane, Right-Click on one of the display headers and select Owner from the list. Move the Owner column after the Name column. Size the Owner column to fit the current contents.
+
+NOTE: This will show the owner column for this folder only. If you want to see the owner column in all folders, select Tools -> Options -> View tab and click on the Apply to All Folders button.
+
+The Oracle DBMS software is usually installed using an account with administrator privileges and ownership is assigned either to the account used to install the DBMS software or to the Administrators group.
+
+For DBMS systems with multiple Oracle Homes using a common Oracle Base, ensure an ownership review for files and directories in the %ORACLE_BASE% that are not addressed above is performed.
+
+If any files or directories belonging to an Oracle DBMS software installation are not owned by a dedicated Oracle OS owner account, this is a Finding."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,8500.2|DCSL-1,8500.2|ECSD-1,8500.2|ECSD-2,CAT|III,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24363r1_rule,STIG-ID|DG0019-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-3805"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : FILE_ACL
+  value_data  : "ORACLEHomeDir"
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "file".
+  file        : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1"
+  acl_option  : CAN_NOT_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0021: DBMS software and configuration baseline"
+  info        : "Without maintenance of a baseline of current DBMS application software, monitoring for changes cannot be complete and unauthorized changes to the software can go undetected. Changes to the DBMS executables could be the result of intentional or unintentional actions."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement DBMS software baseline procedures that include all DBMS software files and directories under the ORACLE_BASE and ORACLE_HOME environment variables and any custom and platform-specific directories.
+
+Generate a list of files, directories and details for the DBMS software configuration baseline.
+
+Update the configuration baseline after new installations, upgrades/updates or maintenance activities that include changes to the baseline software."
+  reference   : "8500.2|DCSW-1,CAT|II,Rule-ID|SV-24610r1_rule,STIG-ID|DG0021-ORACLE11,Vuln-ID|V-3806"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0052: All applications that access the database should be logged in the audit trail."
+  info        : "Protections and privileges are designed within the database to correspond to access via authorized software. Use of unauthorized software to access the database could indicate an attempt to bypass established permissions. Reviewing the use of application software to the database can lead to discovery of unauthorized access attempts.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Modify auditing to ensure audit records include identification of applications used to access the DBMS.
+
+Ensure auditing captures the name [or unique identifier] of applications accessing the DBMS at a minimum.
+
+Develop or procure a 3rd-party solution where native DBMS logging is not employed or does not capture required information."
+  reference   : "CAT|II,Rule-ID|SV-24626r1_rule,STIG-ID|DG0052-ORACLE11,Vuln-ID|V-3807"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0053: DBMS client connection definition file"
+  info        : "Many sites distribute a single client database connection configuration file to all site database users that contains network access information for all databases on the site. Such a file provides information to access databases not required by all users that may assist in unauthorized access attempts."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures to distribute client connection definitions or definition files that contain only connection definitions authorized for that user or user workstation.
+
+Include or note these procedures in the System Security Plan."
+  reference   : "8500.2|ECAN-1,CAT|II,Rule-ID|SV-24628r1_rule,STIG-ID|DG0053-ORACLE11,Vuln-ID|V-3809"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0066: DBMS temporary password procedures"
+  info        : "New accounts authenticated by passwords that are created without a password or with an easily guessed password are vulnerable to unauthorized access. Procedures for creating new accounts with passwords should include the required assignment of a temporary password to be modified by the user upon first use."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures for assigning, distributing and changing of temporary passwords for new database user accounts.
+
+Procedures should include instruction that meet current DoD password length and complexity requirements and provide a secure method to relay the temporary password to the user.
+
+Temporary passwords should also be short-lived and require immediate update by the user upon first use.
+
+Consider using account authentication using certificates or other credentials in place of password authentication."
+  reference   : "8500.2|IAIA-1,8500.2|IAIA-2,CAT|II,Rule-ID|SV-24639r1_rule,STIG-ID|DG0066-ORACLE11,Vuln-ID|V-3811"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0067: DBMS account password storage"
+  info        : "Database passwords stored in clear text are vulnerable to unauthorized disclosure. Database passwords should always be encoded or encrypted when stored internally or externally to the DBMS."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and maintain a list of DBMS database objects, database configuration files, associated scripts and applications defined within or external to the DBMS that access the database, and DBMS / user environment files/settings in the System Security Plan.
+
+Record whether they do or do not contain DBMS passwords.
+
+If passwords are present, ensure they are encoded or encrypted and protected by host system security."
+  reference   : "8500.2|IAIA-1,8500.2|IAIA-2,CAT|I,Rule-ID|SV-24641r1_rule,STIG-ID|DG0067-ORACLE11,Vuln-ID|V-3812"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0068: DBMS application password display"
+  info        : "Database applications may allow for entry of the account name and password as a visible parameter of the application execution command. This practice should be prohibited and disabled, if possible, by the application. If it cannot be disabled, then users should be strictly instructed not to use this feature. Typically, the application will prompt for this information and accept it without echoing it on the users computer screen."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Review policy and instructions included or noted in the System Security Plan used to inform users and administrators not to enter database passwords at the command line.
+
+Review documented and implemented procedures used to monitor the DBMS system for such activity.
+
+If policy or instructions do not exist, proof of users and administrators being briefed does not exist or monitoring for compliance is not being performed to dissuade the practice of entering database passwords on the command line, this is a Finding."
+  reference   : "8500.2|IAIA-1,8500.2|IAIA-2,CAT|II,Rule-ID|SV-24643r1_rule,STIG-ID|DG0068-ORACLE11,Vuln-ID|V-3813"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0093: Remote administrative connection encryption - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora - all protocols use TCPS'"
+  info        : "Communications between a client and database service across the network may contain sensitive information including passwords. This is particularly true in the case of administrative activities. Encryption of remote administrative connections to the database ensures confidentiality of configuration, management, and other administrative data."
+  solution    : "Where remote access to DBA accounts is not allowed, develop, document and implement policies and train DBAs that remote access to DBA accounts is prohibited.
+
+Where remote access to DBA accounts is allowed, the remote connection must be encrypted.
+
+Ensure unclassified, sensitive data transmitted through a commercial or wireless network are encrypted using NIST-certified cryptography.
+
+If remote access is established via the database listener, then install a dedicated listener configured to encrypt all traffic for use by DBAs for remote access.
+
+This requires use of Oracle Advanced Security and Oracle Wallet Manager.
+
+See the Oracle Advanced Security Guide, Configuring Network Data Encryption and Integrity for Oracle Servers and Clients for details.
+
+Configure the listener to require SSL for the DBA connections by specifying the TCPS as the network protocol.
+
+Sample listener.ora entries:
+
+DBALSNR =
+ (DESCRIPTION =
+ (ADDRESS = (PROTOCOL = TCPS) (HOST = [IP]) (PORT = 1575))
+ (CONNECT_DATA =
+ (SERVER = DEDICATED)
+ (SERVICE_NAME = [SID])
+ )
+ )
+
+Configure the server's FIPS.ORA file to use FIPS 140-2 compliant settings to encrypt the traffic and ensure integrity of the transmission.
+
+In the FIPS.ORA file in the $ORACLE_HOME/ldap/admin directory or the directory specified in the FIPS_HOME environment variable for the dedicated listener on the server, add the following line:
+
+ SSLFIPS_140=TRUE
+
+Monitor the listener log files for evidence of any unencrypted remote access to DBA accounts."
+  reference   : "800-171|3.1.13,800-53|AC-17(2),8500.2|ECCT-1,8500.2|ECCT-2,CAT|II,CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,Rule-ID|SV-24687r1_rule,STIG-ID|DG0093-ORACLE11,SWIFT-CSCv1|2.6,Vuln-ID|V-3825"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+  regex       : "^[\s\t]*\([Aa][Dd][Dd][Rr][Ee][Ss][Ss][\s\t]*=[\s\t]*\([Pp][Rr][Oo][Tt][Oo][Cc][Oo][Ll][\s\t]*=[\s\t]*"
+  expect      : "^[\s\t]*\([Aa][Dd][Dd][Rr][Ee][Ss][Ss][\s\t]*=[\s\t]*\([Pp][Rr][Oo][Tt][Oo][Cc][Oo][Ll][\s\t]*=[\s\t]*[Tt][Cc][Pp][Ss]\)"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0093: Remote administrative connection encryption - '%ORACLE_HOME%\ldap\admin\fips.ora SSLFIPS_140 = TRUE'"
+  info        : "Communications between a client and database service across the network may contain sensitive information including passwords. This is particularly true in the case of administrative activities. Encryption of remote administrative connections to the database ensures confidentiality of configuration, management, and other administrative data."
+  solution    : "Where remote access to DBA accounts is not allowed, develop, document and implement policies and train DBAs that remote access to DBA accounts is prohibited.
+
+Where remote access to DBA accounts is allowed, the remote connection must be encrypted.
+
+Ensure unclassified, sensitive data transmitted through a commercial or wireless network are encrypted using NIST-certified cryptography.
+
+If remote access is established via the database listener, then install a dedicated listener configured to encrypt all traffic for use by DBAs for remote access.
+
+This requires use of Oracle Advanced Security and Oracle Wallet Manager.
+
+See the Oracle Advanced Security Guide, Configuring Network Data Encryption and Integrity for Oracle Servers and Clients for details.
+
+Configure the listener to require SSL for the DBA connections by specifying the TCPS as the network protocol.
+
+Sample listener.ora entries:
+
+DBALSNR =
+ (DESCRIPTION =
+ (ADDRESS = (PROTOCOL = TCPS) (HOST = [IP]) (PORT = 1575))
+ (CONNECT_DATA =
+ (SERVER = DEDICATED)
+ (SERVICE_NAME = [SID])
+ )
+ )
+
+Configure the server's FIPS.ORA file to use FIPS 140-2 compliant settings to encrypt the traffic and ensure integrity of the transmission.
+
+In the FIPS.ORA file in the $ORACLE_HOME/ldap/admin directory or the directory specified in the FIPS_HOME environment variable for the dedicated listener on the server, add the following line:
+
+ SSLFIPS_140=TRUE
+
+Monitor the listener log files for evidence of any unencrypted remote access to DBA accounts."
+  reference   : "800-171|3.13.11,800-53|SC-13,8500.2|ECCT-1,8500.2|ECCT-2,CAT|II,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-24687r1_rule,STIG-ID|DG0093-ORACLE11,Vuln-ID|V-3825"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\ldap\admin\fips.ora"
+  regex       : "^[\s\t]*SSLFIPS_140[\s\t]*="
+  expect      : "SSLFIPS_140[\s\t]*=[\s\t]*[Tt][Rr][Uu][Ee]"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0095: DBMS audit trail data review"
+  info        : "Review of audit trail data provides a means for detection of unauthorized access or attempted access. Frequent and regularly scheduled reviews ensures that such access is discovered in a timely manner."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement policy and procedures to monitor audit trail data daily."
+  reference   : "8500.2|ECAT-1,CAT|II,Rule-ID|SV-24405r1_rule,STIG-ID|DG0095-ORACLE11,Vuln-ID|V-3827"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "DO0120: Oracle process account host system privileges - 'Oracle services use appropriate service accounts'"
+  info          : "A compromise of the Oracle database process could be used to gain access to the host operating system under the security account of the process owner. Limitation of the privileges assigned to the process account can help contain access to other processes and host system resources. This can in turn help to limit any resulting malicious activity."
+  solution      : "Remove root privileges from the Oracle software owner account on UNIX systems.
+
+Create and assign a dedicated OS account for all Oracle processes (Windows).
+
+Grant the dedicated OS account Oracle DBA privileges and assign the Deny Logon Locally user right to the dedicated OS account."
+  reference     : "800-171|3.1.5,800-53|AC-6,8500.2|DCFA-1,CAT|II,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-24465r1_rule,STIG-ID|DO0120-ORACLE11,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-3842"
+  see_also      : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type    : POLICY_TEXT
+  wmi_namespace : "root/CIMV2"
+  wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like '%Oracle%'"
+  wmi_attribute : "StartName"
+  wmi_key       : "DisplayName"
+  value_data    : ""
+  wmi_option    : WMI_ENUM
+</custom_item>
+
+<custom_item>
+  type        : USER_RIGHTS_POLICY
+  description : "DO0120: Oracle process account host system privileges - 'Oracle service account is denied logon on locally right'"
+  info        : "A compromise of the Oracle database process could be used to gain access to the host operating system under the security account of the process owner. Limitation of the privileges assigned to the process account can help contain access to other processes and host system resources. This can in turn help to limit any resulting malicious activity."
+  solution    : "Remove root privileges from the Oracle software owner account on UNIX systems.
+
+Create and assign a dedicated OS account for all Oracle processes (Windows).
+
+Grant the dedicated OS account Oracle DBA privileges and assign the Deny Logon Locally user right to the dedicated OS account."
+  reference   : "800-53|AC-6(7),8500.2|DCFA-1,CAT|II,CSCv6|16,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-24465r1_rule,STIG-ID|DO0120-ORACLE11,Vuln-ID|V-3842"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : USER_RIGHT
+# Note: Variable @ORACLE_SVC_ACCOUNT@ replaced with "oracleSVC" in field "value_data".
+  value_data  : "oracleSVC"
+  right_type  : SeDenyInteractiveLogonRight
+</custom_item>
+
+<custom_item>
+  type        : USER_GROUPS_POLICY
+  description : "DO0120: Oracle process account host system privileges - 'Oracle service account group membership is correct'"
+  info        : "A compromise of the Oracle database process could be used to gain access to the host operating system under the security account of the process owner. Limitation of the privileges assigned to the process account can help contain access to other processes and host system resources. This can in turn help to limit any resulting malicious activity."
+  solution    : "Remove root privileges from the Oracle software owner account on UNIX systems.
+
+Create and assign a dedicated OS account for all Oracle processes (Windows).
+
+Grant the dedicated OS account Oracle DBA privileges and assign the Deny Logon Locally user right to the dedicated OS account."
+  reference   : "800-171|3.1.5,800-53|AC-6,8500.2|DCFA-1,CAT|II,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-24465r1_rule,STIG-ID|DO0120-ORACLE11,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-3842"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_MULTI_TEXT
+# Note: Variable @ORACLE_DBA_GROUP@ replaced with "oracle_dba_group" in field "value_data".
+  value_data  : "oracle_dba_group" && "Administrators"
+# Note: Variable @ORACLE_SVC_ACCOUNT@ replaced with "oracleSVC" in field "user_name".
+  user_name   : "oracleSVC"
+</custom_item>
+
+<custom_item>
+  type        : GROUP_MEMBERS_POLICY
+  description : "DO0145: Oracle SYSDBA OS group membership"
+  info        : "Oracle SYSDBA privileges include privileges to administer the database outside of database controls (when the database is shut down) in addition to all privileges controlled under database operation. Assignment of membership to the OS dba group to unauthorized persons can compromise all DBMS activities."
+  solution    : "Document user accounts that are authorized by the IAO to be assigned DBA privileges in the System Security Plan.
+
+Remove any accounts assigned membership in the operating system DBA group that has not been authorized by the IAO.
+
+Develop, document and implement procedures for periodic review of accounts assigned membership to the DBA group."
+  reference   : "800-53|AC-6(7),8500.2|DCSD-1,CAT|III,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-24853r1_rule,STIG-ID|DO0145-ORACLE11,Vuln-ID|V-3845"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_MULTI_TEXT
+# Note: Variable @ORACLE_DBA_GROUP@ replaced with "oracle_dba_group" in field "group_name".
+  group_name  : "oracle_dba_group"
+  value_data  : ""
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DO0286: Oracle connection timeout parameter - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora INBOUND_CONNECT_TIMEOUT_listener > 0'"
+  info        : "Oracle SYSDBA privileges include privileges to administer the database outside of database controls (when the database is shut down) in addition to all privileges controlled under database operation. Assignment of membership to the OS dba group to unauthorized persons can compromise all DBMS activities."
+  solution    : "Document user accounts that are authorized by the IAO to be assigned DBA privileges in the System Security Plan.
+
+Remove any accounts assigned membership in the operating system DBA group that has not been authorized by the IAO.
+
+Develop, document and implement procedures for periodic review of accounts assigned membership to the DBA group."
+  reference   : "800-171|3.1.11,800-53|AC-12,8500.2|ECLO-1,CAT|II,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,Rule-ID|SV-24890r1_rule,STIG-ID|DO0286-ORACLE11,Vuln-ID|V-3862"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+  regex       : "^[\s\t]*INBOUND_CONNECT_TIMEOUT_.+[\s\t]*="
+  expect      : "INBOUND_CONNECT_TIMEOUT_.+[\s\t]*=[\s\t]*([1-9][0-9]+|[1-9])"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DO0286: Oracle connection timeout parameter - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ORA SQLNET.INBOUND_CONNECT_TIMEOUT > 0'"
+  info        : "Oracle SYSDBA privileges include privileges to administer the database outside of database controls (when the database is shut down) in addition to all privileges controlled under database operation. Assignment of membership to the OS dba group to unauthorized persons can compromise all DBMS activities."
+  solution    : "Document user accounts that are authorized by the IAO to be assigned DBA privileges in the System Security Plan.
+
+Remove any accounts assigned membership in the operating system DBA group that has not been authorized by the IAO.
+
+Develop, document and implement procedures for periodic review of accounts assigned membership to the DBA group."
+  reference   : "800-171|3.1.11,800-53|AC-12,8500.2|ECLO-1,CAT|II,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,Rule-ID|SV-24890r1_rule,STIG-ID|DO0286-ORACLE11,Vuln-ID|V-3862"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+  regex       : "^[\s\t]*SQLNET\.INBOUND_CONNECT_TIMEOUT[\s\t]*="
+  expect      : "SQLNET\.INBOUND_CONNECT_TIMEOUT[\s\t]*=[\s\t]*([1-9][0-9]+|[1-9])"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DO0287: Oracle SQLNET.EXPIRE_TIME parameter - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ORA SQLNET.EXPIRE_TIME > 0'"
+  info        : "The SQLNET.EXPIRE_TIME parameter defines a limit for the frequency of active connection verification of a client connection. This prevents indefinite open connections to the database where client connections have not been terminated properly. Indefinite open connections could lead to an exhaustion of system resources or leave an open connection available for compromise."
+  solution    : "Using a text editor or administrative tool, modify the SQLNET.ORA file on the database host server to include a limit for connection request timeouts for the listener.
+
+Example entry (value unit is in minutes):
+
+ SQLNET.EXPIRE_TIME = 3
+
+NOTE: Use the lowest number possible that does not generate so much network traffic that performance becomes unacceptable. The lower the number, the less likely an exhaustion of resources will occur. Set the value to the lowest number greater than 0 that is supported by the target system environment."
+  reference   : "800-171|3.1.11,800-53|AC-12,8500.2|ECLO-1,CAT|II,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,Rule-ID|SV-24893r1_rule,STIG-ID|DO0287-ORACLE11,Vuln-ID|V-3863"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+  regex       : "^[\s\t]*SQLNET\.EXPIRE_TIME[\s\t]*="
+  expect      : "SQLNET\.EXPIRE_TIME[\s\t]*=[\s\t]*([1-9][0-9]+|[1-9])"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "DO0430: The Oracle Management Agent should be uninstalled if not required/authorized or is installed on a DB accessible from the Internet."
+  info        : "The Oracle Management Agent (Oracle Intelligent Agent in earlier versions) provides the mechanism for local and/or remote management of the local Oracle Database by Oracle Enterprise Manager or other SNMP management platforms. Because it provides access to operating system and database functions, it should be uninstalled if not in use.
+
+ NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Use the ORACLE_HOME/rdbms/admin/catnsnmp.sql script to remove all Oracle SNMP management agent objects in the database.
+
+Delete the executable file ORACLE_HOME/bin/dbsnmp or dbsnmp.exe if it exists from any Oracle Home not authorized for SNMP management.
+
+Uninstall any SNMP management agents installed on Oracle database servers installed in a DMZ that serve applications to Internet users.
+
+Uninstall any SNMP management agents that have not been authorized and documented in the System Security Plan.
+
+Document any authorized use of the SNMP management agent on database servers that do not support Internet applications in a DMZ in the System Security Plan.
+
+NOTE: Removal of SNMP management objects will prevent the ability to generate database statistics within Oracle Enterprise Manager."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|III,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24546r1_rule,STIG-ID|DO0430-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-3866"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\bin\dbsnmp.exe"
+  file_option : MUST_NOT_EXIST
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "DG0012: DBMS software storage location - 'ORACLE_HOME environment variable set'"
+  info          : "Multiple applications can provide a cumulative negative effect. A vulnerability and subsequent exploit to one application can lead to an exploit of other applications sharing the same security context. For example, an exploit to a web server process that leads to unauthorized administrative access to host system directories can most likely lead to a compromise of all applications hosted by the same system. Database software not installed using dedicated directoriies both threatens and is threatened by other hosted applications. Access controls defined for one application may by default provide access to the other application's database objects or directories. Any method that provides any level of separation of security context assists in the protection between applications."
+  solution      : "Install Oracle DBMS software using directories separate from the OS and other application software library directories.
+
+Re-locate any directories or re-install other application software that currently shares the DBMS software library directory to separate directories.
+
+Recommend dedicating a separate partition for the DBMS software libraries where supported by the DBMS."
+  reference     : "800-171|3.4.2,800-53|CM-6,8500.2|DCPA-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24350r1_rule,STIG-ID|DG0012-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-4754"
+  see_also      : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type    : POLICY_TEXT
+  wmi_namespace : "root/cimv2"
+  wmi_request   : "SELECT VariableValue from Win32_Environment WHERE Name='ORACLE_HOME'"
+  wmi_attribute : "VariableValue"
+  wmi_key       : "Name"
+  value_data    : "%ORACLE_HOME%"
+</custom_item>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "DG0012: DBMS software storage location - 'ORACLE_BASE environment variable set'"
+  info          : "Multiple applications can provide a cumulative negative effect. A vulnerability and subsequent exploit to one application can lead to an exploit of other applications sharing the same security context. For example, an exploit to a web server process that leads to unauthorized administrative access to host system directories can most likely lead to a compromise of all applications hosted by the same system. Database software not installed using dedicated directoriies both threatens and is threatened by other hosted applications. Access controls defined for one application may by default provide access to the other application's database objects or directories. Any method that provides any level of separation of security context assists in the protection between applications."
+  solution      : "Install Oracle DBMS software using directories separate from the OS and other application software library directories.
+
+Re-locate any directories or re-install other application software that currently shares the DBMS software library directory to separate directories.
+
+Recommend dedicating a separate partition for the DBMS software libraries where supported by the DBMS."
+  reference     : "800-171|3.4.2,800-53|CM-6,8500.2|DCPA-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24350r1_rule,STIG-ID|DG0012-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-4754"
+  see_also      : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type    : POLICY_TEXT
+  wmi_namespace : "root/cimv2"
+  wmi_request   : "SELECT VariableValue from Win32_Environment WHERE Name='ORACLE_BASE'"
+  wmi_attribute : "VariableValue"
+  wmi_key       : "Name"
+  value_data    : "%ORACLE_BASE%"
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0001: Vendor supported software is evaluated and patched against newly found vulnerabilities."
+  info        : "Unsupported software versions are not patched by vendors to address newly discovered security versions. An unpatched version is vulnerable to attack.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Upgrade to a supported Oracle version. Purchase an Oracle Extended Support Contract where required.
+
+See http://www.oracle.com/technology/support/patches.htm for a definitive list of version patch sets for Oracle DBMS software.
+
+See http://www.oracle.com/support/library/brochure/lifetime-support-technology.pdf for Oracle support policies and timelines."
+  reference   : "CAT|I,Rule-ID|SV-24339r2_rule,STIG-ID|DG0001-ORACLE11,Vuln-ID|V-5658"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0003: DBMS security patch level"
+  info        : "Maintaining the currency of the software version protects the database from known vulnerabilities."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Apply the most current Oracle Critical Patch update to the database software when available."
+  reference   : "8500.2|VIVM-1,CAT|II,Rule-ID|SV-24342r1_rule,STIG-ID|DG0003-ORACLE11,Vuln-ID|V-5659"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : GROUP_MEMBERS_POLICY
+  description : "DG0005: DBMS administration OS accounts - 'ORA_DBA Group has no unauthorized users'"
+  info        : "Database administration accounts are frequently granted more permissions to the local host system than are necessary. This allows inadvertent or malicious changes to the host operating system."
+  solution    : "Revoke all host system privileges from the DBA group accounts and DBA user accounts not required for DBMS administration.
+
+Revoke all OS group memberships that assign excessive privileges to the DBA group accounts and DBA user accounts.
+
+Remove any directly applied permissions or user rights from the DBA group accounts and DBA user accounts.
+
+You should document all DBA group accounts and individual DBA account assigned privileges in the System Security Plan."
+  reference   : "800-171|3.1.5,800-53|AC-6,8500.2|ECLP-1,CAT|II,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-24346r1_rule,STIG-ID|DG0005-ORACLE11,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-6756"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_MULTI_TEXT
+  group_name  : "ORA_DBA"
+# Note: Variable @ORACLE_DBA@ replaced with "oracle_dba" in field "value_data".
+  value_data  : "oracle_dba" && "nt authority\System"
+  check_type  : CHECK_EQUAL
+</custom_item>
+
+<custom_item>
+  type        : GROUP_MEMBERS_POLICY
+  description : "DG0005: DBMS administration OS accounts - 'ORA_{SID}_DBA Group has no unauthorized users'"
+  info        : "Database administration accounts are frequently granted more permissions to the local host system than are necessary. This allows inadvertent or malicious changes to the host operating system."
+  solution    : "Revoke all host system privileges from the DBA group accounts and DBA user accounts not required for DBMS administration.
+
+Revoke all OS group memberships that assign excessive privileges to the DBA group accounts and DBA user accounts.
+
+Remove any directly applied permissions or user rights from the DBA group accounts and DBA user accounts.
+
+You should document all DBA group accounts and individual DBA account assigned privileges in the System Security Plan."
+  reference   : "800-53|AC-6(7),8500.2|ECLP-1,CAT|II,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-24346r1_rule,STIG-ID|DG0005-ORACLE11,Vuln-ID|V-6756"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_MULTI_TEXT
+# Note: Variable @ORACLE_SID_DBA_GROUP@ replaced with "oracle_sid_dba_group" in field "group_name".
+  group_name  : "oracle_sid_dba_group"
+# Note: Variable @ORACLE_SID_DBA@ replaced with "oracle_sid_dba" in field "value_data".
+  value_data  : "oracle_sid_dba" && "nt authority\System"
+  check_type  : CHECK_EQUAL
+</custom_item>
+
+<custom_item>
+  type              : AUDIT_POWERSHELL
+  description       : "DG0005: DBMS administration OS accounts - 'Oracle DBA is only a member of ORA_DBA and Users group'"
+  info              : "Database administration accounts are frequently granted more permissions to the local host system than are necessary. This allows inadvertent or malicious changes to the host operating system."
+  solution          : "Revoke all host system privileges from the DBA group accounts and DBA user accounts not required for DBMS administration.
+
+Revoke all OS group memberships that assign excessive privileges to the DBA group accounts and DBA user accounts.
+
+Remove any directly applied permissions or user rights from the DBA group accounts and DBA user accounts.
+
+You should document all DBA group accounts and individual DBA account assigned privileges in the System Security Plan."
+  reference         : "800-171|3.1.5,800-53|AC-6(5),8500.2|ECLP-1,CAT|II,CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,Rule-ID|SV-24346r1_rule,STIG-ID|DG0005-ORACLE11,SWIFT-CSCv1|1.2,Vuln-ID|V-6756"
+  see_also          : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type        : POLICY_TEXT
+# Note: Variable @ORACLE_DBA@ replaced with "oracle_dba" in field "powershell_args".
+# Note: Variable @ORACLE_DBA_GROUP@ replaced with "oracle_dba_group" in field "powershell_args".
+  powershell_args   : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_UserAccount.Domain=\'$env:userdomain\',Name=\'oracle_dba\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'oracle_dba_group\'`\\" AND GroupComponent!=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'Users\'`\\"\\" | Select-Object PartComponent,GroupComponent | Format-List'
+  value_data        : ""
+  powershell_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "DG0005: DBMS administration OS accounts - 'Oracle instance DBA is only a member of ORA_{SID}_DBA and Users group'"
+  info            : "Database administration accounts are frequently granted more permissions to the local host system than are necessary. This allows inadvertent or malicious changes to the host operating system."
+  solution        : "Revoke all host system privileges from the DBA group accounts and DBA user accounts not required for DBMS administration.
+
+Revoke all OS group memberships that assign excessive privileges to the DBA group accounts and DBA user accounts.
+
+Remove any directly applied permissions or user rights from the DBA group accounts and DBA user accounts.
+
+You should document all DBA group accounts and individual DBA account assigned privileges in the System Security Plan."
+  reference       : "800-171|3.1.1,800-53|AC-2,8500.2|ECLP-1,CAT|II,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NESA|T5.2.1,NESA|T5.2.2,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,Rule-ID|SV-24346r1_rule,STIG-ID|DG0005-ORACLE11,Vuln-ID|V-6756"
+  see_also        : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type      : POLICY_TEXT
+# Note: Variable @ORACLE_SID_DBA@ replaced with "oracle_sid_dba" in field "powershell_args".
+  powershell_args : 'Get-WmiObject -Query \\"SELECT * FROM Win32_GroupUser WHERE PartComponent=`\\"Win32_Group.Domain=\'$env:userdomain\',Name=\'oracle_sid_dba\'`\\"\\" | Select-Object GroupComponent | Format-List'
+# Note: Variable @ORACLE_SID_DBA_GROUP@ replaced with "oracle_sid_dba_group" in field "value_data".
+  value_data      : ".+oracle_sid_dba_group.$" && ".+Users.$"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0007: The database should be secured in accordance with DoD, vendor and/or commercially accepted practices where applicable."
+  info        : "DBMS systems that do not follow DoD, vendor and/or public best security practices are vulnerable to related published vulnerabilities. A DoD reference document such as a security technical implementation guide or security recommendation guide constitutes the primary source for security configuration or implementation guidance for the deployment of newly acquired IA- and IA-enabled IT products that require use of the product's IA capabilities.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Apply available security guidance to the DBMS system.
+
+If DoD security guidance is not available, the following are acceptable in descending order as available:
+ (1) Commercially accepted practices (e.g., SANS);
+ (2) Independent testing results (e.g., ICSA); or
+ (3) Vendor literature"
+  reference   : "CAT|II,Rule-ID|SV-30742r1_rule,STIG-ID|DG0007-ORACLE11,Vuln-ID|V-6767"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0083: Automated notification of suspicious activity detected in the audit trail should be implemented."
+  info        : "Audit record collection may quickly overwhelm storage resources and an auditor's ability to review it in a productive manner. Automated tools can provide the means to manage the audit data collected as well as present it to an auditor in an efficient way.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement database or host system procedures to report audit trail data in a form usable to detect unauthorized access to or usage of DBMS privileges, procedures or data.
+
+You may also want to consider procuring a third-party auditing tool like Oracle Audit Vault with support for Oracle and other DBMS products within your environment.
+
+NOTE: Audit data may contain sensitive information. The use of a single repository for audit data should be protected at the highest level based on the sensitivity of the databases being audited."
+  reference   : "CAT|II,Rule-ID|SV-24670r1_rule,STIG-ID|DG0083-ORACLE11,Vuln-ID|V-15102"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0161: An automated tool that monitors audit data and immediately reports suspicious activity should be employed for the DBMS."
+  info        : "Audit logs only capture information on suspicious events. Without an automated monitoring and alerting tool, malicious activity may go undetected and without response until compromise of the database or data is severe.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop or procure, document and implement an automated, continuous on-line monitoring and audit trail creation capability for the DBMS is deployed with the capability to immediately alert personnel of any unusual or inappropriate activity with potential IA implications, and with a user-configurable capability to automatically disable the system if serious IA violations are detected."
+  reference   : "CAT|II,Rule-ID|SV-24815r1_rule,STIG-ID|DG0161-ORACLE11,Vuln-ID|V-15103"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0167: Sensitive data served by the DBMS should be protected by encryption when transmitted across the network."
+  info        : "Sensitive data served by the DBMS and transmitted across the network in clear text is vulnerable to unauthorized capture and review.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure encryption of sensitive data served by the DBMS in accordance with the specifications provided in the System Security Plan and AIS Functional Architecture documentation.
+
+Document acceptance of risk by the Information Owner where sensitive or classified data is not encrypted.
+
+Have the IAO document assurance that the unencrypted sensitive or classified information is otherwise inaccessible to those who do not have Need-to-Know access to the data."
+  reference   : "CAT|I,Rule-ID|SV-24821r1_rule,STIG-ID|DG0167-ORACLE11,Vuln-ID|V-15104"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0120: Unauthorized access to external database objects should be removed from application user roles."
+  info        : "Access to objects stored and/or executed outside of the DBMS security context may provide an avenue of attack to host system resources not controlled by the DBMS. Any access to external resources from the DBMS can lead to a compromise of the host system or its resources.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Evaluate the associated risk in allowing access to external objects.
+
+Consider the security context under which the object is accessed or whether the privileges required to access the object are available for assignment based on job function.
+
+Where feasible, modify the application to use only objects stored internally to the database.
+
+Where not feasible, note the risk assessment and acceptance in the System Security Plan for access to external objects."
+  reference   : "CAT|II,Rule-ID|SV-24750r1_rule,STIG-ID|DG0120-ORACLE11,Vuln-ID|V-15105"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0086: DBA roles should be periodically monitored to detect assignment of unauthorized or excess privileges."
+  info        : "Excess privilege assignment can lead to intentional or unintentional unauthorized actions. Such actions may compromise the operation or integrity of the DBMS and its data. Monitoring assigned privileges assists in the detection of unauthorized privilege assignment. The DBA role is assigned privileges that allow DBAs to modify privileges assigned to them. Ensure that the DBA Role is monitored for any unauthorized changes.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Design, document and implement procedures for monitoring DBA role privilege assignments.
+
+Grant the DBA role the minimum privileges required to perform administrative functions.
+
+Establish monitoring of DBA role privileges monthly or more often."
+  reference   : "CAT|II,Rule-ID|SV-24675r1_rule,STIG-ID|DG0086-ORACLE11,Vuln-ID|V-15106"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0063: DBMS privileges to restore database data or other configurations, features, or objects should be restricted to authorized accounts."
+  info        : "Unauthorized restoration of database data, objects, or other configuration or features can result in a loss of data integrity, unauthorized configuration, or other DBMS interruption or compromise. Therefore, the capability to restore must be controlled. Typically, only database administrators will have permission to restore a database.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Utilize DBMS roles that are authorized for database restore functions.
+
+Restrict assignment of restore privileges.
+
+Assign DBMS restoration roles only to authorized DBMS accounts.
+
+Document assignments in the System Security Plan."
+  reference   : "CAT|II,Rule-ID|SV-24635r2_rule,STIG-ID|DG0063-ORACLE11,Vuln-ID|V-15107"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0194: Privileges assigned to developers on shared production/development hosts should be monitored every three months or more frequently."
+  info        : "The developer role does not include need-to-know or administrative privileges to production databases. Assigning excess privileges can lead to unauthorized access to sensitive data or compromise of database operations.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures to monitor DBMS and DBMS host privileges assigned to developers on shared production and development systems to detect unauthorized assignments every three months or more often.
+
+Recommend establishing a dedicated DBMS host for production DBMS installations (See Checks DG0109 and DG0110). A dedicated host system in this case refers to an instance of the operating system at a minimum. The operating system may reside on a virtual host machine where supported by the DBMS vendor."
+  reference   : "CAT|II,Rule-ID|SV-24840r1_rule,STIG-ID|DG0194-ORACLE11,Vuln-ID|V-15108"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : GROUP_MEMBERS_POLICY
+  description : "DG0195: DBMS host file privileges assigned to developers"
+  info        : "Developer roles should not be assigned DBMS administrative privileges to production DBMS application and data directories. The separation of production DBA and developer roles helps protect the production system from unauthorized, malicious or unintentional interruption due to development activities."
+  solution    : "Create separate DBMS host OS groups for developer and production DBAs.
+
+Do not assign production DBA OS group membership to accounts used for development.
+
+Remove development accounts from production DBA OS group membership.
+
+Recommend establishing a dedicated DBMS host for production DBMS installations (See Checks DG0109 and DG0110). A dedicated host system in this case refers to an instance of the operating system at a minimum. The operating system may reside on a virtual host machine where supported by the DBMS vendor."
+  reference   : "800-53|AC-6(7),8500.2|ECPC-1,8500.2|ECPC-2,CAT|II,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,NESA|M1.1.3,NESA|T5.1.1,Rule-ID|SV-24842r1_rule,STIG-ID|DG0195-ORACLE11,Vuln-ID|V-15109"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_MULTI_TEXT
+# Note: Variable @ORACLE_DBA_GROUP@ replaced with "oracle_dba_group" in field "group_name".
+  group_name  : "oracle_dba_group"
+  value_data  : ""
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0041: DBMS installation account use logging"
+  info        : " The DBMS installation account may be used by any authorized user to perform DBMS installation or maintenance. Without logging, accountability for actions attributed to the account is lost."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement a logging procedure for use of the DBMS software installation account that provides accountability to individuals for any actions taken by the account.
+
+Host system audit logs should be included in the DBMS account usage log along with an indication of the person who accessed the account and an explanation for the access.
+
+Ensure all accounts with administrator privileges are monitored for DBMS host on Windows OS platforms."
+  reference   : "8500.2|ECLP-1,CAT|II,Rule-ID|SV-24377r1_rule,STIG-ID|DG0041-ORACLE11,Vuln-ID|V-15110"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0042: DBMS software installation account use"
+  info        : "The DBMS software installation account is granted privileges not required for DBA or other functions. Use of accounts configured with excess privileges may result in unauthorized or unintentional compromise of the DBMS."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document, implement procedures, and train authorized users to restrict usage of the DBMS software installation account for DBMS software installation, upgrade and maintenance only where applicable.
+
+ For Windows systems, reapplication of the fix for Check DG0019 may be necessary to reestablish correct file/directory ownership."
+  reference   : "8500.2|ECLP-1,CAT|II,Rule-ID|SV-24379r1_rule,STIG-ID|DG0042-ORACLE11,Vuln-ID|V-15111"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0088: The DBMS should be periodically tested for vulnerability management and IA compliance."
+  info        : "The DBMS security configuration may be altered either intentionally or unintentionally over time. The DBMS may also be the subject of published vulnerabilities that require the installation of a security patch or a reconfiguration to mitigate the vulnerability. If the DBMS is not monitored for required or unintentional changes that render it not compliant with requirements, then it can be vulnerable to attack or compromise.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures for periodic testing of the DBMS for current vulnerability management and security configuration compliance as stated in the check.
+
+Coordinate 3rd-party validation testing for Classified systems."
+  reference   : "CAT|III,Rule-ID|SV-24678r1_rule,STIG-ID|DG0088-ORACLE11,Vuln-ID|V-15112"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0175: The DBMS host platform and other dependent applications should be configured in compliance with applicable STIG requirements."
+  info        : "The security of the data stored in the DBMS is also vulnerable to attacks against the host platform, calling applications, and other application or optional components.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure all related application components and the DBMS host platform in accordance with the applicable DoD STIG.
+
+Regularly audit the security configuration of related applications and the host platform to confirm continued compliance with security requirements."
+  reference   : "CAT|II,Rule-ID|SV-24823r1_rule,STIG-ID|DG0175-ORACLE11,Vuln-ID|V-15116"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0176: The DBMS audit logs should be included in backup operations."
+  info        : "DBMS audit logs are essential to the investigation and prosecution of unauthorized access to the DBMS data. Unless audit logs are available for review, the extent of data compromise may not be determined and the vulnerability exploited may not be discovered. Undiscovered vulnerabilities could lead to additional or prolonged compromise of the data.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Document and implement locations of trace, log and alert locations in the System Security Plan.
+
+Include all trace, log and alert files in regular backups."
+  reference   : "CAT|II,Rule-ID|SV-24825r1_rule,STIG-ID|DG0176-ORACLE11,Vuln-ID|V-15117"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0159: Remote administrative access to the database should be monitored by the IAO or IAM."
+  info        : "Remote administrative access to systems provides a path for access to and exploit of DBA privileges. Where the risk has been accepted to allow remote administrative access, it is imperative to instate increased monitoring of this access to detect any abuse or compromise.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement policy and procedures to monitor remote administrative access to the DBMS.
+
+The automated generation of a log report with automatic dissemination to the IAO/IAM may be used.
+
+Require and store an acknowledgement of receipt and confirmation of review for the log report."
+  reference   : "CAT|II,Rule-ID|SV-24810r1_rule,STIG-ID|DG0159-ORACLE11,Vuln-ID|V-15118"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0064: DBMS backup and restoration files should be protected from unauthorized access."
+  info        : "Lost or compromised DBMS backup and restoration files may lead to not only the loss of data, but also the unauthorized access to sensitive data. Backup files need the same protections against unauthorized access when stored on backup media as when online and actively in use by the database system. In addition, the backup media needs to be protected against physical loss. Most DBMSs maintain online copies of critical control files to provide transparent or easy recovery from hard disk loss or other interruptions to database operation.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement protection for backup and restoration files.
+
+Document personnel and the level of access authorized for each to backup and restoration files and tools.
+
+In addition to physical and host system protections, consider other methods including password protection of the files."
+  reference   : "CAT|II,Rule-ID|SV-24637r1_rule,STIG-ID|DG0064-ORACLE11,Vuln-ID|V-15120"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0187: DBMS software file backups"
+  info        : "The DBMS application depends upon the availability and integrity of its software libraries. Without backups, compromise or loss of the software libraries can prevent a successful recovery of DBMS operations."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure backups to include all ORACLE home directories and subdirectories and any other Oracle application and third-party database application software libraries."
+  reference   : "8500.2|COSW-1,CAT|II,Rule-ID|SV-24832r1_rule,STIG-ID|DG0187-ORACLE11,Vuln-ID|V-15121"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0186: The database should not be directly accessible from public or unauthorized networks."
+  info        : "Databases often store critical and/or sensitive information used by the organization. For this reason, databases are targeted for attacks by malicious users. Additional protections provided by network defenses that limit accessibility help protect the database and its data from unnecessary exposure and risk.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Do not allow direct connections from users originating from the Internet or other public network to the DBMS.
+
+Include in the System Security Plan for the system whether the DBMS serves public-facing applications or applications serving users from other untrusted networks.
+
+Do not store sensitive or classified data on a DBMS server that serves public-facing applications."
+  reference   : "CAT|II,Rule-ID|SV-24449r1_rule,STIG-ID|DG0186-ORACLE11,Vuln-ID|V-15122"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0013: Database backup procedures should be defined, documented and implemented."
+  info        : "Database backups provide the required means to restore databases after compromise or loss. Backups help reduce the vulnerability to unauthorized access or hardware loss.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement database backup procedures.
+
+Include weekly backup procedures and offline backup data storage."
+  reference   : "CAT|II,Rule-ID|SV-30765r1_rule,STIG-ID|DG0013-ORACLE11,Vuln-ID|V-15126"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0118: The IAM should review changes to DBA role assignments."
+  info        : "Unauthorized assignment of DBA privileges can lead to a compromise of DBMS integrity. Providing oversight to the authorization and assignment of privileges provides the separation of duty to support sufficient oversight.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures to monitor changes to DBA role assignments.
+
+Develop, document and implement procedures to notify the IAM of changes to DBA role assignments.
+
+Include in the procedures methods that provide evidence of monitoring and notification."
+  reference   : "CAT|II,Rule-ID|SV-24742r1_rule,STIG-ID|DG0118-ORACLE11,Vuln-ID|V-15127"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0020: Backup and recovery procedures should be developed, documented, implemented and periodically tested."
+  info        : "Problems with backup procedures or backup media may not be discovered until after a recovery is needed. Testing and verification of procedures provides the opportunity to discover oversights, conflicts, or other issues in the backup procedures or use of media designed to be used.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Design, document and implement backup testing and recovery verification procedures for the DBMS host and all individual database instances and either include or note the name, location, version and current revision date of any external documentation in the System Security Plan.
+
+Include any requirements for documenting database backup and recovery testing and verification activities in the procedures."
+  reference   : "CAT|II,Rule-ID|SV-24608r1_rule,STIG-ID|DG0020-ORACLE11,Vuln-ID|V-15129"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0090: Sensitive information stored in the database should be protected by encryption."
+  info        : "Sensitive data stored in unencrypted format within the database is vulnerable to unauthorized viewing.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Identify all sensitive data and the method to be used to encrypt specified sensitive data in the System Security Plan.
+
+Use only NIST-certified or NSA-approved cryptography to provide encryption.
+
+Oracle transparent data encryption (available in Oracle version 10.2 and later) requires Oracle Advanced Security.
+
+See the chapter on Transparent Data Encryption in the Oracle Database Advanced Security Guide Administrator's Guide for details on using and configuring transparent data encryption.
+
+Document acceptance of risk by the Information Owner where sensitive or classified data is not encrypted.
+
+Have the Information Owner document assurance that the unencrypted sensitive or classified information is otherwise inaccessible to those without need-to-know access to the data.
+
+Developers should consider using a record-specific encryption method to protect individual records.
+
+For example, by employing the session username or other individualized element as part of the encryption key, then decryption of a data element is only possible by that user or other data accessible only by that user.
+
+Consider applying additional auditing of access to any unencrypted sensitive or classified data when accessed by unauthorized users (without need-to-know)."
+  reference   : "CAT|II,Rule-ID|SV-24397r1_rule,STIG-ID|DG0090-ORACLE11,Vuln-ID|V-15131"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0092: Database data files containing sensitive information should be encrypted."
+  info        : "Where system and DBMS access controls do not provide complete protection of sensitive or classified information, the Information Owner may require encryption to provide additional protection. Encryption of sensitive data helps protect disclosure to privileged users who do not have a need-to-know requirement to the data, but may be able to access DBMS data files using OS file tools.
+
+ NOTE: The decision to encrypt data is the responsibility of the Information Owner and should be based on other access controls employed to protect the data.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Use third-party tools or native DBMS features to encrypt sensitive or classified data stored in the database.
+
+Use only NIST-certified or NSA-approved cryptography to provide encryption.
+
+Document acceptance of risk by the Information Owner where sensitive or classified data is not encrypted.
+
+Have the IAO document assurance that the unencrypted sensitive or classified information is otherwise inaccessible to those who do not have Need-to-Know access to the data.
+
+To lessen the impact on system performance, separate sensitive data where file encryption is required into dedicated DBMS data files.
+
+Consider applying additional auditing of access to any unencrypted sensitive or classified data when accessed by users (with and/or without Need-to-Know)."
+  reference   : "CAT|II,Rule-ID|SV-24684r1_rule,STIG-ID|DG0092-ORACLE11,Vuln-ID|V-15132"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0096: The DBMS IA policies and procedures should be reviewed annually or more frequently."
+  info        : "A regular review of current database security policies and procedures is necessary to maintain the desired security posture of the DBMS. Policies and procedures should be measured against current DoD policy, STIG guidance, vendor-specific guidance and recommendations, and site-specific or other security policies.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures to review DBMS IA policies and procedures."
+  reference   : "CAT|III,Rule-ID|SV-24689r1_rule,STIG-ID|DG0096-ORACLE11,Vuln-ID|V-15138"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0097: Plans/procedures for testing DBMS installs, upgrades and patches should be defined and followed prior to production implementation."
+  info        : "Updates and patches to existing software have the intention of improving the security or enhancing or adding features to the product. However, it is unfortunately common that updates or patches can render production systems inoperable or even introduce serious vulnerabilities. Some updates also set security configurations back to unacceptable settings that do not meet security requirements. For these reasons, it is a good practice to test updates and patches offline before introducing them in a production environment.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement procedures for testing DBMS installations, upgrades and patches prior to deployment on production systems."
+  reference   : "CAT|II,Rule-ID|SV-24691r1_rule,STIG-ID|DG0097-ORACLE11,Vuln-ID|V-15139"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0069: Procedures and restrictions for import of production data to development databases should be documented, implemented and followed."
+  info        : "Data export from production databases may include sensitive data. Application developers may not be cleared for or have need-to-know to sensitive data. Any access they may have to production data would be considered unauthorized access and subject the sensitive data to unlawful or unauthorized disclosure.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement policy and procedures that provide restrictions for production data export.
+
+Require users and administrators assigned privileges that allow the export of production data from a production database to acknowledge understanding of export restrictions.
+
+Restrict permissions allowing use or access to database export procedures or functions to authorized users.
+
+Ensure sensitive data from production is sanitized prior to import to a development database (See check DG0076).
+
+Grant access and need-to-know to developers where allowed by policy."
+  reference   : "CAT|II,Rule-ID|SV-24645r1_rule,STIG-ID|DG0069-ORACLE11,Vuln-ID|V-15140"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0106: Database data encryption controls should be configured in accordance with application requirements."
+  info        : "Access to sensitive data may not always be sufficiently protected by authorizations and require encryption. In some cases, the required encryption may be provided by the application accessing the database. In others, the DBMS may be configured to provide the data encryption. When the DBMS provides the encryption, the requirement must be implemented as identified by the Information Owner to prevent unauthorized disclosure or access.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure DBMS encryption features and functions as required by the System Security Plan.
+
+Discrepancies between what features are and are not available should be resolved with the Information Owner, Application Developer and DBA as overseen by the IAO."
+  reference   : "CAT|II,Rule-ID|SV-24707r1_rule,STIG-ID|DG0106-ORACLE11,Vuln-ID|V-15143"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0107: Sensitive data is stored in the DB and should be identified in the System Security Plan and AIS Functional Arch. documentation."
+  info        : "A DBMS that does not have the correct confidentiality level identified or any confidentiality level assigned is not being secured at a level appropriate to the risk it poses.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Include identification of any sensitive data in the AIS Functional Architecture and the System Security Plan.
+
+Include data that appear to be sensitive with a discussion as to why it is not marked as such."
+  reference   : "CAT|II,Rule-ID|SV-24710r1_rule,STIG-ID|DG0107-ORACLE11,Vuln-ID|V-15144"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0108: The DBMS restoration priority should be assigned."
+  info        : "When DBMS service is disrupted, the impact it has on the overall mission of the organization can be severe. Without proper assignment of the priority placed on restoration of the DBMS and its subsystems, restoration of DBMS services may not meet mission requirements.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Review the mission criticality of the DBMS in relation to the overall mission of the organization and assign it a restoration priority."
+  reference   : "CAT|III,Rule-ID|SV-24713r1_rule,STIG-ID|DG0108-ORACLE11,Vuln-ID|V-15145"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type              : AUDIT_POWERSHELL
+  description       : "DG0109: DBMS dedicated host - 'W3SVC, FTPSVC, DNS and DHCPServer servcies are not running'"
+  info              : "In the same way that added security layers can provide a cumulative positive effect on security posture, multiple applications can provide a cumulative negative effect. A vulnerability and subsequent exploit to one application can lead to an exploit of other applications sharing the same security context. For example, an exploit to a web server process that leads to unauthorized administrative access to the host system can most likely lead to a compromise of all applications hosted by the same system. A DBMS not installed on a dedicated host is threatened by other hosted applications. Applications that share a single DBMS may also create risk to one another. Access controls defined for one application by default may provide access to the other application's database objects or directories. Any method that provides any level of separation of security context assists in the protection between applications."
+  solution          : "A dedicated host system in this case refers to an instance of the operating system at a minimum.
+
+The operating system may reside on a virtual host machine where supported by the DBMS vendor.
+
+Remove any unauthorized processes or services and install on a separate host system.
+
+Where separation is not supported, update the System Security Plan to provide the technical requirement for having the application share a host with the DBMS."
+  reference         : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCPA-1,CAT|II,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-24715r1_rule,STIG-ID|DG0109-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15146"
+  see_also          : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type        : POLICY_TEXT
+  powershell_args   : "Get-Service | Where-Object {$_.Name -eq 'W3SVC' -or $_.Name -eq 'FTPSVC' -or $_.Name -eq 'DNS' -or $_.Name -eq 'DHCPServer'} | Format-List"
+  powershell_option : CAN_BE_NULL
+  value_data        : ""
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0152: DBMS network port, protocol and services (PPS) use - 'listener.ora - PORT = 1521, 1575, 1830, 2481, 2482, 2483 or 2484'"
+  info        : "Non-standard network ports, protocol or services configuration or usage could lead to bypass of network perimeter security controls and protections."
+  solution    : "Specify a default or registered port for TCP/IP protocols in the listener.ora and cman.ora files in the PORT= parameter of the address specification."
+  reference   : "800-171|3.4.2,800-53|CM-6,8500.2|DCPP-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24808r1_rule,STIG-ID|DG0152-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15148"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+  regex       : "\([Pp][Oo][Rr][Tt][\s\t]*=[\s\t]*"
+  expect      : "\([Pp][Oo][Rr][Tt][\s\t]*=[\s\t]*(1521|1575|1830|2481|2482|2483|2484)\)"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0152: DBMS network port, protocol and services (PPS) use - 'cman.ora - PORT = 1521, 1575, 1830, 2481, 2482, 2483 or 2484'"
+  info        : "Non-standard network ports, protocol or services configuration or usage could lead to bypass of network perimeter security controls and protections."
+  solution    : "Specify a default or registered port for TCP/IP protocols in the listener.ora and cman.ora files in the PORT= parameter of the address specification."
+  reference   : "800-171|3.4.2,800-53|CM-6,8500.2|DCPP-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24808r1_rule,STIG-ID|DG0152-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15148"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\cman.ora"
+  regex       : "\([Pp][Oo][Rr][Tt][\s\t]*=[\s\t]*"
+  expect      : "\([Pp][Oo][Rr][Tt][\s\t]*=[\s\t]*(1521|1575|1830|2481|2482|2483|2484)\)"
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0154: The DBMS requires a System Security Plan containing all required information."
+  info        : "A System Security Plan identifies security control applicability and configuration for the DBMS. It also contains security control documentation requirements. Security controls applicable to the DBMS may not be documented, tracked or followed if not identified in the System Security Plan. Any omission of security control consideration could lead to an exploit of DBMS vulnerabilities.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement a System Security Plan for the DBMS.
+
+Include IA documentation related to the DBMS in the System Security Plan for the system that the DBMS supports.
+
+Review section 3.4 - System Security Plan Overview in the ORACLE DATABASE SECURITY CHECKLIST for more information."
+  reference   : "CAT|III,Rule-ID|SV-24437r1_rule,STIG-ID|DG0154-ORACLE11,Vuln-ID|V-15150"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "DG0110: DBMS host shared with a security service - 'DomainRole != 4 or 5'"
+  info          : "The Security Support Structure is a security control function or service provided by an external system or application. An example of this would be a Windows domain controller that provides identification and authentication that can be used by other systems to control access. The associated risk of a DBMS installed on a system that provides security support is significantly higher than when installed on separate systems. In cases where the DBMS is dedicated to local support of a security support function (e.g. a directory service), separation may not be possible."
+  solution      : "Either move the DBMS installation to a dedicated host system or move the directory or security services to another host system.
+
+A dedicated host system in this case refers to an instance of the operating system at a minimum.
+
+The operating system may reside on a virtual host machine where supported by the DBMS vendor."
+  reference     : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCSP-1,CAT|II,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-24717r1_rule,STIG-ID|DG0110-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15179"
+  see_also      : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  wmi_namespace : "root/CIMV2"
+  wmi_request   : "select DomainRole from Win32_ComputerSystem"
+  wmi_attribute : "DomainRole"
+  wmi_key       : "DomainRole"
+  value_type    : POLICY_DWORD
+  value_data    : 4 || 5
+  check_type    : CHECK_NOT_EQUAL
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "DG0009: DBMS software library permissions - '%ORACLE_HOME% permissions are configured correctly'"
+  info        : "The DBMS software libraries contain the executables used by the DBMS to operate. Unauthorized access to the libraries can result in malicious alteration or planting of operational executables. This may in turn jeopardize data stored in the DBMS and/or operation of the host system."
+  solution    : "For Windows Systems:
+ Product-specific fix pending development. Use Generic Fix listed below:
+
+Restrict access to the DBMS software libraries to the fewest accounts that clearly require access based on job function.
+
+Document authorized access control and justify any access grants that do not fall under DBA, DBMS process, ownership, or SA accounts."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,8500.2|DCSL-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24595r1_rule,STIG-ID|DG0009-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15608"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : FILE_ACL
+  value_data  : "ORACLEDir"
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "file".
+  file        : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1"
+  acl_option  : CAN_NOT_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0054: The audit logs should be periodically monitored to discover DBMS access using unauthorized applications."
+  info        : "Regular and timely reviews of audit records increases the likelihood of early discovery of suspicious activity. Discovery of suspicious behavior can in turn trigger protection responses to minimize or eliminate a negative impact from malicious activity. Use of unauthorized application to access the DBMS may indicate an attempt to bypass security controls.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Document applications authorized to access the DBMS in the System Security Plan.
+
+Develop, document and implement a process to review log and trace files or the results from any alternate methods used to support database access auditing to detect connections from unauthorized applications.
+
+Include in this process a method to generate and provide evidence of monitoring.
+
+This may include automated or manual processes acknowledged by the auditor or IAO."
+  reference   : "CAT|III,Rule-ID|SV-24630r1_rule,STIG-ID|DG0054-ORACLE11,Vuln-ID|V-15611"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "DG0099: DBMS access to external local executables - '%ORACLE_HOME%\bin\extproc.exe does not exist'"
+  info        : "The Oracle external procedure capability provides use of the Oracle process account outside the operation of the DBMS process. You can use it to submit and execute applications stored externally from the database under operating system controls. The external procedure process is the subject of frequent and successful attacks as it allows unauthenticated use of the Oracle process account on the operating system. As of Oracle version 11.1, the external procedure agent may be run directly from the database and not require use of the Oracle listener. This reduces the risk of unauthorized access to the procedure from outside of the database process."
+  solution    : "If the use of external procedure agent is required, then authorize and document the requirement in the System Security Plan.
+
+If the external procedure agent must be accessible to the Oracle listener, then specify this and authorize it in the System Security Plan.
+
+If use of the Oracle External Procedure agent is not required:
+
+ - Stop the Oracle Listener process
+ - Remove all references to extproc in the listener.ora and tnsnames.ora files
+ - Alter the permissions on the executable files:
+ UNIX - Remove read/write/execute permissions from owner, group and world
+ Windows - Remove Groups/Users from the executable (except groups SYSTEM and ADMINISTRATORS) and allow READ [only] for SYSTEM and ADMINISTRATORS groups
+
+If required:
+
+ - Restrict extproc execution to only authorized applications.
+ - Specify EXTPROC_DLLS=ONLY: [list of authorized DLLS] in the extproc.ora and the listener.ora files
+ - Create a separate, dedicated listener for use by the external procedure agent
+
+Please see the Oracle Net Services Administrators Guides, External Procedures section for detailed configuration information."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCFA-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24698r1_rule,STIG-ID|DG0099-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15618"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\bin\extproc.exe"
+  file_option : MUST_NOT_EXIST
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0099: DBMS access to external local executables - '%ORACLE_HOME%\rdbms\admin\externaljob.ora run_user = nobody'"
+  info        : "The Oracle external procedure capability provides use of the Oracle process account outside the operation of the DBMS process. You can use it to submit and execute applications stored externally from the database under operating system controls. The external procedure process is the subject of frequent and successful attacks as it allows unauthenticated use of the Oracle process account on the operating system. As of Oracle version 11.1, the external procedure agent may be run directly from the database and not require use of the Oracle listener. This reduces the risk of unauthorized access to the procedure from outside of the database process."
+  solution    : "If the use of external procedure agent is required, then authorize and document the requirement in the System Security Plan.
+
+If the external procedure agent must be accessible to the Oracle listener, then specify this and authorize it in the System Security Plan.
+
+If use of the Oracle External Procedure agent is not required:
+
+ - Stop the Oracle Listener process
+ - Remove all references to extproc in the listener.ora and tnsnames.ora files
+ - Alter the permissions on the executable files:
+ UNIX - Remove read/write/execute permissions from owner, group and world
+ Windows - Remove Groups/Users from the executable (except groups SYSTEM and ADMINISTRATORS) and allow READ [only] for SYSTEM and ADMINISTRATORS groups
+
+If required:
+
+ - Restrict extproc execution to only authorized applications.
+ - Specify EXTPROC_DLLS=ONLY: [list of authorized DLLS] in the extproc.ora and the listener.ora files
+ - Create a separate, dedicated listener for use by the external procedure agent
+
+Please see the Oracle Net Services Administrators Guides, External Procedures section for detailed configuration information."
+  reference   : "800-171|3.4.7,800-53|CM-7(2),8500.2|DCFA-1,CAT|II,CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),Rule-ID|SV-24698r1_rule,STIG-ID|DG0099-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15618"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\rdbms\admin\externaljob.ora"
+  regex       : "^[\s\t]*run_user[\s\t]*="
+  expect      : "run_user[\s\t]*=[\s\t]*[Nn][Oo][Bb][Oo][Dd][Yy]"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0099: DBMS access to external local executables - '%ORACLE_HOME%\rdbms\admin\externaljob.ora run_group = nobody'"
+  info        : "The Oracle external procedure capability provides use of the Oracle process account outside the operation of the DBMS process. You can use it to submit and execute applications stored externally from the database under operating system controls. The external procedure process is the subject of frequent and successful attacks as it allows unauthenticated use of the Oracle process account on the operating system. As of Oracle version 11.1, the external procedure agent may be run directly from the database and not require use of the Oracle listener. This reduces the risk of unauthorized access to the procedure from outside of the database process."
+  solution    : "If the use of external procedure agent is required, then authorize and document the requirement in the System Security Plan.
+
+If the external procedure agent must be accessible to the Oracle listener, then specify this and authorize it in the System Security Plan.
+
+If use of the Oracle External Procedure agent is not required:
+
+ - Stop the Oracle Listener process
+ - Remove all references to extproc in the listener.ora and tnsnames.ora files
+ - Alter the permissions on the executable files:
+ UNIX - Remove read/write/execute permissions from owner, group and world
+ Windows - Remove Groups/Users from the executable (except groups SYSTEM and ADMINISTRATORS) and allow READ [only] for SYSTEM and ADMINISTRATORS groups
+
+If required:
+
+ - Restrict extproc execution to only authorized applications.
+ - Specify EXTPROC_DLLS=ONLY: [list of authorized DLLS] in the extproc.ora and the listener.ora files
+ - Create a separate, dedicated listener for use by the external procedure agent
+
+Please see the Oracle Net Services Administrators Guides, External Procedures section for detailed configuration information."
+  reference   : "800-171|3.4.7,800-53|CM-7(2),8500.2|DCFA-1,CAT|II,CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),Rule-ID|SV-24698r1_rule,STIG-ID|DG0099-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15618"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\rdbms\admin\externaljob.ora"
+  regex       : "^[\s\t]*run_group[\s\t]*="
+  expect      : "run_group[\s\t]*=[\s\t]*[Nn][Oo][Bb][Oo][Dd][Yy]"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DG0099: DBMS access to external local executables -'Oracle version is > 11.1.0'"
+      check_type  : CHECK_REGEX
+      value_type  : POLICY_TEXT
+      reg_key     : "HKLM\Software\Oracle\Oraclemtsrecoveryservice\Setup\Current Version"
+      reg_item    : "Version"
+      value_data  : "^11.[1-9]"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DG0099: DBMS access to external local executables - '%ORACLE_HOME%\hs\admin\extproc.ora SET EXTPROC_DLLS = ONLY'"
+      info        : "The Oracle external procedure capability provides use of the Oracle process account outside the operation of the DBMS process. You can use it to submit and execute applications stored externally from the database under operating system controls. The external procedure process is the subject of frequent and successful attacks as it allows unauthenticated use of the Oracle process account on the operating system. As of Oracle version 11.1, the external procedure agent may be run directly from the database and not require use of the Oracle listener. This reduces the risk of unauthorized access to the procedure from outside of the database process."
+      solution    : "If the use of external procedure agent is required, then authorize and document the requirement in the System Security Plan.
+
+If the external procedure agent must be accessible to the Oracle listener, then specify this and authorize it in the System Security Plan.
+
+If use of the Oracle External Procedure agent is not required:
+
+ - Stop the Oracle Listener process
+ - Remove all references to extproc in the listener.ora and tnsnames.ora files
+ - Alter the permissions on the executable files:
+ UNIX - Remove read/write/execute permissions from owner, group and world
+ Windows - Remove Groups/Users from the executable (except groups SYSTEM and ADMINISTRATORS) and allow READ [only] for SYSTEM and ADMINISTRATORS groups
+
+If required:
+
+ - Restrict extproc execution to only authorized applications.
+ - Specify EXTPROC_DLLS=ONLY: [list of authorized DLLS] in the extproc.ora and the listener.ora files
+ - Create a separate, dedicated listener for use by the external procedure agent
+
+Please see the Oracle Net Services Administrators Guides, External Procedures section for detailed configuration information."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCFA-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24698r1_rule,STIG-ID|DG0099-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15618"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\hs\admin\extproc.ora"
+      regex       : "^[\s\t]*SET[\s\t]*EXTPROC_DLLS[\s\t]*="
+      expect      : "SET[\s\t]*EXTPROC_DLLS[\s\t]*=ONLY"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+</if>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0099: DBMS access to external local executables - '%ORACLE_HOME%\hs\admin\extproc.ora SET EXTPROC_DLLS contains only valid paths'"
+  info        : "The Oracle external procedure capability provides use of the Oracle process account outside the operation of the DBMS process. You can use it to submit and execute applications stored externally from the database under operating system controls. The external procedure process is the subject of frequent and successful attacks as it allows unauthenticated use of the Oracle process account on the operating system. As of Oracle version 11.1, the external procedure agent may be run directly from the database and not require use of the Oracle listener. This reduces the risk of unauthorized access to the procedure from outside of the database process."
+  solution    : "If the use of external procedure agent is required, then authorize and document the requirement in the System Security Plan.
+
+If the external procedure agent must be accessible to the Oracle listener, then specify this and authorize it in the System Security Plan.
+
+If use of the Oracle External Procedure agent is not required:
+
+ - Stop the Oracle Listener process
+ - Remove all references to extproc in the listener.ora and tnsnames.ora files
+ - Alter the permissions on the executable files:
+ UNIX - Remove read/write/execute permissions from owner, group and world
+ Windows - Remove Groups/Users from the executable (except groups SYSTEM and ADMINISTRATORS) and allow READ [only] for SYSTEM and ADMINISTRATORS groups
+
+If required:
+
+ - Restrict extproc execution to only authorized applications.
+ - Specify EXTPROC_DLLS=ONLY: [list of authorized DLLS] in the extproc.ora and the listener.ora files
+ - Create a separate, dedicated listener for use by the external procedure agent
+
+Please see the Oracle Net Services Administrators Guides, External Procedures section for detailed configuration information."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCFA-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24698r1_rule,STIG-ID|DG0099-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15618"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\hs\admin\extproc.ora"
+  regex       : "^[\s\t]*SET[\s\t]*EXTPROC_DLLS[\s\t]*=ONLY:"
+# Note: Variable @EXTPROC_DLL_PATH@ replaced with "ORACLE_HOME\\bin" in field "expect".
+  expect      : "SET[\s\t]*EXTPROC_DLLS[\s\t]*=ONLY:ORACLE_HOME\\bin"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "DG0099: DBMS access to external local executables - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora - no PROGRAMS = EXTPROC'"
+  info        : "The Oracle external procedure capability provides use of the Oracle process account outside the operation of the DBMS process. You can use it to submit and execute applications stored externally from the database under operating system controls. The external procedure process is the subject of frequent and successful attacks as it allows unauthenticated use of the Oracle process account on the operating system. As of Oracle version 11.1, the external procedure agent may be run directly from the database and not require use of the Oracle listener. This reduces the risk of unauthorized access to the procedure from outside of the database process."
+  solution    : "If the use of external procedure agent is required, then authorize and document the requirement in the System Security Plan.
+
+If the external procedure agent must be accessible to the Oracle listener, then specify this and authorize it in the System Security Plan.
+
+If use of the Oracle External Procedure agent is not required:
+
+ - Stop the Oracle Listener process
+ - Remove all references to extproc in the listener.ora and tnsnames.ora files
+ - Alter the permissions on the executable files:
+ UNIX - Remove read/write/execute permissions from owner, group and world
+ Windows - Remove Groups/Users from the executable (except groups SYSTEM and ADMINISTRATORS) and allow READ [only] for SYSTEM and ADMINISTRATORS groups
+
+If required:
+
+ - Restrict extproc execution to only authorized applications.
+ - Specify EXTPROC_DLLS=ONLY: [list of authorized DLLS] in the extproc.ora and the listener.ora files
+ - Create a separate, dedicated listener for use by the external procedure agent
+
+Please see the Oracle Net Services Administrators Guides, External Procedures section for detailed configuration information."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCFA-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24698r1_rule,STIG-ID|DG0099-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15618"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+  regex       : "\([Pp][Rr][Oo][Gg][Rr][Aa][Mm][\s\t]*="
+  expect      : "\([Pp][Rr][Oo][Gg][Rr][Aa][Mm][\s\t]*=[\s\t]*[Ee][Xx][Tt][Pp][Rr][Oo][Cc]"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "DG0099: DBMS access to external local executables - '%ORACLE_HOME%\NETWORK\ADMIN\tnsnames.ora - no PROGRAMS = EXTPROC'"
+  info        : "The Oracle external procedure capability provides use of the Oracle process account outside the operation of the DBMS process. You can use it to submit and execute applications stored externally from the database under operating system controls. The external procedure process is the subject of frequent and successful attacks as it allows unauthenticated use of the Oracle process account on the operating system. As of Oracle version 11.1, the external procedure agent may be run directly from the database and not require use of the Oracle listener. This reduces the risk of unauthorized access to the procedure from outside of the database process."
+  solution    : "If the use of external procedure agent is required, then authorize and document the requirement in the System Security Plan.
+
+If the external procedure agent must be accessible to the Oracle listener, then specify this and authorize it in the System Security Plan.
+
+If use of the Oracle External Procedure agent is not required:
+
+ - Stop the Oracle Listener process
+ - Remove all references to extproc in the listener.ora and tnsnames.ora files
+ - Alter the permissions on the executable files:
+ UNIX - Remove read/write/execute permissions from owner, group and world
+ Windows - Remove Groups/Users from the executable (except groups SYSTEM and ADMINISTRATORS) and allow READ [only] for SYSTEM and ADMINISTRATORS groups
+
+If required:
+
+ - Restrict extproc execution to only authorized applications.
+ - Specify EXTPROC_DLLS=ONLY: [list of authorized DLLS] in the extproc.ora and the listener.ora files
+ - Create a separate, dedicated listener for use by the external procedure agent
+
+Please see the Oracle Net Services Administrators Guides, External Procedures section for detailed configuration information."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCFA-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24698r1_rule,STIG-ID|DG0099-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15618"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\tnsnames.ora"
+  regex       : "\([Pp][Rr][Oo][Gg][Rr][Aa][Mm][\s\t]*="
+  expect      : "\([Pp][Rr][Oo][Gg][Rr][Aa][Mm][\s\t]*=[\s\t]*[Ee][Xx][Tt][Pp][Rr][Oo][Cc]"
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0101: OS accounts used to execute external procedures should be assigned minimum privileges."
+  info        : "External applications spawned by the DBMS process may be executed under OS accounts assigned unnecessary privileges that can lead to unauthorized access to OS resources. Unauthorized access to OS resources can lead to the compromise of the OS, the DBMS, and any other service provided by the host platform.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure OS accounts used by DBMS external procedures to have the minimum privileges necessary for operation.
+
+Document DBMS external procedures and OS privileges need to execute the procedures in the System Security Plan."
+  reference   : "CAT|II,Rule-ID|SV-25054r1_rule,STIG-ID|DG0101-ORACLE11,Vuln-ID|V-15620"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DG0103: DBMS Listener network restrictions"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\s\t]*tcp\.validnode_checking[\s\t]*=[\s\t]*"
+      expect      : "tcp\.validnode_checking[\s\t]*=[\s\t]*[Yy][Ee][Ss]"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DG0103: DBMS Listener network restrictions - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ORA tcp.invited_nodes = valid IP Range'"
+      info        : "Restricting remote access to specific, trusted systems helps prevent access by unauthorized and potentially malicious users."
+      solution    : "Configure the database listener to restrict access by IP address or set up an external device to restrict network access to the DBMS."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),8500.2|DCFA-1,CAT|II,CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-24410r2_rule,STIG-ID|DG0103-ORACLE11,Vuln-ID|V-15621"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\s\t]*tcp\.invited_nodes[\s\t]*="
+# Note: Variable @INVITED_NODES@ replaced with "192.168.*" in field "expect".
+      expect      : "tcp\.invited_nodes[\s\t]*=[\s\t]*\(192.168.*\)"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DG0103: DBMS Listener network restrictions - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ORA tcp.validnode_checking = YES'"
+      info        : "Restricting remote access to specific, trusted systems helps prevent access by unauthorized and potentially malicious users."
+      solution    : "Configure the database listener to restrict access by IP address or set up an external device to restrict network access to the DBMS."
+      reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-5,800-53|SC-7(5),8500.2|DCFA-1,CAT|II,CN-L3|7.1.2.2(c),CSF|DE.CM-1,CSF|PR.DS-4,CSF|PR.PT-4,ITSG-33|SC-5,ITSG-33|SC-7(5),NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS7b,NIAv2|GS8e,NIAv2|NS25,Rule-ID|SV-24410r2_rule,STIG-ID|DG0103-ORACLE11,Vuln-ID|V-15621"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\s\t]*tcp\.validnode_checking[\s\t]*=[\s\t]*"
+      expect      : "tcp\.validnode_checking[\s\t]*=[\s\t]*[Yy][Ee][Ss]"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </else>
+</if>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0103: DBMS Listener network restrictions - '%ORACLE_HOME%\NETWORK\ADMIN\CMAN.ORA - valid source and destination IPs are used in rules'"
+  info        : "Restricting remote access to specific, trusted systems helps prevent access by unauthorized and potentially malicious users."
+  solution    : "Configure the database listener to restrict access by IP address or set up an external device to restrict network access to the DBMS."
+  reference   : "800-171|3.13.1,800-53|SC-7(12),8500.2|DCFA-1,CAT|II,CSCv6|9.2,ITSG-33|SC-7(12),NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26,Rule-ID|SV-24410r2_rule,STIG-ID|DG0103-ORACLE11,Vuln-ID|V-15621"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\CMAN.ORA"
+  regex       : "^\([Rr][Uu][Ll][Ee][\s\t]*=\([Ss][Rr][Cc][\s\t]*=[\s\t]*"
+# Note: Variable @SOURCE_IP_RANGE@ replaced with "SOURCE_IP_RANGE" in field "expect".
+# Note: Variable @DEST_IP@ replaced with "DEST_IP" in field "expect".
+  expect      : "^\([Rr][Uu][Ll][Ee][\s\t]*=\([Ss][Rr][Cc][\s\t]*=[\s\t]*SOURCE_IP_RANGE\)[\s\t]*\(dst[\s\t]*=[\s\t]*DEST_IP\)"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<custom_item>
+  type          : WMI_POLICY
+  description   : "DG0104: DBMS service identification - 'All Oracle services use the proper naming'"
+  info          : "Local or network services that do not employ unique or clearly identifiable targets can lead to inadvertent or unauthorized connections."
+  solution      : "Follow the instructions in Oracle Doc ID: 15390.1 to change the SID without re-creating the database.
+
+Set the value so that it does not identify the Oracle version and clearly identifies its purpose."
+  reference     : "800-171|3.4.2,800-53|CM-6,8500.2|DCFA-1,CAT|III,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24415r1_rule,STIG-ID|DG0104-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15622"
+  see_also      : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type    : POLICY_TEXT
+  wmi_namespace : "root/cimv2"
+  wmi_request   : "SELECT DisplayName FROM Win32_Service WHERE (DisplayName like 'OracleService%')"
+  wmi_attribute : "DisplayName"
+  wmi_key       : "DisplayName"
+  value_data    : ""
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG0115: Recovery procedures and technical system features exist to ensure that recovery is done in a secure and verifiable manner."
+  info        : "A DBMS may be vulnerable to use of compromised data or other critical files during recovery. Use of compromised files could introduce maliciously altered application code, relaxed security settings or loss of data integrity. Where available, DBMS mechanisms to ensure use of only trusted files can help protect the database from this type of compromise during DBMS recovery.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement DBMS recovery procedures and employ technical system features where supported by the DBMS to specify trusted files during DBMS recovery.
+
+Ensure circumstances that can inhibit a trusted recovery are documented and appropriate mitigating procedures have been put in place."
+  reference   : "CAT|II,Rule-ID|SV-28967r1_rule,STIG-ID|DG0115-ORACLE11,Vuln-ID|V-15625"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0129: Passwords should be encrypted when transmitted across the network."
+  info        : "DBMS passwords sent in clear text format across the network are vulnerable to discovery by unauthorized users. Disclosure of passwords may easily lead to unauthorized access to the database.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Utilize Oracle connection protocols and products (i.e. Oracle Client) where possible.
+
+Where other connection products and protocols are used, ensure configuration options for encrypting passwords during login events across the network are used.
+
+If the database does not provide encryption for login events natively, employ encryption at the OS or network level.
+
+Ensure passwords remain encrypted from source to destination."
+  reference   : "CAT|I,Rule-ID|SV-24967r1_rule,STIG-ID|DG0129-ORACLE11,Vuln-ID|V-15636"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0140: Access to DBMS security data should be audited."
+  info        : "DBMS security data is useful to malicious users to perpetrate activities that compromise DBMS operations or data integrity. Auditing of access to this data supports forensic and accountability investigations.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Determine all locations for storage of DBMS security and configuration data. Enable auditing for access to any security data. If auditing results in an unacceptable adverse impact on application operation, reduce the amount of auditing to a reasonable and acceptable level. Document any incomplete audit with acceptance of the risk of incomplete audit in the System Security Plan."
+  reference   : "CAT|II,Rule-ID|SV-24432r1_rule,STIG-ID|DG0140-ORACLE11,Vuln-ID|V-15643"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0155: The DBMS should have configured all applicable settings to use trusted files, functions, features, or other components."
+  info        : "The DBMS opens data files and reads configuration files at system startup, system shutdown and during abort recovery efforts. If the DBMS does not verify the trustworthiness of these files, it is vulnerable to malicious alterations of its configuration or unauthorized replacement of data.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure DBMS system initialization, shutdown and aborts to ensure DBMS system remains in a secure state.
+
+For applicable DBMS systems as listed in the check, periodically test configuration to ensure DBMS system state integrity.
+
+Where DBMS system state integrity is not supported by the DBMS vendor, obtain and apply mitigation strategies to bring risk to a DAA-acceptable level."
+  reference   : "CAT|II,Rule-ID|SV-25385r1_rule,STIG-ID|DG0155-ORACLE11,Vuln-ID|V-15649"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0157: Remote DBMS administration should be documented and authorized or disabled."
+  info        : "Remote administration may expose configuration and sensitive data to unauthorized viewing during transit across the network or allow unauthorized administrative access to the DBMS to remote users.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Disable remote administration of the DBMS where not required.
+
+Where remote administration of the DBMS is required, develop, document and implement policy and procedures on its use.
+
+Assign remote administration privileges to IAO-authorized personnel only.
+
+Document assignments in the System Security Plan."
+  reference   : "CAT|II,Rule-ID|SV-24982r1_rule,STIG-ID|DG0157-ORACLE11,Vuln-ID|V-15651"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0158: DBMS remote administration should be audited."
+  info        : "When remote administration is available, the vulnerability to attack for administrative access is increased. An audit of remote administrative access provides additional means to discover suspicious activity and to provide accountability for administrative actions completed by remote users.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Develop, document and implement policy and procedures for remote administration auditing.
+
+Configure the DBMS to provide an audit trail for remote administrative sessions.
+
+Include all actions taken by database administrators during remote sessions.
+
+Actions should be tied to a specific user."
+  reference   : "CAT|II,Rule-ID|SV-24985r1_rule,STIG-ID|DG0158-ORACLE11,Vuln-ID|V-15652"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0171: The DBMS should not have a connection defined to access or be accessed by a DBMS at a different classification level."
+  info        : "Applications that access databases and databases connecting to remote databases that differ in their assigned classification levels may expose sensitive data to unauthorized clients. Any interconnections between databases or applications and databases differing in classification levels are required to comply with interface control rules.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Disassociate or remove connection definitions to remote systems of differing classification levels."
+  reference   : "CAT|II,Rule-ID|SV-25075r1_rule,STIG-ID|DG0171-ORACLE11,Vuln-ID|V-15656"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DG0179: DBMS warning banner"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\s\t]*WALLET_LOCATION=.+"
+      expect      : "^[\s\t]*WALLET_LOCATION=.+"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "DG0191: DBMS credential protection - '%ORACLE_HOME%\database\PWDorcl.ora permissions are correct'"
+      info        : "Access to database connection credential stores provides easy access to the database. Unauthorized access to the database can result without controls in place to prevent unauthorized access to the credentials."
+      solution    : "Consider alternate methods for database connections to avoid custom storage of local connection credentials.
+
+Develop and document use of locally stored credentials and their authorized use and access in the System Security Plan.
+
+Restrict access and use of the credentials to authorized users using host file permissions and any other available method to restrict access."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,8500.2|DCFA-1,CAT|II,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24835r1_rule,STIG-ID|DG0191-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-15659"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "PWDorcl"
+# Note: Variable @WALLET_PATH@ replaced with "C:\\u01\\app\\oracle" in field "file".
+      file        : "C:\\u01\\app\\oracle"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "DG0179: DBMS warning banner"
+      info        : "Access to database connection credential stores provides easy access to the database. Unauthorized access to the database can result without controls in place to prevent unauthorized access to the credentials."
+      solution    : "Consider alternate methods for database connections to avoid custom storage of local connection credentials.
+
+Develop and document use of locally stored credentials and their authorized use and access in the System Security Plan.
+
+Restrict access and use of the credentials to authorized users using host file permissions and any other available method to restrict access."
+      reference   : "800-171|3.5.2,800-53|IA-5,8500.2|DCFA-1,CAT|II,CSF|PR.AC-1,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|NS26c,Rule-ID|SV-24835r1_rule,STIG-ID|DG0191-ORACLE11,SWIFT-CSCv1|5.4,TBA-FIISB|36.2.5,TBA-FIISB|37.1.6,Vuln-ID|V-15659"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+      regex       : "^[\s\t]*WALLET_LOCATION=.+"
+      expect      : "^[\s\t]*WALLET_LOCATION=.+"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </else>
+</if>
+
+<report type:"WARNING">
+  description : "DG0198: Remote administration of the DBMS should be restricted to known, dedicated and encrypted network addresses and ports."
+  info        : "Remote administration provides many conveniences that can assist in the maintenance of the designed security posture of the DBMS. On the other hand, remote administration of the database also provides malicious users the ability to access from the network a highly privileged function. Remote administration needs to be carefully considered and used only when sufficient protections against its abuse can be applied. Encryption and dedication of ports to access remote administration functions can help prevent unauthorized access to it.
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Disable remote administration where it is not required.
+
+Consider restricting administrative access to local connections only.
+
+Where necessary, configure the DBMS network communications to provide an encrypted, dedicated port for remote administration access.
+
+Develop and provide procedures for remote administrative access to DBAs that have been authorized for remote administration.
+
+Verify during audit reviews that DBAs do not access the database remotely except through the dedicated and encrypted port."
+  reference   : "CAT|II,Rule-ID|SV-24844r1_rule,STIG-ID|DG0198-ORACLE11,Vuln-ID|V-15662"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "DO6746: Oracle Listener host references - '%ORACLE_HOME%\NETWORK\ADMIN\listener.ora HOST does not use hostname'"
+  info        : "The use of IP address in place of host names helps to protect against malicious corruption or spoofing of host names. Use of static IP addresses is considered more stable and reliable than use of hostnames or Fully Qualified Domain Names (FQDN)."
+  solution    : "Edit the listener.ora file and replace any HOST= [hostname or domain name] to use static IP addresses for the host.
+
+The listener.ora file is by default located in the ORACLE_HOME/network/admin directory or the directory specified in the TNS_ADMIN environment variable for the listener service or process owner account."
+  reference   : "800-171|3.4.2,800-53|CM-6,8500.2|DCFA-1,CAT|III,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-24952r1_rule,STIG-ID|DO6746-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-16031"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\listener.ora"
+  regex       : "\(HOST[\s\t]*="
+  expect      : "\(HOST[\s\t]*=[\s\t]*[A-Za-z]+\)"
+</custom_item>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CHECK
+      description : "DO6747: Connection Manager remote administration"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\CMAN.ORA"
+      file_option : MUST_EXIST
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "DO6747: Connection Manager remote administration - '%ORACLE_HOME%\NETWORK\ADMIN\CMAN.ORA REMOTE_ADMIN = no'"
+      info        : "The use of IP address in place of host names helps to protect against malicious corruption or spoofing of host names. Use of static IP addresses is considered more stable and reliable than use of hostnames or Fully Qualified Domain Names (FQDN)."
+      solution    : "Edit the listener.ora file and replace any HOST= [hostname or domain name] to use static IP addresses for the host.
+
+The listener.ora file is by default located in the ORACLE_HOME/network/admin directory or the directory specified in the TNS_ADMIN environment variable for the listener service or process owner account."
+      reference   : "800-171|3.1.1,800-53|AC-3,8500.2|DCFA-1,CAT|III,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,Rule-ID|SV-24955r1_rule,STIG-ID|DO6747-ORACLE11,TBA-FIISB|31.1,Vuln-ID|V-16032"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\CMAN.ORA"
+      regex       : "^[\s\t]*REMOTE_ADMIN[\s\t]*="
+      expect      : "REMOTE_ADMIN[\s\t]*=[\s\t]*([Nn][Oo])"
+      file_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type        : FILE_CHECK
+      description : "DO6747: Connection Manager remote administration - '%ORACLE_HOME%\NETWORK\ADMIN\CMAN.ORA does not exist'"
+      info        : "The use of IP address in place of host names helps to protect against malicious corruption or spoofing of host names. Use of static IP addresses is considered more stable and reliable than use of hostnames or Fully Qualified Domain Names (FQDN)."
+      solution    : "Edit the listener.ora file and replace any HOST= [hostname or domain name] to use static IP addresses for the host.
+
+The listener.ora file is by default located in the ORACLE_HOME/network/admin directory or the directory specified in the TNS_ADMIN environment variable for the listener service or process owner account."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|DCFA-1,CAT|III,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24955r1_rule,STIG-ID|DO6747-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-16032"
+      see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+      value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\CMAN.ORA"
+      file_option : MUST_NOT_EXIST
+    </custom_item>
+  </else>
+</if>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "DO6754: Oracle Configuration Manager - '%ORACLE_HOME%\ccr directory does not exist'"
+  info        : "Oracle Configuration Manager (OCM) is a function of the Oracle Software Configuration Manager (SCM). OCM collects system configuration data used for automated upload to systems owned and managed by Oracle to assist in providing customer support. The configuration information about the server that the OCM collects includes IP addresses, hostname, database username, location of datafiles, etc."
+  solution    : "Remove Oracle Configuration Manager.
+
+Details for removal are provided in Oracle MetaLink Note 369111.1 or in MetaLink Note 728989.1 for a link to the OCM Installation and Administration Guide."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,8500.2|ECAN-1,CAT|II,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,Rule-ID|SV-24963r1_rule,STIG-ID|DO6754-ORACLE11,SWIFT-CSCv1|2.3,Vuln-ID|V-16056"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\ccr"
+  file_option : MUST_NOT_EXIST
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DO6751: SQLNET.ALLOWED_LOGON_VERSION - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ORA SQLNET.ALLOWED_LOGON_VERSION > 11'"
+  info        : "Unsupported Oracle network client installations may introduce vulnerabilities to the database. Restriction to use of supported versions helps to protect the database and helps to enforce newer, more robust security controls."
+  solution    : "Edit the SQLNET.ORA file to add or edit the entry:
+
+SQLNET.ALLOWED_LOGON_VERSION = 11
+
+Set the value to 11 or higher."
+  reference   : "800-171|3.14.1,800-171|3.4.8,800-53|CM-7(5),800-53|SI-2,8500.2|VIVM-1,CAT|II,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSCv6|2.2,CSF|ID.RA-1,CSF|PR.IP-1,CSF|PR.IP-12,CSF|PR.PT-3,HIPAA|164.308(a)(5)(ii)(A),ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|PR9,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,Rule-ID|SV-24958r2_rule,STIG-ID|DO6751-ORACLE11,SWIFT-CSCv1|2.2,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3,Vuln-ID|V-16057"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ORA"
+  regex       : "^[\s\t]*SQLNET\.ALLOWED_LOGON_VERSION[\s\t]*="
+  expect      : "SQLNET\.ALLOWED_LOGON_VERSION[\s\t]*=[\s\t]*([1-9][1-9]+)"
+  file_option : CAN_NOT_BE_NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "DG7001: The directory assigned to the AUDIT_FILE_DEST parameter must be protected from unauthorized access."
+  info        : "The AUDIT_FILE_DEST parameter specifies the directory where the database audit trail file is stored (when AUDIT_TRAIL parameter is set to 'OS', 'xml', or 'xml, extended' where supported by the DBMS). Unauthorized access or loss of integrity of the audit trail could result in loss of accountability or the ability to detect suspicious
+activity. This directory also contains the audit trail of the SYS and SYSTEM accounts that captures privileged database events when the database is not running (when AUDIT_SYS_OPERATIONS parameter is set to TRUE).
+
+ NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Alter host system permissions to the AUDIT_FILE_DEST directory to the Oracle process and software owner accounts, DBAs, backup accounts, SAs (if required), and auditors.
+
+Authorize and document user access requirements to the directory outside of the Oracle, DBA, and SA account list in the System Security Plan."
+  reference   : "8500.2|DCPA-1,CAT|II,Rule-ID|SV-72019r1_rule,STIG-ID|DG7001-ORACLE11,Vuln-ID|V-57609"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DG0025: DBMS encryption compliance - 'Oracle Advanced Security is installed'"
+  info        : "Use of cryptography to provide confidentiality and non-repudiation is not effective unless strong methods are employed with its use. Many earlier encryption methods and modules have been broken and/or overtaken by increasing computing power. The NIST FIPS 140-2 cryptographic standards provide proven methods and strengths to employ cryptography effectively."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Obtain and utilize native or third-party NIST FIPS 140-2 validated cryptography solution for the DBMS.
+
+Installation of Oracle Advanced Security product (which may require additional Oracle licensing consideration) is required to use native Oracle encryption.
+
+Please see the Oracle Advanced Security Administrator's Guide for configuration and use of encryption in the database. The Oracle Advanced Security Administrator's Guide provides references to the encryption features provided by Oracle Advanced Security.
+
+Instructions for the configuration of FIPS 140-2 compliance for encryption of network communications are provided in a dedicated appendix of the Oracle Advanced Security Administrator's Guide.
+
+All cipher suites listed above include FIPS 140-2 validated algorithms available for data encryption.
+
+Encryption of data stored within the database is available only in Oracle versions 11.1 and later. View Data Encryption and Integrity in the Oracle Advanced Security Administration Guide for configuration details.
+
+Note: FIPS 140-2 compliance or non-compliance for the host and network is outside the purview of the Database STIG. FIPS 140-2 non-compliance at the host/network level does not negate this requirement."
+  reference   : "8500.2|DCNR-1,CAT|II,Rule-ID|SV-55867r1_rule,STIG-ID|DG0025-ORACLE11,Vuln-ID|V-43137"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK_NOT
+  description : "DG0025: DBMS encryption compliance - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ora SQLNET.SSLFIPS_140 = TRUE'"
+  info        : "Use of cryptography to provide confidentiality and non-repudiation is not effective unless strong methods are employed with its use. Many earlier encryption methods and modules have been broken and/or overtaken by increasing computing power. The NIST FIPS 140-2 cryptographic standards provide proven methods and strengths to employ cryptography effectively."
+  solution    : "Obtain and utilize native or third-party NIST FIPS 140-2 validated cryptography solution for the DBMS.
+
+Installation of Oracle Advanced Security product (which may require additional Oracle licensing consideration) is required to use native Oracle encryption.
+
+Please see the Oracle Advanced Security Administrator's Guide for configuration and use of encryption in the database. The Oracle Advanced Security Administrator's Guide provides references to the encryption features provided by Oracle Advanced Security.
+
+Instructions for the configuration of FIPS 140-2 compliance for encryption of network communications are provided in a dedicated appendix of the Oracle Advanced Security Administrator's Guide.
+
+All cipher suites listed above include FIPS 140-2 validated algorithms available for data encryption.
+
+Encryption of data stored within the database is available only in Oracle versions 11.1 and later. View Data Encryption and Integrity in the Oracle Advanced Security Administration Guide for configuration details.
+
+Note: FIPS 140-2 compliance or non-compliance for the host and network is outside the purview of the Database STIG. FIPS 140-2 non-compliance at the host/network level does not negate this requirement."
+  reference   : "800-171|3.13.11,800-53|SC-13,8500.2|DCNR-1,CAT|II,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-55867r1_rule,STIG-ID|DG0025-ORACLE11,Vuln-ID|V-43137"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ora"
+  regex       : "^[\s\t]*SQLNET\.SSLFIPS_140[\s\t]*="
+  expect      : "SQLNET\.SSLFIPS_140[\s\t]*=[\s\t]*[Tt][Rr][Uu][Ee]"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DG0025: DBMS encryption compliance - '%ORACLE_HOME%\NETWORK\ADMIN\SQLNET.ora SSL_CIPHER_SUITES set to valid cipher suite'"
+  info        : "Use of cryptography to provide confidentiality and non-repudiation is not effective unless strong methods are employed with its use. Many earlier encryption methods and modules have been broken and/or overtaken by increasing computing power. The NIST FIPS 140-2 cryptographic standards provide proven methods and strengths to employ cryptography effectively."
+  solution    : "Obtain and utilize native or third-party NIST FIPS 140-2 validated cryptography solution for the DBMS.
+
+Installation of Oracle Advanced Security product (which may require additional Oracle licensing consideration) is required to use native Oracle encryption.
+
+Please see the Oracle Advanced Security Administrator's Guide for configuration and use of encryption in the database. The Oracle Advanced Security Administrator's Guide provides references to the encryption features provided by Oracle Advanced Security.
+
+Instructions for the configuration of FIPS 140-2 compliance for encryption of network communications are provided in a dedicated appendix of the Oracle Advanced Security Administrator's Guide.
+
+All cipher suites listed above include FIPS 140-2 validated algorithms available for data encryption.
+
+Encryption of data stored within the database is available only in Oracle versions 11.1 and later. View Data Encryption and Integrity in the Oracle Advanced Security Administration Guide for configuration details.
+
+Note: FIPS 140-2 compliance or non-compliance for the host and network is outside the purview of the Database STIG. FIPS 140-2 non-compliance at the host/network level does not negate this requirement."
+  reference   : "800-171|3.13.11,800-53|SC-13,8500.2|DCNR-1,CAT|II,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-55867r1_rule,STIG-ID|DG0025-ORACLE11,Vuln-ID|V-43137"
+  see_also    : "http://iasecontent.disa.mil/stigs/zip/U_Oracle_Database_11g_V8R20_STIG.zip"
+  value_type  : POLICY_TEXT
+# Note: Variable @ORACLE_HOME@ replaced with "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1" in field "value_data".
+  value_data  : "C:\\u01\\app\\oracle\\product\\11.2.0\\dbhome_1\NETWORK\ADMIN\SQLNET.ora"
+  regex       : "^[\s\t]*SSL_CIPHER_SUITES[\s\t]*="
+  expect      : "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_DH_anon_WITH_3DES_EDE_CBC_SHA" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_DH_anon_WITH_DES_CBC_SHA" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_DH_anon_WITH_RC4_128_MD5" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_RSA_WITH_3DES_EDE_CBC_SHA" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_RSA_WITH_AES_128_CBC_SHA" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_RSA_WITH_AES_256_CBC_SHA" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_RSA_WITH_DES_CBC_SHA" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_RSA_WITH_RC4_128_MD5" || "SSL_CIPHER_SUITES[\s\t]*=[\s\t]*SSL_RSA_WITH_RC4_128_SHA"
+</custom_item>
+
+</group_policy>
+</check_type>

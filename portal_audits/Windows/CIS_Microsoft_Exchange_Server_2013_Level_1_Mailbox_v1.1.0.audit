@@ -1,0 +1,245 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.3 $
+# $Date: 2020/07/14 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Microsoft Exchange Server 2013 v1.1.0 Benchmark
+#
+#<ui_metadata>
+#<display_name>CIS Microsoft Exchange Server 2013 Mailbox v1.1.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS Microsoft Exchange Server 2013 Mailbox</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/1512</link>
+#</spec>
+#<labels>microsoft,exchange,exchange_2013,mailbox,windows</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SECURE_STRING</name>
+#    <default>none</default>
+#    <description>Secure String for Authentication</description>
+#    <info>Comma separated secure string(s) which will be used to authenticate against the target servers.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"Microsoft Exchange Server 2013">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "Test secure string"
+      value_type      : POLICY_TEXT
+      value_data      : ".*"
+      powershell_args : "hostname"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_EXCHANGE
+      description     : "CIS_Microsoft_Exchange_Server_2013_Level_1_Mailbox_v1.1.0.audit from CIS Microsoft Exchange Server 2013 v1.1.0 Benchmark"
+      info            : "NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      reference       : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+      value_type      : POLICY_TEXT
+      value_data      : "[\s]+15\.0[\s]+.*[\s]+True"
+      powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsMailboxServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+      secure_string   : "none"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "Platform check"
+          value_type      : POLICY_TEXT
+          value_data      : "[\s]+15\.0[\s]+.*[\s]+True"
+          powershell_args : "If (Get-ExchangeServer) { Get-ExchangeServer | Format-Table Name, AdminDisplayVersion, IsMailboxServer } Else { 'No Exchange servers found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "1.14 Set 'Message tracking logging - Mailbox' to 'True'"
+          info            : "A message tracking log provides a detailed log of all message activity as messages are transferred to and from a computer running Exchange. Message tracking is available on Hub Transport servers, Edge Transport servers, and Mailbox servers. By default, message tracking is enabled.
+
+Rationale:
+
+If events are not recorded it may be difficult or impossible to determine the root cause of system problems or the unauthorized activities of malicious users."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	 Set-TransportService EXCHANGE1 -MessageTrackingLogEnabled $true"
+          reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,LEVEL|1S,SWIFT-CSCv1|6.4"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-TransportService ; $settings | Format-List Identity, MessageTrackingLogEnabled; If ($settings | Where {$_.MessageTrackingLogEnabled -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.1 Set 'Mailbox quotas: Issue warning at' to '1991680'"
+          info            : "You can configure this setting to automatically warn mailbox users that their mailbox is approaching its storage limit. To specify the storage limit, select the check box for this capability, and then specify in kilobytes (KB) how much content users can store in their mailboxes before a warning e-mail message is sent to them. You can enter a value between 0 and 2,147,483,647 KB (2.1 terabytes).
+
+Rationale:
+
+If users exceed their mailbox limits without warning, they may miss important messages requiring them to take immediate action to mitigate a security risk."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MailboxDatabase 'EXCHANGE01\Mailbox Database' -IssueWarningQuota 1991680KB"
+          reference       : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$pass = $true; Get-MailboxDatabase | Format-List Identity, IssueWarningQuota; foreach ($item in (Get-MailboxDatabase).IssueWarningQuota -Replace '.*\(' -Replace ' .*' ) { if (([int64]$item)/1KB -gt 1991680) { $pass = $false } }; If ($pass) { 'All policies compliant' } Else { 'Non compliant policies found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.2 Set 'Mailbox quotas: Prohibit send and receive at' to '2411520'"
+          info            : "Configure this setting to prevent users from sending and receiving e-mail messages after their mailbox size reaches the specified limit. To specify this limit, select the check box, and then type the size of the mailbox in kilobytes (KB) at which you want to prohibit the sending and receiving of e-mail messages and notify the user. You can enter a value between 0 and 2,147,483,647 KB (2.1 terabytes).
+
+Rationale:
+
+If users exceed their mailbox limits without warning, they may miss important messages requiring them to take immediate action to mitigate a security risk."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MailboxDatabase 'EXCHANGE01\Mailbox Database' -ProhibitSendReceiveQuota 2411520KB"
+          reference       : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$pass = $true; Get-MailboxDatabase | Format-List Identity, ProhibitSendReceiveQuota; foreach ($item in (Get-MailboxDatabase).ProhibitSendReceiveQuota -Replace '.*\(' -Replace ' .*' ) { if (([int64]$item)/1KB -gt 2411520) { $pass = $false } }; If ($pass) { 'All policies compliant' } Else { 'Non compliant policies found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.3 Set 'Mailbox quotas: Prohibit send at' to '2097152'"
+          info            : "You can configure this setting to prevent users from sending new e-mail messages after their mailboxes reach a specified limit. To specify this limit, select the check box for this capability, and then type the size of the mailbox in kilobytes (KB) at which you want to prohibit the sending and receiving of e-mail messages and notify the user. You can enter a value between 0 and 2,147,483,647 KB (2.1 terabytes).
+
+Rationale:
+
+This setting prevents users from sending messages when their mailbox is approaching its size limit. However, they can continue to receive messages."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MailboxDatabase 'EXCHANGE01\Mailbox Database' -ProhibitSendQuota 2097152KB"
+          reference       : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,LEVEL|1S"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$pass = $true; Get-MailboxDatabase | Format-List Identity, ProhibitSendQuota; foreach ($item in (Get-MailboxDatabase).ProhibitSendQuota -Replace '.*\(' -Replace ' .*' ) { if (([int64]$item)/1KB -gt 2097152) { $pass = $false } }; If ($pass) { 'All policies compliant' } Else { 'Non compliant policies found' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.4 Set 'Keep deleted mailboxes for the specified number of days' to '30'"
+          info            : "You can use this setting to specify how long deleted mailboxes are retained before they are permanently removed from the database. Defining a reasonable retention period facilitates recovering accidentally deleted mailboxes while controlling the volume of storage that retained mailboxes require.
+
+Rationale:
+
+Administrators may want to recover accidentally deleted mailboxes or they may need to recover deliberately deleted mailboxes for legal or managerial reasons."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-Mailboxdatabase 'EXCHANGE01\Mailbox Database' -MailboxRetention 30.00:00:00"
+          reference       : "800-53|SI-12,ITSG-33|SI-12,LEVEL|1S,NESA|M5.2.3,NESA|M5.2.4,NESA|M5.3.1,NIAv2|DR1,NIAv2|DR1a,NIAv2|DR1b,NIAv2|DR1c,NIAv2|DR2,NIAv2|DR3,NIAv2|DR4,NIAv2|DR5,NIAv2|DR6"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$limit = New-TimeSpan -Days 30; $settings = Get-Mailboxdatabase; $settings | Format-List Identity, MailboxRetention; If ($settings | Where {$_.MailboxRetention -gt $limit}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.5 Set 'Do not permanently delete items until the database has been backed up' to 'True'"
+          info            : "This setting allows you to ensure that items are not permanently deleted until the database has been backed up.
+
+Rationale:
+
+To ensure that accidentally deleted items can be recovered, they should not be permanently deleted until the database is backed up."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MailboxDatabase  -RetainDeletedItemsUntilBackup $true"
+          reference       : "800-171|3.8.9,800-53|CP-9,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,LEVEL|1S,NESA|M5.2.3,NESA|T2.2.4,NESA|T3.5.1"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MailboxDatabase ; $settings | Format-List Identity, RetainDeletedItemsUntilBackup; If ($settings | Where {$_.RetainDeletedItemsUntilBackup -ne $true}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+
+        <custom_item>
+          type            : AUDIT_EXCHANGE
+          description     : "2.14 Set 'Retain deleted items for the specified number of days' to '14'"
+          info            : "You can use this setting to specify how long deleted messages are retained before they are permanently removed from the database. Defining a reasonable retention period facilitates recovering accidentally deleted messages while controlling the volume of storage that retained messages require.
+
+Rationale:
+
+Users may want to recover accidentally deleted messages, or administrators may need to recover deliberately deleted messages for legal or managerial reasons."
+          solution        : "To implement the recommended state, execute the following PowerShell cmdlet:
+
+	Set-MailboxDatabase -Identity MDB2 -DeletedItemRetention 14"
+          reference       : "800-171|3.8.9,800-53|CP-9,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,LEVEL|1S,NESA|M5.2.3,NESA|T2.2.4,NESA|T3.5.1"
+          see_also        : "https://workbench.cisecurity.org/files/1512"
+          value_type      : POLICY_TEXT
+          value_data      : "All policies compliant"
+          powershell_args : "$settings = Get-MailboxDatabase ; $settings | Format-List Identity, DeletedItemRetention; If ($settings | Where {$_.DeletedItemRetention -lt 14}) { 'Non compliant policies found' } Else { 'All policies compliant' }"
+# Note: Variable @SECURE_STRING@ replaced with "none" in field "secure_string".
+          secure_string   : "none"
+          check_type      : CHECK_REGEX
+        </custom_item>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"FAILED">
+      description : "Authentication Failure"
+      info        : "Secure string passed to powershell was invalid or empty."
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

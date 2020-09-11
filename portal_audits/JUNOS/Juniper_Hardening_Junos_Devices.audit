@@ -1,0 +1,2046 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.8 $
+# $Date: 2020/04/15 $
+#
+# Description : This .audit is based on the checklist for the book
+#               "This Week: Hardening Junos Devices, Second Edition"
+#               by John Weidley, available at http://www.juniper.net/dayone
+#
+#<ui_metadata>
+#<display_name>Juniper Hardening JunOS 12 Devices Checklist</display_name>
+#<spec>
+#  <type>Juniper</type>
+#  <name>Hardening JunOS 12 Devices Checklist</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>juniper,hardening</labels>
+#<variables>
+#  <variable>
+#    <name>AUTHENTICATION_ALGORITHM</name>
+#    <default>md5</default>
+#    <description>Authentication Key Algorithm</description>
+#    <info>Strongest authentication key algorithm supported in the environment.</info>
+#  </variable>
+#  <variable>
+#    <name>EMERGENCY_LOCAL_ACCOUNT</name>
+#    <default>emergency</default>
+#    <description>Emergency Only Local Account</description>
+#    <info>Local account for emergency when centralized authentication is not available.</info>
+#  </variable>
+#  <variable>
+#    <name>BANNER_MESSAGE</name>
+#    <default>Authorized Users Only</default>
+#    <description>Login Banner</description>
+#    <info>Enter text for login banner.</info>
+#  </variable>
+#  <variable>
+#    <name>NTP_AUTH_KEY_INDEX</name>
+#    <default>1</default>
+#    <description>NTP authorization key index</description>
+#    <info>Authorization key index number for use with NTP</info>
+#  </variable>
+#  <variable>
+#    <name>OOB_NETWORK_ADDRESSING</name>
+#    <default>192\.168\.0\.[0-9]+/24</default>
+#    <description>Out-of-band management network</description>
+#    <info>The out-of-band management network regular expression. This range must be granted access through the out of band management (OOB) interface.</info>
+#  </variable>
+#  <variable>
+#    <name>PASSWORD_MINIMUM_LENGTH</name>
+#    <default>15</default>
+#    <description>Minimum password length</description>
+#    <info>Minimum length of the local passwords.</info>
+#  </variable>
+#  <variable>
+#    <name>PASSWORD_MINIMUM_LOWER</name>
+#    <default>2</default>
+#    <description>Minimum password lower-case</description>
+#    <info>Minimum number of lower-case characters of the local passwords.</info>
+#  </variable>
+#  <variable>
+#    <name>PASSWORD_MINIMUM_NUMERIC</name>
+#    <default>2</default>
+#    <description>Minimum password numbers</description>
+#    <info>Minimum number of numeric characters of the local passwords.</info>
+#  </variable>
+#  <variable>
+#    <name>PASSWORD_MINIMUM_PUNCTUATION</name>
+#    <default>2</default>
+#    <description>Minimum password punctuation</description>
+#    <info>Minimum number of punctuation characters of the local passwords.</info>
+#  </variable>
+#  <variable>
+#    <name>PASSWORD_MINIMUM_UPPER</name>
+#    <default>2</default>
+#    <description>Minimum password upper-case</description>
+#    <info>Minimum number of upper-case characters of the local passwords.</info>
+#  </variable>
+#  <variable>
+#    <name>RETRY_OPTIONS_BACKOFF</name>
+#    <default>1</default>
+#    <description>Number failed logins before delays</description>
+#    <info>Set the threshold for the number of failed login attempts before the user experiences a delay between login attempts. The range is from 1 through 3, with a default of 2.</info>
+#  </variable>
+#  <variable>
+#    <name>RETRY_OPTIONS_FACTOR</name>
+#    <default>6</default>
+#    <description>Length of delay for backoff</description>
+#    <info>Define the delay time after each failed login attempt in seconds. The delay increases by this value for each subsequent login attempt after the value specified in the backoff-threshold option. The range is from 5 through 10. The default is 5.</info>
+#  </variable>
+#  <variable>
+#    <name>RETRY_OPTIONS_TRIES</name>
+#    <default>3</default>
+#    <description>Limit number of user authenticate attempts</description>
+#    <info>Limit the maximum number of times a user is allowed to attempt to authenticate with the wrong password before the connection is terminated. The range is from 1 through 10. The system default is 10.</info>
+#  </variable>
+#  <variable>
+#    <name>RETRY_OPTIONS_MIN_TIME</name>
+#    <default>30</default>
+#    <description>Minimum length of password attempt</description>
+#    <info>Limit the minimum length of time in seconds that the connection remains open while the user is attempting to enter a password to log in. The range is from 20 through 60. The default setting is 20.</info>
+#  </variable>
+#  <variable>
+#    <name>RETRY_OPTIONS_MAX_TIME</name>
+#    <default>60</default>
+#    <description>Maximum length of password attempt</description>
+#    <info>Limit the maximum length of time in seconds available for a user to enter a username and password before the connection is terminated. The range is from 20 through 30 with a default of 120.</info>
+#  </variable>
+#  <variable>
+#    <name>RETRY_OPTIONS_LOCKOUT</name>
+#    <default>10</default>
+#    <description>Length of lockout.</description>
+#    <info>Set the amount of time in minutes before a user can attempt to login after being locked out due to the number of failed login attempts specified in Step 1 with the tries-before-disconnect statement. The range is from 1 through 43200 with a default of 120.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Juniper">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Test for JunOS 12"
+      regex       : "set version .+"
+      expect      : "set version 12.*"
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Audited configuration or device is JUNOS 12."
+      info        : "This .audit is based on the checklist for the book 'This Week: Hardening Junos Devices, Second Edition' by John Weidley, available at http://www.juniper.net/dayone.
+
+All features discussed in this book are available and tested in Junos 12.3 (current recommended code) and for some features the book discusses options available in later code release."
+      regex       : "set version .+"
+      expect      : "set version 12.*"
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Informational - Gateway"
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      regex       : "^set routing-options static route 0.0.0.0/0 next-hop [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$"
+      expect      : "^set routing-options static route 0.0.0.0/0 next-hop [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$"
+      reference   : "800-171|3.1.3,800-53|AC-4,CN-L3|8.1.10.2(c),CSF|DE.AE-1,CSF|ID.AM-3,CSF|PR.AC-4,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,ITSG-33|AC-4,NESA|T4.2.1,NESA|T4.5.1,NESA|T4.5.3,NESA|T4.5.4,NESA|T5.4.6,NESA|T5.7.2,NESA|T7.5.2,NESA|T7.6.4,NIAv2|GS11a,NIAv2|GS12a,NIAv2|GS14a,NIAv2|GS15a,NIAv2|GS16a,NIAv2|NS13a,NIAv2|NS13b,NIAv2|NS13c,NIAv2|NS14,NIAv2|SS23,NIAv2|SS27a,NIAv2|SS27b,NIAv2|SS32,SWIFT-CSCv1|2.1,SWIFT-CSCv1|2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : SHOW_CONFIG_CHECK
+      description : "Informational - MAC"
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      match       : "Current"
+      property    : "interfaces"
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Informational - IP Address/NetMask"
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      regex       : "^set interfaces .* inet address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[1-9][0-9]?$"
+      expect      : "^set interfaces .* inet address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[1-9][0-9]?$"
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35"
+    </custom_item>
+
+    <custom_item>
+      type        : SHOW_CONFIG_CHECK
+      description : "Informational - Junos Version"
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      match       : "JUNOS Software Release"
+      property    : "version"
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35"
+    </custom_item>
+
+    <custom_item>
+      type        : SHOW_CONFIG_CHECK
+      description : "Physical Security - Secure Physical Ports - Disable unused network ports"
+      info        : "Review the the list of interfaces, and disable unused interfaces.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the list of ports and disable any ports that are not active or connected.
+
+user@host# edit interfaces
+user@host# set ge-0/3/2 disable"
+      match       : "Physical interface"
+      property    : "interfaces"
+      severity    : MEDIUM
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Physical Security - Console Port - Configure the logout-on-disconnect feature"
+      info        : "If not properly secured, the console and auxiliary ports can permit unauthorized access to the device."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the log-out-on-disconnect feature on the console port.
+
+user@host# edit system ports console
+user@host# set log-out-on-disconnect"
+      regex       : "^set system ports console log-out-on-disconnect"
+      expect      : "^set system ports console log-out-on-disconnect"
+      reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),ITSG-33|AC-12,NIAv2|NS49"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Physical Security - Console Port - Configure the insecure feature"
+      info        : "If not properly secured, the console and auxiliary ports can permit unauthorized access to the device."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the insecure feature on the console port.
+
+user@host# edit system ports console
+user@host# set insecure"
+      regex       : "^set system ports console insecure"
+      expect      : "^set system ports console insecure"
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <custom_item>
+      type         : CONFIG_CHECK
+      description  : "Physical Security - Auxiliary Port - Disable the Auxiliary port"
+      info         : "If not properly secured, the console and auxiliary ports can permit unauthorized access to the device."
+      see_also     : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution     : "Disable the auxiliary port.
+
+user@host# edit system ports auxiliary
+user@host# set disable"
+      regex        : "^set system ports auxiliary disable"
+      expect       : "^set system ports auxiliary disable"
+      check_option : CAN_BE_NULL
+      reference    : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Physical Security - Auxiliary Port - Configure the insecure feature"
+      info        : "If not properly secured, the console and auxiliary ports can permit unauthorized access to the device."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the insecure feature on the auxiliary port.
+
+user@host# edit system ports auxiliary
+user@host# set insecure"
+      regex       : "^set system ports auxiliary insecure"
+      expect      : "^set system ports auxiliary insecure"
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Physical Security - Diagnostic Ports - Password protect Diagnostic ports - diag-port"
+      info        : "Some hardware modules, such as the System Control Board (SCB), System and Switch Board (SSB), Switching and Forwarding Module (SFM), and Forwarding Engine Board (FEB), have a special port that can be used for advanced diagnostics. By default, diagnostic ports are not secured by a password, which makes it possible for an unauthorized user with physical access to the device to gain access to the system and possibly obtain sensitive network specific information."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure a secure password on the diagnostic port.
+
+user@host# edit system diag-port-authentication
+user@host# set encrypted-password <PASSWORD>"
+      regex       : "^set system diag-port-authentication encrypted-password .+"
+      expect      : "^set system diag-port-authentication encrypted-password .+"
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Physical Security - Diagnostic Ports - Password protect Diagnostic ports - pic-console"
+      info        : "Some hardware modules, such as the System Control Board (SCB), System and Switch Board (SSB), Switching and Forwarding Module (SFM), and Forwarding Engine Board (FEB), have a special port that can be used for advanced diagnostics. By default, diagnostic ports are not secured by a password, which makes it possible for an unauthorized user with physical access to the device to gain access to the system and possibly obtain sensitive network specific information."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure a secure password on the PIC console port.
+
+user@host# edit system pic-console-authentication
+user@host# set encrypted-password <PASSWORD>"
+      regex       : "^set system pic-console-authentication encrypted-password .+"
+      expect      : "^set system pic-console-authentication encrypted-password .+"
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Physical Security - Craft Interface/LCD Menu - Disable unnecessary functions for your environment - craft-lockout"
+      info        : "Most Junos device platforms have either a craft interface or an LCD that can be used for viewing system status and alarms. There are also physical buttons or menu options to perform system control and maintenance functions, like bringing an FPC offline or online, restoring the factory default configuration, etc."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable the craft interface.
+
+user@host# edit chassis
+user@host# set craft-lockout"
+      regex       : "^set chassis craft-lockout"
+      expect      : "^set chassis craft-lockout"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Physical Security - Craft Interface/LCD Menu - Disable unnecessary functions for your environment - config-button no-clear"
+      info        : "Most Junos device platforms have either a craft interface or an LCD that can be used for viewing system status and alarms. There are also physical buttons or menu options to perform system control and maintenance functions, like bringing an FPC offline or online, restoring the factory default configuration, etc."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable the ability to config configuration on the config button.
+
+user@host# edit chassis config-button
+user@host# set no-clear"
+      regex       : "^set chassis config-button no-clear"
+      expect      : "^set chassis config-button no-clear"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Use the Out-of-Band (OOB) interface for all management related traffic"
+      info        : "Most Junos OS platforms have a built-in, dedicated out-of-band management interface. It's called fxp0 on high-end routing and security platforms, and me0 or vme on switching platforms. Due to their smaller form factor, J-Series routers and branch SRX devices do not have a dedicated management interface (but any of the built-in Ethernet interfaces can be used for this purpose)."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the chassis dedicated management port for participation on the OOB network.  If no dedicate port exists, dedicate an existing network port for management use on the OOB network."
+      regex       : "^set interfaces .+ unit [0-9]+ family inet address"
+# Note: Variable @OOB_NETWORK_ADDRESSING@ replaced with "192\\.168\\.0\\.[0-9]+/24" in field "expect".
+      expect      : "^set interfaces .+ unit [0-9]+ family inet address 192\\.168\\.0\\.[0-9]+/24"
+      reference   : "800-171|3.13.1,800-53|SC-7(15),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(15),NESA|T4.5.3,NIAv2|NS5c,NIAv2|NS6a"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Enable the default-address-selection option"
+      info        : "Use the default-address-selection CLI option to instruct the routing engine to use the loopback interface (lo0) as the source address for all locally generated IP packets when the packet is sent through a routed interface."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the default-address-selection on the system.
+
+user@host# edit system
+user@host# set default-address-selection"
+      regex       : "^set system default-address-selection"
+      expect      : "^set system default-address-selection"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check NTP configured"
+          regex       : "^set system ntp"
+          expect      : "^set system ntp"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Set the source address for all route engine generated traffic - NTP"
+          info        : "Many services (NTP, SNMP, RADIUS, etc.) can be configured with a source-address option which allows you to statically configure the source address to use for communication. In those circumstances the source address becomes the one that is specified with the source-address argument (provided the address is a valid address specified on the interface of a router), otherwise default-address-selection influences the default source address selection."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Configure source address for NTP traffic.
+
+user@host# edit system ntp
+user@host# set source-address <IP_ADDRESS>"
+          regex       : "^set system ntp source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          expect      : "^set system ntp source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          reference   : "800-171|3.3.7,800-53|AU-8,CN-L3|8.1.4.3(b),CSF|PR.PT-1,ITSG-33|AU-8,NESA|T3.6.2,TBA-FIISB|37.4"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check syslog configured"
+          regex       : "^set system syslog"
+          expect      : "^set system syslog"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Set the source address for all route engine generated traffic - syslog"
+          info        : "Many services (NTP, SNMP, RADIUS, etc.) can be configured with a source-address option which allows you to statically configure the source address to use for communication. In those circumstances the source address becomes the one that is specified with the source-address argument (provided the address is a valid address specified on the interface of a router), otherwise default-address-selection influences the default source address selection."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Configure source address for syslog traffic.
+
+user@host# edit system syslog
+user@host# set source-address <IP_ADDRESS>"
+          regex       : "^set system syslog source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          expect      : "^set system syslog source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          reference   : "800-53|AU-10(1),CSF|PR.PT-1,ITSG-33|AU-10(1)"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check radius-server configured"
+          regex       : "^set system radius-server"
+          expect      : "^set system radius-server"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Set the source address for all route engine generated traffic - radius-server"
+          info        : "Many services (NTP, SNMP, RADIUS, etc.) can be configured with a source-address option which allows you to statically configure the source address to use for communication. In those circumstances the source address becomes the one that is specified with the source-address argument (provided the address is a valid address specified on the interface of a router), otherwise default-address-selection influences the default source address selection."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Configure source address for radius-server traffic.
+
+user@host# edit system radius-server <SERVER_ADDRESS>
+user@host# set source-address <IP_ADDRESS>"
+          regex       : "^set system radius-server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          expect      : "^set system radius-server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check tacplus-server configured"
+          regex       : "^set system tacplus-server"
+          expect      : "^set system tacplus-server"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Set the source address for all route engine generated traffic - tacplus-server"
+          info        : "Many services (NTP, SNMP, RADIUS, etc.) can be configured with a source-address option which allows you to statically configure the source address to use for communication. In those circumstances the source address becomes the one that is specified with the source-address argument (provided the address is a valid address specified on the interface of a router), otherwise default-address-selection influences the default source address selection."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Configure source address for tacplus-server traffic.
+
+user@host# edit system tacplus-server <SERVER_ADDRESS>
+user@host# set source-address <IP_ADDRESS>"
+          regex       : "^set system tacplus-server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          expect      : "^set system tacplus-server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check accounting destination radius server"
+          regex       : "^set system accounting destination radius server"
+          expect      : "^set system accounting destination radius server"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Set the source address for all route engine generated traffic - accounting radius-server"
+          info        : "Many services (NTP, SNMP, RADIUS, etc.) can be configured with a source-address option which allows you to statically configure the source address to use for communication. In those circumstances the source address becomes the one that is specified with the source-address argument (provided the address is a valid address specified on the interface of a router), otherwise default-address-selection influences the default source address selection."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Configure source address for radius server accounting traffic.
+
+user@host# edit system accounting destination radius server <SERVER_ADDRESS>
+user@host# set source-address <IP_ADDRESS>"
+          regex       : "^set system accounting destination radius server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          expect      : "^set system accounting destination radius server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check accounting destination tacplus server"
+          regex       : "^set system accounting destination tacplus server"
+          expect      : "^set system accounting destination tacplus server"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Set the source address for all route engine generated traffic - accounting tacplus-server"
+          info        : "Many services (NTP, SNMP, RADIUS, etc.) can be configured with a source-address option which allows you to statically configure the source address to use for communication. In those circumstances the source address becomes the one that is specified with the source-address argument (provided the address is a valid address specified on the interface of a router), otherwise default-address-selection influences the default source address selection."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Configure source address for tacplus server accounting traffic.
+
+user@host# edit system accounting destination tacplus server <SERVER_ADDRESS>
+user@host# set source-address <IP_ADDRESS>"
+          regex       : "^set system accounting destination tacplus server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          expect      : "^set system accounting destination tacplus server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+        </custom_item>
+      </then>
+    </if>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Globally disable ICMP redirects"
+      info        : "ICMP redirects should be the exception and not the rule. A properly designed network should not rely on ICMP to function normally.
+
+The threat posed by ICMP redirects is that a DoS attack could be launched that forces a router to respond to thousands of suboptimally routed packets per second, consuming all valuable resources."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure system no redirects for ICMP.
+
+user@host# edit system
+user@host# set no-redirects"
+      regex       : "^set system no-redirects"
+      expect      : "^set system no-redirects"
+      reference   : "800-171|3.13.1,800-171|3.13.5,800-53|SC-7,CN-L3|8.1.10.6(j),CSF|DE.CM-1,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,ISO/IEC-27001|A.13.1.3,ITSG-33|SC-7,NESA|T4.5.4,NIAv2|GS1,NIAv2|GS2a,NIAv2|GS2b,TBA-FIISB|43.1"
+    </custom_item>
+
+    <custom_item>
+      type         : CONFIG_CHECK
+      description  : "Network Security - Ensure Source Routing has not been configured"
+      info         : "Routers communicate using routing protocols and exchange information about the networks they know how to reach. Packets are routed through a network based on the destination address contained in the packet. This is reasonable behavior because routers are supposed to know the best way to forward packets to the destination.
+
+The intent of these options was to assist in network troubleshooting but malicious users can also use source routing to direct packets to specific network segments, gather network topology information, and possibly subvert security restrictions."
+      see_also     : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution     : "Configure system no redirects for ICMP.
+
+user@host# edit chassis
+user@host# set no-source-route"
+      regex        : "^set chassis no-source-route"
+      expect       : "^set chassis no-source-route"
+      check_option : CAN_BE_NULL
+      reference    : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Ensure IP directed broadcast has not been configured"
+      info        : "A directed broadcast occurs when a packet is sent to the broadcast address of a subnet. IP directed broadcast packets traverse the network in the same way as unicast IP packets until they reach the destination subnet. When they reach the destination subnet, and if IP directed broadcast is enabled on the last device in the path, the router or switch translates (explodes) the IP directed broadcast packet into a broadcast that floods the packet on the target subnet.
+
+NOTE: Nessus is checking for directed broadcast by the existence of targeted-broadcast options."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the configuration and verify that 'targeted-broadcast' is not configured on any interfaces."
+      regex       : "targeted-broadcast"
+      not_expect  : "targeted-broadcast"
+      reference   : "800-171|3.13.1,800-53|SC-7(11),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),NIAv2|GS7c,TBA-FIISB|31.3"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check proxy-arp is configured"
+          regex       : "proxy-arp"
+          expect      : "proxy-arp"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Ensure Proxy ARP is either not configured, or is restricted to specific interfaces"
+          info        : "Proxy ARP (Address Resolution Protocol) is a technique where a networked device, usually the router, will answer an ARP request for another device. At that point the router is responsible for routing the packet to the destination.
+
+Proxy ARP could potentially be used by a malicious user in an attempt to put unnecessary load on the Routing Engine. Another side effect of proxy ARP is that it masks configuration errors, such as incorrect subnet masks that can cause network outages."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Review the configuration and verify that if 'proxy-arp' is configured, that is is configured as 'proxy-arp restricted'."
+          regex       : "proxy-arp restricted"
+          expect      : "proxy-arp restricted"
+          reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Network Security - Ensure Proxy ARP is either not configured, or is restricted to specific interfaces"
+          info        : "Proxy ARP (Address Resolution Protocol) is a technique where a networked device, usually the router, will answer an ARP request for another device. At that point the router is responsible for routing the packet to the destination.
+
+Proxy ARP could potentially be used by a malicious user in an attempt to put unnecessary load on the Routing Engine. Another side effect of proxy ARP is that it masks configuration errors, such as incorrect subnet masks that can cause network outages."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "Review the configuration and verify that if 'proxy-arp' is configured, that is is configured as 'proxy-arp restricted'."
+          regex       : "proxy-arp"
+          not_expect  : "proxy-arp"
+          reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Drop TCP packets with the SYN and FIN flag combination"
+      info        : "One of the ways to determine the operating system type and version is to send non-standard packet types and analyze the target's response. This technique is referred to as TCP/IP Stack Fingerprinting. One of the common packet types used in the process is a TCP packet with both the SYN and FIN  ags set. This is obviously an invalid packet since the SYN flag is used during the initial set up of a connection and the FIN flag is used when a session is being closed.
+
+Packets with the TCP SYN-FIN flags set can also be used for other nefarious purposes and should be dropped. Although this invalid TCP flag combination could be blocked using a firewall filter, Junos also has an option under [system internet-options] hierarchy to drop these packets at the kernel level."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the system to drop SYN and FIN packets.
+
+user@host# edit system internet-options
+user@host# set tcp-drop-synfin-set"
+      regex       : "^set system internet-options tcp-drop-synfin-set"
+      expect      : "^set system internet-options tcp-drop-synfin-set"
+      reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Disable ICMP timestamp & record route requests - no-ping-time-stamp"
+      info        : "When the ping command is used with the record-route option, the Routing Engine displays the path of the ICMP echo request packets and timestamps in the ICMP echo responses. This is useful for troubleshooting network path problems because, unlike the traceroute command, it also shows the return route instead of just the path to the destination.
+
+The possible security implication is that the timestamp and record route option allows someone to map your network and reveal private information, such as loopback addresses. Use the commands below to disable the ping, record-route, and timestamp options"
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the system to disable timestamps in the ICMP echo responses.
+
+user@host# edit system
+user@host# set no-ping-time-stamp"
+      regex       : "^set system no-ping-time-stamp"
+      expect      : "^set system no-ping-time-stamp"
+      reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Disable ICMP timestamp & record route requests - no-ping-record-route"
+      info        : "When the ping command is used with the record-route option, the Routing Engine displays the path of the ICMP echo request packets and timestamps in the ICMP echo responses. This is useful for troubleshooting network path problems because, unlike the traceroute command, it also shows the return route instead of just the path to the destination.
+
+The possible security implication is that the timestamp and record route option allows someone to map your network and reveal private information, such as loopback addresses. Use the commands below to disable the ping, record-route, and timestamp options"
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the system to disable route recording in the ICMP echo responses.
+
+user@host# edit system
+user@host# set no-ping-record-route"
+      regex       : "^set system no-ping-record-route"
+      expect      : "^set system no-ping-record-route"
+      reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Disable ICMP Source Quench - no-source-quench"
+      info        : "ICMP source quench (ICMP Type 4) is a congestion control technique used by receiving devices to tell the sending the device to reduce the amount of traffic it is sending. Ideally it is used to control the flow of traffic to reduce retransmissions and dropped packets but in reality it can be used in a blind throughput reduction attack.
+
+Routers shouldn't process source quench messages (RFC1812) and RFC6633 formally deprecates its handing in other transport protocols. There are more effective methods of implementing congestion control and ICMP source quench has been found to be largely ineffective and for those reasons source quench should be disabled."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the system to disable ICMP source quench.
+
+user@host# edit system internet-options
+user@host# set no-source-quench"
+      regex       : "^set system internet-options no-source-quench"
+      expect      : "^set system internet-options no-source-quench"
+      reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Configure LLDP only on required network ports - LLDP"
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable LLDP on all interfaces and enable only on required interfaces.
+
+user@host# edit protocols lldp
+user@host# set interface all disable
+user@host# set interface <INTERFACE>"
+      regex       : "^set protocols lldp interface all disable"
+      expect      : "^set protocols lldp interface all disable"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Network Security - Configure LLDP only on required network ports - LLDP-MED"
+      info        : "NOTE: Check Juniper documentation to see if LLPD-MED capability is available on the switch platform."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable LLDP-MED on all interfaces and enable only on required interfaces.
+
+user@host# edit protocols lldp-med
+user@host# set interface all disable
+user@host# set interface <INTERFACE>"
+      regex       : "^set protocols lldp-med interface all disable"
+      expect      : "^set protocols lldp-med interface all disable"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Management Services Security - Configure NTP with authentication with more than one trusted server - trusted-key"
+      info        : "From a security auditing perspective, accurate time is imperative so engineers can correlate system events to gather the root cause of problems. Network Time Protocol (NTP) is an industry standard for synchronizing time between devices to a common reference clock. NTP communicates via UDP and could be a security risk if a malicious user was to spoof the IP address of the NTP server and inject an inaccurate timestamp. To mitigate this potential risk, NTP should be secured by implementing authentication."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure ntp with a trusted key.
+
+user@host# edit system ntp
+user@host# set trusted-key <KEY_INDEX>"
+# Note: Variable @NTP_AUTH_KEY_INDEX@ replaced with "1" in field "regex".
+      regex       : "^set system ntp trusted-key 1"
+# Note: Variable @NTP_AUTH_KEY_INDEX@ replaced with "1" in field "expect".
+      expect      : "^set system ntp trusted-key 1"
+      reference   : "800-53|IA-3,CSF|PR.AC-1,ITSG-33|IA-3,NESA|T5.4.3,TBA-FIISB|27.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Management Services Security - Configure NTP with authentication with more than one trusted server - authentication type"
+      info        : "From a security auditing perspective, accurate time is imperative so engineers can correlate system events to gather the root cause of problems. Network Time Protocol (NTP) is an industry standard for synchronizing time between devices to a common reference clock. NTP communicates via UDP and could be a security risk if a malicious user was to spoof the IP address of the NTP server and inject an inaccurate timestamp. To mitigate this potential risk, NTP should be secured by implementing authentication."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure ntp with a trusted key.
+
+user@host# edit system ntp authentication-key <KEY_INDEX>
+user@host# set type md5
+user@host# set value <KEY>"
+# Note: Variable @NTP_AUTH_KEY_INDEX@ replaced with "1" in field "regex".
+      regex       : "^set system ntp authentication-key 1 type md5"
+# Note: Variable @NTP_AUTH_KEY_INDEX@ replaced with "1" in field "expect".
+      expect      : "^set system ntp authentication-key 1 type md5"
+      reference   : "800-53|IA-3,CSF|PR.AC-1,ITSG-33|IA-3,NESA|T5.4.3,TBA-FIISB|27.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Management Services Security - Configure NTP with authentication with more than one trusted server - authentication value"
+      info        : "From a security auditing perspective, accurate time is imperative so engineers can correlate system events to gather the root cause of problems. Network Time Protocol (NTP) is an industry standard for synchronizing time between devices to a common reference clock. NTP communicates via UDP and could be a security risk if a malicious user was to spoof the IP address of the NTP server and inject an inaccurate timestamp. To mitigate this potential risk, NTP should be secured by implementing authentication."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure ntp with a trusted key.
+
+user@host# edit system ntp authentication-key <KEY_INDEX>
+user@host# set type md5
+user@host# set value <KEY>"
+# Note: Variable @NTP_AUTH_KEY_INDEX@ replaced with "1" in field "regex".
+      regex       : "^set system ntp authentication-key 1 value .+"
+# Note: Variable @NTP_AUTH_KEY_INDEX@ replaced with "1" in field "expect".
+      expect      : "^set system ntp authentication-key 1 value .+"
+      reference   : "800-53|IA-3,CSF|PR.AC-1,ITSG-33|IA-3,NESA|T5.4.3,TBA-FIISB|27.1"
+    </custom_item>
+
+    <custom_item>
+      type            : CONFIG_CHECK
+      description     : "Management Services Security - Configure NTP with authentication with more than one trusted server - multiple servers"
+      info            : "From a security auditing perspective, accurate time is imperative so engineers can correlate system events to gather the root cause of problems. Network Time Protocol (NTP) is an industry standard for synchronizing time between devices to a common reference clock. NTP communicates via UDP and could be a security risk if a malicious user was to spoof the IP address of the NTP server and inject an inaccurate timestamp. To mitigate this potential risk, NTP should be secured by implementing authentication."
+      see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution        : "Configure multiple NTP servers with trusted key.
+
+user@host# edit system ntp server <SERVER_ADDRESS>
+user@host# set key <KEY_INDEX>"
+# Note: Variable @NTP_AUTH_KEY_INDEX@ replaced with "1" in field "regex".
+      regex           : "^set system ntp server [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3} key 1"
+      number_of_lines : "([2-9]|[1-9][0-9]+)"
+      reference       : "800-53|IA-3,CSF|PR.AC-1,ITSG-33|IA-3,NESA|T5.4.3,TBA-FIISB|27.1"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check SNMP is configured"
+          regex       : "^set snmp "
+          expect      : "^set snmp "
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Check SNMP v1/v2 is configured"
+              regex       : "^set snmp community"
+              expect      : "^set snmp community"
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Management Services Security - Configure SNMP using the most secure method with more than one trusted server - v1/v2 not configured"
+              info        : "Although SNMP is a very useful tool, earlier versions were inherently insecure because they used a simple community-based access control mechanism."
+              see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution    : "Do not configure SNMP version 1 or 2."
+              regex       : "^set snmp community"
+              not_expect  : "^set snmp community"
+              reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+            </custom_item>
+
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Management Services Security - Community strings and USM passwords should be difficult to guess and should follow a policy - community"
+              info        : "It's a best security practice to use complex community strings and to change them periodically since they are transmitted in plain-text and susceptible to capture.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution    : "If SNMP version 1 or 2 is required, review the configuration to make sure the community strings follow your password complexity policy."
+              regex       : "^set snmp community"
+              expect      : "manual review required"
+              severity    : MEDIUM
+              reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+            </custom_item>
+
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Management Services Security - Configure read-only access; use read-write only when required - community"
+              info        : "Only permit read-only mode to eliminate any possibility of changes to the few writable MIBs."
+              see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution    : "If SNMP version 1 or 2 is required, do not configure any communities with read-write permissions.
+
+user@host# edit snmp community <COMMUNITY>
+user@host# set authorization read-only"
+              regex       : "^set snmp community .+ authorization"
+              not_expect  : "^set snmp community .+ authorization read-write"
+              reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+            </custom_item>
+
+            <custom_item>
+              type            : CONFIG_CHECK
+              description     : "Management Services Security - Allow SNMP queries and/or send traps to more than one trusted server - community trap"
+              info            : "SNMP traps are unsolicited messages sent by network devices to notify management stations of important events."
+              see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution        : "If SNMP version 1 or 2 is required, configure the communitys to restrict clients and client-lists.
+
+user@host# edit snmp community <COMMUNITY>
+user@host# set clients <IP_ADDRESS>
+user@host# set clients 0.0.0.0/0 restrict"
+              regex           : "^set snmp community .+ (clients [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}|client-list-name .+)"
+              number_of_lines : "^([2-9]|[1-9][0-9]+)$"
+              reference       : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+            </custom_item>
+
+            <if>
+              <condition type:"AND">
+                <custom_item>
+                  type        : CONFIG_CHECK
+                  description : "Check SNMP community clients are specified"
+                  regex       : "^set snmp community .+ clients"
+                  expect      : "^set snmp community .+ clients"
+                </custom_item>
+              </condition>
+
+              <then>
+                <custom_item>
+                  type        : CONFIG_CHECK
+                  description : "Management Services Security - Allow SNMP queries and/or send traps to more than one trusted server - clients restrict"
+                  info        : "SNMP traps are unsolicited messages sent by network devices to notify management stations of important events."
+                  see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+                  solution    : "If SNMP version 1 or 2 is required, configure the communitys to restrict all non-specified clients by default.
+
+user@host# edit snmp community <COMMUNITY>
+user@host# set clients <IP_ADDRESS>
+user@host# set clients 0.0.0.0/0 restrict"
+                  regex       : "^set snmp community .+ clients"
+                  expect      : "^set snmp community .+ clients 0.0.0.0/0 restrict"
+                  reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-7(5),CN-L3|7.1.2.2(c),CSF|PR.PT-4,ITSG-33|SC-7(5),NIAv2|GS7b,NIAv2|NS25"
+                </custom_item>
+              </then>
+            </if>
+
+            <if>
+              <condition type:"AND">
+                <custom_item>
+                  type        : CONFIG_CHECK
+                  description : "Check SNMP community client-lists are specified"
+                  regex       : "^set snmp client-list"
+                  expect      : "^set snmp client-list"
+                </custom_item>
+              </condition>
+
+              <then>
+                <custom_item>
+                  type        : CONFIG_CHECK
+                  description : "Management Services Security - Allow SNMP queries and/or send traps to more than one trusted server - client-list restrict"
+                  info        : "SNMP traps are unsolicited messages sent by network devices to notify management stations of important events."
+                  see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+                  solution    : "If SNMP version 1 or 2 is required, configure the communitys to restrict all non-specified clients in client-lists by default.
+
+user@host# edit snmp client-list <LIST_NAME>
+user@host# set <IP_ADDRESS>
+user@host# set 0.0.0.0/0 restrict"
+                  regex       : "^set snmp client-list .+"
+                  expect      : "^set snmp client-list .+ 0.0.0.0/0 restrict"
+                  reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-7(5),CN-L3|7.1.2.2(c),CSF|PR.PT-4,ITSG-33|SC-7(5),NIAv2|GS7b,NIAv2|NS25"
+                </custom_item>
+              </then>
+            </if>
+          </then>
+        </if>
+
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Check SNMP v3 is configured"
+              regex       : "^set snmp v3 "
+              expect      : "^set snmp v3 "
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Management Services Security - Configure SNMP using the most secure method with more than one trusted server - v3 configured"
+              info        : "SNMPv3 increases security by using a user-based security model (USM) to authenticate and encrypt SNMP communications."
+              see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution    : "Configure SNMP v3 for use in network management."
+              regex       : "^set snmp v3 "
+              expect      : "^set snmp v3 "
+              reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+            </custom_item>
+
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Management Services Security - Community strings and USM passwords should be difficult to guess and should follow a policy - usm"
+              info        : "The Junos SNMPv3 implementation supports various hashing and encryption algorithms - obviously the strongest methods provide maximum security but you have to choose algorithms and encryption that are supported by your management stations.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+              see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution    : "Review the SNMP v3 configuration for the defined user accounts and verify password complexity."
+              regex       : "^set snmp v3 usm"
+              expect      : "manual review required"
+              severity    : MEDIUM
+              reference   : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CN-L3|8.1.4.1(a),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+            </custom_item>
+
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Management Services Security - Configure read-only access; use read-write only when required - usm"
+              info        : "Only permit read-only mode to eliminate any possibility of changes to the few writable MIBs."
+              see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution    : "Do not configure SNMP v3 with write permissions.
+
+user@host# edit snmp v3 vacm access group .+
+user@host# set read-view <SNMP_VIEW>"
+              regex       : "^set snmp v3 vacm access group .+ security-model (any|usm) security-level .+"
+              not_expect  : "^set snmp v3 vacm access group .+ security-model (any|usm) security-level .+ write-view"
+              reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4"
+            </custom_item>
+
+            <custom_item>
+              type            : CONFIG_CHECK
+              description     : "Management Services Security - Allow SNMP queries and/or send traps to more than one trusted server - usm traps"
+              info            : "SNMP traps are unsolicited messages sent by network devices to notify management stations of important events."
+              see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution        : "Configure SNMP v3 traps to be sent to multiple trusted hosts.
+
+user@host# edit snmp v3 target-address <NAME>
+user@host# set address <IP_ADDRESS>"
+              regex           : "^set snmp v3 target-address .+ address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+              number_of_lines : "^([2-9]|[1-9][0-9]+)$"
+              reference       : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+            </custom_item>
+          </then>
+        </if>
+
+        <custom_item>
+          type            : CONFIG_CHECK
+          description     : "Management Services Security - Allow SNMP queries and/or send traps to more than one trusted server"
+          info            : "To further secure your SNMP configuration is to set a firewall filter to limit SNMP traffic to trusted sources."
+          see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution        : "Configure firewall to restrict snmp access to trusted sources.
+
+user@host# edit firewall family inet filter protect-re term allow-snmp
+user@host# set from source-address <IP_ADDRESS>"
+          regex           : "^set firewall family inet filter protect-re term allow-snmp from source-address [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+          number_of_lines : "^([2-9]|[1-9][0-9]+)$"
+          reference       : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+        </custom_item>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "Management Services Security - Configure SNMP using the most secure method with more than one trusted server"
+          info        : "Although SNMP is a very useful tool, earlier versions were inherently insecure because they used a simple community-based access control mechanism.
+
+SNMPv3 increases security by using a user-based security model (USM) to authenticate and encrypt SNMP communications.
+
+NOTE: SNMP does not appear to be configured."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "If SNMP is not required, keep it not configured."
+        </report>
+
+        <report type:"PASSED">
+          description : "Management Services Security - Community strings and USM passwords should be difficult to guess and should follow a password policy"
+          info        : "It's a best security practice to use complex community strings and to change them periodically since they are transmitted in plain-text and susceptible to capture.
+
+The Junos SNMPv3 implementation supports various hashing and encryption algorithms - obviously the strongest methods provide maximum security but you have to choose algorithms and encryption that are supported by your management stations.
+
+NOTE: SNMP does not appear to be configured."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "If SNMP is not required, keep it not configured."
+        </report>
+
+        <report type:"PASSED">
+          description : "Management Services Security - Configure read-only access; use read-write only when required"
+          info        : "Only permit read-only mode to eliminate any possibility of changes to the few writable MIBs.
+
+NOTE: SNMP does not appear to be configured."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "If SNMP is not required, keep it not configured."
+        </report>
+
+        <report type:"PASSED">
+          description : "Management Services Security - Allow SNMP queries and/or send traps to more than one trusted server"
+          info        : "To further secure your SNMP configuration is to set a firewall filter to limit SNMP traffic to trusted sources.
+
+SNMP traps are unsolicited messages sent by network devices to notify management stations of important events.
+
+NOTE: SNMP does not appear to be configured."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "If SNMP is not required, keep it not configured."
+          reference   : "800-171|3.3.8,800-53|AU-9,CSF|PR.PT-1,ITSG-33|AU-9,NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type            : CONFIG_CHECK
+      description     : "Management Services Security - Send Syslog messages to more than one trusted server with enhanced timestamps"
+      info            : "Logging is critical to device security because it creates an audit trail of system activity that can assist you in identifying configuration errors, investigating intrusions, troubleshooting service disruptions, and reacting to probes and scans."
+      see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution        : "Configure syslog to send messages to more than one trusted host.
+
+user@host# edit system syslog
+user@host# set host <IP_ADDRESS> any any"
+      regex           : "^set system syslog host .+ any"
+      number_of_lines : "([2-9]|[1-9][0-9]+)"
+      reference       : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Management Services Security - Configure automated secure configuration backups to more than one trusted server - transfer-interval"
+      info        : "But it's also recommended that device configurations be archived on an external system so they can be retrieved in the event of catastrophic device failure or device recovery. The archive server should be a hardened server with whole disk encryption and with access limited to only essential personnel."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the archival of the configuration to happen periodically.
+
+user@host# edit system archival configuration
+user@host# set transfer-interval 1440"
+      regex       : "^set system archival configuration transfer-interval"
+      expect      : "^set system archival configuration transfer-interval [1-9][0-9]*$"
+      reference   : "800-171|3.8.9,800-53|CP-9,CSF|PR.IP-4,ISO/IEC-27001|A.12.3.1,ITSG-33|CP-9,NESA|M5.2.3,NESA|T2.2.4"
+    </custom_item>
+
+    <custom_item>
+      type            : CONFIG_CHECK
+      description     : "Management Services Security - Configure automated secure configuration backups to more than one trusted server - archive-sites"
+      info            : "But it's also recommended that device configurations be archived on an external system so they can be retrieved in the event of catastrophic device failure or device recovery. The archive server should be a hardened server with whole disk encryption and with access limited to only essential personnel."
+      see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution        : "Configure the archival of the configuration to be transfered to multiple trusted hosts.
+
+user@host# edit system archival configuration
+user@host# set archive-sites <DESTINATION_URL>"
+      regex           : "^set system archival configuration archive-sites"
+      number_of_lines : "([2-9]|[1-9][0-9]+)"
+      reference       : "800-53|CP-9(5),CSF|PR.IP-4,ITSG-33|CP-9(5),NESA|T2.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : BANNER_CHECK
+      description : "Access Security - Configure a warning banner that is displayed prior to login"
+      info        : "One of the simplest things you can do is to configure a warning banner, the electronic equivalent of a 'No Trespassing' sign. Although it doesn't technically protect your device or network, having a warning banner with very specific acceptable use instructions could help your organization by serving as a reminder of acceptable use and as a legal disclaimer."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the login banner with your organizations policy.
+
+user@host# edit system login
+user@host# set message <LOGIN_BANNER>"
+      regex       : "set system login message"
+# Note: Variable @BANNER_MESSAGE@ replaced with "Authorized Users Only" in field "content".
+      content     : "Authorized Users Only"
+      reference   : "800-171|3.1.9,800-53|AC-8,ITSG-33|AC-8,NESA|M1.3.6,NESA|M5.2.5,NESA|T5.5.1,NIAv2|AM10a,NIAv2|AM10b,NIAv2|AM10c,NIAv2|AM10d,NIAv2|AM10e,TBA-FIISB|45.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - telnet"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable telnet as an insecure service.
+
+user@host# edit system services
+user@host# delete telnet"
+      regex       : "^set system services telnet"
+      not_expect  : "^set system services telnet"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - ftp"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable ftp as an insecure service.
+
+user@host# edit system services
+user@host# delete ftp"
+      regex       : "^set system services ftp"
+      not_expect  : "^set system services ftp"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - J-Web over HTTP"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable J-Web over HTTP as an insecure service.
+
+user@host# edit system services web-management
+user@host# delete http"
+      regex       : "^set system services web-management http( |$)"
+      not_expect  : "^set system services web-management http( |$)"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - tftp-server"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable tftp as an insecure service.
+
+user@host# edit system services
+user@host# delete tftp-server"
+      regex       : "^set system services tftp-server"
+      not_expect  : "^set system services tftp-server"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - xnm-clear-text"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable xnm-clear-text as an insecure service.
+
+user@host# edit system services
+user@host# delete xnm-clear-text"
+      regex       : "^set system services xnm-clear-text"
+      not_expect  : "^set system services xnm-clear-text"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - finger"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable finger as an insecure service.
+
+user@host# edit system services
+user@host# delete finger"
+      regex       : "^set system services finger"
+      not_expect  : "^set system services finger"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - rlogin"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable rlogin as an insecure service.
+
+user@host# edit system services
+user@host# delete rlogin"
+      regex       : "^set system services rlogin"
+      not_expect  : "^set system services rlogin"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Disable insecure or unnecessary access services (telnet, J-Web over HTTP, FTP, etc.) - rsh"
+      info        : "Access services are considered insecure when communication to the device is unencrypted. Clear-text communications are susceptible to sniffing, replay, and packet capture attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Disable rsh as an insecure service.
+
+user@host# edit system services
+user@host# delete rsh"
+      regex       : "^set system services rsh"
+      not_expect  : "^set system services rsh"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Enable required secure access services - ssh"
+      info        : "Access services are considered secure when communication is encrypted and protected from snooping type attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Enable ssh as a secure access services.
+
+user@host# edit system services
+user@host# set rsh"
+      regex       : "^set system services ssh"
+      expect      : "^set system services ssh"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - Enable required secure access services - J-Web over HTTPS"
+      info        : "Access services are considered secure when communication is encrypted and protected from snooping type attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Enable ssh as a secure access services.
+
+user@host# edit system services web-management
+user@host# set https"
+      regex       : "^set system services web-management https"
+      expect      : "^set system services web-management https"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - SSH - Use SSH version 2"
+      info        : "Only use SSHv2 because there are inherent design flaws in SSHv1 which make it susceptible to man-in-the-middle attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure SSH to use only protocol version 2.
+
+user@host# edit system services ssh
+user@host# set protocol-version v2"
+      regex       : "^set system services ssh protocol-version"
+      expect      : "^set system services ssh protocol-version v2"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - SSH - Deny Root logins"
+      info        : "When SSH is enabled all configured users will be able to access the device; this includes the default root account."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure SSH to deny root from logging in.
+
+user@host# edit system services ssh
+user@host# set root-login deny"
+      regex       : "^set system services ssh root-login"
+      expect      : "^set system services ssh root-login deny"
+      reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),NESA|T5.1.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - SSH - Set connection-limit and rate-limit restrictions - connection-limit"
+      info        : "Limit the total number of unique connections to the device to preserve resources and reduce the chance of DoS."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure SSH to limit the number of connections.
+
+user@host# edit system services ssh
+user@host# set connection-limit 3"
+      regex       : "^set system services ssh connection-limit"
+      expect      : "^set system services ssh connection-limit [1-9][0-9]+"
+      reference   : "800-53|AC-10,ITSG-33|AC-10,NESA|T5.5.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - SSH - Set connection-limit and rate-limit restrictions - rate-limit"
+      info        : "Limit the number of logins per minute to preserve resources and reduce the chance of a DoS attack."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure SSH to limit the number of login attempts per minute.
+
+user@host# edit system services ssh
+user@host# set rate-limit 10"
+      regex       : "^set system services ssh rate-limit"
+      expect      : "^set system services ssh rate-limit [1-9][0-9]+"
+      reference   : "800-53|SC-5,CSF|DE.CM-1,CSF|PR.DS-4,ITSG-33|SC-5,NESA|T3.3.1,NIAv2|GS10c,NIAv2|GS8e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - J-Web - Use HTTPS with a valid certificate signed by a trusted CA - local-certificate"
+      info        : "Enabling HTTPS for J-Web provides confidentiality and integrity when connecting to the device."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure HTTPS to use a valid certificate.
+
+user@host# edit system services web-management https
+user@host# set local-certificate <CERTIFICAT> set"
+      regex       : "^set system services web-management https local-certificate"
+      expect      : "^set system services web-management https local-certificate .+"
+      reference   : "800-171|3.13.10,800-53|SC-12,ISO/IEC-27001|A.10.1.2,ITSG-33|SC-12,NESA|T7.4.1,NESA|T7.4.2,NIAv2|CY2,NIAv2|CY8,NIAv2|CY9"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "Access Security - J-Web - Use HTTPS with a valid certificate signed by a trusted CA - trusted CA"
+      info        : "Enabling HTTPS for J-Web provides confidentiality and integrity when connecting to the device. Verify that the local certificate is signed by a trusted CA.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration and verify the certificate is valid and signed by a trusted CA."
+    </report>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - J-Web - Limit access to only authorized interfaces"
+      info        : "If out-of-band management is not used, you can ensure that J-Web connections are only accepted over specific interfaces, such as your management network facing interface."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure J-Web over HTTPS to limit access to authorized interfaces, generally interfaces on the OOB.
+
+user@host# edit system services web-management https
+user@host# set interface <OOB_INTERFACE>"
+      regex       : "^set system services web-management https"
+      expect      : "^set system services web-management https interface .+"
+      reference   : "800-171|3.13.2,800-171|3.13.5,800-53|SC-7(13),CN-L3|8.1.10.6(h),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(13),NIAv2|GS7d,SWIFT-CSCv1|3.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - J-Web - Terminate idle connections by setting the idle-time value"
+      info        : "Enabling a session's idle timeout is always a good security practice to reduce the chances of unattended sessions being used by unauthorized users."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure J-Web over HTTPS to time out idle sessions.
+
+user@host# edit system services web-management session
+user@host# set idle-timeout 5"
+      regex       : "^set system services web-management session"
+      expect      : "^set system services web-management session idle-timeout [1-9][0-9]*"
+      reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Access Security - J-Web - Set session-limit restrictions suitable for your environment"
+      info        : "Imposing a limit on the number of J-Web sessions ensures responsible use by authorized users, conserves system resources, and reduces the possibility of a DoS attack."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure J-Web over HTTPS to limit the number of sessions.
+
+user@host# edit system services web-management session
+user@host# set session-limit 5"
+      regex       : "^set system services web-management session"
+      expect      : "^set system services web-management session session-limit [1-9][0-9]*"
+      reference   : "800-53|AC-10,ITSG-33|AC-10,NESA|T5.5.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - Minimum password length"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity to limit minimum password length.
+
+user@host# edit system login password
+user@host# set minimum-length 12"
+# Note: Variable @PASSWORD_MINIMUM_LENGTH@ replaced with "15" in field "regex".
+      regex       : "^set system login password minimum-length 15"
+# Note: Variable @PASSWORD_MINIMUM_LENGTH@ replaced with "15" in field "expect".
+      expect      : "^set system login password minimum-length 15"
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - Upper case characters"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity to limit minimum number of upper case characters.
+
+user@host# edit system login password
+user@host# set minimum-upper 2"
+# Note: Variable @PASSWORD_MINIMUM_UPPER@ replaced with "2" in field "regex".
+      regex       : "^set system login password minimum-upper 2"
+# Note: Variable @PASSWORD_MINIMUM_UPPER@ replaced with "2" in field "expect".
+      expect      : "^set system login password minimum-upper 2"
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - Lower case characters"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity to limit minimum number of lower case characters.
+
+user@host# edit system login password
+user@host# set minimum-lower 2"
+# Note: Variable @PASSWORD_MINIMUM_LOWER@ replaced with "2" in field "regex".
+      regex       : "^set system login password minimum-lower 2"
+# Note: Variable @PASSWORD_MINIMUM_LOWER@ replaced with "2" in field "expect".
+      expect      : "^set system login password minimum-lower 2"
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - Special characters"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity to limit minimum number of special characters.
+
+user@host# edit system login password
+user@host# set minimum-punctuations 2"
+# Note: Variable @PASSWORD_MINIMUM_PUNCTUATION@ replaced with "2" in field "regex".
+      regex       : "^set system login password minimum-punctuations 2"
+# Note: Variable @PASSWORD_MINIMUM_PUNCTUATION@ replaced with "2" in field "expect".
+      expect      : "^set system login password minimum-punctuations 2"
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - Numeric characters"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity to limit minimum number of numeric characters.
+
+user@host# edit system login password
+user@host# set minimum-numerics 2"
+# Note: Variable @PASSWORD_MINIMUM_NUMERIC@ replaced with "2" in field "regex".
+      regex       : "^set system login password minimum-numerics 2"
+# Note: Variable @PASSWORD_MINIMUM_NUMERIC@ replaced with "2" in field "expect".
+      expect      : "^set system login password minimum-numerics 2"
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - character-sets are enforced"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity to enforce the character set use.
+
+user@host# edit system login password
+user@host# set change-type character-sets"
+      regex       : "^set system login password change-type character-sets"
+      expect      : "^set system login password change-type character-sets"
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - all character-sets are enforced"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity that at least 4 character sets are enforced.
+
+user@host# edit system login password
+user@host# set minimum-changes 4"
+      regex       : "^set system login password minimum-changes 4"
+      expect      : "^set system login password minimum-changes 4"
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM22d,SWIFT-CSCv1|4.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure a password complexity policy - Use SHA1 for password storage"
+      info        : "According to CERT.org, a security policy provides a framework for making specific decisions, such as which defense mechanisms to use and how to con gure services. It is the basis for developing secure programming guidelines and procedures for users and system administrators alike. With a security policy in place you can create security checklists that contain lists of security practices that are specific to your organization."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure password complexity to use SHA1 for password storage.
+
+user@host# edit system login password
+user@host# set format sha1"
+      regex       : "^set system login password format sha1"
+      expect      : "^set system login password format sha1"
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Ensure the root account has been configured with a strong password"
+      info        : "NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration for the root user account to have a strong password."
+      regex       : "^set system root-authentication encrypted-password"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSF|PR.AC-1,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|CY6,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure login security options to hinder password guessing attacks - backoff-threshold"
+      info        : "The Junos default behavior for login security provides reasonable protection from password guessing attacks, but may not be suitable for every environment.
+
+Set the threshold for the number of failed login attempts before the user experiences a delay between login attempts. The range is from 1 through 3, with a default of 2."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure login security for the number of failed login attempts before delays are introduced.
+
+user@host# edit system login retry-options
+user@host# set backoff-threshold 1"
+      regex       : "^set system login retry-options backoff-threshold"
+# Note: Variable @RETRY_OPTIONS_BACKOFF@ replaced with "1" in field "expect".
+      expect      : "^set system login retry-options backoff-threshold 1$"
+      reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure login security options to hinder password guessing attacks - tries-before-disconnect"
+      info        : "The Junos default behavior for login security provides reasonable protection from password guessing attacks, but may not be suitable for every environment.
+
+Limit the maximum number of times a user is allowed to attempt to authenticate with the wrong password before the connection is terminated. The range is from 1 through 10. The system default is 10."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure login security for the number of failed login attempts before the attempt is disconnected.
+
+user@host# edit system login retry-options
+user@host# set tries-before-disconnect 3"
+      regex       : "^set system login retry-options tries-before-disconnect"
+# Note: Variable @RETRY_OPTIONS_TRIES@ replaced with "3" in field "expect".
+      expect      : "^set system login retry-options tries-before-disconnect 3$"
+      reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure login security options to hinder password guessing attacks - backoff-factor"
+      info        : "The Junos default behavior for login security provides reasonable protection from password guessing attacks, but may not be suitable for every environment.
+
+Define the delay time after each failed login attempt in seconds. The delay increases by this value for each subsequent login attempt after the value specified in the backoff-threshold option. The range is from 5 through 10. The default is 5."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure login security for the delay introduced between failed login attempts.
+
+user@host# edit system login retry-options
+user@host# set backoff-factor 7"
+      regex       : "^set system login retry-options backoff-factor"
+# Note: Variable @RETRY_OPTIONS_FACTOR@ replaced with "6" in field "expect".
+      expect      : "^set system login retry-options backoff-factor 6$"
+      reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure login security options to hinder password guessing attacks - minimum-time"
+      info        : "The Junos default behavior for login security provides reasonable protection from password guessing attacks, but may not be suitable for every environment.
+
+Limit the minimum length of time in seconds that the connection remains open while the user is attempting to enter a password to log in. The range is from 20 through 60. The default setting is 20."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure login security for minimum amount of time a login attempt has before disconnect.
+
+user@host# edit system login retry-options
+user@host# set minimum-time 15"
+      regex       : "^set system login retry-options minimum-time"
+# Note: Variable @RETRY_OPTIONS_MIN_TIME@ replaced with "30" in field "expect".
+      expect      : "^set system login retry-options minimum-time 30$"
+      reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure login security options to hinder password guessing attacks - maximum-time"
+      info        : "The Junos default behavior for login security provides reasonable protection from password guessing attacks, but may not be suitable for every environment.
+
+Limit the maximum length of time in seconds available for a user to enter a username and password before the connection is terminated. The range is from 20 through 30 with a default of 120."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure login security for maximum amount of time a login attempt has before disconnect.
+
+user@host# edit system login retry-options
+user@host# set maximum-time 15"
+      regex       : "^set system login retry-options maximum-time"
+# Note: Variable @RETRY_OPTIONS_MAX_TIME@ replaced with "60" in field "expect".
+      expect      : "^set system login retry-options maximum-time 60$"
+      reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure login security options to hinder password guessing attacks - lockout-period"
+      info        : "The Junos default behavior for login security provides reasonable protection from password guessing attacks, but may not be suitable for every environment.
+
+Set the amount of time in minutes before a user can attempt to login after being locked out due to the number of failed login attempts specified in Step 1 with the tries-before-disconnect statement. The range is from 1 through 43200 with a default of 120."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure login security for length of time the login is locked out.
+
+user@host# edit system login retry-options
+user@host# set lockout-period 15"
+      regex       : "^set system login retry-options lockout-period"
+# Note: Variable @RETRY_OPTIONS_LOCKOUT@ replaced with "10" in field "expect".
+      expect      : "^set system login retry-options lockout-period 10$"
+      reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Configure custom login classes to support engineers with different access levels using least privilege"
+      info        : "In Junos software user privileges are defined in a login class. All users that log in to a Junos device must be assigned a login class. Login classes allow you to define the following:
+* Access privileges when the user logs in to the device
+* Commands and statements that the user can and cannot execute
+* Other useful options such as time-based enforcement, idle time, and displaying system alarms on login
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration that there are multiple login classes and that engineers are assigned to the proper class in support of least privilege principle."
+      regex       : "^set system login user .+ class .+"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Restrict commands by job function"
+      info        : "Login class configuration is specific to each organization and the Junos OS has many options available to help you design a policy to meet your needs. You will have to experiment with different configurations until you find something that meets your requirements.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration that there are multiple login classes that restrict commands by job function in support of least privilege principle."
+      regex       : "^set system login class .+"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Set appropriate idle timeout values for all login classes"
+      info        : "Set the inactivity time to a value that is reasonable for your environment. After this period of time, users will be automatically logged off of the system. Note that users will receive warning messages alerting them that their session will be timed out.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration that there are multiple login classes that have reasonable idle time out values based on job function."
+      regex       : "^set system login class .+ idle-timeout [1-9][0-9]*"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Limit access to ## SECRET-DATA"
+      info        : "Sensitive authentication information is stored in the configuration and access should be restricted to small number of trusted engineers."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration that there are multiple login classes that allow SECRET-DATA to be visible to a limited number of engineers."
+      regex       : "^set system login class .+ view-configuration"
+      expect      : "^set system login class .+ view-configuration"
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "User Authentication Security - Centralized authentication - Use a strong shared secret that complies with your organization's policy"
+      info        : "Set the shared secret password (this should be a strong password that is difficult to guess and that follows your password complexity policy).
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration for the Radius and TACACS+ systems that they use a strong shared secret that adheres to the company's password complexity policy."
+    </report>
+
+    <if>
+      <condition type:"OR">
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check for radius-server"
+          regex       : "^set system radius-server"
+          expect      : "^set system radius-server"
+        </custom_item>
+
+        <custom_item>
+          type        : CONFIG_CHECK
+          description : "Check for tacplus-server"
+          regex       : "^set system tacplus-server"
+          expect      : "^set system tacplus-server"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Check for radius-server"
+              regex       : "^set system radius-server"
+              expect      : "^set system radius-server"
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              type            : CONFIG_CHECK
+              description     : "User Authentication Security - Centralized authentication - Configure multiple servers for resiliency - Radius"
+              info            : "It is recommended that you configure multiple RADIUS servers on separate subnets for resiliency."
+              see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution        : "Configure multiple Radius servers for redundancy.
+
+user@host# edit system radius-server <IP_ADDRESS>
+user@host# set port 1812"
+              regex           : "^set system radius-server .+ port"
+              number_of_lines : "^([2-9]|[1-9][0-9]+)$"
+              reference       : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8"
+            </custom_item>
+
+            <custom_item>
+              type            : CONFIG_CHECK
+              description     : "User Authentication Security - Centralized authentication - Configure accounting to trace activity and usage - Radius"
+              info            : "In larger networks, centralized authentication is almost a necessity to consistently enforce password policies and manage user accounts."
+              see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution        : "Configure accounting for each Radius server.
+
+user@host# edit system accounting destination radius server <IP_ADDRESS>
+user@host# set accounting-port 1813"
+              regex           : "^set system accounting destination radius server .+ accounting-port .+"
+              number_of_lines : "([2-9]|[1-9][0-9]+)"
+              reference       : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+            </custom_item>
+          </then>
+        </if>
+
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              type        : CONFIG_CHECK
+              description : "Check for tacplus-server"
+              regex       : "^set system tacplus-server"
+              expect      : "^set system tacplus-server"
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              type            : CONFIG_CHECK
+              description     : "User Authentication Security - Centralized authentication - Configure multiple servers for resiliency - TACACS+"
+              info            : "It is recommended that you configure multiple TACACS+ servers on separate subnets for resiliency."
+              see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution        : "Configure multiple TACACS+ servers for redundancy.
+
+user@host# edit system tacplus-server <IP_ADDRESS>
+user@host# set port 49"
+              regex           : "^set system tacplus-server .+ port"
+              number_of_lines : "^([2-9]|[1-9][0-9]+)$"
+              reference       : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8"
+            </custom_item>
+
+            <custom_item>
+              type            : CONFIG_CHECK
+              description     : "User Authentication Security - Centralized authentication - Configure accounting to trace activity and usage - TACACS+"
+              info            : "In larger networks, centralized authentication is almost a necessity to consistently enforce password policies and manage user accounts."
+              see_also        : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+              solution        : "Configure accounting for each TACACS+ server.
+
+user@host# edit system accounting destination tacplus server <IP_ADDRESS>
+user@host# set accounting-port 49"
+              regex           : "^set system accounting destination tacplus server .+ port .+"
+              number_of_lines : "([2-9]|[1-9][0-9]+)"
+              reference       : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+            </custom_item>
+          </then>
+        </if>
+      </then>
+
+      <else>
+        <report type:"PASSED">
+          description : "User Authentication Security - Centralized authentication - Configure multiple servers for resiliency - TACACS+"
+          info        : "It is recommended that you configure multiple TACACS+ servers on separate subnets for resiliency.
+
+NOTE: RADIUS and TACACS+ does not appear to be configured."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "If centralized management is required, configure multiple Radius and/or TACACS+ servers for redundancy."
+          reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8"
+        </report>
+
+        <report type:"PASSED">
+          description : "User Authentication Security - Centralized authentication - Configure accounting to trace activity and usage"
+          info        : "In larger networks, centralized authentication is almost a necessity to consistently enforce password policies and manage user accounts.
+
+NOTE: RADIUS and TACACS+ does not appear to be configured."
+          see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+          solution    : "If centralized management is required, configure accounting for each Radius and TACACS+ servers."
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Centralized authentication - Create an emergency local account in the event authentication is unavailable"
+      info        : "But whether you are in a large or small network, at least one local user account should always be configured on your network devices for emergency purposes."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Create an emergency privilaged account, with a strong password, for use as backup in the event that root or centralized authentication fails.
+
+user@host# edit system login user <EMERGENCY_NAME>
+user@host# set full-name \"emergency local account\"
+user@host# set authentication encrpyted-password <PASSWORD>"
+# Note: Variable @EMERGENCY_LOCAL_ACCOUNT@ replaced with "emergency" in field "regex".
+      regex       : "^set system login user emergency authentication encrypted-password .+"
+# Note: Variable @EMERGENCY_LOCAL_ACCOUNT@ replaced with "emergency" in field "expect".
+      expect      : "^set system login user emergency authentication encrypted-password .+"
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Local Authentication - Know the origin and purpose for all configured local accounts"
+      info        : "The full-name option can also be used to provide contact information for that user account such as phone number, department the engineer works in, etc.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the user accounts on the system for the orgin and purpose of each account.  It would be beneficial to use the full-name field to document the name, orgin, and purpose."
+      regex       : "^set system login user .+ (full-name|authentication) .+"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Local Authentication - Limit local accounts to required users"
+      info        : "Like most network operating systems, the Junos OS allows for the creation of local user accounts, and there are two types of local user accounts on a Junos device: the root user and a regular user account.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the user accounts on the system and verify that each account is required access to the device."
+      regex       : "^set system login user .+ (full-name|authentication) .+"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "User Authentication Security - Local Authentication - Use a strong password that complies with your organization's password policy"
+      info        : "When configuring local accounts, you should ensure engineers choose passwords of an acceptable strength so your network devices are not compromised by something as simple as a poorly chosen password.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the user accounts on the system and verify that each account has a password that complies with your organizations password policy."
+    </report>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "User Authentication Security - Local Authentication - Set the authentication-order to meet your login security policy"
+      info        : "The authentication-order option is used to prioritize the order in which Junos utilizes those configured authentication methods."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Set the authentication order of the device to meet your login security policy.
+
+user@host# edit system
+user@host# set authentication-order [ radius tacplus password ]"
+      regex       : "^set system authentication-order"
+      expect      : "^set system authentication-order"
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CN-L3|8.1.4.1(a),CN-L3|8.1.4.2(a),CN-L3|8.5.4.1(a),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8,TBA-FIISB|35.1,TBA-FIISB|36.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Routing Protocol Security - Ensure routing protocols are only configured on required interfaces"
+      info        : "Stable routing is very important to the overall success of any network. It is a recommended security practice to authenticate all routing protocol traffic to ensure that only trusted routers are participating in routing exchanges.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration to verify that routing protocols exist only on required interfaces."
+      regex       : "^set protocols (isis|ospf|ospf3|rip|lldp) .*(interface|neighbor)"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Routing Protocol Security - BGP communication should source from a loopback interface"
+      info        : "The loopback interface (lo0) is used to establish connections between IBGP peers. The loopback interface is always up as long as the device is operating. If there is a route to the loopback address, the IBGP peer session stays up. If a physical interface address is used instead and that interface goes up and down, the IBGP peer session also goes up and down. Thus, if the device has link redundancy, the loopback interface provides fault tolerance in case the physical interface or one of the links goes down."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Set the BGP communication to source from the loopback interface.
+
+user@host# edit protocols bgp group <GROUP_NAME>
+user@host# set local-address <IP_ADDRESS>"
+      regex       : "set protocols bgp group .+ local-address .+"
+      expect      : "set protocols bgp group .+ local-address .+"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Routing Protocol Security - Select the strongest algorithm that is supported by your equipment and your neighbors - BGP"
+      info        : "Stable routing is very important to the overall success of any network. It is a recommended security practice to authenticate all routing protocol traffic to ensure that only trusted routers are participating in routing exchanges."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Set the BGP authentication to use the strongest algorithm available in your environment.
+
+user@host# edit protocols bgp group <GROUP_NAME>
+user@host# set neighbor <IP_ADDRESS>
+user@host# set authentication-algorithm <ALGORITHM>"
+# Note: Variable @AUTHENTICATION_ALGORITHM@ replaced with "md5" in field "regex".
+      regex       : "^set protocols bgp group .+ neighbor .+ authentication-algorithm md5"
+# Note: Variable @AUTHENTICATION_ALGORITHM@ replaced with "md5" in field "expect".
+      expect      : "^set protocols bgp group .+ neighbor .+ authentication-algorithm md5"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Routing Protocol Security - Select the strongest algorithm that is supported by your equipment and your neighbors - ISIS"
+      info        : "Stable routing is very important to the overall success of any network. It is a recommended security practice to authenticate all routing protocol traffic to ensure that only trusted routers are participating in routing exchanges."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Set the ISIS authentication to use the strongest algorithm available in your environment.
+
+user@host# edit protocols isis level <LEVEL>
+user@host# set authentication-type <ALGORITHM>"
+# Note: Variable @AUTHENTICATION_ALGORITHM@ replaced with "md5" in field "regex".
+      regex       : "^set protocols isis level [1-9] authentication-type md5"
+# Note: Variable @AUTHENTICATION_ALGORITHM@ replaced with "md5" in field "expect".
+      expect      : "^set protocols isis level [1-9] authentication-type md5"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Routing Protocol Security - Select the strongest algorithm that is supported by your equipment and your neighbors - OSPF"
+      info        : "Stable routing is very important to the overall success of any network. It is a recommended security practice to authenticate all routing protocol traffic to ensure that only trusted routers are participating in routing exchanges."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Set the OSPF authentication to use the strongest algorithm available in your environment.
+
+user@host# edit protocols ospf area <ADDRESS>
+user@host# set authentication <ALGORITHM> <INDEX> key <PASSWORD>"
+      regex       : "^set protocols ospf area .+ interface .+ authentication .+"
+# Note: Variable @AUTHENTICATION_ALGORITHM@ replaced with "md5" in field "expect".
+      expect      : "^set protocols ospf area .+ interface .+ authentication md5 [1-9][0-9]* key .*"
+      reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Routing Protocol Security - Select the strongest algorithm that is supported by your equipment and your neighbors - RIP"
+      info        : "Stable routing is very important to the overall success of any network. It is a recommended security practice to authenticate all routing protocol traffic to ensure that only trusted routers are participating in routing exchanges."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Set the RIP authentication to use the strongest algorithm available in your environment.
+
+user@host# edit protocols rip
+user@host# set authentication-type <ALGORITHM>"
+# Note: Variable @AUTHENTICATION_ALGORITHM@ replaced with "md5" in field "regex".
+      regex       : "^set protocols rip authentication-type md5"
+# Note: Variable @AUTHENTICATION_ALGORITHM@ replaced with "md5" in field "expect".
+      expect      : "^set protocols rip authentication-type md5"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "Routing Protocol Security - Use strong authentication keys that meet your organization's password complexity policy"
+      info        : "Stable routing is very important to the overall success of any network. It is a recommended security practice to authenticate all routing protocol traffic to ensure that only trusted routers are participating in routing exchanges.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the authentication keys used on the routing protocols and verify the password strength."
+    </report>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Routing Protocol Security - Limit key exposure by using separate authentication keys for different organizations"
+      info        : "To be effective, route authentication needs to be configured across the entire routing domain with every peer router. Even though the authentication keys are stored in a cryptographically obscured form in the Junos configuration, steps should be taken to restrict which engineers can view them.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the authentication keys used on the routing protocols and verify the different keys are used for each protocol."
+      regex       : "set protocols .+ (authentication-key|authentication .+ key) .+"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-53|IA-3,CSF|PR.AC-1,ITSG-33|IA-3,NESA|T5.4.3,TBA-FIISB|27.1"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "Routing Protocol Security - Periodically change route authentication keys in accordance with your organization's security policy"
+      info        : "It's a good security practice to periodically change static passwords. This includes route authentication keys which can become more tedious or possibly unmanageable in large networks.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Interview the system engineers to verify that the keys are changed periodically in accordance with your organization's security policy."
+    </report>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Firewall Filter - Protect the Routing Engine using a default deny firewall filter"
+      info        : "Finally, configure the default deny term to discard and log all traffic. The log option saves the packet header information in a buffer on the Packet Forwarding Engine (PFE) and the syslog option stores the packet header information on the Routing Engine."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the firewall engine to deny all unknown traffic.
+
+user@host# edit firewall family inet filter <NAME>
+user@host# set term default-deny"
+      regex       : "set firewall family .+ term default-deny"
+      expect      : "set firewall family .+ term default-deny"
+      reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-7(5),CN-L3|7.1.2.2(c),CSF|PR.PT-4,ITSG-33|SC-7(5),NIAv2|GS7b,NIAv2|NS25"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Firewall Filter - Order terms with time sensitive protocols at the top"
+      info        : "Firewall filters are processed in order from the top to the bottom. Although most Junos platforms process firewall filters in hardware at line rate, it's always a best practice to order your terms so that time sensitive protocols, like routing protocols, are positioned close to the top of the filter.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration to verify the order of the firewall rules allow for time sensitive protocols to be applied first."
+      regex       : "set firewall .+ term .+"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.13.1,800-53|SC-7(11),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),NIAv2|GS7c,TBA-FIISB|31.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Firewall Filter - Permit only required protocols from authorized sources"
+      info        : "Create a basic firewall filter to permit only the required services and traffic and then deny everything else to the Routing Engine.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration to verify that only required protocols are allowed and are restricted to come from authorized sources."
+      regex       : "set firewall .+ term .+"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-171|3.13.1,800-53|SC-7(11),CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(11),NIAv2|GS7c,TBA-FIISB|31.3"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Firewall Filter - Rate-limit SYN packets to protect against a SYN flood attack"
+      info        : "Flood attacks try to overwhelm the target device in an attempt to consume all system resources. Common flood attacks have been successful using ICMP and TCP SYN packets, but flood attacks using other packet types are definitely possible. This section applies policers to protocols that are commonly used in flooding attacks."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the firewall to protect against SYN flood attacks.
+
+user@host# edit firewall family inet filter <NAME>
+user@host# set term synflood-protect then policer <POLICER_NAME>"
+      regex       : "set firewall .+ protect-re term synflood-protect then policer .+"
+      expect      : "set firewall .+ protect-re term synflood-protect then policer .+"
+      reference   : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Firewall Filter - Rate-limit authorized protocols using policers"
+      info        : "Rate-limiting provides another layer of protection in a filter. In addition to allowing only specific protocols from specific hosts, you can also rate limit the amount of allowed traffic to reasonable levels, ensuring that authorized hosts cannot flood the Routing Engine.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Review the system configuration to verify that authorized protocols are rate limited with policiers."
+      regex       : "set firewall .+ term allow-.+ then policer"
+      expect      : "manual review required"
+      severity    : MEDIUM
+      reference   : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6"
+    </custom_item>
+
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Firewall Filter - Ensure the last term, default-deny, includes the syslog option"
+      info        : "Finally, configure the default deny term to discard and log all traffic. The log option saves the packet header information in a buffer on the Packet Forwarding Engine (PFE) and the syslog option stores the packet header information on the Routing Engine."
+      see_also    : "http://www.juniper.net/us/en/training/jnbooks/day-one/fundamentals-series/hardening-junos-devices-checklist/"
+      solution    : "Configure the firewall engine to log denied traffic.
+
+user@host# edit firewall family inet filter <NAME>
+user@host# set term default-deny then syslog"
+      regex       : "set firewall family .+ default-deny then syslog"
+      expect      : "set firewall family .+ default-deny then syslog"
+      reference   : "800-171|3.13.1,800-171|3.13.6,800-53|SC-7(5),CN-L3|7.1.2.2(c),CSF|PR.PT-4,ITSG-33|SC-7(5),NIAv2|GS7b,NIAv2|NS25"
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type        : CONFIG_CHECK
+      description : "Audited configuration or device is JUNOS 12."
+      info        : "This .audit is based on the checklist for the book 'This Week: Hardening Junos Devices, Second Edition' by John Weidley, available at http://www.juniper.net/dayone.
+
+All features discussed in this book are available and tested in Junos 12.3 (current recommended code) and for some features the book discusses options available in later code release."
+      regex       : "set version .+"
+      expect      : "set version 12.*"
+      reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35"
+    </custom_item>
+  </else>
+</if>
+
+</check_type>

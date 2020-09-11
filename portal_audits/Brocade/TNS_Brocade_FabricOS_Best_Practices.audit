@@ -1,0 +1,1052 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.21 $
+# $Date: 2020/04/17 $
+#
+# Description : This .audit is designed to review the configuration of a Brocade Fabric OS switch
+#               and validate its settings against a comprehensive list of important settings.
+#
+#
+# Note		  : Some queries in this .audit require site-specific data to be
+# 			known to the query in order to function properly.  Please note
+# 			the following queries and edit their values accordingly.
+#
+# 			Brocade : 'Forward all error logs to syslog daemon'
+# 			Brocade : 'Review the NTP server configuration'
+# 			Brocade : 'SCP server host is approved'
+# 			Brocade : 'SNMPv3 trap targets are configured properly'
+#
+#<ui_metadata>
+#<display_name>TNS Brocade FabricOS Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Brocade FabricOS Best Practices</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>brocade,tenable,fabricos</labels>
+#<variables>
+#  <variable>
+#    <name>SYSLOG</name>
+#    <default>192\.168\.0\.1</default>
+#    <description>SYSLOG server IP</description>
+#    <info>The IP address of a trusted syslog daemon server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>NTP_SERVER</name>
+#    <default>192\.168\.0\.1</default>
+#    <description>NTP server IP</description>
+#    <info>The IP address of a trusted NTP server for your organization. The default value is LOCL.</info>
+#  </variable>
+#  <variable>
+#    <name>SCP_SERVER</name>
+#    <default>192\.168\.0\.1</default>
+#    <description>SCP server IP</description>
+#    <info>The IP address of a trusted SCP server for your organization.</info>
+#  </variable>
+#  <variable>
+#    <name>SNMPv3_TRAPTARGET</name>
+#    <default>192\.168\.0\.1</default>
+#    <description>SNMPv3 trap target</description>
+#    <info>SNMPv3 IP address of traps, to add more replace 0 with 1,2 or 3 etc.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Brocade">
+
+## Block Telnet IPv4
+
+<custom_item>
+  description : "Brocade : 'Disable Telnet IPv4'"
+  info        : "Telnet is enabled by default."
+  info        : "To prevent passing clear text passwords over the network when connecting to the switch, you can block the Telnet protocol using an IP Filter policy"
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to disable Telnet is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 23 -proto\n
+
+ tcp -act deny\n"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),COBIT5|DSS05.02,CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  cmd         : "ipfilter --show"
+  context     : "ipv4.+active"
+  regex       : "tcp[\s]+23"
+  expect      : "deny"
+</custom_item>
+
+## Block Telnet IPv6
+
+<custom_item>
+  description : "Brocade : 'Disable Telnet IPv6'"
+  info        : "Telnet is enabled by default."
+  info        : "To prevent passing clear text passwords over the network when connecting to the switch, you can block the Telnet protocol using an IP Filter policy"
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to disable Telnet is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 23 -proto\n
+
+ tcp -act deny\n"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),COBIT5|DSS05.02,CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  cmd         : "ipfilter --show"
+  context     : "ipv6.+active"
+  regex       : "tcp[\s]+23"
+  expect      : "deny"
+</custom_item>
+
+## Permit SSH IPv4
+
+<custom_item>
+  description : "Brocade : 'Enable SSH IPv4'"
+  info        : "SSH uses asymmetric authentication to exchange keys and create a secure encrypted session."
+  info        : "It is recommended that you use Secure Shell (SSH) instead of Telnet."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable SSH is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 22 -proto\n
+
+ tcp -act permit\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11"
+  cmd         : "ipfilter --show"
+  context     : "ipv4.+active"
+  regex       : "tcp[\s]+22"
+  expect      : "permit"
+</custom_item>
+
+## Permit SSH IPv6
+
+<custom_item>
+  description : "Brocade : 'Enable SSH IPv6'"
+  info        : "SSH uses asymmetric authentication to exchange keys and create a secure encrypted session."
+  info        : "It is recommended that you use Secure Shell (SSH) instead of Telnet."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable SSH is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 22 -proto\n
+
+ tcp -act permit\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11"
+  cmd         : "ipfilter --show"
+  context     : "ipv6.+active"
+  regex       : "tcp[\s]+22"
+  expect      : "permit"
+</custom_item>
+
+## Block HTTP IPv4
+
+<custom_item>
+  description : "Brocade : 'Disable HTTP IPv4'"
+  info        : "The HTTP interface that is started by default has the same limitations as Telnet."
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to disable HTTP is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 80 -proto\n
+
+ tcp -act deny\n"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),COBIT5|DSS05.02,CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  cmd         : "ipfilter --show"
+  context     : "ipv4.+active"
+  regex       : "tcp[\s]+80"
+  expect      : "deny"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Disable HTTP'"
+  info        : "The HTTP interface that is started by default has the same limitations as Telnet."
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to disable HTTP is as follows\n
+
+ switch:admin> seccertutil genkey\n
+
+ Generating a new key pair will automatically do the following:\n
+
+ 1. Delete all existing CSRs.\n
+
+ 2. Delete all existing certificates.\n
+
+ 3. Reset the certificate filename to none.\n
+
+ 4. Disable secure protocols.\n
+
+ Continue (yes, y, no, n): [no] y\n
+
+ Select key size [1024 or 2048]: 1024\n
+
+ Generating new rsa public/private key pair\n
+
+ Done.\n"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),COBIT5|DSS05.02,CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  regex       : "http\.enabled"
+  expect      : "http\.enabled:0"
+</custom_item>
+
+## Block HTTP IPv6
+
+<custom_item>
+  description : "Brocade : 'Disable HTTP IPv6'"
+  info        : "The HTTP interface that is started by default has the same limitations as Telnet."
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to disable HTTP is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 80 -proto\n
+
+ tcp -act deny\n"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),COBIT5|DSS05.02,CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  cmd         : "ipfilter --show"
+  context     : "ipv6.+active"
+  regex       : "tcp[\s]+80"
+  expect      : "deny"
+</custom_item>
+
+## Permit HTTPS IPv4
+
+<custom_item>
+  description : "Brocade : 'Enable HTTPS IPv4'"
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled."
+  info        : "HTTPS is HTTP traffic running over a Secure Sockets Layer (SSL)."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable HTTPS is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 443 -proto\n
+
+ tcp -act permit\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10"
+  cmd         : "ipfilter --show"
+  context     : "ipv4.+active"
+  regex       : "tcp[\s]+443"
+  expect      : "permit"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Enable HTTPS'"
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled."
+  info        : "HTTPS is HTTP traffic running over a Secure Sockets Layer (SSL)."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable HTTPS is as follows\n
+
+ switch:admin> seccertutil genkey\n
+
+ Generating a new key pair will automatically do the following:\n
+
+ 1. Delete all existing CSRs.\n
+
+ 2. Delete all existing certificates.\n
+
+ 3. Reset the certificate filename to none.\n
+
+ 4. Disable secure protocols.\n
+
+ Continue (yes, y, no, n): [no] y\n
+
+ Select key size [1024 or 2048]: 1024\n
+
+ Generating new rsa public/private key pair\n
+
+ Done.\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10"
+  regex       : "http\.ssl\.enabled"
+  expect      : "http\.ssl\.enabled:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Enable HTTPS ssl log'"
+  info        : "HTTPS is HTTP traffic running over a Secure Sockets Layer (SSL)."
+  info        : "Ensure the HTTP ssl logs are enabled."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable HTTPS is as follows\n
+
+ switch:admin> seccertutil genkey\n
+
+ Generating a new key pair will automatically do the following:\n
+
+ 1. Delete all existing CSRs.\n
+
+ 2. Delete all existing certificates.\n
+
+ 3. Reset the certificate filename to none.\n
+
+ 4. Disable secure protocols.\n
+
+ Continue (yes, y, no, n): [no] y\n
+
+ Select key size [1024 or 2048]: 1024\n
+
+ Generating new rsa public/private key pair\n
+
+ Done.\n"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(e)(1),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|2.2.3,SANS-CSC|10,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  regex       : "http\.ssllog\.enabled"
+  expect      : "http\.ssllog\.enabled:1"
+</custom_item>
+
+## Permit HTTPS IPv6
+
+<custom_item>
+  description : "Brocade : 'Enable HTTPS IPv6'"
+  info        : "It is recommended that the HTTPS interface be configured and the HTTP interface be disabled."
+  info        : "HTTPS is HTTP traffic running over a Secure Sockets Layer (SSL)."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable HTTPS is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 443 -proto\n
+
+ tcp -act permit\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10"
+  cmd         : "ipfilter --show"
+  context     : "ipv6.+active"
+  regex       : "tcp[\s]+443"
+  expect      : "permit"
+</custom_item>
+
+## Block TFTP IPv4
+
+<custom_item>
+  description : "Brocade : 'Disable TFTP IPv4'"
+  info        : "TFTP client and server should be disabled as they do not require any authentication."
+  info        : "Secure File Transfer Protocol (SFTP) and Secure Copy Protocol (SCP) are recommended as they are part of the SSH protocol suite."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to disable TFTP is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 69 -proto\n
+
+ tcp -act deny\n"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),COBIT5|DSS05.02,CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  cmd         : "ipfilter --show"
+  context     : "ipv4.+active"
+  regex       : "tcp[\s]+69"
+  expect      : "deny"
+</custom_item>
+
+## Block TFTP IPv6
+
+<custom_item>
+  description : "Brocade : 'Disable TFTP IPv6'"
+  info        : "TFTP client and server should be disabled as they do not require any authentication."
+  info        : "Secure File Transfer Protocol (SFTP) and Secure Copy Protocol (SCP) are recommended as they are part of the SSH protocol suite."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to disable TFTP is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 69 -proto\n
+
+ tcp -act deny\n"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),COBIT5|DSS05.02,CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,HIPAA|164.312(e)(1),ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  cmd         : "ipfilter --show"
+  context     : "ipv6.+active"
+  regex       : "tcp[\s]+69"
+  expect      : "deny"
+</custom_item>
+
+## Permit SFTP IPv4
+
+<custom_item>
+  description : "Brocade : 'Enable SFTP IPv4'"
+  info        : "Secure File Transfer Protocol (SFTP) and Secure Copy Protocol (SCP) are part of the SSH protocol suite."
+  info        : "They provide an encrypted session using public/private keys between client and server."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable SFTP is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 115 -proto\n
+
+ tcp -act permit\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11"
+  cmd         : "ipfilter --show"
+  context     : "ipv4.+active"
+  regex       : "tcp[\s]+115"
+  expect      : "permit"
+</custom_item>
+
+## Permit SFTP IPv6
+
+<custom_item>
+  description : "Brocade : 'Enable SFTP IPv6'"
+  info        : "Secure File Transfer Protocol (SFTP) and Secure Copy Protocol (SCP) are part of the SSH protocol suite."
+  info        : "They provide an encrypted session using public/private keys between client and server."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "The command to enable SFTP is as follows\n
+
+ switch:admin> ipfilter --addrule policy_name -rule rule_number -sip any -dp 115 -proto\n
+
+ tcp -act permit\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11"
+  cmd         : "ipfilter --show"
+  context     : "ipv6.+active"
+  regex       : "tcp[\s]+115"
+  expect      : "permit"
+</custom_item>
+
+## Password Configuration
+
+<custom_item>
+  description : "Brocade : 'minimum number of lowercase characters set to 1'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The minimum number of lowercase characters that must appear in the password must be set to 1 or greater."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -lowercase 1\n"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  regex       : "passwdcfg\.lowercase"
+  expect      : "passwdcfg\.lowercase:[1-9]"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'minimum number of uppercase characters set to 1'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The minimum number of uppercase characters that must appear in the password must be set to 1 or greater."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -uppercase 1\n"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  regex       : "passwdcfg\.uppercase"
+  expect      : "passwdcfg\.uppercase:[1-9]"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'minimum number of numeric digits set to 1'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The minimum number of numeric digits that must appear in the password must be set to 1 or greater."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -digits 1\n"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  regex       : "passwdcfg\.digits"
+  expect      : "passwdcfg\.digits:[1-9]"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'minimum number of punctuation characters set to 1'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The minimum number of punctuation character that must appear in the password must be set to 1 or greater."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -punctuation 1\n"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  regex       : "passwdcfg\.punctuation"
+  expect      : "passwdcfg\.punctuation:+[1-9][0-9]*"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'minimum length of the password must be set to 9'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The minimum length of the password must be set to 9."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -minlength 9\n"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  regex       : "passwdcfg\.minlength"
+  expect      : "passwdcfg\.minlength:([1-9][0-9]|9)"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'repeat characters must be set to 1'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The length of repeated character sequences must be set to 1."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -repeat 1\n"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM22d,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1"
+  regex       : "passwdcfg\.repeat"
+  expect      : "passwdcfg\.repeat:+[1-9][0-9]*"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'sequential characters must be set to 2'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The length of sequential character sequences must be set to 2."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -sequence 2\n"
+  reference   : "800-171|3.5.7,800-53|IA-5(1),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM22d,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SANS-CSC|12,SWIFT-CSCv1|4.1"
+  regex       : "passwdcfg\.sequence"
+  expect      : "passwdcfg\.sequence:([1-9][0-9]|[2-9])"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'password history must be set to 1'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "The password history policy prevents users from recycling recently used passwords."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -history 1\n"
+  reference   : "800-171|3.5.8,800-53|IA-5(1),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM22c,PCI-DSSv3.1|8.2.5,PCI-DSSv3.2|8.2.5,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.3"
+  regex       : "passwdcfg\.history"
+  expect      : "passwdcfg\.history:([1-9][0-9]|[1-9])"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'minimum password age must be set to at least 30 days'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "Specifies the minimum number of days that must elapse before a user can change a password."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -minpasswordage 30\n"
+  reference   : "800-171|3.5.10,800-171|3.5.7,800-171|3.5.8,800-171|3.5.9,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,PCI-DSSv3.1|8.2.4,PCI-DSSv3.2|8.2.4,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+  regex       : "passwdcfg\.minpasswordage"
+  expect      : "passwdcfg\.minpasswordage:([3-9][0-9])"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'maximum password age must be set to no more than 60 days'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "Specifies the maximum number of days that can elapse before a password must be changed."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -maxpasswordage 60\n"
+  reference   : "800-171|3.5.10,800-171|3.5.7,800-171|3.5.8,800-171|3.5.9,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),COBIT5|DSS05.04,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),NESA|T5.2.3,NIAv2|AM20,NIAv2|AM21,PCI-DSSv3.1|8.2.4,PCI-DSSv3.2|8.2.4,SANS-CSC|16,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.2"
+  regex       : "passwdcfg\.maxpasswordage"
+  expect      : "passwdcfg\.maxpasswordage:([1-5][0-9]|60)"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'password warning must be set to at least 30 days'"
+  info        : "The password strength policy is enforced across all user accounts, and enforces a set of format rules to which new passwords must adhere."
+  info        : "Specifies the maximum number of days that can elapse before a password must be changed."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -warning 30\n"
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),COBIT5|DSS05.04,CSCv6|16.7,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,SANS-CSC|16,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  regex       : "passwdcfg\.warning"
+  expect      : "passwdcfg\.warning:([3-9][0-9])"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'enable administrator account lockout'"
+  info        : "The account lockout policy disables a user account when that user exceeds a specified number of failed login attempts, and is enforced across all user accounts."
+  info        : "The admin account lockout policy must be enabled and uses the same lockout threshold as the other permissions."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --enableadminlockout\n"
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),CSCv6|16.7,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,PCI-DSS|2.2.3,SANS-CSC|16,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  regex       : "passwdcfg\.adminlockout"
+  expect      : "passwdcfg\.adminlockout:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'lockout threshold set to 3'"
+  info        : "The account lockout policy disables a user account when that user exceeds a specified number of failed login attempts, and is enforced across all user accounts."
+  info        : "Specifies the number of times a user can attempt to log in using an incorrect password before the account is locked."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -lockoutthreshold 3\n"
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),COBIT5|DSS05.04,CSCv6|16.7,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,PCI-DSS|2.2.3,SANS-CSC|16,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  regex       : "passwdcfg\.lockoutthreshold"
+  expect      : "passwdcfg\.lockoutthreshold:[1-3]"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'lockout duration set to 30 minutes'"
+  info        : "The account lockout policy disables a user account when that user exceeds a specified number of failed login attempts, and is enforced across all user accounts."
+  info        : "Specifies the time, in minutes, after which a previously locked account is automatically unlocked."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Password authentication policies configured using the passwdCfg command\n
+
+ swd77:admin> passwdcfg --set -lockoutduration 30\n"
+  reference   : "800-171|3.1.8,800-53|AC-7,CN-L3|8.1.4.1(b),COBIT5|DSS05.04,CSCv6|16.7,CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,PCI-DSS|2.2.3,SANS-CSC|16,TBA-FIISB|36.2.4,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+  regex       : "passwdcfg\.lockoutduration"
+  expect      : "passwdcfg\.lockoutduration:([1-9]\d{2,}|[3-9]\d{1,})"
+</custom_item>
+
+## User Configuration
+
+<custom_item>
+  description : "Brocade : 'administrator account is enabled with admin role assigned'"
+  info        : "Role-Based Action Control (RBAC) specifies the permissions that a user account has based on the role the account has been assigned."
+  info        : "The role that your account is associated with determines the level of access you have on that switch and in the fabric."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "User configuration policies are configured using the userconfig command command\n
+
+ swd77:admin> userconfig --change admin -e yes\n
+
+ swd77:admin> userconfig --change root -r admin\n"
+  reference   : "800-171|3.1.1,800-53|AC-2(7),COBIT5|DSS05.04,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-2(7),NESA|M5.3.1,PCI-DSS|2.2.3,SANS-CSC|12"
+  cmd         : "userconfig --show -a"
+  context     : "Role: admin"
+  context     : "Enabled: Yes"
+  expect      : "Account name: admin"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'root account is enabled with root role assigned'"
+  info        : "Role-Based Action Control (RBAC) specifies the permissions that a user account has based on the role the account has been assigned."
+  info        : "The role that your account is associated with determines the level of access you have on that switch and in the fabric."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "User configuration policies are configured using the userconfig command\n
+
+ swd77:admin> userconfig --change root -e yes\n
+
+ swd77:admin> userconfig --change root -r root\n"
+  reference   : "800-171|3.1.1,800-53|AC-2(7),COBIT5|DSS05.04,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.308(a)(5)(ii)(D),ITSG-33|AC-2(7),NESA|M5.3.1,PCI-DSS|2.2.3,SANS-CSC|12"
+  cmd         : "userconfig --show -a"
+  context     : "Role: root"
+  context     : "Enabled: Yes"
+  expect      : "Account name: root"
+</custom_item>
+
+## FIPS Mode
+
+<custom_item>
+  description : "Brocade : 'FIPS Mode is enabled'"
+  info        : "Federal information processing standards (FIPS) specify the security standards to be satisfied by a cryptographic module utilized in Fabric OS v6.0.0 and later to protect sensitive information in the switch."
+  info        : "FIPS mode, when enabled, is a chassis-wide setting that affects all logical switches. Once enabled, FIPS mode cannot be disabled."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "FIPS can be enabled using the fipscfg command\n
+
+ swd77:admin> fipscfg --enable fips\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,CCE|CCE-3084-1,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(a)(2)(iv),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,LEVEL|1NS,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,SANS-CSC|17,SANS-CSC|3"
+  regex       : "fips\.mode"
+  expect      : "fips\.mode:1"
+</custom_item>
+
+## Chassis Configuration
+
+<custom_item>
+  description : "Brocade : 'Enforce secure Config Upload/Download'"
+  info        : "SCP encrypts data during transfer, thereby avoiding packet sniffers that attempt to extract useful information during data transfer."
+  info        : "Enables secure configuration upload or download."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "configurechassis command changes chassis-level system configuration settings\n
+
+ switch:admin> configurechassis\n
+
+cfgload attributes (yes, y, no, n): [no] y\n
+
+ Enforce secure config Upload/Download (yes, y, no, n): [no]y\n
+
+ Enforce signature validation for firmware (yes, y, no, n): [no]\n
+
+ Add Suffix to the uploaded file name (yes, y, no, n): [no]\n
+
+Custom attributes (yes, y, no, n): [no]\n
+
+system attributes (yes, y, no, n): [no]\n"
+  reference   : "800-171|3.13.8,800-53|SC-8,CN-L3|8.1.2.2(a),CN-L3|8.1.2.2(b),CN-L3|8.1.4.7(a),CN-L3|8.1.4.8(a),CN-L3|8.2.4.5(c),CN-L3|8.2.4.5(d),CN-L3|8.5.2.2,COBIT5|DSS05.02,CSF|PR.DS-2,CSF|PR.DS-5,HIPAA|164.312(e)(1),ITSG-33|SC-8,NESA|T4.3.1,NESA|T4.3.2,NESA|T4.5.1,NESA|T4.5.2,NESA|T7.3.3,NESA|T7.4.1,NIAv2|IE12,NIAv2|IE8,NIAv2|IE9,NIAv2|NS29,NIAv2|SS24,PCI-DSS|4.1,SANS-CSC|10"
+  regex       : "cfgload\.secure"
+  expect      : "cfgload\.secure:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Enforce signature validation for firmware'"
+  info        : "This setting ensures that firmware packages are valid."
+  info        : "Enables signature validation enforcement."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "configurechassis command changes chassis-level system configuration settings\n
+
+ switch:admin> configurechassis\n
+
+cfgload attributes (yes, y, no, n): [no] y\n
+
+ Enforce secure config Upload/Download (yes, y, no, n): [no]\n
+
+ Enforce signature validation for firmware (yes, y, no, n): [no]y\n
+
+ Add Suffix to the uploaded file name (yes, y, no, n): [no]\n
+
+Custom attributes (yes, y, no, n): [no]\n
+
+system attributes (yes, y, no, n): [no]\n"
+  reference   : "800-53|SI-7(10),COBIT5|DSS05.02,CSF|PR.DS-6,HIPAA|164.312(c)(1),PCI-DSS|4.1,SANS-CSC|10"
+  regex       : "cfgload\.signed"
+  expect      : "cfgload\.signed:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Enable the power-on self-test (POST)'"
+  info        : "POST includes two phases: POST Phase I mainly tests hardware and POST Phase II tests system functionality."
+  info        : "Use the diagPost command to display the current POST status."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To enable POST:\n
+
+ switch:admin> diagenablepost\n
+
+ Config update Succeeded\n
+
+ Diagnostic POST is now enabled\n"
+  reference   : "800-53|SI-7(9),CN-L3|8.1.2.3,CN-L3|8.1.4.6,CSF|PR.DS-6"
+  regex       : "diag\.postDisable"
+  expect      : "diag\.postDisable:0"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Enable auditcfg'"
+  info        : "This setting enables audit logging and to display the audit log configuration."
+  info        : "When managing SANs you may want to audit certain classes of events to ensure that you can view and generate an audit log for what is happening on a switch, particularly for security-related event changes."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To enable audit logging:\n
+
+ switch:admin> auditcfg --enable\n
+
+ Audit filter is enabled\n"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),COBIT5|DSS06.05,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(5)(ii)(C),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.4.1,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  regex       : "audit\.cfg\.state"
+  expect      : "audit\.cfg\.state:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Configures filters for a specified audit class'"
+  info        : "This setting sets filters by configuring certain classes, to add or remove any of the classes in the filter list, to set severity levels for audit messages."
+  info        : "These events include login failures, zone configuration changes, firmware downloads, and other configuration changes."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the audit log filter:\n
+
+ switch:admin> auditcfg --class 1,2,3\n
+
+ Audit filter is configured\n"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),COBIT5|DSS06.05,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(5)(ii)(C),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.4.1,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  regex       : "audit\.cfg\.class"
+  expect      : "audit\.cfg\.class:1,2,3,"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'All audit severity level must be audited'"
+  info        : "When severity is set, only log messages of type severity_level and higher are displayed."
+  info        : "Valid values are INFO, WARNING, ERROR, and CRITICAL."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the audit log severity:\n
+
+ switch:admin> auditcfg --severity critical\n"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(5)(ii)(C),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|10.4.1,SANS-CSC|14,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  regex       : "audit\.cfg\.severity"
+  expect      : "audit\.cfg\.severity:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Forward all error logs to syslog daemon'"
+  info        : "configure a switch to forward all error log entries to the syslog daemon (syslogd) of one or more specified servers."
+  info        : "The syslog daemon is a process available on most UNIX systems that reads and forwards system messages to the appropriate log files or user."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To add an IP address to the list of machines to which system messages are sent:\n
+
+ switch:admin> syslogdipadd 1080::8:800:200C:417A\n
+
+ switch:admin> syslogdipshow\n
+
+ syslog.1 1080::8:800:200C:417A\n"
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),COBIT5|DSS06.05,CSF|PR.PT-1,HIPAA|164.308(a)(5)(ii)(C),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,PCI-DSS|10.4.1,SANS-CSC|14"
+  regex       : "syslog\.address\.1"
+# Note: Variable @SYSLOG@ replaced with "192\\.168\\.0\\.1" in field "expect".
+  expect      : "syslog\.address\.1:192\\.168\\.0\\.1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'The idle timeout for login session set to 30 minutes'"
+  info        : "Users are logged out after 30 minutes of inactivity."
+  info        : "The execution of this command is subject to Virtual Fabric or Admin Domain restrictions that may be in place."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the audit log severity:\n
+
+ switch:admin> timeout 10\n
+
+ IDLE Timeout Changed to 10 minutes\n
+
+ The modified IDLE Timeout will be in effect after NEXT login\n"
+  reference   : "800-171|3.1.11,800-53|AC-12,8500.2|ECSC-1,CAT|II,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),COBIT5|DSS05.04,COBIT5|DSS06.03,CSCv6|16.4,CSF|PR.AC-5,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8,PCI-DSS|8.5.15,Rule-ID|SV-15444r2_rule,SANS-CSC|3,STIG-ID|NET1624,Vuln-ID|V-3967"
+  regex       : "system\.login\.timeout"
+  expect      : "system\.login\.timeout:[1-1800]"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Ensure a SSL certificate file is established'"
+  info        : "Configure SSL by obtaining, installing, and activating digital certificates for SSL support."
+  info        : "In order for HTTPS to become enabled there must be an SSL certificate established."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To import a PKI-based certificate\n
+
+ switch:admin> seccertutil import -config swcert\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.04,CSF|PR.DS-5,HIPAA|164.308(a)(5)(ii)(C),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|4.1,SANS-CSC|10"
+  regex       : "ssl\.certfile"
+  expect      : "ssl\.certfile:.*\.crt"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Authentication policy must be rejected'"
+  info        : "The authentication (AUTH) policy allows you to configure DH-CHAP authentication on switches with Fabric OS."
+  info        : "By setting the policy to reject protects local switch from distributions of databases from other switches."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the switch to reject distribution of the Auth policy\n
+
+ switch:admin> fddcfg --localreject 'AUTH'\n"
+  reference   : "800-171|3.13.1,800-53|SC-7(11),COBIT5|DSS05.04,CSF|PR.AC-5,CSF|PR.PT-4,HIPAA|164.308(a)(5)(ii)(C),ITSG-33|SC-7(11),NIAv2|GS7c,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,TBA-FIISB|31.3"
+  regex       : "fdd\.acceptcfg\.auth"
+  expect      : "fdd\.acceptcfg\.auth:0"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Switch Connection Control policy must be rejected'"
+  info        : "The switch connection control (SCC) policy is used to restrict which switches can join the fabric."
+  info        : "By setting the policy to reject protects local switch from distributions of databases from other switches."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the switch to reject distribution of the SCC policy\n
+
+ switch:admin> fddcfg --localreject 'SCC'\n"
+  reference   : "800-171|3.13.1,800-53|SC-7(11),COBIT5|DSS05.04,CSF|PR.AC-5,CSF|PR.PT-4,HIPAA|164.312(a)(2)(iii),ITSG-33|SC-7(11),NIAv2|GS7c,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,TBA-FIISB|31.3"
+  regex       : "fdd\.acceptcfg\.scc"
+  expect      : "fdd\.acceptcfg\.scc:0"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Fabric Configuration Server policy must be rejected'"
+  info        : "When the FCS policy is created, the WWN of the local switch is automatically included in the FCS list."
+  info        : "By setting the policy to reject protects local switch from distributions of databases from other switches."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the switch to reject distribution of the FCS policy\n
+
+ switch:admin> fddcfg --localreject 'FCS'\n"
+  reference   : "800-171|3.13.1,800-53|SC-7(11),COBIT5|DSS05.04,CSF|PR.AC-5,CSF|PR.PT-4,HIPAA|164.312(a)(2)(iii),ITSG-33|SC-7(11),NIAv2|GS7c,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,TBA-FIISB|31.3"
+  regex       : "fdd\.acceptcfg\.fcs"
+  expect      : "fdd\.acceptcfg\.fcs:0"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Device Connection Control policy must be rejected'"
+  info        : "Multiple DCC policies can be used to restrict which device ports can connect to which switch ports."
+  info        : "By setting the policy to reject protects local switch from distributions of databases from other switches."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the switch to reject distribution of the DCC policy\n
+
+ switch:admin> fddcfg --localreject 'DCC'\n"
+  reference   : "800-171|3.13.1,800-53|SC-7(11),COBIT5|DSS05.04,CSF|PR.AC-5,CSF|PR.PT-4,HIPAA|164.312(a)(2)(iii),ITSG-33|SC-7(11),NIAv2|GS7c,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,TBA-FIISB|31.3"
+  regex       : "fdd\.acceptcfg\.dcc"
+  expect      : "fdd\.acceptcfg\.dcc:0"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'IPfilter policy must be rejected'"
+  info        : "The IP Filter policy is a set of rules applied to the IP management interfaces as a packet filtering firewall."
+  info        : "By setting the policy to reject protects local switch from distributions of databases from other switches."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the switch to reject distribution of the IPfilter policy\n
+
+ switch:admin> fddcfg --localreject 'IPFILTER'\n"
+  reference   : "800-171|3.13.1,800-53|SC-7(11),COBIT5|DSS05.04,CSF|PR.AC-5,CSF|PR.PT-4,HIPAA|164.312(a)(2)(iii),ITSG-33|SC-7(11),NIAv2|GS7c,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,TBA-FIISB|31.3"
+  regex       : "fdd\.acceptcfg\.ipf"
+  expect      : "fdd\.acceptcfg\.ipf:0"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Fabric Element Authentication must be rejected'"
+  info        : "The Fabric Element Authentication (PWD) policy is a set of authentication measures the switch uses to authenticate users."
+  info        : "By setting the policy to reject protects local switch from distributions of databases from other switches."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure the switch to reject distribution of the PWD policy\n
+
+ switch:admin> fddcfg --localreject 'PWD'\n"
+  reference   : "800-171|3.13.1,800-53|SC-7(11),COBIT5|DSS05.04,CSF|PR.AC-5,CSF|PR.PT-4,HIPAA|164.312(a)(2)(iii),ITSG-33|SC-7(11),NIAv2|GS7c,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,TBA-FIISB|31.3"
+  regex       : "fdd\.acceptcfg\.pwd"
+  expect      : "fdd\.acceptcfg\.pwd:0"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Bottleneck detection must be enabled'"
+  info        : "Enabling bottleneck detection enables both latency and congestion detection."
+  info        : "When you enable bottleneck detection on a switch, the settings are applied to all eligible ports on that switch."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure bottleneck detection on brocade switch\n
+
+ switch:admin> bottleneckmon --enable\n"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),COBIT5|DSS05.02,CSCv6|3.1,CSF|PR.IP-1,HIPAA|164.312(e)(1),ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|2.3"
+  regex       : "bottleneck\.enabled"
+  expect      : "bottleneck\.enabled:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Bottleneck alerts must be enabled'"
+  info        : "Enables alerts when configured thresholds are exceeded on the ports that are enabled for bottleneck detection."
+  info        : "When enabled the command triggers an SNMP and a RASlog alert when the ports on the configured switch experience latency or congestion."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure bottleneck alerts on brocade switch\n
+
+ switch:admin> bottleneckmon --enable -alert\n"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),COBIT5|DSS05.02,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.312(e)(1),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|2.2.3,SANS-CSC|10,SANS-CSC|11,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  regex       : "bottleneck\.sw.alert"
+  expect      : "bottleneck\.sw.alert:5"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Brocade licenses must not be expired'"
+  info        : "Ensuring licenses are valid and timely updates are applied helps to remediate vulnerabilities or technical issues in the appliance."
+  info        : "Expired licenses have an output string of License has expired."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To display the license keys on a switch\n
+
+ switch:admin> licenseshow\n"
+  reference   : "800-171|3.4.1,800-53|CM-8,CN-L3|8.1.10.2(a),CN-L3|8.1.10.2(b),COBIT5|DSS05.04,CSF|DE.CM-7,CSF|ID.AM-1,CSF|ID.AM-2,CSF|PR.DS-3,HIPAA|164.308(a)(5)(ii)(B),ISO/IEC-27001|A.8.1.1,ITSG-33|CM-8,NESA|T1.2.1,NESA|T1.2.2,NIAv2|NS35,PCI-DSS|5.2,SANS-CSC|5"
+  cmd         : "licenseshow"
+  not_expect  : ".*expired"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Review admin user listings'"
+  info        : "A periodic review of users with administrative privileges ensures that organizational changes are reflected in the device configuration."
+  info        : "The administration account has access to all administration duties and administrative commands."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To display all account information for a switch\n
+
+ switch:admin> userconfig --show -a\n"
+  reference   : "800-171|3.1.1,800-53|AC-2(7),800-53|AC-6(7),COBIT5|DSS05.04,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.308(a)(4),ISO/IEC-27001|A.9.2.5,ITSG-33|AC-2(7),NESA|M1.1.3,NESA|M5.3.1,NESA|T5.1.1,PCI-DSS|7.1.1,SANS-CSC|12,SANS-CSC|16"
+  cmd         : "userconfig --show -a"
+  context     : "Role: admin"
+  regex       : "Account name"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Review Enabled Accounts'"
+  info        : "Review all enabled accounts, and make sure there are no unauthorized accounts enabled."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To display all account information for a switch\n
+
+ switch:admin> userconfig --show -a\n"
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),COBIT5|DSS05.04,CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,HIPAA|164.308(a)(4),ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,NESA|T5.2.1,NESA|T5.2.4,NIAv2|AM27,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e,PCI-DSS|7.1.1,SANS-CSC|12,SANS-CSC|16"
+  cmd         : "userconfig --show -a"
+  context     : "Enabled: Yes"
+  regex       : "Account name"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Review the NTP server configuration'"
+  info        : "Ensuring that approved NTP servers are used."
+  info        : "When multiple NTP server addresses are passed, tsClockServer sets the first obtainable address as the active NTP server."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "Setting the ntp server on a Brocade switch\n
+
+ switch:admin> tsclockserver ip_address\n"
+  reference   : "800-171|3.3.7,800-53|AU-8(1),COBIT5|DSS05.02,CSCv6|6.1,CSF|PR.PT-1,HIPAA|164.312(e)(1),ISO/IEC-27001|A.12.4.4,ITSG-33|AU-8(1),NESA|T3.6.7,NIAv2|NS44,NIAv2|NS45,NIAv2|NS46,NIAv2|NS47,PCI-DSSv3.1|10.4,PCI-DSSv3.2|10.4,PCI-DSS|10.4.1,SANS-CSC|14"
+  cmd         : "userconfig --show -a"
+  regex       : "ts\.clockserver"
+# Note: Variable @NTP_SERVER@ replaced with "192\\.168\\.0\\.1" in field "expect".
+  expect      : "ts\.clockserver:192\\.168\\.0\\.1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Enable the track changes feature'"
+  info        : "The track changes feature allows you to keep a record of specific changes that may not be considered switch events."
+  info        : "The output from the track changes feature is dumped to the system messages log for the switch."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To enable the track changes feature on Brocade switch\n
+
+ switch:admin> trackchangesset 1\n"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),COBIT5|DSS05.04,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,HIPAA|164.308(a)(5)(ii)(C),ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,PCI-DSS|6.4,SANS-CSC|3,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  regex       : "trackChanges\.status"
+  expect      : "trackChanges\.status:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Enable the track changes feature for SNMP traps'"
+  info        : "The track changes feature allows you to keep a record of specific changes that may not be considered switch events."
+  info        : "Specify 1 to enable sending messages to the SNMP-TRAP in addition to the error log."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To enable the track changes SNMP trap mode feature on Brocade switch\n
+
+ switch:admin> trackchangesset 1,1\n"
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),COBIT5|DSS05.04,CSF|PR.PT-1,HIPAA|164.308(a)(5)(ii)(C),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,PCI-DSS|6.4,SANS-CSC|3"
+  regex       : "trackChanges\.snmp-trap"
+  expect      : "trackChanges\.snmp-trap:1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'SupportFTP parameters are set to SCP'"
+  info        : "When uploading a configuration file the user must use SCP."
+  info        : "Ensure SCP is enabled for uploading files."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To enable SCP on Brocade switch\n
+
+ switch:admin> supportftp -s\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|6.4,SANS-CSC|3"
+  regex       : "trace\.upload_protocol"
+  expect      : "trace\.upload_protocol:scp"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'SCP server host is approved'"
+  info        : "When uploading a configuration file the user must use SCP."
+  info        : "Ensure the SCP server is approved by your organization."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To enable SCP on Brocade switch\n
+
+ switch:admin> supportftp -s\n"
+  reference   : "800-171|3.1.5,800-53|AC-6(1),COBIT5|DSS05.02,CSF|PR.AC-4,HIPAA|164.312(e)(1),ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,PCI-DSS|6.4,SANS-CSC|3,SWIFT-CSCv1|5.1"
+  regex       : "trace\.ftp\.hostname"
+# Note: Variable @SCP_SERVER@ replaced with "192\\.168\\.0\\.1" in field "expect".
+  expect      : "trace\.ftp\.hostname:192\\.168\\.0\\.1"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'Set SNMP security level to authentication and privacy'"
+  info        : "Recipients for SNMP traps are restricted according to security levels."
+  info        : "With authentication and privacy enabled SNMPv1 is not allowed and only SNMPv3 users with authPriv are allowed."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To enable SNMP security level authentication and privacy\n
+
+ switch:admin>  snmpconfig --set seclevel\n"
+  reference   : "800-171|3.1.13,800-53|AC-17(2),CIP|005-5-R2,CN-L3|7.1.2.7(g),CN-L3|7.1.3.1(d),CN-L3|8.1.4.1(c),COBIT5|DSS05.02,CSF|PR.AC-3,CSF|PR.PT-4,HIPAA|164.312(e)(1),ITSG-33|AC-17(2),NESA|T5.4.2,NIAv2|AM37,PCI-DSS|2.2.3,SANS-CSC|11,SWIFT-CSCv1|2.6"
+  regex       : "snmp\.seclevel"
+  expect      : "snmp\.seclevel:2"
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'SNMPv3 trap targets are configured properly'"
+  info        : "An unsolicited message that comes to the management station from the SNMP agent on the device is called a trap."
+  info        : "Brocade switches send traps out on UDP port 162 and to any configured port."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure SNMPv3 traps\n
+
+ switch:admin> snmpconfig --set snmpv3\n"
+  reference   : "800-171|3.3.8,800-53|AU-9(2),CN-L3|8.1.3.5(d),CN-L3|8.1.4.3(c),COBIT5|DSS05.02,CSF|PR.PT-1,HIPAA|164.312(e)(1),ITSG-33|AU-9(2),NESA|M5.2.3,NESA|M5.5.2,NIAv2|SS13e,PCI-DSSv3.1|10.5.3,PCI-DSSv3.1|10.5.4,PCI-DSSv3.2|10.5.3,PCI-DSSv3.2|10.5.4,PCI-DSS|2.2.3,SANS-CSC|11"
+  regex       : "snmp\.snmpv3TrapTarget\.0\.trapTargetAddr"
+# Note: Variable @SNMPv3_TRAPTARGET@ replaced with "192\\.168\\.0\\.1" in field "expect".
+  expect      : "snmp\.snmpv3TrapTarget\.0\.trapTargetAddr:192\\.168\\.0\\.1"
+  required    : NO
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'SNMPv3 uses SHA over MD5'"
+  info        : "If SNMP v3 users are configured, they can use either MD5 or SHA for authentication."
+  info        : "The Secure Hash Algorithm is more secure than MD5."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure SNMPv3 authentication protocol\n
+
+ switch:admin> snmpconfig --set snmpv3\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|11"
+  regex       : "snmp\.snmpv3Usm\.0\.usmAuthProtocol"
+  expect      : "snmp\.snmpv3Usm\.[0-5]\.usmAuthProtocol:2"
+  required    : NO
+</custom_item>
+
+<custom_item>
+  description : "Brocade : 'SNMP v3 uses AES instead of DES'"
+  info        : "It is recommended that SNMPv3 uses AES-128 over DES for confidentiality."
+  info        : "Advanced Encryption Standard is a 128- or 256-bit fixed block size cipher."
+  see_also    : "http://www.brocade.com/downloads/documents/product_manuals/B_SAN/FOS_CmdRef_v700.pdf"
+  solution    : "To configure SNMPv3 privilege protocol\n
+
+ switch:admin> snmpconfig --set snmpv3\n"
+  reference   : "800-171|3.13.11,800-53|SC-13,COBIT5|DSS05.02,CSF|PR.DS-5,HIPAA|164.312(e)(1),ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,PCI-DSS|2.2.3,SANS-CSC|11"
+  regex       : "snmp\.snmpv3Usm\.0\.usmPrivProtocol"
+  expect      : "snmp\.snmpv3Usm\.[0-5]\.usmPrivProtocol:[4-6]"
+  required    : NO
+</custom_item>
+
+</check_type>

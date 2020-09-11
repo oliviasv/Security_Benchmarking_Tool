@@ -1,0 +1,948 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/04/23 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA Google Chrome Current Windows v1r18 STIG.
+#
+#<ui_metadata>
+#<display_name>DISA STIG Google Chrome v1r18</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>Google Chrome</name>
+#  <version>1.18.0</version>
+#  <link>https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip</link>
+#</spec>
+#<labels>windows,disa,google,chrome</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>SEARCH_PROVIDER</name>
+#    <default>Google Encrypted</default>
+#    <description>Search Provider</description>
+#    <info>This is the name of your organization's approved search provider for Google Chrome browsers</info>
+#  </variable>
+#  <variable>
+#    <name>SEARCH_PROVIDER_URL</name>
+#    <default>https://www.google.com/#q={searchTerms}</default>
+#    <description>Search Provider URL</description>
+#    <info>This is the complete URL to your organization's approved search provider for Google Chrome browsers</info>
+#  </variable>
+#  <variable>
+#    <name>PLUGIN_WHITELIST_URLS</name>
+#    <default>[*.]mil,[*.]gov</default>
+#    <description>Comma separated list of approved URLs for plugins</description>
+#    <info>This policy allows you to set a list of URL patterns that specify sites which are allowed to run plugins.</info>
+#  </variable>
+#  <variable>
+#    <name>AUTOPLAY_WHITELIST_URLS</name>
+#    <default>[*.]mil,[*.]gov</default>
+#    <description>Comma separated list of approved URLs for media</description>
+#    <info>This policy allows you to set a list of URL patterns that specify sites which are allowed to autoplay media.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"Google Chrome">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      type        : REG_CHECK
+      description : "Check if Chrome is installed - ApplicationName"
+      value_type  : POLICY_TEXT
+      value_data  : "HKLM\Software\Clients\Startmenuinternet\Google Chrome\Capabilities"
+      reg_option  : MUST_EXIST
+      key_item    : "ApplicationName"
+    </custom_item>
+
+    <custom_item>
+      type        : REG_CHECK
+      description : "Check if Chrome is installed - DisplayName"
+      value_type  : POLICY_TEXT
+      value_data  : "HKLM\Software\Microsoft\Windows\Currentversion\Uninstall\Google Chrome"
+      reg_option  : MUST_EXIST
+      key_item    : "DisplayName"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "DISA_STIG_Google_Chrome_Windows_v1r18.audit from DISA Google Chrome Current Windows v1r18 STIG"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0001 - Firewall traversal from remote host must be disabled."
+      info        : "Remote connections should never be allowed that bypass the firewall, as there is no way to verify if they can be trusted. Enables usage of STUN and relay servers when remote clients are trying to establish a connection to this machine. If this setting is enabled, then remote clients can discover and connect to this machine even if they are separated by a firewall. If this setting is disabled and outgoing UDP connections are filtered by the firewall, then this machine will only allow connections from client machines within the local network. If this policy is left not set the setting will be enabled."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative\Templates\Google\Google Chrome\Configure remote access options
+   Policy Name: Enable firewall traversal from remote access host
+   Policy State: Disabled
+   Policy Value: N/A"
+      reference   : "800-171|3.1.3,800-53|AC-4,CAT|II,CCI|CCI-001414,CN-L3|8.1.10.2(c),CSF|DE.AE-1,CSF|ID.AM-3,CSF|PR.AC-4,CSF|PR.AC-5,CSF|PR.DS-5,CSF|PR.PT-4,ITSG-33|AC-4,NESA|T4.2.1,NESA|T4.5.1,NESA|T4.5.3,NESA|T4.5.4,NESA|T5.4.6,NESA|T5.7.2,NESA|T7.5.2,NESA|T7.6.4,NIAv2|GS11a,NIAv2|GS12a,NIAv2|GS14a,NIAv2|GS15a,NIAv2|GS16a,NIAv2|NS13a,NIAv2|NS13b,NIAv2|NS13c,NIAv2|NS14,NIAv2|SS23,NIAv2|SS27a,NIAv2|SS27b,NIAv2|SS32,Rule-ID|SV-57545r4_rule,STIG-ID|DTBC-0001,SWIFT-CSCv1|2.1,SWIFT-CSCv1|2.4,Vuln-ID|V-44711"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "RemoteAccessHostFirewallTraversal"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0003 - Sites ability for showing desktop notifications must be disabled."
+      info        : "Chrome by default allows websites to display notifications on the desktop.  This check allows you to set whether or not this is permitted.  Displaying desktop notifications can be allowed by default, denied by default or the user can be asked every time a website wants to show desktop notifications. If this policy is left not set, 'AskNotifications' will be used and the user will be able to change it.
+   1 = Allow sites to show desktop notifications
+   2 = Do not allow any site to show desktop notifications
+   3 = Ask every time a site wants to show desktop notifications"
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Content Settings\
+    Policy Name: Default notification setting
+    Policy State: Enabled
+    Policy Value: Do not allow any site to show desktop notifications"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|III,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-57547r2_rule,STIG-ID|DTBC-0003,SWIFT-CSCv1|2.3,Vuln-ID|V-44713"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 2
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultNotificationsSetting"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0004 - Sites ability to show pop-ups must be disabled."
+      info        : "Chrome allows you to manage whether unwanted pop-up windows appear. Pop-up windows that are opened when the end user clicks a link are not blocked. If you enable this policy setting, most unwanted pop-up windows are prevented from appearing. If you disable this policy setting, pop-up windows are not prevented from appearing. If you disable this policy setting, scripts can continue to create pop-up windows, and pop-ups that hide other windows. Recommend configuring this setting to '2' to help prevent malicious websites from controlling the pop-up windows or fooling users into clicking on the wrong window.  If you do not configure this policy setting, most unwanted pop-up windows are prevented from appearing.  If this policy is left not set, 'BlockPopups' will be used and the user will be able to change it.
+   1 = Allow all sites to show pop-ups
+   2 = Do not allow any site to show pop-ups"
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Content Settings\
+    Policy Name: Default popups setting
+    Policy State: Enabled
+    Policy Value: Do not allow any site to show popups"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-57553r2_rule,STIG-ID|DTBC-0004,SWIFT-CSCv1|2.3,Vuln-ID|V-44719"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 2
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultPopupsSetting"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0002 - Site tracking users location must be disabled."
+      info        : "Website tracking is the practice of gathering information as to which websites were accesses by a browser. The common method of doing this is to have a website create a tracking cookie on the browser.   If the information of what sites are being accessed is made available to unauthorized persons, this violates confidentiality requirements, and over time poses a significant OPSEC issue. This policy setting allows you to set whether websites are allowed to track the user's physical location. Tracking the user's physical location can be allowed by default, denied by default or the user can be asked every time a website requests the physical location.
+   1 = Allow sites to track the user's physical location
+   2 = Do not allow any site to track the user's physical location
+   3 = Ask whenever a site wants to track the user's physical location"
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Content Settings\
+   Policy Name: Default geolocation setting
+   Policy State: Enabled
+   Policy Value: Do not allow any site to track the users' physical location"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|SC-18(1),CAT|II,CCI|CCI-001166,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|DE.CM-5,ITSG-33|SC-18(1),NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-57557r2_rule,STIG-ID|DTBC-0002,SWIFT-CSCv1|2.3,Vuln-ID|V-44723"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 2
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultGeolocationSetting"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0005 - Extensions installation must be blacklisted by default."
+      info        : "Extensions are developed by third party sources and are designed to extend Google Chrome's functionality. An extension can be made by anyone, to do and access almost anything on a system; this means they pose a high risk to any system that would allow all extensions to be installed by default.  Allows you to specify which extensions the users can NOT install. Extensions already installed will be removed if blacklisted. A blacklist value of '*' means all extensions are blacklisted unless they are explicitly listed in the whitelist. If this policy is left not set the user can install any extension in Google Chrome."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Extensions\
+    Policy Name: Configure extension installation blacklist
+    Policy State: Enabled
+    Policy Value: *"
+      reference   : "800-171|3.13.13,800-53|SC-18(2),CAT|II,CCI|CCI-001687,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,ITSG-33|SC-18(2),NIAv2|SS13a,Rule-ID|SV-57561r2_rule,STIG-ID|DTBC-0005,SWIFT-CSCv1|2.3,Vuln-ID|V-44727"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+      value_data  : "*"
+      reg_key     : "HKLM\Software\Policies\Google\Chrome\Extensioninstallblacklist"
+      reg_item    : "1"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0006 - Extensions that are approved for use must be whitelisted."
+      info        : "The whitelist should only contain organizationally approved extensions. This is to prevent a user from accidently whitelisitng a malicious extension. This policy allows you to specify which extensions are not subject to the blacklist. A blacklist value of '*' means all extensions are blacklisted and users can only install extensions listed in the whitelist. By default, no extensions are whitelisted. If all extensions have been blacklisted by policy, then the whitelist policy can be used to allow specific extensions to be installed. Administrators should determine which extensions should be allowed to be installed by their users. If no extensions are whitelisted, then no extensions can be installed when combined with blacklisting all extensions."
+      solution    : "Windows group policy:
+ 1. Open the group policy editor tool with gpedit.msc
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Extensions\
+ Policy Name: Configure extension installation whitelist
+ Policy State: Enabled
+ Policy Value: oiigbmnaadbkfbmpbfijlflahbdbdgdf (or 1)
+
+Note: oiigbmnaadbkfbmpbfijlflahbdbdgdf is the extension ID for scriptno(a commonly used Chrome extension)"
+      reference   : "800-171|3.13.13,800-53|SC-18(4),CAT|II,CCI|CCI-001170,CSF|DE.CM-5,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,ITSG-33|SC-18(4),Rule-ID|SV-57563r2_rule,STIG-ID|DTBC-0006,SWIFT-CSCv1|2.3,Vuln-ID|V-44729"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+      value_data  : "1" || "oiigbmnaadbkfbmpbfijlflahbdbdgdf"
+      reg_key     : "HKLM\Software\Policies\Google\Chrome\Extensioninstallwhitelist"
+      reg_item    : "1"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0007 - The default search providers name must be set."
+      info        : "Specifies the name of the default search provider that is to be used, if left empty or not set, the host name specified by the search URL will be used. This policy is only considered if the 'DefaultSearchProviderEnabled' policy is enabled. When doing internet searches it is important to use an encrypted connection via https."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Default search provider\
+    Policy Name: Default search provider name
+    Policy State: Enabled
+    Policy Value: set to an organization approved encrypted search provider that corresponds to the encrypted search provider set in DTBC-0008(ex. Google Encrypted, Bing Encrypted)"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T3.2.1,NIAv2|SS15a,Rule-ID|SV-57567r2_rule,STIG-ID|DTBC-0007,SWIFT-CSCv1|2.3,Vuln-ID|V-44733"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @SEARCH_PROVIDER@ replaced with "Google Encrypted" in field "value_data".
+      value_data  : "Google Encrypted"
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultSearchProviderName"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0008 - The default search provider URL must be set to perform encrypted searches."
+      info        : "Specifies the URL of the search engine used when doing a default search. The URL should contain the string '{searchTerms}', which will be replaced at query time by the terms the user is searching for. This option must be set when the 'DefaultSearchProviderEnabled' policy is enabled and will only be respected if this is the case.  When doing internet searches it is important to use an encrypted connection via https."
+      solution    : "If the system is on the SIPRNet, this requirement is NA.
+
+Windows group policy:
+ 1. Open the group policy editor tool with gpedit.msc
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Default search provider\
+ Policy Name: Default search provider search URL
+ Policy State: Enabled
+ Policy Value: Must be set to an organization-approved encrypted search string
+ (ex. https://www.google.com/#q={searchTerms} or https://www.bing.com/search?q={searchTerms} )"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T3.2.1,NIAv2|SS15a,Rule-ID|SV-57569r3_rule,STIG-ID|DTBC-0008,SWIFT-CSCv1|2.3,Vuln-ID|V-44735"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @SEARCH_PROVIDER_URL@ replaced with "https://www.google.com/#q={searchTerms}" in field "value_data".
+      value_data  : "https://www.google.com/#q={searchTerms}"
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultSearchProviderSearchURL"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0009 - Default search provider must be enabled."
+      info        : "Policy enables the use of a default search provider. If you enable this setting, a default search is performed when the user types text in the omnibox that is not a URL. You can specify the default search provider to be used by setting the rest of the default search policies. If these are left empty, the user can choose the default provider. If you disable this setting, no search is performed when the user enters non-URL text in the omnibox. If you enable or disable this setting, users cannot change or override this setting in Google Chrome. If this policy is left not set, the default search provider is enabled, and the user will be able to set the search provider list."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Default search provider\
+    Policy Name: Enable the default search provider
+    Policy State: Enabled
+    Policy Value: N/A"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T3.2.1,NIAv2|SS15a,Rule-ID|SV-57571r3_rule,STIG-ID|DTBC-0009,SWIFT-CSCv1|2.3,Vuln-ID|V-44737"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultSearchProviderEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0011 - The Password Manager must be disabled."
+      info        : "Enables saving passwords and using saved passwords in Google Chrome. Malicious sites may take advantage of this feature by using hidden fields gain access to the stored information. If you enable this setting, users can have Google Chrome memorize passwords and provide them automatically the next time they log in to a site. If you disable this setting, users are not able to save passwords or use already saved passwords. If you enable or disable this setting, users cannot change or override this setting in Google Chrome. If this policy is left not set, this will be enabled but the user will be able to change it. ListPassword manager should not be used as it stores passwords locally."
+      solution    : "Windows group policy:
+1. Open the group policy editor tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Password Manager\
+Policy Name: Enable Saving Passwords to the Password Manager
+Policy State: Disabled
+Policy Value: N/A"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.2.3,NIAv2|SS15a,Rule-ID|SV-57575r4_rule,STIG-ID|DTBC-0011,SWIFT-CSCv1|2.3,Vuln-ID|V-44741"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "PasswordManagerEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0013 - The running of outdated plugins must be disabled."
+      info        : "Running outdated plugins could lead to system compromise through the use of known exploits. Having plugins that updated to the most current version ensures the smallest attack surfuce possible. If you enable this setting, outdated plugins are used as normal plugins. If you disable this setting, outdated plugins will not be used and users will not be asked for permission to run them. If this setting is not set, users will be asked for permission to run outdated plugins."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Allow running plugins that are outdated
+    Policy State: Disabled
+    Policy Value: N/A"
+      reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|I,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-57579r2_rule,STIG-ID|DTBC-0013,SWIFT-CSCv1|2.3,TBA-FIISB|49.2.1,TBA-FIISB|49.2.2,TBA-FIISB|49.3.1,TBA-FIISB|49.3.2,TBA-FIISB|50.2.1,TBA-FIISB|51.2.4,TBA-FIISB|51.2.7,Vuln-ID|V-44745"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "AllowOutdatedPlugins"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0015 - Third party cookies must be blocked."
+      info        : "Third party cookies are cookies which can be set by web page elements that are not from the domain that is in the browser's address bar. Enabling this setting prevents cookies from being set by web page elements that are not from the domain that is in the browser's address bar. Disabling this setting allows cookies to be set by web page elements that are not from the domain that is in the browser's address bar and prevents users from changing this setting. If this policy is left not set, third party cookies will be enabled but the user will be able to change that."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Block third party cookies
+    Policy State: Enabled
+    Policy Value: N/A"
+      reference   : "800-171|3.4.2,800-53|AU-10,CAT|III,CCI|CCI-000166,CN-L3|8.1.10.6(d),CSF|PR.PT-1,ITSG-33|AU-10,NESA|T4.3.1,NESA|T7.3.3,Rule-ID|SV-57585r2_rule,STIG-ID|DTBC-0015,SWIFT-CSCv1|2.3,Vuln-ID|V-44751"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "BlockThirdPartyCookies"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0017 - Background processing must be disabled."
+      info        : "Determines whether a Google Chrome process is started on OS login that keeps running when the last browser window is closed, allowing background apps to remain active. The background process displays an icon in the system tray and can always be closed from there. If this policy is set to True, background mode is enabled and cannot be controlled by the user in the browser settings. If this policy is set to False, background mode is disabled and cannot be controlled by the user in the browser settings. If this policy is left unset, background mode is initially disabled and can be controlled by the user in the browser settings.' - Google Chrome Administrators Policy ListThis setting, if enabled, allows Google Chrome to run at all times. There is two reasons that this is not wanted. First, it can tie up system resources that might otherwise be needed. Second, it does not make it obvious to the user that it is running and poorly written extensions could cause instability on the system."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Continue running background apps when Google Chrome is closed
+    Policy State: Disabled
+    Policy Value: N/A"
+      reference   : "800-171|3.13.13,800-53|SC-18(3),CAT|II,CCI|CCI-001695,CN-L3|8.1.10.6(d),CSF|DE.CM-5,ITSG-33|SC-18(3),NESA|T3.2.1,NIAv2|NS26f,Rule-ID|SV-57587r2_rule,STIG-ID|DTBC-0017,SWIFT-CSCv1|2.3,Vuln-ID|V-44753"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "BackgroundModeEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0020 - Google Data Synchronization must be disabled."
+      info        : "Disables data synchronization in Google Chrome using Google-hosted synchronization services and prevents users from changing this setting. If you enable this setting, users cannot change or override this setting in Google Chrome. If this policy is left not set the user will be able to enable Google Sync.  Google Sync is used to sync information between different user devices, this data is then stored on Google owned servers. The synced data may consist of information such as email, calendars, viewing history, etc. This feature must be disabled because the organization does not have control over the servers the data is stored on."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Disable synchronization of data with Google
+    Policy State: Enabled
+    Policy Value: N/A"
+      reference   : "800-171|3.1.20,800-53|AC-20(1),CAT|II,CCI|CCI-002333,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|ID.AM-4,CSF|PR.AC-3,ITSG-33|AC-20(1),NESA|M1.3.5,NESA|M4.2.2,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-57593r2_rule,STIG-ID|DTBC-0020,SWIFT-CSCv1|2.5,Vuln-ID|V-44759"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "SyncDisabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0021 - The URL protocol schema javascript must be disabled."
+      info        : "Each access to a URL is handled by the browser according to the URL's 'scheme'. The 'scheme' of a URL is the section before the ':'. The term 'protocol' is often mistakenly used for a 'scheme'. The difference is that the scheme is how the browser handles a URL and the protocol is how the browser communicates with a service.  If a scheme or its associated protocol used by a browser is insecure or obsolete, vulnerabilities can be exploited resulting in exposed data or unrestricted access to the browser's system.   The browser must be configured to disable the use of insecure and obsolete schemas (protocols).
+This policy disables the listed protocol schemes in Google Chrome, URLs using a scheme from this list will not load and cannot be navigated to. If this policy is left not set or the list is empty all schemes will be accessible in Google Chrome."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Block access to a list of URLs
+    Policy State: Enabled
+    Policy Value 1: javascript://*"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-57595r3_rule,STIG-ID|DTBC-0021,SWIFT-CSCv1|2.3,Vuln-ID|V-44761"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+      value_data  : "javascript://*"
+      reg_key     : "HKLM\Software\Policies\Google\Chrome\Urlblacklist"
+      reg_item    : "1"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0023 - Cloud print sharing must be disabled."
+      info        : "Policy enables Google Chrome to act as a proxy between Google Cloud Print and legacy printers connected to the machine. If this setting is enabled or not configured, users can enable the cloud print proxy by authentication with their Google account. If this setting is disabled, users cannot enable the proxy, and the machine will not be allowed to share it's printers with Google Cloud Print. If this policy is not set, this will be enabled but the user will be able to change it."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Enable Google Cloud Print proxy
+    Policy State: Disabled
+    Policy Value: N/A"
+      reference   : "800-171|3.1.20,800-53|AC-20(1),CAT|II,CCI|CCI-002333,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|ID.AM-4,CSF|PR.AC-3,ITSG-33|AC-20(1),NESA|M1.3.5,NESA|M4.2.2,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-57599r2_rule,STIG-ID|DTBC-0023,SWIFT-CSCv1|2.5,Vuln-ID|V-44765"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "CloudPrintProxyEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0025 - Network prediction must be disabled."
+      info        : "Enables network prediction in Google Chrome and prevents users from changing this setting. If you enable or disable this setting, users cannot change or override this setting in Google Chrome. If this policy is left not set, this will be disabled but the user will be able to change it."
+      solution    : "Windows group policy:
+1. Open the group policy editor tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+Policy Name: Enable network prediction
+Policy State: Enabled
+Policy Value: Do not predict network actions on any network connection"
+      reference   : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000366,CN-L3|8.1.10.6(d),CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-57603r8_rule,STIG-ID|DTBC-0025,SWIFT-CSCv1|2.3,Vuln-ID|V-44769"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 2
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "NetworkPredictionOptions"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0026 - Metrics reporting to Google must be disabled."
+      info        : "Enables anonymous reporting of usage and crash-related data about Google Chrome to Google and prevents users from changing this setting. If you enable this setting, anonymous reporting of usage and crash-related data is sent to Google. A crash report could contain sensitive information from the computer's memory. If you disable this setting, anonymous reporting of usage and crash-related data is never sent to Google. If you enable or disable this setting, users cannot change or override this setting in Google Chrome. If this policy is left not set the setting will be what the user chose upon installation / first run."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Enable reporting of usage and crash-related data
+    Policy State: Disabled
+    Policy Value: N/A"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T3.2.1,NIAv2|SS15a,Rule-ID|SV-57605r3_rule,STIG-ID|DTBC-0026,SWIFT-CSCv1|2.3,Vuln-ID|V-44771"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "MetricsReportingEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0027 - Search suggestions must be disabled."
+      info        : "Search suggestion should be disabled as it could lead to searches being conducted that were never intended to be made. Enables search suggestions in Google Chrome's omnibox and prevents users from changing this setting. If you enable this setting, search suggestions are used. If you disable this setting, search suggestions are never used. If you enable or disable this setting, users cannot change or override this setting in Google Chrome. If this policy is left not set, this will be enabled but the user will be able to change it."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Enable search suggestions
+    Policy State: Disabled
+    Policy Value: N/A"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|M1.3.5,NESA|M4.2.2,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-57607r2_rule,STIG-ID|DTBC-0027,SWIFT-CSCv1|2.3,Vuln-ID|V-44773"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "SearchSuggestEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0029 - Importing of saved passwords must be disabled."
+      info        : "Importing of saved passwords should be disabled as it could lead to unencrypted account passwords stored on the system from another browser to be viewed. This policy forces the saved passwords to be imported from the previous default browser if enabled. If enabled, this policy also affects the import dialog. If disabled, the saved passwords are not imported. If it is not set, the user may be asked whether to import, or importing may happen automatically."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+   Policy Name: Import saved passwords from default browser on first run
+   Policy State: Disabled
+   Policy Value: N/A"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NESA|T5.2.3,NIAv2|SS15a,Rule-ID|SV-57609r4_rule,STIG-ID|DTBC-0029,SWIFT-CSCv1|2.3,Vuln-ID|V-44775"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "ImportSavedPasswords"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0030 - Incognito mode must be disabled."
+      info        : "Incognito mode allows the user to browse the Internet without recording their browsing history/activity.  From a forensics perspective, this is unacceptable.  Best practice requires that browser history is retained.  The 'IncognitoModeAvailability' setting controls whether the user may utilize Incognito mode in Google Chrome. If 'Enabled' is selected or the policy is left unset, pages may be opened in Incognito mode. If 'Disabled' is selected, pages may not be opened in Incognito mode. If 'Forced' is selected, pages may be opened ONLY in Incognito mode.
+   0 = Incognito mode available.
+   1 = Incognito mode disabled.
+   2 = Incognito mode forced."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Incognito mode availability
+    Policy State: Enabled
+    Policy Value: Incognito mode disabled"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|AU-10,CAT|II,CCI|CCI-000166,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSF|PR.PT-1,ITSG-33|AU-10,NESA|T4.3.1,NESA|T7.3.3,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,Rule-ID|SV-57611r2_rule,STIG-ID|DTBC-0030,SWIFT-CSCv1|2.3,Vuln-ID|V-44777"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "IncognitoModeAvailability"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0037 - Online revocation checks must be done."
+      info        : "By setting this policy to true, the previous behavior is restored and online OCSP/CRL checks will be performed. If the policy is not set, or is set to false, then Chrome will not perform online revocation checks. Certificates are revoked when they have been compromised or are no longer valid, and this option protects users from submitting confidential data to a site that may be fraudulent or not secure."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Whether online OCSP/CRL checks are performed
+    Policy State: Enabled
+    Policy Value: N/A"
+      reference   : "800-171|3.13.15,800-53|IA-5(2),CAT|II,CCI|CCI-000185,CSF|PR.AC-1,ITSG-33|IA-5(2),Rule-ID|SV-57623r2_rule,STIG-ID|DTBC-0037,Vuln-ID|V-44789"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "EnableOnlineRevocationChecks"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0038 - Safe Browsing must be enabled,"
+      info        : "Enables Google Chrome's Safe Browsing feature and prevents users from changing this setting. If you enable this setting, Safe Browsing is always active. If you disable this setting, Safe Browsing is never active. If you enable or disable this setting, users cannot change or override this setting in Google Chrome. If this policy is left not set, this will be enabled but the user will be able to change it. Safe browsing uses a signature database to test sites when they are be loaded to ensure they don't contain any known malware."
+      solution    : "Windows group policy:
+ 1. Open the 'group policy editor' tool with gpedit.msc
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Safe Browsing Settings
+ Policy Name: Enable Safe Browsing
+ Policy State: Enabled
+ Policy Value: N/A"
+      reference   : "800-171|3.13.13,800-53|SC-18(1),CAT|II,CCI|CCI-001166,CN-L3|8.1.10.6(d),CSF|DE.CM-5,ITSG-33|SC-18(1),NESA|T3.2.1,NIAv2|SU3,Rule-ID|SV-57625r3_rule,STIG-ID|DTBC-0038,SWIFT-CSCv1|2.3,Vuln-ID|V-44791"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "SafeBrowsingEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0039 - Browser history must be saved."
+      info        : "This policy disables saving browser history in Google Chrome and prevents users from changing this setting. If this setting is enabled, browsing history is not saved. If this setting is disabled or not set, browsing history is saved."
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+    Policy Name: Disable saving browser history
+    Policy State: Disabled
+    Policy Value:  N/A"
+      reference   : "800-171|3.13.16,800-53|SC-28,CAT|II,CCI|CCI-001199,CN-L3|8.1.4.7(b),CN-L3|8.1.4.8(b),CSF|PR.DS-1,ITSG-33|SC-28,NESA|T3.2.1,Rule-ID|SV-57627r2_rule,STIG-ID|DTBC-0039,SWIFT-CSCv1|2.3,Vuln-ID|V-44793"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "SavingBrowserHistoryDisabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0040 - Default behavior must block webpages from automatically running plugins."
+      info        : "This policy allows you to set whether websites are allowed to automatically run the Flash plugin. Automatically running the Flash plugin can be either allowed for all websites or denied for all websites. If this policy is left not set, the user will be able to change this setting manually.
+   1 = Allow all sites to automatically run Flash plugin
+   2 = Block the Flash plugin
+   3 = Click to play"
+      solution    : "Windows group policy:
+   1. Open the group policy editor tool with gpedit.msc
+   2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Content Settings\
+    Policy Name: Default Flash setting
+    Policy State: Enabled
+    Policy Value: Click to play"
+      reference   : "800-171|3.13.13,800-53|SC-18(2),CAT|II,CCI|CCI-001687,CSF|DE.CM-5,ITSG-33|SC-18(2),NIAv2|NS26f,Rule-ID|SV-57629r5_rule,STIG-ID|DTBC-0040,Vuln-ID|V-44795"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+      value_data  : "3"
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultPluginsSetting"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0045 - Session only based cookies must be disabled."
+      info        : "Policy allows you to set a list of URL patterns that specify sites which are allowed to set session only cookies. If this policy is left not set the global default value will be used for all sites either from the 'DefaultCookiesSetting' policy if it is set, or the user's personal configuration otherwise. If the 'RestoreOnStartup' policy is set to restore URLs from previous sessions this policy will not be respected and cookies will be stored permanently for those sites."
+      solution    : "Windows group policy:
+ 1. Open the group policy editor tool with gpedit.msc
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Content Settings
+ Policy Name: Allow session only cookies on these sites
+ Policy State: Disabled
+ Policy Value: N/A"
+      reference   : "800-171|3.13.13,800-53|AU-10,CAT|II,CCI|CCI-000166,CSF|PR.PT-1,ITSG-33|AU-10,NESA|T4.3.1,NESA|T7.3.3,NIAv2|NS26f,Rule-ID|SV-57633r5_rule,STIG-ID|DTBC-0045,Vuln-ID|V-44799"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+      value_data  : ""
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "CookiesSessionOnlyForUrls"
+      reg_option  : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "DTBC-0050 - The version of Google Chrome running on the system must be a supported version."
+      info            : "Google Chrome is being continually updated by the vendor in order to address identified security vulnerabilities. Running an older version of the browser can introduce security vulnerabilities to the system.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution        : "Install a supported version of Google Chrome."
+      reference       : "800-171|3.14.1,800-53|SI-2,CAT|II,CCI|CCI-002605,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ISO/IEC-27001|A.8.1.1,ITSG-33|SI-2,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,Rule-ID|SV-57639r6_rule,STIG-ID|DTBC-0050,SWIFT-CSCv1|2.2,Vuln-ID|V-44805"
+      see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type      : POLICY_TEXT
+      value_data      : "Manual Review Required"
+      powershell_args : "(Get-Item (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe').'(Default)').VersionInfo"
+      severity        : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "DTBC-0051 - URLs must be whitelisted for plugin use"
+      info            : "This policy allows you to set a list of URL patterns that specify sites which are allowed to run the Flash plugin. If this policy is left not set, the global default value will be used for all sites either from the 'DefaultPluginsSetting' policy if it is set, or the user's personal configuration otherwise."
+      solution        : "Windows group policy:
+ 1. Open the group policy editor tool with gpedit.msc
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Content Settings
+ Policy Name: Allow the Flash plugin on these sites
+ Policy State: Enabled
+ Policy Value 1: [*.]mil
+ Policy Value 2: [*.]gov"
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-67011r5_rule,STIG-ID|DTBC-0051,SWIFT-CSCv1|2.3,Vuln-ID|V-52795"
+      see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type      : POLICY_TEXT
+# Note: Variable @PLUGIN_WHITELIST_URLS@ replaced with "[*.]mil,[*.]gov" in field "value_data".
+      value_data      : "[*.]mil,[*.]gov"
+      powershell_args : "foreach ($a in Get-ItemProperty 'Registry::HKLM\Software\Policies\Google\Chrome\PluginsAllowedForUrls\') { $result= @(($a | Get-ItemProperty).Psobject.Properties | Where-Object { $_.Name -cnotlike 'PS*' } | Select -exp value) }; Write-Host ${result} -separator ','"
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0052 - Deletion of browser history must be disabled."
+      info        : "Disabling this function will prevent users from deleting their browsing history, which could be used to identify malicious websites and files that could later be used for anti-virus and Intrusion Detection System (IDS) signatures. Furthermore, preventing users from deleting browsing history could be used to identify abusive web surfing on government systems."
+      solution    : "Windows group policy:
+ 1. Open the group policy editor tool with gpedit.msc
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+ Policy Name: Enable deleting browser and download history
+ Policy State: Disabled
+ Policy Value: N/A"
+      reference   : "800-171|3.13.13,800-53|SC-18(2),CAT|II,CCI|CCI-001687,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|SC-18(2),Rule-ID|SV-89845r2_rule,STIG-ID|DTBC-0052,SWIFT-CSCv1|5.1,Vuln-ID|V-75165"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "AllowDeletingBrowserHistory"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0053 - Prompt for download location must be enabled."
+      info        : "If the policy is enabled, the user will be asked where to save each file before downloading. If the policy is disabled, downloads will start immediately, and the user will not be asked where to save the file. If the policy is not configured, the user will be able to change this setting."
+      solution    : "Windows group policy:
+1. Open the group policy editor tool with gpedit.msc
+2. Navigate to Policy Path:  Computer Configuration\Administrative Templates\Google\Google Chrome\
+ Policy Name: Ask where to save each file before downloading
+ Policy State:  Enabled
+ Policy Value: N/A"
+      reference   : "800-171|3.13.13,800-53|SC-18(2),CAT|II,CCI|CCI-001687,CSF|PR.IP-1,ITSG-33|SC-18(2),Rule-ID|SV-94633r2_rule,STIG-ID|DTBC-0053,Vuln-ID|V-79929"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "PromptForDownloadLocation"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0055 - Download restrictions must be configured."
+      info        : "Configure the type of downloads that Google Chrome will completely block, without letting users override the security decision. If you set this policy, Google Chrome will prevent certain types of downloads, and will not let user bypass the security warnings. When the 'Block dangerous downloads' option is chosen, all downloads are allowed, except for those that carry SafeBrowsing warnings. When the 'Block potentially dangerous downloads' option is chosen, all downloads allowed, except for those that carry SafeBrowsing warnings of potentially dangerous downloads. When the 'Block all downloads' option is chosen, all downloads are blocked.  When this policy is not set, (or the 'No special restrictions' option is chosen), the downloads will go through the usual security restrictions based on SafeBrowsing analysis results.
+
+Note that these restrictions apply to downloads triggered from web page content, as well as the 'download link...' context menu option. These restrictions do not apply to the save / download of the currently displayed page, nor does it apply to saving as PDF from the printing options. See https://developers.google.com/safe-browsing for more info on SafeBrowsing.
+0 = No special restrictions
+1 = Block dangerous downloads
+2 = Block potentially dangerous downloads
+3 = Block all downloads"
+      solution    : "If the system is on the SIPRNet, this requirement is NA.
+Windows group policy:
+1. Open the group policy editor tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+Policy Name: Allow download restrictions
+Policy State: 1 or 2
+Policy Value: N/A"
+      reference   : "800-171|3.13.13,800-53|SC-18(2),CAT|II,CCI|CCI-001687,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SC-18(2),NESA|T3.2.1,NIAv2|SS15a,Rule-ID|SV-94635r2_rule,STIG-ID|DTBC-0055,SWIFT-CSCv1|2.3,Vuln-ID|V-79931"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 1 || 2
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DownloadRestrictions"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0064 - Autoplay must be disabled."
+      info        : "Allows you to control if videos can play automatically (without user consent) with audio content in Google Chrome.
+If the policy is set to 'True', Google Chrome is allowed to autoplay media. If the policy is set to 'False', Google Chrome is not allowed to autoplay media. The 'AutoplayWhitelist' policy can be used to override this for certain URL patterns. By default, Google Chrome is not allowed to autoplay media. The 'AutoplayWhitelist' policy can be used to override this for certain URL patterns."
+      solution    : "Windows group policy:
+1. Open the 'group policy editor' tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+Policy Name: Allow media autoplay
+Policy State: Disabled
+Policy Value: N/A"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-96295r2_rule,STIG-ID|DTBC-0064,SWIFT-CSCv1|2.3,Vuln-ID|V-81581"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "AutoplayAllowed"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0056 - Chrome must be configured to allow only TLS."
+      info        : "If this policy is not configured then Google Chrome uses a default minimum version, which is TLS 1.0. Otherwise, it may be set to one of the following values: 'tls1', 'tls1.1' or 'tls1.2'.
+When set, Google Chrome will not use SSL/TLS versions less than the specified version. An unrecognized value will be ignored.
+'tls1' = TLS 1.0
+'tls1.1' = TLS 1.1
+'tls1.2' = TLS 1.2"
+      solution    : "Windows group policy:
+ 1. Open the 'group policy editor' tool with gpedit.msc.
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+ Policy Name: Minimum SSL version enabled
+ Policy State: Enabled
+ Policy Value: TLS 1.1"
+      reference   : "800-171|3.13.11,800-53|SC-13,CAT|II,CCI|CCI-002450,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e,Rule-ID|SV-96297r3_rule,STIG-ID|DTBC-0056,Vuln-ID|V-81583"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_TEXT
+      value_data  : "tls1.1"
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "SSLVersionMin"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0057 - Safe Browsing Extended Reporting must be disabled."
+      info        : "Enables Google Chrome's Safe Browsing Extended Reporting and prevents users from changing this setting. Extended Reporting sends some system information and page content to Google servers to help detect dangerous apps and sites.
+If the setting is set to 'True', then reports will be created and sent whenever necessary (such as when a security interstitial is shown).
+If the setting is set to 'False', reports will never be sent.
+If this policy is set to 'True' or 'False', the user will not be able to modify the setting.
+If this policy is left unset, the user will be able to change the setting and decide whether to send reports or not."
+      solution    : "Windows group policy:
+1. Open the 'group policy editor' tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Safe Browsing settings\
+Policy Name: Enable Safe Browsing Extended Reporting
+Policy State: Disabled
+Policy Value: N/A"
+      reference   : "800-53|SC-18(1),CAT|II,CCI|CCI-001166,CSF|DE.CM-5,ITSG-33|SC-18(1),Rule-ID|SV-96299r2_rule,STIG-ID|DTBC-0057,Vuln-ID|V-81585"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "SafeBrowsingExtendedReportingEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0058 - WebUSB must be disabled."
+      info        : "Allows you to set whether websites are allowed to get access to connected USB devices. Access can be completely blocked, or the user can be asked every time a website wants to get access to connected USB devices.
+If this policy is left not set, '3' will be used, and the user will be able to change it.
+2 = Do not allow any site to request access to USB devices via the WebUSB API
+3 = Allow sites to ask the user to grant access to a connected USB device"
+      solution    : "Windows group policy:
+ 1. Open the 'group policy editor' tool with gpedit.msc
+ 2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Content Settings
+ Policy Name: Control use of the WebUSB API
+ Policy State: Enabled
+ Policy Value: 2"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-96301r1_rule,STIG-ID|DTBC-0058,SWIFT-CSCv1|2.3,Vuln-ID|V-81587"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 2
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DefaultWebUsbGuardSetting"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "DTBC-0065 - URLs must be whitelisted for Autoplay use."
+      info            : "Controls the whitelist of URL patterns that autoplay will always be enabled on.
+If the 'AutoplayAllowed' policy is set to 'True' then this policy will have no effect.
+If the 'AutoplayAllowed' policy is set to 'False' then any URL patterns set in this policy will still be allowed to play."
+      solution        : "Windows group policy:
+1. Open the 'group policy editor' tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome
+Policy Name: Allow media autoplay on a whitelist of URL patterns
+Policy State: Enabled
+Policy Value 1: [*.]mil
+Policy Value 2: [*.]gov"
+      reference       : "800-171|3.13.13,800-53|SC-18(4),CAT|II,CCI|CCI-001170,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|DE.CM-5,ITSG-33|SC-18(4),NIAv2|SS15a,Rule-ID|SV-96303r2_rule,STIG-ID|DTBC-0065,SWIFT-CSCv1|2.3,Vuln-ID|V-81589"
+      see_also        : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type      : POLICY_TEXT
+# Note: Variable @AUTOPLAY_WHITELIST_URLS@ replaced with "[*.]mil,[*.]gov" in field "value_data".
+      value_data      : "[*.]mil,[*.]gov"
+      powershell_args : "foreach ($a in Get-ItemProperty 'Registry::HKLM\Software\Policies\Google\Chrome\AutoplayWhitelist\') { $result= @(($a | Get-ItemProperty).Psobject.Properties | Where-Object { $_.Name -cnotlike 'PS*' } | Select -exp value) }; Write-Host ${result} -separator ','"
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0060 - Chrome Cleanup must be disabled."
+      info        : "If set to 'False', prevents Chrome Cleanup from scanning the system for unwanted software and performing cleanups. Manually triggering Chrome Cleanup from chrome://settings/cleanup is disabled.
+If set to 'True' or unset, Chrome Cleanup periodically scans the system for unwanted software and should any be found, will ask the user if they wish to remove it. Manually triggering Chrome Cleanup from chrome://settings is enabled.
+This policy is available only on Windows instances that are joined to a Microsoft Active Directory domain."
+      solution    : "Windows group policy:
+1. Open the 'group policy editor' tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome
+Policy Name: Enables Chrome Cleanup on Windows
+Policy State: Disabled
+Policy Value: N/A"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000169,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,Rule-ID|SV-96305r3_rule,STIG-ID|DTBC-0060,SWIFT-CSCv1|6.4,Vuln-ID|V-81591"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "ChromeCleanupEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0061 - Chrome Cleanup reporting must be disabled."
+      info        : "If unset, should Chrome Cleanup detect unwanted software, it may report metadata about the scan to Google in accordance with policy set by 'SafeBrowsingExtendedReportingEnabled'. Chrome Cleanup will then ask the user if they wish to clean up the unwanted software. The user can choose to share results of the cleanup with Google to assist with future unwanted software detection. These results contain file metadata and registry keys as described by the Chrome Privacy Whitepaper.
+If set to 'false', should Chrome Cleanup detect unwanted software, it will not report metadata about the scan to Google, overriding any policy set by 'SafeBrowsingExtendedReportingEnabled'. Chrome Cleanup will ask the user if they wish to clean up the unwanted software. Results of the cleanup will not be reported to Google and the user will not have the option to do so.
+If set to 'true', should Chrome Cleanup detect unwanted software, it may report metadata about the scan to Google in accordance with policy set by 'SafeBrowsingExtendedReportingEnabled'. Chrome Cleanup will ask the user if they wish to clean up the unwanted software. Results of the cleanup will be reported to Google and the user will not have the option to prevent it.
+This policy is available only on Windows instances that are joined to a Microsoft Active Directory domain."
+      solution    : "Windows group policy:
+1. Open the 'group policy editor' tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome
+Policy Name: Control how Chrome Cleanup reports data to Google
+Policy State: Disabled
+Policy Value: N/A"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CAT|II,CCI|CCI-000169,CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ITSG-33|AU-12,Rule-ID|SV-96307r3_rule,STIG-ID|DTBC-0061,SWIFT-CSCv1|6.4,Vuln-ID|V-81593"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "ChromeCleanupReportingEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0063 - Google Cast must be disabled."
+      info        : "If this policy is set to 'True' or is not set, Google Cast will be enabled, and users will be able to launch it from the app menu, page context menus, media controls on Cast-enabled websites, and (if shown) the 'Cast toolbar' icon.
+If this policy set to 'False', Google Cast will be disabled."
+      solution    : "Windows group policy:
+1. Open the 'group policy editor' tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\Google Cast
+Policy Name: Enable Google Cast
+Policy State: Disabled
+Policy Value: N/A"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CAT|II,CCI|CCI-000381,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,Rule-ID|SV-96311r2_rule,STIG-ID|DTBC-0063,SWIFT-CSCv1|2.3,Vuln-ID|V-81597"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "EnableMediaRouter"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0066 - Anonymized data collection must be disabled."
+      info        : "Enable URL-keyed anonymized data collection in Google Chrome and prevent users from changing this setting.
+URL-keyed anonymized data collection sends URLs of pages the user visits to Google to make searches and browsing better.
+If you enable this policy, URL-keyed anonymized data collection is always active.
+If you disable this policy, URL-keyed anonymized data collection is never active.
+If this policy is left not set, URL-keyed anonymized data collection will be enabled but the user will be able to change it."
+      solution    : "Windows group policy:
+1. Open the group policy editor tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+Policy Name: Enable URL-keyed anonymized data collection
+Policy State: Disabled
+Policy Value: NA"
+      reference   : "800-53|SC-18(1),CAT|II,CCI|CCI-001166,CSF|DE.CM-5,ITSG-33|SC-18(1),Rule-ID|SV-101303r1_rule,STIG-ID|DTBC-0066,Vuln-ID|V-91203"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "UrlKeyedAnonymizedDataCollectionEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0067 - Collection of WebRTC event logs must be disabled."
+      info        : "If the policy is set to 'true', Google Chrome is allowed to collect WebRTC event logs from Google services (e.g., Google Meet), and upload those logs to Google.
+If the policy is set to 'false', or is unset, Google Chrome may not collect nor upload such logs.
+These logs contain diagnostic information helpful when debugging issues with audio or video calls in Chrome, such as the time and size of sent and received RTP packets, feedback about congestion on the network, and metadata about time and quality of audio and video frames. These logs do not contain audio or video contents from the call.
+This data collection by Chrome can only be triggered by Google's web services, such as Google Hangouts or Google Meet."
+      solution    : "Windows group policy:
+1. Open the group policy editor tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome\
+Policy Name: Allow collection of WebRTC event logs from Google services
+Policy State: Disabled
+Policy Value: NA"
+      reference   : "800-53|SC-18(1),CAT|II,CCI|CCI-001166,CSF|DE.CM-5,ITSG-33|SC-18(1),Rule-ID|SV-101305r1_rule,STIG-ID|DTBC-0067,Vuln-ID|V-91205"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "WebRtcEventLogCollectionAllowed"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "DTBC-0068 - Chrome development tools must be disabled."
+      info        : "Information needed by an attacker to begin looking for possible vulnerabilities in a web browser includes any information about the web browser and plug-ins or modules being used. When debugging or trace information is enabled in a production web browser, information about the web browser, such as web browser type, version, patches installed, plug-ins and modules installed, type of code being used by the hosted application, and any back-ends being used for data storage may be displayed. Since this information may be placed in logs and general messages during normal operation of the web browser, an attacker does not need to cause an error condition to gain this information."
+      solution    : "Windows group policy:
+1. Open the group policy editor tool with gpedit.msc
+2. Navigate to Policy Path: Computer Configuration\Administrative Templates\Google\Google Chrome
+Policy Name: Control where Developer Tools can be used
+Policy State: Enabled
+Policy Value: Disallow usage of the Developer Tools"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|SI-11,CAT|III,CCI|CCI-001312,CN-L3|7.1.3.5(c),CN-L3|8.1.4.4(a),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|SI-11,NIAv2|SS15a,Rule-ID|SV-106629r1_rule,STIG-ID|DTBC-0068,SWIFT-CSCv1|2.3,Vuln-ID|V-97525"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+      value_type  : POLICY_DWORD
+      value_data  : 2
+      reg_key     : "HKLM\Software\Policies\Google\Chrome"
+      reg_item    : "DeveloperToolsAvailability"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "DISA_STIG_Google_Chrome_Windows_v1r18.audit from DISA Google Chrome Current Windows v1r18 STIG"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Google_Chrome_V1R18_STIG.zip"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

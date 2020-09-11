@@ -1,0 +1,1079 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.6 $
+# $Date: 2020/04/22 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS IBM DB2 9 Benchmark v3.0.1.
+#
+#               https://workbench.cisecurity.org/files/1654
+#
+#<ui_metadata>
+#<display_name>CIS IBM DB2 9 Benchmark v3.0.1 Level 1 OS Windows</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS IBM DB2 9 Benchmark Level 1 OS Windows</name>
+#  <version>3.0.1</version>
+#  <link>https://workbench.cisecurity.org/files/1654</link>
+#</spec>
+#<labels>windows,cis,db2,db2_v9</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>DATABASE_NAME</name>
+#    <default>not_sample</default>
+#    <description>Name of the database being audited.</description>
+#    <info>The name of the database that is currently being audited.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_PATH</name>
+#    <default>C:\Program Files\IBM\SQLLIB</default>
+#    <description>DB2 Path to SQLLIB</description>
+#    <info>The full path to the DB2 directory (DB2PATH environment variable) with no trailing backslash.</info>
+#  </variable>
+#  <variable>
+#    <name>DEFAULT_DB_DRIVE</name>
+#    <default>C:</default>
+#    <description>Default drive for new databases.</description>
+#    <info>The drive letter of the system disk to place new databases on.</info>
+#  </variable>
+#  <variable>
+#    <name>INSTANCE_CONTAINER_PATH</name>
+#    <default>/home/db2inst1/db2inst1/NODE0000/database/T0000001/C0000000.TMP</default>
+#    <description>DB2 Tablespace Container path</description>
+#    <info>The full path for database tablespace container.</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_ARCH_PATH_1</name>
+#    <default>C:\archive1</default>
+#    <description>Full path to the location for primary archive logs.</description>
+#    <info>This is the full path, including a backslash on the end as DB2 will automatically add the backslash.</info>
+#  </variable>
+#  <variable>
+#    <name>LOG_ARCH_PATH_2</name>
+#    <default>C:\archive2</default>
+#    <description>Full path to the location for secondary archive logs.</description>
+#    <info>This is the full path, including a backslash on the end as DB2 will automatically add the backslash.</info>
+#  </variable>
+#  <variable>
+#    <name>FAIL_ARCH_PATH</name>
+#    <default>C:\failed_archives</default>
+#    <description>Full path to the location for failed archives.</description>
+#    <info>This is the full path, including a backslash on the end as DB2 will automatically add the backslash.</info>
+#  </variable>
+#  <variable>
+#    <name>MIRROR_LOG_PATH</name>
+#    <default>C:\mirror_logs</default>
+#    <description>Full path to the location for mirror logs.</description>
+#    <info>This is the full path, including a backslash on the end as DB2 will automatically add the backslash.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"CIS IBM DB2 9 Benchmark v3.0.1 audit">
+
+<file_acl:"DefaultAdminAccess">
+  <user:"Administrators">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : 'change permissions' | 'create files / write data' | 'create folders / append data' | 'delete' | 'delete subfolder and files' | 'full control' | 'list folder / read data' | 'read attributes' | 'read extended attributes' | 'read permissions' | 'take ownership' | 'traverse folder / execute file' | 'write attributes' | 'write extended attributes'
+  </user>
+</file_acl>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "1.1 Install the latest fix packs"
+  info            : "Periodically, IBM releases fix packs to enhance features and resolve defects, including security defects. It is recommended that the DB2 instance remain current with all fix packs.
+
+Installing the latest DB2 fix pack will help protect the database from known vulnerabilities as well as reduce downtime that may otherwise result from functional defects.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution        : "Apply the latest fix pack as offered from IBM."
+  reference       : "800-171|3.14.1,800-53|SI-2,CN-L3|8.1.10.5(a),CN-L3|8.1.10.5(b),CN-L3|8.1.4.4(e),CN-L3|8.5.4.1(b),CN-L3|8.5.4.1(d),CN-L3|8.5.4.1(e),CSF|ID.RA-1,CSF|PR.IP-12,ITSG-33|SI-2,LEVEL|1S,NESA|T7.6.2,NESA|T7.7.1,NIAv2|AM38,NIAv2|AM39,NIAv2|PR9,NIAv2|SS14b,SWIFT-CSCv1|2.2"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "ManualReviewRequired"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2level}"
+  severity        : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "1.2 Use IP address rather than hostname"
+  info            : "Use an IP address rather than a hostname to connect to the host of the DB2 instance.
+
+Using a hostname to connect to a DB2 instance can display useful information about the host to an attacker. For example, hostnames for DB2 instances often contain the DB2 version number, host type, or operating system type."
+  solution        : "To reconfigure the connection string, launch the DB2 Configuration Assistant and change the connection's Hostname value from a text name to an IP address."
+  reference       : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "= [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\s*$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 list node directory show detail} | Select-String '^\s*Hostname\s*='"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "1.4 Use non-default account names"
+  info            : "The DB2 service is installed with default accounts with well-known names such as db2admin, db2inst1, dasusr1, or db2fenc1. It is recommended that the use of these account names be avoided. The default accounts may be renamed and then used.
+
+The use of default accounts may increase the DB2 service's susceptibility to unauthorized access by an attacker."
+  solution        : "For Windows:
+1. Right-click over the %DB2PATH% and select Properties from the menu.
+2. Go to the Security tab and re-assign all the user accounts with well-known default names to use non-default names.
+For Linux, perform the following command:
+chown -R <new user name>:<new group name> $DB2PATH
+Notes:
+Review the impact of changing the usernames before performing this global change."
+  reference       : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,LEVEL|1S,NESA|M4.4.3,NESA|T5.2.1,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14d,NIAv2|SS14e"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "Accounts:"
+  powershell_args : "'Accounts:'; Get-WmiObject -Class Win32_UserAccount | Where-Object {$_.LocalAccount -match 'True'} | Select-Object Caption | Where {$_.caption -like '*db2admin' -or $_.caption -like '*db2inst1' -or $_.caption -like '*dausr1' -or $_.caption -like '*db2fenc1'} | Format-List"
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "2.1 Secure the DB2 Runtime Library"
+  info        : "A DB2 software installation will place all executables under the default <DB2PATH>\sqllib directory. This directory needs to be secured so it grants only the necessary access to authorized users and administrators.
+
+The DB2 runtime is comprised of files that are executed as part of the DB2 service. If these resources are not secured, an attacker may alter them to execute arbitrary code.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "For Windows:
+1. Connect to the DB2 host
+2. Right-click on the %DB2PATH%\sqllib directory
+3. Choose Properties
+4. Select the Security tab
+5. Select all DB administrator accounts and grant them the Full Control authority
+6. Select all non-administrator accounts and revoke all privileges other than Read and Execute
+For Linux:
+1. Connect to the DB2 host
+2. Change to the $DB2PATH/sqllib directory
+3. Change the permission level of the directory to this recommended value:
+OS => chmod -R 750
+Default Value:
+Linux: $DB2PATH/sqllib is owned by the DB2 administrator with read, write, and execute access.
+MS Windows: %DB2PATH%\sqllib owned by the DB2 administrator with read, write, and execute access."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "file".
+  file        : "C:\\Program Files\\IBM\\SQLLIB"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "2.2 Secure the database container directory"
+  info        : "A DB2 database container is the physical storage of the data.
+
+The containers are needed in order for the database to operate properly. The loss of the containers can cause down time. Also, allowing excessive access to the containers may help an attacker to gain access to their contents. Therefore, secure the location(s) of the containers by restricting the access and ownership. Allow only the instance owner to have access to the tablespace containers.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Set the privileges for the directory of the containers. The recommended values are that only DB2 administrators have full access, and all other users have read-only access."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @INSTANCE_CONTAINER_PATH@ replaced with "/home/db2inst1/db2inst1/NODE0000/database/T0000001/C0000000.TMP" in field "file".
+  file        : "/home/db2inst1/db2inst1/NODE0000/database/T0000001/C0000000.TMP"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "3.1.2 Encrypt user data across the network"
+  info            : "DB2 supports a number of authentication mechanisms. It is recommended that the DATA_ENCRYPT authentication mechanism be used.
+
+The DATA_ENCRYPT authentication mechanism employs cryptographic algorithms to protect the confidentiality of authentication credentials and user data as they traverse the network between the DB2 client and server."
+  solution        : "The suggested value is DATA_ENCRYPT so that authentication occurs at the server. To set this:
+1. Attach to the DB2 instance:
+db2 => attach to $DB2INSTANCE
+2. Run the following command from the DB2 command window:
+db2 => update database manager configuration using authentication data_encrypt
+Default Value:
+The default value for AUTHENTICATION is SERVER."
+  reference       : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "DATA_ENCRYPT"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database manager configuration} | Select-String '\(AUTHENTICATION\)'| %{$_ -split('= ')} | Select-Object -Last 1"
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "3.1.6 Secure permissions for default database file path"
+  info            : "The dftdbpath parameter contains the default file path used to create DB2 databases. It is recommended that the permissions for this directory be set to full access for DB2 administrators and read and execute access only for all other accounts. It is also recommended that this directory be owned by the DB2 Administrator.
+
+Restricting access to the directory used as the default file path through permissions will help ensure that the confidentiality, integrity, and availability of the files there are protected."
+  solution        : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the default file path, if necessary:
+
+Additional steps for Windows:
+1. Connect to the DB2 host
+2. Right-click over the directory used as the default file path
+3. Choose Properties
+4. Select the Security tab
+5. Assign ownership of the directory to the DB2 Administrator
+6. Grant all DB administrator accounts the Full Control authority
+7. Grant only read and execute privileges to all other users (revoke all other privileges)
+
+
+Additional steps for Linux:
+1. Connect to the DB2 host
+2. Change to the directory used as the default file path
+3. Assign the DB2 Administrator to be the owner of the directory using the chown command
+4. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for this directory is read and write access for non-administrator accounts."
+  reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+# Note: Variable @DEFAULT_DB_DRIVE@ replaced with "C:" in field "value_data".
+  value_data      : "C::?$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database manager configuration} | Select-String '\(DFTDBPATH\)'| %{$_ -split('= ')} | Select-Object -Last 1"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<report type:"WARNING">
+  description : "3.1.8 Secure all diagnostic logs"
+  info        : "The diagpath parameter specifies the location of the diagnostic files for the DB2 instance. The directory at this location should be secured so that users have read and execute privileges only (no write privileges). All DB2 administrators should have full access to the directory.
+
+Securing the directory will ensure that the confidentiality, integrity, and availability of the diagnostic files contained in the directory are preserved.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "For Windows and Linux, to change the directory for the diagnostic logs:
+1. Attach to the DB2 instance.
+db2 => attach to $DB2INSTANCE
+2. Run the following command from the DB2 command window:
+db2 => update database manager configuration using diagpath
+
+Additional steps for Windows:
+1. Connect to the DB2 host
+2. Right-click over the diagnostic log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant the Full Control authority to all DB2 administrator accounts
+6. Grant only read and execute privileges to all other accounts (revoke any other privileges)
+
+Additional steps for Linux:
+1. Connect to the DB2 host
+2. Change to the diagnostic log directory
+3. Change the permissions of the directory
+OS => chmod -R 755
+Default Value:
+The default value for diagpath is NULL."
+  reference   : "LEVEL|1S"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+</report>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Variable LOG_ARCH_PATH_1 has value"
+      value_type      : POLICY_TEXT
+      value_data      : "LOGARCHMETH1 = [A-Z]:\.*"
+# Note: Variable @LOG_ARCH_PATH_1@ replaced with "C:\\archive1" in field "powershell_args".
+      powershell_args : "'LOGARCHMETH1 = C:\\archive1'"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.4 Secure permissions for the primary archive log location"
+      info            : "The logarchmeth1 parameter specifies the type of media and the location used as the primary destination of archived logs. It is recommended that the directory used for the archived logs be set to full access for DB2 administrator accounts and read and execute for all other accounts.
+
+Restricting access to the contents of the primary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your primary logs will be archived, we recommend using the value of DISK as part of the logarchmeth1 parameter. This will properly ensure that the primary logs are archived. A value of OFF is not acceptable."
+      solution        : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the primary archive log directory, if necessary:
+db2 => update database configuration using logarchmeth1 <valid directory>
+
+Additional steps for Windows (assuming that the logarchmeth1 parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the primary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the logarchmeth1 parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the primary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for LOGARCHMETH1 is OFF.
+The default permissions for the directory are read and write access."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+# Note: Variable @LOG_ARCH_PATH_1@ replaced with "C:\\archive1" in field "value_data".
+      value_data      : "DISK:C:\\archive1"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(LOGARCHMETH1\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "3.2.4 Secure permissions for the primary archive log location - FILE_PERMISSIONS"
+      info        : "The logarchmeth1 parameter specifies the type of media and the location used as the primary destination of archived logs. It is recommended that the directory used for the archived logs be set to full access for DB2 administrator accounts and read and execute for all other accounts.
+
+Restricting access to the contents of the primary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your primary logs will be archived, we recommend using the value of DISK as part of the logarchmeth1 parameter. This will properly ensure that the primary logs are archived. A value of OFF is not acceptable.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the primary archive log directory, if necessary:
+db2 => update database configuration using logarchmeth1 <valid directory>
+
+Additional steps for Windows (assuming that the logarchmeth1 parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the primary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the logarchmeth1 parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the primary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for LOGARCHMETH1 is OFF.
+The default permissions for the directory are read and write access."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1654"
+      value_type  : FILE_ACL
+      value_data  : "DefaultAdminAccess"
+# Note: Variable @LOG_ARCH_PATH_1@ replaced with "C:\\archive1" in field "file".
+      file        : "C:\\archive1"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.4 Secure permissions for the primary archive log location"
+      info            : "The logarchmeth1 parameter specifies the type of media and the location used as the primary destination of archived logs. It is recommended that the directory used for the archived logs be set to full access for DB2 administrator accounts and read and execute for all other accounts.
+
+Restricting access to the contents of the primary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your primary logs will be archived, we recommend using the value of DISK as part of the logarchmeth1 parameter. This will properly ensure that the primary logs are archived. A value of OFF is not acceptable.
+
+NOTE: Since LOG_ARCH_PATH_1 variable does not have a value, LOGARCHMETH1 must be set to non-DISK archiving method."
+      solution        : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the primary archive log directory, if necessary:
+db2 => update database configuration using logarchmeth1 <valid directory>
+
+Additional steps for Windows (assuming that the logarchmeth1 parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the primary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the logarchmeth1 parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the primary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for LOGARCHMETH1 is OFF.
+The default permissions for the directory are read and write access."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+      value_data      : "^(DISK|OFF)"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(LOGARCHMETH1\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+      check_type      : CHECK_NOT_REGEX
+    </custom_item>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Variable LOG_ARCH_PATH_2 has value"
+      value_type      : POLICY_TEXT
+      value_data      : "LOGARCHMETH2 = [A-Z]:\.*"
+# Note: Variable @LOG_ARCH_PATH_2@ replaced with "C:\\archive2" in field "powershell_args".
+      powershell_args : "'LOGARCHMETH2 = C:\\archive2'"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.5 Secure permissions for the secondary archive log location"
+      info            : "The logarchmeth2 parameter specifies the type of media and the location used as the secondary destination for archived logs. It is recommended that the directory used for the archived log be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+Rationale:
+Restricting access to the contents of the secondary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your logs will be archived, we recommend using the value of DISK as part of the logarchmeth2 parameter. This will properly ensure that the logs are archived. A finding of OFF is not acceptable."
+      solution        : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the secondary archive log directory, if necessary:
+db2 => update database configuration using logarchmeth2
+
+Additional steps for Windows (assuming that the logarchmeth2 parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the secondary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the logarchmeth2 parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the secondary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for LOGARCHMETH2 is OFF.
+The default value for the directory is read and write access."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+# Note: Variable @LOG_ARCH_PATH_2@ replaced with "C:\\archive2" in field "value_data".
+      value_data      : "DISK:C:\\archive2"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(LOGARCHMETH2\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "3.2.5 Secure permissions for the secondary archive log location - FILE_PERMISSIONS"
+      info        : "The logarchmeth2 parameter specifies the type of media and the location used as the secondary destination for archived logs. It is recommended that the directory used for the archived log be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+Rationale:
+Restricting access to the contents of the secondary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your logs will be archived, we recommend using the value of DISK as part of the logarchmeth2 parameter. This will properly ensure that the logs are archived. A finding of OFF is not acceptable.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the secondary archive log directory, if necessary:
+db2 => update database configuration using logarchmeth2
+
+Additional steps for Windows (assuming that the logarchmeth2 parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the secondary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the logarchmeth2 parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the secondary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for LOGARCHMETH2 is OFF.
+The default value for the directory is read and write access."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1654"
+      value_type  : FILE_ACL
+      value_data  : "DefaultAdminAccess"
+# Note: Variable @LOG_ARCH_PATH_2@ replaced with "C:\\archive2" in field "file".
+      file        : "C:\\archive2"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.5 Secure permissions for the secondary archive log location"
+      info            : "The logarchmeth2 parameter specifies the type of media and the location used as the secondary destination for archived logs. It is recommended that the directory used for the archived log be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+Rationale:
+Restricting access to the contents of the secondary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your logs will be archived, we recommend using the value of DISK as part of the logarchmeth2 parameter. This will properly ensure that the logs are archived. A finding of OFF is not acceptable.
+
+NOTE: Since LOG_ARCH_PATH_2 variable does not have a value, LOGARCHMETH2 must be set to non-DISK archiving method."
+      solution        : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the secondary archive log directory, if necessary:
+db2 => update database configuration using logarchmeth2
+
+Additional steps for Windows (assuming that the logarchmeth2 parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the secondary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the logarchmeth2 parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the secondary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for LOGARCHMETH2 is OFF.
+The default value for the directory is read and write access."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+      value_data      : "^(DISK|OFF)"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(LOGARCHMETH2\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+      check_type      : CHECK_NOT_REGEX
+    </custom_item>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Variable FAIL_ARCH_PATH has value"
+      value_type      : POLICY_TEXT
+      value_data      : "FAILARCHPATH = [A-Z]:\.*"
+# Note: Variable @FAIL_ARCH_PATH@ replaced with "C:\\failed_archives" in field "powershell_args".
+      powershell_args : "'FAILARCHPATH = C:\\failed_archives'"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.6 Secure permissions for the tertiary archive log location"
+      info            : "The failarchpath parameter specifies the type of media and the location used as the tertiary destination for archived logs. It is recommended that the directory used for the archived logs be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+Rationale:
+Restricting access to the contents of the tertiary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your logs will be archived, we recommend using the value of DISK as part of the failarchpath parameter. This will properly ensure that the logs are archived. A finding of OFF is not acceptable."
+      solution        : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the tertiary archive log directory, if necessary:
+db2 => update database configuration using failarchpath
+
+Additional steps for Windows (assuming that the failarchpath parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the tertiary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the failarchpath parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the tertiary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for FAILARCHPATH is null."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+# Note: Variable @FAIL_ARCH_PATH@ replaced with "C:\\failed_archives" in field "value_data".
+      value_data      : "C:\\failed_archives"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(FAILARCHPATH\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "3.2.6 Secure permissions for the tertiary archive log location - FILE_PERMISSIONS"
+      info        : "The failarchpath parameter specifies the type of media and the location used as the tertiary destination for archived logs. It is recommended that the directory used for the archived logs be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+Rationale:
+Restricting access to the contents of the tertiary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your logs will be archived, we recommend using the value of DISK as part of the failarchpath parameter. This will properly ensure that the logs are archived. A finding of OFF is not acceptable.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the tertiary archive log directory, if necessary:
+db2 => update database configuration using failarchpath
+
+Additional steps for Windows (assuming that the failarchpath parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the tertiary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the failarchpath parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the tertiary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for FAILARCHPATH is null."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1654"
+      value_type  : FILE_ACL
+      value_data  : "DefaultAdminAccess"
+# Note: Variable @FAIL_ARCH_PATH@ replaced with "C:\\failed_archives" in field "file".
+      file        : "C:\\failed_archives"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.6 Secure permissions for the tertiary archive log location"
+      info            : "The failarchpath parameter specifies the type of media and the location used as the tertiary destination for archived logs. It is recommended that the directory used for the archived logs be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+Rationale:
+Restricting access to the contents of the tertiary archive log directory will help ensure that the confidentiality, integrity, and availability of archive logs are protected.
+Although there are many ways to ensure that your logs will be archived, we recommend using the value of DISK as part of the failarchpath parameter. This will properly ensure that the logs are archived. A finding of OFF is not acceptable.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance.  If FAIL_ARCH_PATH variable was not set, to a file path, the permissions could be supplied."
+      solution        : "For Windows and Linux:
+1. Attach to the DB2 instance.
+2. Run the following command from the DB2 command window to change the tertiary archive log directory, if necessary:
+db2 => update database configuration using failarchpath
+
+Additional steps for Windows (assuming that the failarchpath parameter includes DISK):
+1. Connect to the DB2 host
+2. Right-click on the tertiary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux (assuming that the failarchpath parameter includes DISK):
+1. Connect to the DB2 host
+2. Change to the tertiary archive log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for FAILARCHPATH is null."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+      value_data      : "ManualReviewRequired"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "'FAILARCHPATH = '; set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(FAILARCHPATH\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+      severity        : MEDIUM
+    </custom_item>
+  </else>
+</if>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "Variable MIRROR_LOG_PATH has value"
+      value_type      : POLICY_TEXT
+      value_data      : "MIRRORLOGPATH = [A-Z]:\.*"
+# Note: Variable @MIRROR_LOG_PATH@ replaced with "C:\\mirror_logs" in field "powershell_args".
+      powershell_args : "'MIRRORLOGPATH = C:\\mirror_logs'"
+      check_type      : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.7 Secure permissions for the log mirror location"
+      info            : "The mirrorlogpath parameter specifies the type of media and the location used to store the mirror copy of the logs. It is recommended that the directory used for the mirror copy of the logs be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+
+A mirror log path should not be empty and it should be a valid path. The mirror log path stores a second copy of the active log files. Access to the directory pointed to by that path should be restricted through permissions to help ensure that the confidentiality, integrity, and availability of the mirror logs are protected."
+      solution        : "For Windows and Linux:
+1. Connect to the DB2 database.
+db2 => connect to $DB2INSTANCE user $USERNAME using $PASSWORD
+2. Run the following command from the DB2 command window to change the mirror log directory, if necessary:
+db2 => update database configuration using mirrorlogpath
+
+Additional steps for Windows:
+1. Connect to the DB2 host
+2. Right-click on the primary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux:
+1. Connect to the DB2 host
+2. Change to the mirror log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for mirrorlogpath is null."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+# Note: Variable @MIRROR_LOG_PATH@ replaced with "C:\\mirror_logs" in field "value_data".
+      value_data      : "C:\\mirror_logs"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(MIRRORLOGPATH\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "3.2.7 Secure permissions for the log mirror location - FILE_PERMISSIONS"
+      info        : "The mirrorlogpath parameter specifies the type of media and the location used to store the mirror copy of the logs. It is recommended that the directory used for the mirror copy of the logs be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+
+A mirror log path should not be empty and it should be a valid path. The mirror log path stores a second copy of the active log files. Access to the directory pointed to by that path should be restricted through permissions to help ensure that the confidentiality, integrity, and availability of the mirror logs are protected.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "For Windows and Linux:
+1. Connect to the DB2 database.
+db2 => connect to $DB2INSTANCE user $USERNAME using $PASSWORD
+2. Run the following command from the DB2 command window to change the mirror log directory, if necessary:
+db2 => update database configuration using mirrorlogpath
+
+Additional steps for Windows:
+1. Connect to the DB2 host
+2. Right-click on the primary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux:
+1. Connect to the DB2 host
+2. Change to the mirror log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for mirrorlogpath is null."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1654"
+      value_type  : FILE_ACL
+      value_data  : "DefaultAdminAccess"
+# Note: Variable @MIRROR_LOG_PATH@ replaced with "C:\\mirror_logs" in field "file".
+      file        : "C:\\mirror_logs"
+      severity    : MEDIUM
+    </custom_item>
+  </then>
+
+  <else>
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2.7 Secure permissions for the log mirror location"
+      info            : "The mirrorlogpath parameter specifies the type of media and the location used to store the mirror copy of the logs. It is recommended that the directory used for the mirror copy of the logs be set to full access for DB2 administrator accounts and read and execute only for all other accounts.
+
+A mirror log path should not be empty and it should be a valid path. The mirror log path stores a second copy of the active log files. Access to the directory pointed to by that path should be restricted through permissions to help ensure that the confidentiality, integrity, and availability of the mirror logs are protected.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance.  If MIRROR_LOG_PATH variable was not set, to a file path, the permissions could be supplied."
+      solution        : "For Windows and Linux:
+1. Connect to the DB2 database.
+db2 => connect to $DB2INSTANCE user $USERNAME using $PASSWORD
+2. Run the following command from the DB2 command window to change the mirror log directory, if necessary:
+db2 => update database configuration using mirrorlogpath
+
+Additional steps for Windows:
+1. Connect to the DB2 host
+2. Right-click on the primary archive log directory
+3. Choose Properties
+4. Select the Security tab
+5. Grant all DB2 administrator accounts the Full Control authority
+6. Grant all other accounts read and execute privileges only (revoke all other privileges)
+
+Additional steps for Linux:
+1. Connect to the DB2 host
+2. Change to the mirror log directory
+3. Change the permissions for the directory
+OS => chmod -R 755
+Default Value:
+The default value for mirrorlogpath is null."
+      reference       : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+      see_also        : "https://workbench.cisecurity.org/files/1654"
+      value_type      : POLICY_TEXT
+      value_data      : "ManualReviewRequired"
+# Note: Variable @DATABASE_NAME@ replaced with "not_sample" in field "powershell_args".
+      powershell_args : "'MIRRORLOGPATH = '; set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database configuration for not_sample} | Select-String '\(MIRRORLOGPATH\)' | %{$_ -split('= ')} | Select-Object -Last 1"
+      severity        : MEDIUM
+    </custom_item>
+  </else>
+</if>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "3.3.1 Establish DAS administrative group"
+  info            : "The dasadm_group parameter defines the group name with DAS Administration (DASADM) authority for the DAS. It is recommended that the dasadm_group group contains authorized users only.
+
+The DAS is a special administrative tool that enables remote administration of DB2 servers. DASADM authority is the highest level of authority within the DAS."
+  solution        : "1. Attach to the DB2 instance.
+db2 => attach to $DB2INSTANCE
+2. Run the following command from the DB2 command window:
+db2 => update database configuration using dasadm_group <valid system group>
+Default Value:
+The default value for dasadm_group is null."
+  reference       : "800-53|AC-6(7),CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,LEVEL|1S,NESA|M1.1.3,NESA|T5.1.1"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "= .+$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get admin configuration} | Select-String '\(DASADM_GROUP\)'"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "7.3 Establish a system maintenance group"
+  info            : "The sysmaint_group parameter defines the system administrator group that possesses the system maintenance (SYSMAINT) authority. It is recommended that the sysmaint_group group contains authorized users only.
+
+If an account that possesses this authority is compromised or used in a malicious manner, the confidentiality, integrity, and availability of data in the DB2 instance will be at increased risk."
+  solution        : "Define a valid group name for the SYSMAINT group. Note: This parameter does not apply to Windows platforms.
+1. Attach to the DB2 database.
+db2 => attach to $DB2INSTANCE
+2. Run the following command from the DB2 command window:
+db2 => update database manager configuration using sysmaint_group <sys maintenance group name>
+Default Value:
+The default value for SYSMAINT_GROUP is NULL."
+  reference       : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "= .+$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database manager configuration} | Select-String '\(SYSMAINT_GROUP\)'"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "7.4 Establish a system monitoring group"
+  info            : "The sysmon_group parameter defines the operating system groups with system monitor (SYSMON) authority. It is recommended that the sysmon_group group contains authorized users only.
+
+If an account that possesses this authority is compromised or used in a malicious manner, the confidentiality, integrity, and availability of data in the DB2 instance will be at increase risk."
+  solution        : "Define a valid group name for the SYSMON group.
+1. Attach to the DB2 database.
+db2 => attach to $DB2INSTANCE
+2. Run the following command from the DB2 command window:
+db2 => update database manager configuration using sysmon_group <sys monintor group name>
+Default Value:
+The default value for SYSMON_GROUP is NULL."
+  reference       : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "= .+$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 get database manager configuration} | Select-String '\(SYSMON_GROUP\)'"
+  check_type      : CHECK_REGEX
+</custom_item>
+
+<report type:"WARNING">
+  description : "8.1 Restrict access to starting and stopping DB2 instances"
+  info        : "The DB2 instance manages the database environment and sets the configuration parameters. It is recommended that only administrators are allowed to start and stop the DB2 instance.
+
+Only allowing privileged users to start and stop the DB2 instance will help ensure that the DB2 instance is controlled by authorized administrators.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "1. Connect to the host
+2. Review users and groups that have access to start and stop the DB2 instance
+3. Revoke access from any unnecessary users."
+  reference   : "LEVEL|1NS"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+</report>
+
+<custom_item>
+  type            : AUDIT_POWERSHELL
+  description     : "8.5 Remove default databases"
+  info            : "A DB2 Instance may come installed with default databases. It is recommended that the SAMPLE database be removed.
+
+Removing unused, well-known databases will reduce the attack surface of the system."
+  solution        : "To drop sample databases:
+1. Connect to the DB2 database.
+2. Run the following command from the DB2 command window:
+db2 => drop database sample"
+  reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+  see_also        : "https://workbench.cisecurity.org/files/1654"
+  value_type      : POLICY_TEXT
+  value_data      : "= SAMPLE$"
+  powershell_args : "set-item -path env:DB2CLP -value '**$$**' | Invoke-Command -ScriptBlock {db2 list database directory} | Select-String '^\s*Database name'"
+  check_type      : CHECK_NOT_REGEX
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "8.6 Enable SSL communication with LDAP server"
+  info        : "The communication layer between a DB2 instance and the LDAP server should be encrypted. It is recommended that the ENABLE_SSL parameter in the IBMLDAPSecurity.ini file be set to TRUE.
+
+Enabling SSL will help ensure the confidentiality of authentication credentials and other information that is sent to and from the DB2 instance and the LDAP server."
+  solution    : "Update the parameter value:
+1. Connect to the DB2 host.
+2. Edit the IBMLDAPSecurity.ini file
+3. Add or modify the file to include the following parameter:
+ENABLE_SSL = TRUE
+Notes:
+The file is located under INSTANCE_HOME/sqllib/cfg/, for Unix; and %DB2PATH%\cfg\, for MS Windows."
+  reference   : "800-171|3.13.8,800-53|SC-8(1),CSF|PR.DS-2,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ISO/IEC-27001|A.13.2.3,ITSG-33|SC-8(1),LEVEL|1S,NESA|T7.4.1,NIAv2|NS5d,NIAv2|NS6b,SWIFT-CSCv1|2.1,TBA-FIISB|29.1"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : POLICY_TEXT
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "value_data".
+  value_data  : "C:\\Program Files\\IBM\\SQLLIB\cfg\IBMLDAPSecurity.ini"
+  regex       : "^ *[Ee][Nn][Aa][Bb][Ll][Ee]_[Ss][Ss][Ll] *="
+  expect      : "^ *[Ee][Nn][Aa][Bb][Ll][Ee]_[Ss][Ss][Ll] *= *[Tt][Rr][Uu][Ee]"
+  file_option : CAN_BE_NULL
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "8.7 Secure the permissions of the IBMLDAPSecurity.ini file"
+  info        : "The IBMLDAPSecurity.ini file contains the IBM LDAP security plug-in configurations.
+
+Recommended value is read-only (RO) to Everyone/Other/Users/Domain Users. This will ensure that the parameter file is protected.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "For Windows:
+1. Connect to the DB2 host
+2. Right-click over the file directory
+3. Choose Properties
+4. Select the Security tab
+5. Select all non-administrator accounts and revoke the Full Control authority
+For Linux:
+1. Connect to the DB2 host
+2. Change to the file directory
+3. Change the permission level of the directory
+OS => chmod ?R 740
+Default Value:
+The default value for this directory is read and write access for non-administrator accounts.
+Notes:
+The file is located under INSTANCE_HOME/sqllib/cfg/, for Unix; and %DB2PATH%\cfg\, for MS Windows."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "file".
+  file        : "C:\\Program Files\\IBM\\SQLLIB\cfg\IBMLDAPSecurity.ini"
+  acl_option  : CAN_BE_NULL
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "8.8 Secure the permissions of the SSLconfig.ini file"
+  info        : "The SSLconfig.ini file contains the SSL configuration parameters for the DB2 instance, including the password for KeyStore.
+
+Recommended value is read-only (RO) to Everyone/Other/Users/Domain Users. This will ensure that the parameter file is protected.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "For Windows:
+1. Connect to the DB2 host
+2. Right-click over the file directory
+3. Choose Properties
+4. Select the Security tab
+5. Select all non-administrator accounts and revoke the Full Control authority
+For Linux:
+1. Connect to the DB2 host
+2. Change to the file directory
+3. Change the permission level of the directory
+OS => chmod ?R 740
+Default Value:
+The default value for this directory is read-and-write access to non-administrator accounts.
+Notes:
+The file is located under INSTANCE_HOME/cfg/, for Unix; and %INSTHOME\, for MS Windows. Only the instance owner should have access to this file."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1S,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "file".
+  file        : "C:\\Program Files\\IBM\\SQLLIB\cfg\SSLconfig.ini"
+  acl_option  : CAN_BE_NULL
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "10.1 Restrict access to the DB2 Control Center"
+  info        : "The DB2 Control Center is a management tool that manages all registered DB2 instances and databases. It is recommended that access to the Control Center utility be granted to authorized users only.
+
+Secure this application where applicable, since it has access to the DB2 instance name, the host it resides on, and the database name.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To revoke access to the DB2 Control Center:
+1. Connect to the host
+2. Review users and groups that have access to start the DB2 Control Center
+3. Revoke access from any unnecessary users."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1NS,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "file".
+  file        : "C:\\Program Files\\IBM\\SQLLIB\BIN\db2cc.bat"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "10.2 Restrict access to the DB2 Configuration Assistant utility"
+  info        : "The DB2 Configuration Assistant is a management tool that manages all connectivity setup to the DB2 instances and databases. It is recommended that access to the Configuration Assistant utility be granted to authorized users only.
+
+Secure this application where applicable, since it has access to the DB2 instance name, the host it resides on, and the database name, and the port number.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To revoke access to the DB2 Configuration Assistant from unnecessary users and groups:
+1. Connect to the host
+2. Review users and groups that have access to start the DB2 Configuration Assistant.
+3. Revoke access from unnecessary users and groups."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1NS,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "file".
+  file        : "C:\\Program Files\\IBM\\SQLLIB\BIN\db2ca.bat"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "10.3 Restrict access to the DB2 Health Monitor utility"
+  info        : "The DB2 Health Monitor is a management tool that manages information about the database manager, database, tablespace and table space containers. It is recommended that access to the DB2 Health Monitor utility be granted to authorized users only.
+
+Secure this application where applicable, since it has sensitive information about the health of the database.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To revoke access to the DB2 Health Monitor from any unnecessary users and groups:
+1. Connect to the host
+2. Review users and groups that have access to start the DB2 Health Center
+3. Revoke access from any unnecessary users and groups."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1NS,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "file".
+  file        : "C:\\Program Files\\IBM\\SQLLIB\BIN\db2hc.bat"
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_PERMISSIONS
+  description : "10.4 Restrict access to the DB2 Activity Monitor utility"
+  info        : "The DB2 Activity Monitor is a management tool that monitors all application performance and concurrency, resource consumption, and SQL statement usage of a database. It is recommended that access to the DB2 Activity Monitor utility be granted to authorized users only.
+
+Secure this application where applicable, since it has vital statistics about the database.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "To revoke access to the DB2 Activity Monitor from any unnecessary users and groups:
+1. Connect to the host
+2. Review users and groups that have access to start the DB2 Activity Monitor
+3. Revoke access from all unnecessary users and groups."
+  reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,LEVEL|1NS,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/1654"
+  value_type  : FILE_ACL
+  value_data  : "DefaultAdminAccess"
+# Note: Variable @DB2_PATH@ replaced with "C:\\Program Files\\IBM\\SQLLIB" in field "file".
+  file        : "C:\\Program Files\\IBM\\SQLLIB\BIN\db2hc.bat"
+  severity    : MEDIUM
+</custom_item>
+
+</group_policy>
+</check_type>

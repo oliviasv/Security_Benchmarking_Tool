@@ -1,0 +1,466 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.10 $
+# $Date: 2020/04/22 $
+#
+# Description : This audit is based on the Security Configuration Benchmark For MySQL 5.7 Enterprise Editions
+#             Version 1.0.0 March 28, 2016
+#             https://workbench.cisecurity.org/files/1619
+#
+#<ui_metadata>
+#<display_name>CIS MySQL 5.7 Enterprise Linux OS L2 v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MySQL 5.7 Enterprise Linux L2</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/1619</link>
+#</spec>
+#<labels>database,cis,mysql,mysql_5,mysql_5.7,mysql_5.7_enterprise</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>MYSQL_USER</name>
+#    <default>mysql</default>
+#    <description>MySQL User Account</description>
+#    <info>This is your MySQL user account.</info>
+#  </variable>
+#  <variable>
+#    <name>SYSCONFDIR</name>
+#    <default>SYSCONFDIR/my.cnf</default>
+#    <description>sysconfdir Path</description>
+#    <info>This is the directory specified with the --sysconfdir option to configure when MySQL was built.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"OR">
+    <custom_item>
+      system      : "Linux"
+      type        : RPM_CHECK
+      description : "MySQL 5.7 Community Edition is installed"
+      rpm         : "mysql-server-5.7.0"
+      operator    : "gte"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "MySQL 5.7 Enterprise Edition is installed"
+    </report>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "~/.mysql_history Exists"
+          cmd         : "/bin/find / -name \".mysql_history\" | /usr/bin/awk '{ print } END { if (NR!=0) print \"none\" }'"
+          expect      : "none"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "1.3 Disable MySQL Command History - .mysql_history"
+          info        : "Disabling the MySQL command history reduces the probability of exposing sensitive information, such as passwords and encryption keys."
+          solution    : "Perform the following steps to remediate this setting: Remove .mysql_history if it exists. Use either of the techniques below to prevent it from being created again: Set the MYSQL_HISTFILE environment variable to /dev/null. This will need to be placed in the shell's startup script. Create $HOME/.mysql_history as a symbolic to /dev/null. > ln -s /dev/null $HOME/.mysql_history"
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+          cmd         : "a=$(for f in $(/bin/find / -name \".mysql_history\"); do /usr/bin/file $f | /bin/egrep -cv \"symbolic link to \\`/dev/null'\"; done;); if [ \"$a\" = \"0\" ]; then echo \"none\";else for g in $(/bin/find / -name \".mysql_history\"); do /usr/bin/file $g |/bin/egrep -v \"symbolic link to \\`/dev/null'\";done; fi"
+          expect      : "none"
+        </custom_item>
+      </then>
+
+      <else>
+        <custom_item>
+          system      : "Linux"
+          type        : CMD_EXEC
+          description : "1.3 Disable MySQL Command History - ~/.mysql_history"
+          info        : "Disabling the MySQL command history reduces the probability of exposing sensitive information, such as passwords and encryption keys."
+          solution    : "Perform the following steps to remediate this setting: Remove .mysql_history if it exists. Use either of the techniques below to prevent it from being created again: Set the MYSQL_HISTFILE environment variable to /dev/null. This will need to be placed in the shell's startup script. Create $HOME/.mysql_history as a symbolic to /dev/null. > ln -s /dev/null $HOME/.mysql_history"
+          reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+          cmd         : "/bin/find / -name \".mysql_history\" | /usr/bin/awk '{ print } END { if (NR==0) print \"none\" }'"
+          expect      : "none"
+        </custom_item>
+      </else>
+    </if>
+
+    <custom_item>
+      system      : "Linux"
+      type        : FILE_CONTENT_CHECK
+      description : "1.5 Disable Interactive Login"
+      info        : "Preventing the MySQL user from logging in interactively may reduce the impact of a compromised MySQL account. There is also more accountability as accessing the operating system where the MySQL server lies will require the user's own account. Interactive access by the MySQL user is unnecessary and should be disabled."
+      solution    : "Perform the following steps to remediate this setting: Execute one of the following commands in a terminal usermod -s /bin/false usermod -s /sbin/nologin Impact: This setting will prevent the MySQL administrator from interactively logging into the operating system using the MySQL user. Instead, the administrator will need to log in using one's own account."
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      file        : "/etc/passwd"
+# Note: Variable @MYSQL_USER@ replaced with "mysql" in field "regex".
+      regex       : "^[\\s]*mysql:"
+      expect      : ":(\\/sbin\\/nologin|\\/bin\\/false)\\s*$"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "2.4 Do Not Use Default or Shared Cryptographic Material"
+      info        : "If an attacker gains access to shared cryptographic material, including default material, the attacker can reuse that material to impersonate the MySQL server or otherwise compromise its operations.
+
+   NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Generate new certificates, keys, and other cryptographic material as needed for each affected MySQL instance."
+      reference   : "LEVEL|2NS"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+    </report>
+
+    <custom_item>
+      system      : "Linux"
+      type        : CMD_EXEC
+      description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - mysqld start-up"
+      info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+      solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+      reference   : "800-171|3.4.7,800-53|CM-7(2),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|2S,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      cmd         : "/bin/ps aux | /bin/grep mysqld\\  | /bin/grep -v grep | /bin/grep -q -e --allow-suspicious-udfs ; /bin/echo $?"
+      expect      : "1"
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/my.cnf"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/my.cnf"
+              info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+              solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "800-171|3.4.7,800-53|CM-7(2),CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|2S,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+              file        : "/etc/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/my.cnf"
+              info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+              solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "LEVEL|2S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/mysql/my.cnf"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/mysql/my.cnf"
+              info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+              solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "800-171|3.4.7,800-53|CM-7(2),CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|2S,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+              file        : "/etc/mysql/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - /etc/mysql/my.cnf"
+              info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+              solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "LEVEL|2S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <if>
+          <condition type:"AND">
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - SYSCONFDIR/my.cnf/my.cnf"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*="
+            </custom_item>
+          </condition>
+
+          <then>
+            <custom_item>
+              system      : "Linux"
+              type        : FILE_CONTENT_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - SYSCONFDIR/my.cnf/my.cnf"
+              info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+              solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "800-171|3.4.7,800-53|CM-7(2),CSCv6|8.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7(2),LEVEL|2S,SWIFT-CSCv1|2.3"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+              file        : "SYSCONFDIR/my.cnf/my.cnf"
+              regex       : "^[\\s]*allow-suspicious-udfs[\\s]*="
+              expect      : "^[\\s]*allow-suspicious-udfs[\\s]*=[\\s]*FALSE"
+            </custom_item>
+          </then>
+
+          <else>
+            <report type:"PASSED">
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+              description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - SYSCONFDIR/my.cnf/my.cnf passed"
+              info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+              solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+              reference   : "LEVEL|2S"
+              see_also    : "https://workbench.cisecurity.org/files/1619"
+            </report>
+          </else>
+        </if>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "4.3 Ensure 'allow-suspicious-udfs' Is Set to 'FALSE' - config files not found"
+          info        : "Preventing shared libraries that do not contain user-defined functions from loading will reduce the attack surface of the server."
+          solution    : "Perform the following to establish the recommended state: Remove --allow-suspicious-udfs from the mysqld start up command line. Remove allow-suspicious-udfs from the MySQL option file."
+          reference   : "LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+        </report>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/my.cnf Exists"
+          file        : "/etc/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration - /etc/my.cnf"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+          file        : "/etc/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+          description : "/etc/mysql/my.cnf Exists"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration - /etc/mysql/my.cnf"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+          file        : "/etc/mysql/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Exists"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CONTENT_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration - SYSCONFDIR/my.cnf/my.cnf"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+          regex       : "^[\\s]*password"
+          expect      : "^[\\s]*password[\\s]*="
+        </custom_item>
+      </then>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/my.cnf Does not exist"
+          file        : "/etc/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+          description : "/etc/mysql/my.cnf Does not exist"
+          file        : "/etc/mysql/my.cnf"
+        </custom_item>
+
+        <custom_item>
+          system      : "Linux"
+          type        : FILE_CHECK_NOT
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "description".
+          description : "SYSCONFDIR/my.cnf/my.cnf Does not exist"
+# Note: Variable @SYSCONFDIR@ replaced with "SYSCONFDIR/my.cnf" in field "file".
+          file        : "SYSCONFDIR/my.cnf/my.cnf"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"FAILED">
+          description : "7.3 Ensure Passwords Are Not Stored in the Global Configuration"
+          info        : "The use of the password parameter may negatively impact the confidentiality of the user's password."
+          solution    : "Use the mysql_config_editor to store authtentication credentials in .mylogin.cnf in encrypted form. If not possible, use the user-specific options file, .my.cnf., and restricting file access permissions to the user identity. Impact: The global configuration is by default readable for all users on the system. This is needed for global defaults (prompt, port, socket, etc). If a password is present in this file then all users on the system may be able to access it."
+          reference   : "LEVEL|2S"
+          see_also    : "https://workbench.cisecurity.org/files/1619"
+        </report>
+      </then>
+    </if>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "MySQL 5.7 Enterprise Edition is installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+    </report>
+  </else>
+</if>
+
+</check_type>

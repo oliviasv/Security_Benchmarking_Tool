@@ -1,0 +1,157 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.2 $
+# $Date: 2020/07/14 $
+#
+# description : This document implements the security configuration as recommended by the
+#               CIS Docker Benchmark v1.2.0
+#
+#<ui_metadata>
+#<display_name>CIS Docker v1.2.0 L2 Docker Engine Enterprise</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS Docker L2 Docker Engine Enterprise</name>
+#  <version>1.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/2433</link>
+#</spec>
+#<labels>unix,cis,docker,agent</labels>
+#<benchmark_refs>LEVEL,CSCv6,CSCv7</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>MANAGEMENT_ADDRESS</name>
+#    <default>172.17.0.[1-9]</default>
+#    <description>Management Plane Address</description>
+#    <info>IP address for Management Plane traffic.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : CMD_EXEC
+      description : "Check if this is a Docker Vessel/Host"
+      cmd         : "/usr/bin/docker info"
+      expect      : "Containers"
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_Docker_v1.2.0_L2_Docker_Engine_Enterprise.audit from CIS Docker Benchmark v1.2.0"
+    </report>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7.5 Ensure that Docker's secret management commands are used for managing secrets in a swarm cluster"
+      info        : "You should use Docker's in-built secret management command for control of secrets.
+
+Rationale:
+
+Docker has various commands for managing secrets in a swarm cluster.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "You should follow the docker secret documentation and use it to manage secrets effectively.
+
+Impact:
+
+None
+
+Default Value:
+
+Not Applicable"
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|18,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2NS,NESA|T3.2.1,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+      cmd         : "docker secret ls"
+      expect      : "MANUAL_REVIEW"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7.8 Ensure that node certificates are rotated as appropriate"
+      info        : "You should rotate swarm node certificates in line with your organizational security policy.
+
+Rationale:
+
+Docker Swarm uses TLS for clustering operations between its nodes. Certificate rotation ensures that in an event such as a compromised node or key, it is difficult to impersonate a node. By default, node certificates are rotated every 90 days, but you should rotate them more often or as appropriate in your environment."
+      solution    : "You should run the command to set the desired expiry time on the node certificate.
+For example:
+
+docker swarm update --cert-expiry 48h
+
+Impact:
+
+None
+
+Default Value:
+
+By default, node certificates are rotated automatically every 90 days."
+      reference   : "800-171|3.13.10,800-53|SC-12,CSCv6|14.2,CSCv7|14.4,ISO/IEC-27001|A.10.1.2,ITSG-33|SC-12,LEVEL|2NS,NESA|T7.4.1,NESA|T7.4.2,NIAv2|CY2,NIAv2|CY8,NIAv2|CY9"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+      cmd         : "docker info | grep 'Expiry Duration'"
+      expect      : "Expiry Duration: [1]?[1-9]^ months"
+    </custom_item>
+
+    <custom_item>
+      type        : CMD_EXEC
+      description : "7.10 Ensure that management plane traffic is separated from data plane traffic"
+      info        : "You should separate management plane traffic from data plane traffic.
+
+Rationale:
+
+Separating management plane traffic from data plane traffic ensures that these types of traffic are segregated from each other. These traffic flows can then be individually monitored and tied to different traffic control policies and monitoring. This also ensures that the management plane is always reachable even if there is a great deal of traffic on the data plane."
+      solution    : "You should initialize the swarm with dedicated interfaces for management and data planes respectively.
+For example,
+
+docker swarm init --advertise-addr=192.168.0.1 --data-path-addr=17.1.0.3
+
+Impact:
+
+This requires two network interfaces per node.
+
+Default Value:
+
+By default, data plane traffic is not separated from management plane traffic."
+      reference   : "800-171|3.13.2,800-171|3.13.5,800-53|SC-7(13),CN-L3|8.1.10.6(h),CSCv6|18,CSF|PR.AC-5,CSF|PR.PT-4,ITSG-33|SC-7(13),LEVEL|2NS,NIAv2|GS7d,SWIFT-CSCv1|3.1"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+      cmd         : "docker node inspect --format '{{ .Status.Addr }}' self"
+# Note: Variable @MANAGEMENT_ADDRESS@ replaced with "172.17.0.[1-9]" in field "expect".
+      expect      : "172.17.0.[1-9]"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "8.1.5 Enable signed image enforcement"
+      info        : "The Universal Control Plane includes the ability to enforce running of only images that have been signed by members of a particular group. This capability should be enabled to prevent unsigned images from being deployed to your cluster.
+
+Rationale:
+
+Running untrusted containers poses a risk to the operation of your Docker platform. Combined with the Docker Content Trust recommendations in Section 4, signed image enforcement in UCP gives you more control over the validity and origination of your Docker images prior to deployment. Signed image enforcement can prohibit images that are unsigned, have malformed signatures, and/or compromised signatures from being deployed.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      reference   : "LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2433"
+    </report>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_Docker_v1.2.0_L2_Docker_Engine_Enterprise.audit from CIS Docker Benchmark v1.2.0"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</check_type>

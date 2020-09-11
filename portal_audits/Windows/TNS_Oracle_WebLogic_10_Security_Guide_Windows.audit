@@ -1,0 +1,917 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.6 $
+# $Date: 2020/04/22 $
+#
+#<ui_metadata>
+#<display_name>TNS Oracle WebLogic Server 10 Windows Best Practices</display_name>
+#<spec>
+#  <type>TNS</type>
+#  <name>Oracle WebLogic Server 10</name>
+#  <version>1.0.0</version>
+#</spec>
+#<labels>windows,tenable,oracle,weblogic,weblogic_10</labels>
+#<variables>
+#  <variable>
+#    <name>WEBLOGIC_DOMAIN_HOME</name>
+#    <default>C:\Oracle\Middleware\user_projects\domains\base_domain</default>
+#    <description>Domain Home Path</description>
+#    <info>The full path to the domain home with no trailing slash.</info>
+#  </variable>
+#  <variable>
+#    <name>WEBLOGIC_INSTALL_PATH</name>
+#    <default>C:\Oracle\Middleware\</default>
+#    <description>Weblogic Installation Path</description>
+#    <info>The full path to the Weblogic installation.</info>
+#  </variable>
+#  <variable>
+#    <name>WEBLOGIC_FILE_PERMS_USER</name>
+#    <default>oracle</default>
+#    <description>Weblogic File Owner Username</description>
+#    <info>The OS user that has permissions for the weblogic install.</info>
+#  </variable>
+#  <variable>
+#    <name>KEYSTORE_PATH</name>
+#    <default>C:\Oracle\Middleware\user_projects\domains\base_domain\keystore</default>
+#    <description>Weblogic Keystore Path</description>
+#    <info>The full path to the keystore used for the domain.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"MS Windows">
+
+<file_acl:"Weblogic_Path">
+# Note: Variable @WEBLOGIC_FILE_PERMS_USER@ replaced with "oracle" in field "<user".
+  <user:"oracle">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"Administrator">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"CREATOR OWNER">
+    acl_inheritance : "not inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+</file_acl>
+
+<file_acl:"KeystoreDirectory">
+  <user:"CREATOR OWNER">
+    acl_inheritance : "not inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "full control"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "full control"
+  </user>
+</file_acl>
+
+<file_acl:"KeystoreFiles">
+  <user:"CREATOR OWNER">
+    acl_inheritance : "not inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "read" | "write"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "read" | "write"
+  </user>
+</file_acl>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : FILE_CHECK
+      description : "Check for WebLogic installation exists"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_INSTALL_PATH@ replaced with "C:\\Oracle\\Middleware\\" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\"
+      file_option : MUST_EXIST
+    </custom_item>
+  </condition>
+
+  <then>
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "1.1 - Strong Password policy should be implemented - Non-Alphanumeric Characters"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+      reference   : "800-171|3.5.7,800-53|IA-5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "pas:min-non-alphanumeric-characters"
+      expect      : "([1-9]|[1-9][0-9])"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "1.1 - Strong Password policy should be implemented - Minimum Password Length"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+      reference   : "800-171|3.5.7,800-53|IA-5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "pas:min-password-length"
+      expect      : "([8-9]|[1-9][0-9])"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "1.1 - Strong Password policy should be implemented - Minimum Numeric Characters"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+      reference   : "800-171|3.5.7,800-53|IA-5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "pas:min-numeric-characters"
+      expect      : "([1-9]|[1-9][0-9])"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "1.1 - Strong Password policy should be implemented - Minimum Lowercase Characters"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+      reference   : "800-171|3.5.7,800-53|IA-5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "pas:min-lowercase-characters"
+      expect      : "([1-9]|[1-9][0-9])"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "1.1 - Strong Password policy should be implemented - Minimum Uppercase Characters"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+      reference   : "800-171|3.5.7,800-53|IA-5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "pas:min-uppercase-characters"
+      expect      : "([1-9]|[1-9][0-9])"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "1.1 - Strong Password policy should be implemented - Minimum Special Characters"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+      reference   : "800-171|3.5.7,800-53|IA-5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "pas:min-numeric-or-special-characters"
+      expect      : "([1-9]|[1-9][0-9])"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "1.1 - Strong Password policy should be implemented - Enforce Password History"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+    </report>
+
+    <report type:"WARNING">
+      description : "1.1 - Strong Password policy should be implemented - Maximum Password Age"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+    </report>
+
+    <report type:"WARNING">
+      description : "1.1 - Strong Password policy should be implemented - Minimum Password Age"
+      info        : "Strong Password policy should be implemented to protect user access.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Centre, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Providers > Password Validation.
+6. Select the name of the Password composition checks entry.
+7. Select the Provider Specific tab.
+8. Enter the suggested password settings
+9. Save and confirm the change"
+    </report>
+
+    <report type:"WARNING">
+      description : "1.2 - Default admin password should be changed"
+      info        : "Change the Default Administrator password after the installation and follow the password recommendations in this benchmark.
+
+	Application default passwords are widely known and typically initial targets for attacks. The risk that unauthorized access will be obtained is increased if these passwords are not changed.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "1. Expand Compatibility Security > Users.
+2. Click the name of the system user.
+3. In the Settings for system page, enter the old password.
+4. Enter a new password in the New Password field.
+5. Enter the new password again in the Confirm New Password field and click Save."
+    </report>
+
+    <report type:"WARNING">
+      description : "2.1 - Security Groups should be established"
+      info        : "Ensure that only the users that require access have been added to the 'Operators', 'Deployers' or 'Monitors' security groups.
+
+	If users are granted more privilege than necessary there are more chances for changes to the WebLogic Server configuration and the WebLogic Server could become less secure.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "To add users to one or more groups:
+1. On the Summary of Security Realms page select the name of the realm (for example, myrealm).
+2. On the Settings for Realm Name page select Users and Groups > Users.
+3. In the Users table select the user you want to add to a group.
+4. On the Settings for User Name page select Groups.
+5. Select a group or groups from the Available list box:
+- To locate a group in a large list, type the first few characters of the name.
+- To select multiple groups, Ctrl-click each group.
+- To add a user to a group, click the right arrow to move the selection to the Chosen list box.
+- To remove a user from a group, select the group in the Chosen list box and click the left arrow.
+6. Click Save."
+    </report>
+
+    <report type:"WARNING">
+      description : "2.2 - Administrator Group should be set up"
+      info        : "Assign only users who are going to administer the Oracle WebLogic Server to the Administrator Group.
+
+	If a user is given privileges they should not have, it is possible that the Administration Server could be misconfigured and left open to attacks by malicious users.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "To setup the administrator groups:
+1. Select the name of the active Security Realm.
+2. Select Users and Groups > Users.
+3. Select the user to add to the group.
+4. On the Settings for User Name page, select Groups.
+5. Select the Administrators group.
+6. Click the right arrow to move the group to the user.
+7. Click Save."
+    </report>
+
+    <report type:"WARNING">
+      description : "2.3 - Limit access to production WebLogic application servers"
+      info        : "Grant administrative access on WebLogic Server only to those users who require access.
+
+	Having multiple users, especially those with high privileges, increases the risk of attack on the WebLogic Server.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "While granting the server access ensure that only a certain set of users have access to the system"
+    </report>
+
+    <report type:"WARNING">
+      description : "2.4 - Unique X.509 Mapping should be present"
+      info        : "X.509 specifies standard formats for certificates when the default Identity Asserter is used in WebLogic Server. The attribute value is a way of distinguishing user accounts from one another.
+
+	If attribute values are not unique, a less privileged user could inadvertently be granted the access rights of a more trusted user with the same attribute value
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "It should be ensured that the attribute value used to map from X.509 certificates to user accounts is unique within the certificate authority's domain of users."
+    </report>
+
+    <report type:"WARNING">
+      description : "2.5 - Security roles should be used to control access"
+      info        : "Security roles should be used to limit user access based on certain conditions.
+
+	A security role is an identity granted to users or groups based on specific conditions. Security roles are used by policies to determine who can access a WebLogic resource.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Firstly create a specific role if it has not been created onto the system.
+To add the user to the role follow the steps specified below:
+1. On Security Realms page, select the name of the realm that contains the role definition
+2. On the Settings page, select the Roles and Policies tab. Then select the Roles subtab.
+3. Access the role's Edit and Role page to check the role that best suits the user.
+4. On the role's Edit Role page, create a role condition that adds a user to the role.
+5. On the role's Edit Role page, click Save."
+    </report>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.6 - Set check Roles and Policies to all Web applications and EJBs"
+      info        : "Set the 'Check Roles and Policies' setting to [All Web applications and EJBs].
+
+	Without checking all web applications and EJBs, roles and policies will not be enforced for the entire domain, leaving a malicious user opportunity to gain unauthorized access."
+      solution    : "To enable 'Check Roles and Policies' follow the steps specified below:
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Configuration > General tab.
+6. Select Advanced.
+7. Set the 'Check Roles and Policies' to [All Web applications and EJBs], click Save."
+      reference   : "800-53|IA-9"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "sec:fully-delegate-authorization"
+      expect      : "true"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "2.7 - Account lockout policy should be enabled - Lockout Enabled"
+      info        : "The account lockout feature should be enabled and the related parameters should be set in accordance with corporate security standards and guidelines.
+
+			Locking out accounts after a specified number of failed logon attempts decreases the risk that user accounts will be compromised through brute force attacks."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Configuration > User Lockout.
+6 a) To enable account Lock out
+Check the box next to the 'Lockout Enabled' attribute, click Save
+6 b) To set Lockout Threshold
+Set 'Lockout Threshold' to [No. of attempts]. click Save.
+6 c) To enable Lockout Threshold, click Save.
+Set 'Lockout Duration' to [Duration in minutes]."
+      reference   : "800-171|3.1.10,800-53|AC-11,ISO/IEC-27001|A.11.2.8,ITSG-33|AC-11,NESA|T2.3.8,NESA|T2.3.9,NIAv2|AM23a,NIAv2|AM23b"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "sec:lockout-enabled"
+      expect      : "false"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.7 - Account lockout policy should be enabled - Lockout Threshold"
+      info        : "The account lockout feature should be enabled and the related parameters should be set in accordance with corporate security standards and guidelines.
+
+			Locking out accounts after a specified number of failed logon attempts decreases the risk that user accounts will be compromised through brute force attacks."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Configuration > User Lockout.
+6 a) To enable account Lock out
+Check the box next to the 'Lockout Enabled' attribute, click Save
+6 b) To set Lockout Threshold
+Set 'Lockout Threshold' to [No. of attempts]. click Save.
+6 c) To enable Lockout Threshold, click Save.
+Set 'Lockout Duration' to [Duration in minutes]."
+      reference   : "800-171|3.1.8,800-53|AC-7,ISO/IEC-27001|A.11.2.8,ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "sec:lockout-threshold"
+      expect      : "3"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "2.7 - Account lockout policy should be enabled - Lockout Duration"
+      info        : "The account lockout feature should be enabled and the related parameters should be set in accordance with corporate security standards and guidelines.
+
+			Locking out accounts after a specified number of failed logon attempts decreases the risk that user accounts will be compromised through brute force attacks."
+      solution    : "1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the active Security Realm.
+5. Select Configuration > User Lockout.
+6 a) To enable account Lock out
+Check the box next to the 'Lockout Enabled' attribute, click Save
+6 b) To set Lockout Threshold
+Set 'Lockout Threshold' to [No. of attempts]. click Save.
+6 c) To enable Lockout Threshold, click Save.
+Set 'Lockout Duration' to [Duration in minutes]."
+      reference   : "800-171|3.1.8,800-53|AC-7,ISO/IEC-27001|A.11.2.8,ITSG-33|AC-7,NESA|T5.5.1,NIAv2|AM24,TBA-FIISB|45.1.2,TBA-FIISB|45.2.1,TBA-FIISB|45.2.2"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "sec:lockout-duration"
+      expect      : "0"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CHECK
+      description : "3.1 - Delete Development Tools - ADFR Tools"
+      info        : "Do not install development tools on the Administration Server.
+
+	Development tools may contain security vulnerabilities, therefore they should not exist on the Administration Server. If these tools exist it could increase the surface of attack for the system."
+      solution    : "WRun a check to ensure that no development tools are on the system. If any such tools are present on the server they should be disabled."
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_INSTALL_PATH@ replaced with "C:\\Oracle\\Middleware\\" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\\oracle_common\uninstall\adfr_uninstall.xml"
+      file_option : MUST_NOT_EXIST
+    </custom_item>
+
+    <custom_item>
+      type              : AUDIT_POWERSHELL
+      description       : "3.1 - Delete Development Tools - OEPE Tools"
+      info              : "Do not install development tools on the Administration Server.
+
+	Development tools may contain security vulnerabilities, therefore they should not exist on the Administration Server. If these tools exist it could increase the surface of attack for the system."
+      solution          : "WRun a check to ensure that no development tools are on the system. If any such tools are present on the server they should be disabled."
+      reference         : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      value_type        : POLICY_TEXT
+      value_data        : ""
+# Note: Variable @WEBLOGIC_INSTALL_PATH@ replaced with "C:\\Oracle\\Middleware\\" in field "powershell_args".
+      powershell_args   : "Get-ChildItem -Path C:\\Oracle\\Middleware\\ -Filter eclipse.exe -Recurse"
+      powershell_option : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.2 - Deploy the WebLogic Platform  on a Dedicated System"
+      info            : "Deploy the WebLogic Platform  is deployed dedicated system and allow communication to it only with systems that have a demonstrated need.
+
+	Allowing every system access to the WebLogic Platform means that attackers would have more opportunities to compromise this critical system.
+
+	NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution        : "It should be ensured that web logic platform is deployed on a dedicated system."
+      reference       : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CN-L3|7.1.3.5(c),CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,NIAv2|SS15a,SWIFT-CSCv1|2.3"
+      value_type      : POLICY_TEXT
+      value_data      : "ServiceCheck"
+      powershell_args : "Get-Service"
+      check_type      : CHECK_REGEX
+      severity        : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "3.3 - LDAP Server SSL should be enabled"
+      info        : "Set the 'SSLEnabled' option to [enabled] for the appropriate LDAP server connections.
+
+			If SSL is not enabled the data will not be authenticated and encrypted, allowing a malicious user to more easily gain access to the system.
+
+			NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+      solution    : "To enable SSL authentication on the system perform the below mentioned steps
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > name of the active realm.
+5. Select Providers > Authentication.
+6. For each of the LDAP authentication providers, follow steps 7-10.
+7. Select the Configuration tab.
+8. Select the Provider Specific tab.
+9. Check the 'SSLEnabled' box.
+10. Click Save.
+11. To activate these changes, in the Change Center of the Administration Console, click Activate Changes."
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "wls:ssl-enabled"
+      expect      : "true"
+      severity    : MEDIUM
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "3.4 - Anonymous Bind on LDAP server should be disabled"
+      info        : "Ensure that the 'Anonymous Bind Allowed' setting is disabled.
+
+	Allowing anonymous connections is a security risk, a malicious user could gain access to sensitive data if the 'Anonymous Bind Allowed' setting is set to true."
+      solution    : "To disable Anonymous Bind in LDAP perform the steps specified below.
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4.  Select Security > Embedded LDAP.
+5. Check that the 'Anonymous Bind Allowed' checkbox is not checked.
+6. If necessary, select Save."
+      reference   : "800-171|3.5.1,800-53|IA-2,CN-L3|7.1.3.1(a),CN-L3|7.1.3.1(e),CSF|PR.AC-1,ITSG-33|IA-2,NESA|T2.3.8,NESA|T5.3.1,NESA|T5.4.2,NESA|T5.5.1,NESA|T5.5.2,NESA|T5.5.3,NIAv2|AM14b,NIAv2|AM2,NIAv2|AM8"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "anonymous-bind-allowed"
+      expect      : "true"
+    </custom_item>
+
+    <custom_item>
+      type            : AUDIT_POWERSHELL
+      description     : "3.5 - Secure SNMPv3 communication should be used"
+      info            : "Secure SNMPv3 should be used  for secure communication between the agent and manager
+
+  SNMP agent decodes SNMP credentials in requests and passes the SNMP user name to the security realm. The security realm maps the SNMP user name to a WebLogic Server user, authenticates the user, and authorizes access to monitoring data in the domain.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution        : "To set SNMP secure communications perform the following actions:
+1. Create a WebLogic Server user
+2. On the Create SNMP Credential Mapping page, from the Credential Mapping Type list, select Privacy enter the user name and password
+3. On the Credential Mappings page, click the Agents tab and configure the agent."
+      reference       : "800-171|3.5.2,800-53|IA-5,CN-L3|7.1.2.7(d),CSF|PR.AC-1,ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5,NESA|T5.2.1,NESA|T5.2.3,NESA|T5.5.2,NESA|T5.5.3"
+      value_type      : POLICY_TEXT
+      value_data      : "SNMP v3 Privacy: (AES_128|DES)"
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "powershell_args".
+      powershell_args : "Write-Host -NoNewLine 'SNMP v3 Privacy: '; select-xml -path 'C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\Config\Config.Xml' -namespace @{domain='http://xmlns.oracle.com/weblogic/domain'} -xpath '//domain:snmp-agent/domain:privacy-protocol' | foreach-object { $_.node.'#text' }"
+      check_type      : CHECK_REGEX
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "3.6 - Web Server Process should not run as root - directory permissions"
+      info        : "Web Server used in conjunction with Weblogic should not be running under root
+
+	If the system is attacked while the Web Server is running under 'root', the malicious user could gain full administrative access to the system by inheriting root's privileges. Also, if the files and directory structure for the Web Server are available to unprivileged users, then malicious code could be inserted and potentially executed by the Web Server"
+      solution    : "Ensure that the Web Server used in conjunction with WebLogic Server is not run as 'root' and that its directory structure, including all files, is protected from access by unauthorized users."
+      value_type  : FILE_ACL
+      value_data  : "Weblogic_Path"
+# Note: Variable @WEBLOGIC_INSTALL_PATH@ replaced with "C:\\Oracle\\Middleware\\" in field "file".
+      file        : "C:\\Oracle\\Middleware\\"
+      acl_option  : CAN_NOT_BE_NULL
+      reference   : "800-171|3.3.8,800-171|3.3.9,800-171|3.4.2,800-53|AC-6,800-53|AU-9,800-53|CM-6,CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,CSF|PR.PT-1,ISO/IEC-27001|A.9.2.5,ITSG-33|AU-9,ITSG-33|CM-6,NESA|M1.1.3,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3,SWIFT-CSCv1|5.1"
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "3.7 - Backup SSL Certificates, Private Keys, and Trust Keystores"
+      info        : "Maintaining a backup of the SSL certificates, private keys, and trust keystores is essential to recovering from a system failure.
+
+  If a backup does not exist it might not be possible to recover in the event of a system failure.
+
+	NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Ensure that a backup of the SSL certificates, private keys, and trust keystores exist and are stored in a secure location."
+    </report>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : FILE_CONTENT_CHECK
+          description : "3.8 - Host name verification - xsi:nil=true"
+          value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+          value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+          regex       : "hostname-verifier xsi:nil"
+          expect      : "true"
+          file_option : CAN_BE_NULL
+        </custom_item>
+
+        <custom_item>
+          type        : FILE_CONTENT_CHECK_NOT
+          description : "3.8 - Host name verification - ignored=false"
+          value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+          value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+          regex       : "hostname-verification-ignored"
+          expect      : "true"
+          file_option : CAN_BE_NULL
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "3.8 - Host Name Verification should be set"
+          info        : "Ensure that the 'Host Name Verification' is set to [BEA Hostname Verifier] on all Servers.
+
+			If host name verification is not enabled, a man-in-the-middle attack can occur."
+          solution    : "To set the host name verification follow the steps mentioned below:
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane select the Domain name > Environment > Servers.
+4. For each Server, follow steps 5-8 below.
+5. Select the Server name.
+6. Select Configuration > SSL.
+7. Expand the Advanced portion to locate the 'Hostname Verification' setting.
+8. Ensure the [BEA Hostname Verifier] is selected, click Save"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "3.8 - Host Name Verification should be set"
+          info        : "Ensure that the 'Host Name Verification' is set to [BEA Hostname Verifier] on all Servers.
+
+			If host name verification is not enabled, a man-in-the-middle attack can occur."
+          solution    : "To set the host name verification follow the steps mentioned below:
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane select the Domain name > Environment > Servers.
+4. For each Server, follow steps 5-8 below.
+5. Select the Server name.
+6. Select Configuration > SSL.
+7. Expand the Advanced portion to locate the 'Hostname Verification' setting.
+8. Ensure the [BEA Hostname Verifier] is selected, click Save"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "3.9 - FIPS Compliant cryptographic Module should be used - JAVA_PROPERTIES"
+      info        : "Enable the WebLogic Server to use a FIPS-compliant (FIPS 140-2) cryptographic module.
+
+	Failing to enable FIPS-compliant cryptographic modules could result in use of invalidated modules lacking compliance with FIPS 140-2, which may not be able to securely handle sensitive information."
+      solution    : "1. Login to the Linux machine running the WebLogic Server software.
+2. Open a terminal window.
+3. Navigate to the domain home (e.g. cd /home/ows/Oracle/Middleware/user_projects/domains/domain1).
+4. Navigate to the bin directory (e.g. cd /home/ows/Oracle/Middleware/user_projects/domains/domain1/bin).
+5. Backup a version of the script 'setDomainEnv.sh'.
+6. Make the edits in steps 7 & 8 to 'setDomainEnv.sh':
+7. Within the double quotes, add the parameter '-Dweblogic.security.SSL.nojce=true' (without single quotes) to the line: JAVA_PROPERTIES='-Dplatform.home=${WL_HOME}... '
+8. Directly under the line '# ADD EXTENSIONS TO CLASSPATHS', enter the following line exactly as written: PRE_CLASSPATH='${WL_HOME}/server/lib/jsafeFIPS.jar'
+9. Save the file.
+10. Restart the server for the changes to take place"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\bin\setDomainEnv.cmd"
+      regex       : "^[\\s]*set[\\s]*JAVA_PROPERTIES[\s]*=[\\s]*.*-Dweblogic\.security\.SSL\.nojce=true.*"
+      expect      : "^[\\s]*set[\\s]*JAVA_PROPERTIES[\s]*=[\\s]*.*-Dweblogic\.security\.SSL\.nojce=true.*"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "3.9 - FIPS Compliant cryptographic Module should be used - PRE_CLASSPATH"
+      info        : "Enable the WebLogic Server to use a FIPS-compliant (FIPS 140-2) cryptographic module.
+
+	Failing to enable FIPS-compliant cryptographic modules could result in use of invalidated modules lacking compliance with FIPS 140-2, which may not be able to securely handle sensitive information."
+      solution    : "1. Login to the Linux machine running the WebLogic Server software.
+2. Open a terminal window.
+3. Navigate to the domain home (e.g. cd /home/ows/Oracle/Middleware/user_projects/domains/domain1).
+4. Navigate to the bin directory (e.g. cd /home/ows/Oracle/Middleware/user_projects/domains/domain1/bin).
+5. Backup a version of the script 'setDomainEnv.sh'.
+6. Make the edits in steps 7 & 8 to 'setDomainEnv.sh':
+7. Within the double quotes, add the parameter '-Dweblogic.security.SSL.nojce=true' (without single quotes) to the line: JAVA_PROPERTIES='-Dplatform.home=${WL_HOME}... '
+8. Directly under the line '# ADD EXTENSIONS TO CLASSPATHS', enter the following line exactly as written: PRE_CLASSPATH='${WL_HOME}/server/lib/jsafeFIPS.jar'
+9. Save the file.
+10. Restart the server for the changes to take place"
+      reference   : "800-171|3.13.11,800-53|SC-13,CSF|PR.DS-5,ITSG-33|SC-13,NESA|M5.2.6,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY7,NIAv2|NS5e"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\bin\setDomainEnv.cmd"
+      regex       : '^[\\s]*PRE_CLASSPATH[\\s]*=[\\s]*"\\$\\{WL_HOME\\}/server/lib/jsafeFIPS\\.jar"'
+      expect      : '^[\\s]*PRE_CLASSPATH[\\s]*=[\\s]*"\\$\\{WL_HOME\\}/server/lib/jsafeFIPS\\.jar"'
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK_NOT
+      description : "3.10 - Anonymous Admin Lookup Disabled"
+      info        : "Ensure that the 'Anonymous Admin Lookup Enabled' is [disabled].
+
+	If the 'Anonymous Admin Lookup Enabled' option is enabled, users can see the value of any MBean attribute that is not explicitly marked as protected by the WebLogic Server MBean authorization process."
+      solution    : "To disable Anonymous Admin Lookup perform the steps mentioned below:
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select the Security tab.
+5. Ensure that the 'Anonymous Admin Lookup Enabled' checkbox is not checked.
+6. If necessary, click Save"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,SWIFT-CSCv1|5.1"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "anonymous-admin-lookup-enabled"
+      expect      : "true"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "4.2 - Keystore directory and file permissions should be set - Directory"
+      info        : "Ensure that the permissions on the directories containing Keystores are set to 700 and keystrore files to 600
+
+	If these files and directories are not set with the proper permissions, malicious users may gain sensitive information about the system."
+      solution    : "To set the directory and the file permissions perform the following steps:
+1. Login to the Linux machine running the Oracle WebLogic Server software.
+2. Open a terminal window.
+3. Navigate to the parent of the keystore directory.
+4. chmod 700 [name of directory].
+5. Navigate to the directory containing the keystore file.
+6. chmod 600 [name of file]."
+      value_type  : FILE_ACL
+      value_data  : "KeystoreDirectory"
+# Note: Variable @KEYSTORE_PATH@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\\keystore" in field "file".
+      file        : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\\keystore"
+      acl_option  : CAN_NOT_BE_NULL
+      reference   : "800-171|3.4.2,800-53|AC-6,800-53|CM-6,CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "4.2 - Keystore directory and file permissions should be set - Files"
+      info        : "Ensure that the permissions on the directories containing Keystores are set to 700 and keystrore files to 600
+
+	If these files and directories are not set with the proper permissions, malicious users may gain sensitive information about the system."
+      solution    : "To set the directory and the file permissions perform the following steps:
+1. Login to the Linux machine running the Oracle WebLogic Server software.
+2. Open a terminal window.
+3. Navigate to the parent of the keystore directory.
+4. chmod 700 [name of directory].
+5. Navigate to the directory containing the keystore file.
+6. chmod 600 [name of file]."
+      value_type  : FILE_ACL
+      value_data  : "KeystoreFiles"
+# Note: Variable @KEYSTORE_PATH@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\\keystore" in field "file".
+      file        : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\\keystore\*"
+      acl_option  : CAN_NOT_BE_NULL
+      reference   : "800-171|3.4.2,800-53|AC-6,800-53|CM-6,CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "4.3 - Auditing provider should be present"
+      info        : "Ensure that a WebLogic Auditing provider exists in the Domain's security realm.
+
+	If auditing is not enabled, malicious activity could go undetected."
+      solution    : "To ensure audit provider is present follow the steps mentioned below:
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. Select 'Security Realms' on the left pane of the Administration Console.
+4. Select the name of the active Security Realm.
+5. Select Providers > Auditing
+6. Check if an Auditing Provider exists. If not, follow steps 7-11.
+7. Select New.
+8. Enter the Name for the Auditing Provider.
+9. Select the Type of Auditing Provider being created.
+10. Select OK.
+11. To activate these changes, in the Change Center of the Administration Console, click Activate Changes."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "sec:auditor xsi:type"
+      expect      : 'sec:auditor xsi:type=".*"'
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "4.4 - Enable configuration Audit Logs"
+      info        : "Configuration audit logs should be enabled
+
+	If the 'Configuration Audit Type' is not set, then the system's configuration can be changed maliciously and it could go undetected."
+      solution    : "To set the configuration Audit logs, perform the settings mentioned below:
+1. Login to the Administration Console.
+2.  In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Configuration > General, then click Advanced at the bottom of the page.
+5. In the Configuration Audit Type field, select 'Change Log'. Click Save."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "configuration-audit-type"
+      expect      : "configuration-audit-type>log"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_CONTENT_CHECK
+      description : "4.5 - Auditing Severity Setting should be set"
+      info        : "Ensure that the 'Severity' setting for the WebLogic Auditing providers is ERROR.
+
+	Failing to log audit events may cause malicious user activity to go undetected."
+      solution    : "To set the severity level on the system perform the steps mentioned below:
+1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select the Domain name.
+4. Select Security Realms > Name of the Active Realm.
+5. Select Providers > Auditing.
+6. On the Auditing tab, select the name of the WebLogic Auditing Provider.
+7. Select the Provider Specific tab.
+8. Ensure that the 'Severity' setting is set to [ERROR], click Save."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      value_type  : POLICY_TEXT
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "value_data".
+      value_data  : "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml"
+      regex       : "wls:severity"
+      expect      : "wls:severity>ERROR"
+      file_option : CAN_BE_NULL
+    </custom_item>
+
+    <custom_item>
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "#@WEBLOGIC_DOMAIN_HOME@\config\config.xm".
+#C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml
+      type              : AUDIT_POWERSHELL
+      description       : "4.6 - HTTP Access Log File are enabled"
+      info              : "Ensure that the HTTP access log file setting is [enabled] for each server.
+
+	If the HTTP access log file is disabled, HTTP access requests will not be recorded, which may be crucial in identifying the actions of a malicious user or source of malicious activity."
+      solution          : "1. Login to the Administration Console.
+2. In the Change Center, click Lock & Edit.
+3. In the left pane, select Domain name > Environment > Servers..
+4. Click on the Server name..
+5. Select Logging > HTTP..
+6. Check the 'HTTP access log file enabled' box, click Save."
+      reference         : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      value_type        : POLICY_TEXT
+      value_data        : "true"
+# Note: Variable @WEBLOGIC_DOMAIN_HOME@ replaced with "C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain" in field "powershell_args".
+      powershell_args   : "select-xml -path 'C:\\Oracle\\Middleware\\user_projects\\domains\\base_domain\config\config.xml' -namespace @{domain='http://xmlns.oracle.com/weblogic/domain'} -xpath '//domain:web-server-log/domain:logging-enabled' | foreach-object { $_.node.'#text' }"
+      powershell_option : CAN_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "TNS_Oracle_WebLogic_10_Security_Guide_Windows.audit"
+      info        : "WebLogic is not installed in the path specified or remote registry service is disabled.
+
+      NOTE: Nessus has not identified that the chosen audit applies to the target device."
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

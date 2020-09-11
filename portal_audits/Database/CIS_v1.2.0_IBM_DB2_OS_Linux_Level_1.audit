@@ -1,0 +1,593 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.20 $
+# $Date: 2020/04/22 $
+#
+# Description	: This .audit is designed against the CIS Security Configuration
+# 	  Benchmark For DB2 8,9 & 9.5 for Linux, UNIX, and Windows
+#         		  Version 1.2.0 December 31, 2011.
+#
+# NOTE		: The audits contained in this document audit are for Level 1 items
+# 	  of the CIS DB2 8, 9 & 9.5 for Linux.
+#
+#<ui_metadata>
+#<display_name>CIS IBM DB2 OS L1 v1.2.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>IBM DB2 OS L1</name>
+#  <version>1.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/155</link>
+#</spec>
+#<labels>unix,cis,ibm,db2,linux</labels>
+#<variables>
+#  <variable>
+#    <name>DB2_VERSION</name>
+#    <default>V9.5</default>
+#    <description>DB2 Version</description>
+#    <info>This is your IBM DB2 version.</info>
+#  </variable>
+#  <variable>
+#    <name>SQLLIB_DIR</name>
+#    <default>/home/db2inst1/sqllib</default>
+#    <description>sqllib Directory</description>
+#    <info>This is the path to the sqllib directory.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_CONTAINER</name>
+#    <default>/home/db2inst1/db2inst1</default>
+#    <description>DB2 Container Dir</description>
+#    <info>This is the path to the DB2 container directory.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_USER</name>
+#    <default>db2inst1</default>
+#    <description>DB2 User</description>
+#    <info>This is the DB2 user account.</info>
+#  </variable>
+#  <variable>
+#    <name>DB2_GROUP</name>
+#    <default>db2iadm1</default>
+#    <description>DB2 Group</description>
+#    <info>This is the DB2 group name.</info>
+#  </variable>
+#  <variable>
+#    <name>DEFAULT_DB_PATH</name>
+#    <default>/home/db2inst1</default>
+#    <description>Default DB Path</description>
+#    <info>This is the default DB path.</info>
+#  </variable>
+#  <variable>
+#    <name>DB</name>
+#    <default>DB Name</default>
+#    <description>Database Name</description>
+#    <info>This is the name of the database being audited.</info>
+#  </variable>
+#  <variable>
+#    <name>ARCH_LOG_LOCATION_1</name>
+#    <default>/u/dbuser/archived_logs</default>
+#    <description>Primary Archive Log</description>
+#    <info>This is the primary destination for archived log files defined in logarchmeth1 value.</info>
+#  </variable>
+#  <variable>
+#    <name>ARCH_LOG_LOCATION_2</name>
+#    <default>/u/dbuser/archived_logs_2</default>
+#    <description>Sec Archive Log</description>
+#    <info>This is the secondary destination for archived log files defined in logarchmeth2 value.</info>
+#  </variable>
+#  <variable>
+#    <name>ARCH_LOG_FAIL</name>
+#    <default>/u/dbuser/archived_logs_fail</default>
+#    <description>Archive Log Fail</description>
+#    <info>This is the destinations where DB2 will try to archive log files due to a media problem with the other locations.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+#
+## 1. Installation and Patches
+#
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "1.0.2 Use IP address rather than hostname - 'db2system = IP'"
+  info          : "Use an IP address rather than a hostname to connect to the host of the DB2 instance."
+  info          : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(db2system\\)'"
+  expect        : "^ *[Nn][Aa][Mm][Ee] [Oo][Ff] [Tt][Hh][Ee] [Dd][Bb]2 [Ss][Ee][Vv][Rr][Ee][Rr] [Ss][Yy][Ss][Tt][Ee][Mm]([\\s\\t]*\([Dd][Bb]2[Ss][Yy][Ss][Tt][Ee][Mm]\) *= *([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<report type:"WARNING">
+  description : "1.0.3 Leverage a least privilege principle"
+  info        : "The DB2 database instance will execute under the context of a given security principle. It is recommended that the DB2 service"
+  info        : "execute under a least privilege security principle. Furthermore, it is advisable to have the DB2 service executed under using"
+  info        : "the or Administrator account and monitor such accounts from unauthorized access to the sensitive data."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification of all accounts that have access to the DB2 database service."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<custom_item>
+  type        : FILE_CHECK_NOT
+  description : "1.0.4 Use non-standard account names - '!= db2admin'"
+  info        : "The DB2 service is installed with default, well-known accounts such as db2admin, db2inst1, dasusr1, or db2fenc1."
+  info        : "It is recommended that the use of these accounts be avoided."
+  info        : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "file".
+  file        : "/opt/ibm/db2/V9.5/*"
+  owner       : "db2admin"
+  group       : "db2admin"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK_NOT
+  description : "1.0.4 Use non-standard account names - '!= db2inst1'"
+  info        : "The DB2 service is installed with default, well-known accounts such as db2admin, db2inst1, dasusr1, or db2fenc1."
+  info        : "It is recommended that the use of these accounts be avoided."
+  info        : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "file".
+  file        : "/opt/ibm/db2/V9.5/*"
+  owner       : "db2inst1"
+  group       : "db2inst1"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK_NOT
+  description : "1.0.4 Use non-standard account names - '!= dasusr1'"
+  info        : "The DB2 service is installed with default, well-known accounts such as db2admin, db2inst1, dasusr1, or db2fenc1."
+  info        : "It is recommended that the use of these accounts be avoided."
+  info        : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "file".
+  file        : "/opt/ibm/db2/V9.5/*"
+  owner       : "dasusr1"
+  group       : "dasusr1"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK_NOT
+  description : "1.0.4 Use non-standard account names - '!= db2fenc1'"
+  info        : "The DB2 service is installed with default, well-known accounts such as db2admin, db2inst1, dasusr1, or db2fenc1."
+  info        : "It is recommended that the use of these accounts be avoided."
+  info        : "NOTE : Update DB2_VERSION to the appropriate value for your local environment."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "file".
+  file        : "/opt/ibm/db2/V9.5/*"
+  owner       : "db2fenc1"
+  group       : "db2fenc1"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|1S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+</custom_item>
+
+#
+## 2. DB2 Directory and File Permissions
+#
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "2.0.1 Secure DB2 Runtime Library"
+  info        : "A DB2 software installation will place all executables under the default <DB2PATH>\SQLLIB directory."
+  info        : "This directory should grant access to DB2 administrator only. All other users should only have read privilege."
+  info        : "NOTE : Update SQLLIB_DIR to the appropriate value for your local environment."
+# Note: Variable @SQLLIB_DIR@ replaced with "/home/db2inst1/sqllib" in field "file".
+  file        : "/home/db2inst1/sqllib"
+  mask        : "027"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "2.0.2 Secure all database containers"
+  info        : "A DB2 database container is the physical storage of the data."
+  info        : "NOTE: The default physical path for DB2 is used to verify this recommendation."
+  info        : "NOTE : Update DB2_CONTAINER to the appropriate value for your local environment."
+  info        : "NOTE : Update DB2_USER to the appropriate value for your local environment."
+  info        : "NOTE : Update DB2_GROUP to the appropriate value for your local environment."
+# Note: Variable @DB2_CONTAINER@ replaced with "/home/db2inst1/db2inst1" in field "file".
+  file        : "/home/db2inst1/db2inst1"
+# Note: Variable @DB2_USER@ replaced with "db2inst1" in field "owner".
+  owner       : "db2inst1"
+# Note: Variable @DB2_GROUP@ replaced with "db2iadm1" in field "group".
+  group       : "db2iadm1"
+  mask        : "003"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "2.0.3 Set umask value for DB2 admin user .profile file"
+  info        : "The DB2 Admin .profile file in UNIX sets the environment variables and the settings for the user."
+  info        : "NOTE : Update DB2_USER to the appropriate value for your local environment."
+# Note: Variable @DB2_USER@ replaced with "db2inst1" in field "file".
+  file        : "/home/db2inst1/.profile"
+  regex       : "^ *umask *[0-9]+ *$"
+  expect      : "^ *umask *022 *$"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.1.1,800-53|AC-3(4),CSF|PR.AC-4,CSF|PR.PT-3,ITSG-33|AC-3(4),LEVEL|1S"
+</custom_item>
+
+#
+## 3. DB2 Configurations
+#
+#
+## 3.1 DB2 Instance Parameter Settings
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "3.1.6 Secure permission of default database location"
+  info        : "The dftdbpath parameter contains the default file path used to create DB2 databases."
+  info        : "It is recommended that the database files permission setting be set to read-only for non-administrator accounts."
+  info        : "NOTE : Update DEFAULT_DB_PATH to the appropriate value for your local environment."
+# Note: Variable @DEFAULT_DB_PATH@ replaced with "/home/db2inst1" in field "file".
+  file        : "/home/db2inst1"
+  mask        : "022"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.1.8 Secure all diagnostic logs - 'diagpath location'"
+  info          : "The diaglevel parameter specifies the location of the diagnostic files for the DB2 instance.
+
+  It is recommended that this parameter be set to a secure location.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Verify that the location found for the diagpath parameter is secured.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(diagpath\\)'"
+  expect        : ""
+  dont_echo_cmd : YES
+  severity      : MEDIUM
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9(4),CN-L3|8.1.4.3(d),CSF|PR.PT-1,ITSG-33|AU-9(4),LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.4 Establish secure archive log location - 'logarchmeth1 location'"
+  info          : "The logarchmeth1 parameter specifies the type of media used for the primary destination for archived logs.
+
+  It is recommended that this parameter be set to a secure location.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Change DB to the database that is being audited.
+
+  NOTE: Verify that the location found for the logarchmeth1 parameter is secured.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name| /bin/egrep -i '\\(logarchmeth1\\)'"
+  expect        : ""
+  severity      : MEDIUM
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9,CSF|PR.PT-1,ITSG-33|AU-9,LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "3.2.5 Secure permission of the primary archive log location"
+  info        : "The logarchmeth1 parameter specifies the type of media used for the primary destination for archived logs."
+  info        : "It is recommended that the archive log permission setting be set to read-only for non-administrator accounts."
+  info        : "NOTE : Update ARCH_LOG_LOCATION_1 to the appropriate value for your local environment."
+# Note: Variable @ARCH_LOG_LOCATION_1@ replaced with "/u/dbuser/archived_logs" in field "file".
+  file        : "/u/dbuser/archived_logs"
+  mask        : "022"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.6 Establish secure secondary archive location - 'logarchmeth2 location'"
+  info          : "The logarchmeth2 parameter specifies the type of media used for the secondary destination for archived logs.
+
+  It is recommended that this parameter be set to a secure location.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Change DB to the database that is being audited.
+
+  NOTE: Verify that the location found for the logarchmeth2 parameter is secured.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name| /bin/egrep -i '\\(logarchmeth2\\)'"
+  expect        : ""
+  severity      : MEDIUM
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9,CSF|PR.PT-1,ITSG-33|AU-9,LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "3.2.7 Secure permission of the secondary archive log location"
+  info        : "The logarchmeth2 parameter specifies the type of media used for the secondary destination for archived logs."
+  info        : "It is recommended that the archive log permission setting be set to read-only for non-administrator accounts."
+  info        : "NOTE : Update ARCH_LOG_LOCATION_2 to the appropriate value for your local environment."
+# Note: Variable @ARCH_LOG_LOCATION_2@ replaced with "/u/dbuser/archived_logs_2" in field "file".
+  file        : "/u/dbuser/archived_logs_2"
+  mask        : "022"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.8 Establish secure tertiary archive location - 'failarchpath location'"
+  info          : "The failarchpath parameter specifies the location for the archive logs if the primary or secondary archive destination is not available.
+
+  It is recommended that this parameter be set to a secure location.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Change DB to the database that is being audited.
+
+  NOTE: Verify that the found location found for the failarchpath parameter is secured.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name| /bin/egrep -i '\\(failarchpath\\)'"
+  expect        : ""
+  severity      : MEDIUM
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9,CSF|PR.PT-1,ITSG-33|AU-9,LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CHECK
+  description : "3.2.9 Secure permission of the tertiary archive location"
+  info        : "The failarchpath parameter specifies the type of media used for the tertiary destination for archived logs."
+  info        : "It is recommended that the archive log permission setting be set to read-only for non-administrator accounts."
+  info        : "NOTE : Update ARCH_LOG_FAIL to the appropriate value for your local environment."
+# Note: Variable @ARCH_LOG_FAIL@ replaced with "/u/dbuser/archived_logs_fail" in field "file".
+  file        : "/u/dbuser/archived_logs_fail"
+  mask        : "022"
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|1S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.2.10 Establish secure log mirror location - 'mirrorlogpath location'"
+  info          : "The mirrorlogpath parameter specifies a location to store the mirror copy of the logs.
+
+  It is recommended that this parameter be set to a secure location
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Change DB to the database that is being audited.
+
+  NOTE: Verify that the location found for the mirrorlogpath parameter is secured.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+# Note: Variable @DB@ replaced with "DB Name" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database configuration for DB Name| /bin/egrep -i '\\(mirrorlogpath\\)'"
+  expect        : ""
+  severity      : MEDIUM
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.3.8,800-171|3.3.9,800-53|AU-9,CSF|PR.PT-1,ITSG-33|AU-9,LEVEL|1S,NESA|M1.2.2,NESA|M5.2.3,NESA|M5.5.2,SWIFT-CSCv1|5.1"
+</custom_item>
+
+#
+## 3.3 Database Administration Server Settings
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "3.3.1 Establish DAS administrative group - 'dasadm_group name'"
+  info          : "The dasadm_group parameter defines the group name with DAS Administration (DASADM) authority for the DAS.
+
+  It is recommended that dasadm_group group contains authorized users only.
+
+  NOTE: Review the list of users found to be in the dasadm_group to ensure only authorized users exist.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get admin configuration | /bin/egrep -i '\\(dasadm_group\\)'"
+  expect        : ""
+  severity      : MEDIUM
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-53|AC-6(7),CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,LEVEL|1S,NESA|M1.1.3,NESA|T5.1.1"
+</custom_item>
+
+#
+## 4. Label-Based Access Controls (LBAC)
+
+<report type:"WARNING">
+  description : "4.0.2 Review Security Rule Exemptions"
+  info        : "LBAC rule exemptions provide very powerful access. Do not grant them without careful consideration."
+  info        : "It is recommended that all security rules exemptions are reviewed against users and the required access."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the all security rules exemptions are reviewed."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<report type:"WARNING">
+  description : "4.0.3 Review Security Label Component"
+  info        : "A security label component represents any criteria that you use to decide if a user should have access to a given set of data."
+  info        : "It is recommended that all security label components are reviewed"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the all security label components are reviewed."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<report type:"WARNING">
+  description : "4.0.4 Review Security Label Policies"
+  info        : "A security policy defines the criteria in an organization based on the label components, rules, and rules exemptions."
+  info        : "It is recommended that all policies are reviewed."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the all policies are reviewed."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<report type:"WARNING">
+  description : "4.0.5 Review Security Labels"
+  info        : "A security label defines the criteria of access to the protected data."
+  info        : "It is recommended that all security labels are reviewed."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the all security labels are reviewed."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+#
+## 5. Database Maintenance
+
+<report type:"WARNING">
+  description : "5.0.2 Protecting Backups"
+  info        : "Backups of your database should be stored in a secure location."
+  info        : "It is recommended that backups be created to ensure that the instance can be recovered."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that only authorized users have access to the backups."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<report type:"WARNING">
+  description : "5.0.4 Schedule Runstat and Reorg"
+  info        : "runstat and reorg are two DB2 utilities to maintain the database data."
+  info        : "It is recommended that these utilities be executed when possible"
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that runstat and reorg are executed when possible."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+#
+## 6. Securing Database Objects
+#
+## 7. Entitlements
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "7.0.3 Establish system maintenance group - 'sysmaint_group users'"
+  info          : "The sysmaint_group parameter defines the system administrator group with system maintenance (SYSMAINT) authority.
+
+  It is recommended that sysmaint_group group contains authorized users only.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Review the found SYSMAINT group name to ensure it is a valid group name for your organization.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(sysmaint_group\\)'"
+  expect        : ""
+  dont_echo_cmd : YES
+  severity      : MEDIUM
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+</custom_item>
+
+<custom_item>
+  type          : CMD_EXEC
+  description   : "7.0.4 Establish system monitoring group - 'sysmon_group users'"
+  info          : "The sysmon_group parameter defines the operating system group with system monitor (SYSMON) authority."
+  info          : "It is recommended that sysmon_group group contains authorized users only.
+
+  NOTE: Update DB2_VERSION to the appropriate value for your local environment.
+
+  NOTE: Review the found SYSMON group name to ensure it is a valid group name for your organization.
+
+  NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+# Note: Variable @DB2_VERSION@ replaced with "V9.5" in field "cmd".
+  cmd           : "/opt/ibm/db2/V9.5/bin/db2 get database manager configuration | /bin/egrep -i '\\(sysmon_group\\)'"
+  expect        : ""
+  severity      : MEDIUM
+  dont_echo_cmd : YES
+  see_also      : "https://workbench.cisecurity.org/files/155"
+  reference     : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|1S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+</custom_item>
+
+#
+## 8. General Policy and Procedures
+
+<report type:"WARNING">
+  description : "8.0.1 Start and Stop DB2 Instance"
+  info        : "The DB2 instance manages the database environment and sets the configuration parameters."
+  info        : "It is recommended that only administrators are allowed to start and stop the DB2 instance."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification to determine who has access to start and stop the DB2 instance."
+  info        : "On Unix: Identify the members of the local DB2 admin group that has access to stop and start the DB2 instance."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+#
+## 9. DB2 Utilities and Tools
+
+<report type:"WARNING">
+  description : "9.0.1 Secure DB2 Control Center"
+  info        : "The DB2 Control Center is a management tool that manages all registered DB2 instances and databases."
+  info        : "It is recommended that the Control Center utility be granted to authorize user only."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification to determine who has access to the Control Center."
+  info        : "Locate the <DB2 Install>\SQLLIB\BIN\db2cc executable and identify the users/groups."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<report type:"WARNING">
+  description : "9.0.2 Secure DB2 Configuration Assistant Utility"
+  info        : "The DB2 Configuration Assistant is a management tool that manages all connectivity setup."
+  info        : "It is recommended that the Configuration Assistance utility be granted to authorize user only."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification to determine who has access to the Configuration Assistant."
+  info        : "Locate the <DB2 Install>\SQLLIB\BIN\db2ca executable and identify the users/groups."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<report type:"WARNING">
+  description : "9.0.3 Secure DB2 Health Monitor Utility"
+  info        : "The DB2 Health Monitor is a management tool that manages information about the database manager, database, tablespace and table space containers."
+  info        : "It is recommended that the DB2 Health Monitor utility be granted to authorize user only."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification to determine who has access to the Health Monitor."
+  info        : "Locate the <DB2 Install>\SQLLIB\BIN\db2hc executable and identify the users/groups."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+<report type:"WARNING">
+  description : "9.0.4 DB2 Activity Monitor Utility"
+  info        : "The DB2 Activity Monitor is a management tool that monitors all application performance and concurrency, resource consumption,"
+  info        : "and SQL statement usage of a database."
+  info        : "It is recommended that the DB2 Activity Monitor utility be granted to authorize users only."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification to determine who has access to the Activity Monitor."
+  info        : "Locate the <DB2 Install>\SQLLIB\BIN\db2am executable and identify the users/groups."
+  see_also    : "https://workbench.cisecurity.org/files/155"
+  reference   : "LEVEL|1NS"
+</report>
+
+</check_type>

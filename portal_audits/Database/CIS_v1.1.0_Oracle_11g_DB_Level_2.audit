@@ -1,0 +1,1410 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.21 $
+# $Date: 2020/04/22 $
+#
+# Description	: This .audit is designed against the CIS Security Configuration
+# 			  Benchmark For Oracle Database Server 11g version 1.1.0, December 31, 2011.
+# 			  https://workbench.cisecurity.org/files/580
+# 	  		  Oracle 11g version 11.2.0.2.0 installed on CentOS 5 was used in testing and developing
+# 			  this .audit file.
+#
+# NOTE 			: Portions of the checklist require interview or manual inspection and are not included here.
+#
+# NOTE			: The checks in this audit were written against a default installation of
+# 			  Oracle and assumes default installation locations, accounts, etc. The audits contained in this
+# 			  document audit are for Level 1 items of the CIS Oracle Database Server 11g Benchmark and are
+# 			  specific to the operating system and not the database.
+#
+# NOTE			: Some queries in this .audit require site-specific data to be
+# 			  known to the query in order to function properly.  Please note
+# 			  the following queries and edit their values accordingly.
+#
+#<ui_metadata>
+#<display_name>CIS v1.1.0 Oracle 11g DB Level 2</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>Oracle 11g DB Level 2</name>
+#  <version>1.1.0</version>
+#  <link>https://workbench.cisecurity.org/files/580</link>
+#</spec>
+#<labels>database,cis,oracle,oracle_11g</labels>
+#</ui_metadata>
+
+<check_type:"Database" db_type:"Oracle" version:"1">
+<group_policy:"CIS v1.0.1 Oracle 11g Level 2">
+
+#
+## 1. Operating System Specific Settings
+#
+#
+## 2. Installation and Patch
+#
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "2.09 Default Accounts - 'Created by Oracle'"
+  info        : "The default Oracle installation locks and expires the installation accounts. These accounts should be left locked and expired unless"
+  info        : "absolutely necessary. Check to ensure these accounts have not been unlocked."
+  reference   : "800-171|3.1.1,800-171|3.5.2,800-53|AC-2,800-53|IA-5,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.3,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select USERNAME from DBA_USERS where ACCOUNT_STATUS not like '%LOCKED%' and USERNAME in ('ANONYMOUS','BI','CTXSYS','DBSNMP','DIP','DMSYS','EXFSYS','HR','IX','MDDATA','MDSYS','MGMT_VIEW','OE','OLAPSYS','ORDPLUGINS','ORDSYS','OUTLN','PM','SH','SI_INFORMTN_SCHEMA','SYS','SYSMAN','SYSTEM','WKPROXY','WKSYS','WK_TEST','WMSYS','XDB');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "2.09 Default Accounts - 'Created by Oracle' Plugin 22075 Oracle Default Accounts"
+  info        : "Nessus plugin 22075 'Oracle Default Accounts' can identify if an Oracle server has one or more default accounts available on the database.
+
+  NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  info        : "To enable this plugin ensure the 'Databases' plugin family is selected in your scan policy."
+  reference   : "LEVEL|2S"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "2.12 Third party default passwords - Set all default account passwords to non-default strong passwords"
+  info        : "When installed, some third-party applications create well-known default accounts in an Oracle Database."
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select username from DBA_USERS_WITH_DEFPWD where username in (select username from DBA_USERS where ACCOUNT_STATUS='OPEN');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+#
+## 3. Oracle Directory and File Permissions
+#
+#
+## 4. Oracle Parameter Settings
+#
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "4.12 init.ora - 'sql92_security = TRUE'"
+  info        : "Enforce the requirement that a user must have SELECT privilege on a table in order to be able to execute UPDATE and DELETE statements using"
+  info        : "WHERE clauses on a given table."
+  info        : "WARNING: This will likely result in many applications failing and should not be enabled in production without thorough testing."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select value from v$parameter where name like 'sql92_security';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : regex: "[Tt][Rr][Uu][Ee]"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "4.16 init.ora - 'o7_dictionary_accessibility = FALSE'"
+  info        : "This is a database initialization parameter that controls access to objects in the SYS schema. Set this to FALSE to prevent users with"
+  info        : "EXECUTE ANY PROCEDURE and SELECT ANY DICTIONARY from accessing objects in the SYS schema. If access to these objects is required, the"
+  info        : "following roles can be assigned, SELECT_CATALOG_ROLE, EXECUTE_CATALOG_ROLE, DELETE_CATALOG_ROLE. If set to TRUE, accounts with 'ANY'"
+  info        : "privileges could get access to objects in the SYS schema. Default setting is FALSE."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select value from v$parameter where name like 'o7_dictionary_accessibility';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : regex: "[Ff][Aa][Ll][Ss][Ee]"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "4.17 init.ora - Remove the following from spfile: dispatchers = (PROTOCOL=TCP) (SERVICE=<ORACLE_SID>XDB)"
+  info        : "This will disable default ports FTP: 2100 and HTTP: 8080. Removing the XDB ports will reduce the attack surface of the Oracle server. It is"
+  info        : "recommended to disable these ports if production usage is not required."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select value from v$parameter where name like 'dispatchers';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "4.18 init.ora - 'audit_sys_operations = TRUE'"
+  info        : "Auditing of the users authenticated as the SYSDBA or the SYSOPER provides an oversight of the most privileged of users. It is important that"
+  info        : "the database user should not have access to the system directories where the audits will be recorded.  Ensure this by setting the"
+  info        : "AUDIT_SYS_OPERATIONS to TRUE."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select value from v$parameter where name like 'audit_sys_operations';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : regex: "[Tt][Rr][Uu][Ee]"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "4.25 Accounts - Lock account access for application schema owners"
+  info        : "Lock the account for the application schema owner. Users must not connect to the database as the application owner."
+  reference   : "800-171|3.1.6,800-53|AC-6(2),CSF|PR.AC-4,ITSG-33|AC-6(2),LEVEL|2S,NESA|T5.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select USERNAME from DBA_USERS where ACCOUNT_STATUS not like '%LOCKED%' and USERNAME not in ('ANONYMOUS','BI','CTXSYS','DBSNMP','DIP','DMSYS','EXFSYS','HR','IX','MDDATA','MDSYS','MGMT_VIEW','OE','OLAPSYS','ORDPLUGINS','ORDSYS','OUTLN','PM','SH','SI_INFORMTN_SCHEMA','SYS','SYSMAN','SYSTEM','WKPROXY','WKSYS','WK_TEST','WMSYS','XDB');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "4.26 init.ora - 'remote_login_passwordfile = NONE'"
+  info        : "Prevents remote privileged connections to the database. This suggests that remote administration should be performed by remotely logging into"
+  info        : "the database server via a secured connection. Alternately, an administrative listener could be created, the remote_login_passwordfile set to"
+  info        : "exclusive, and logging of the administrative listener implemented."
+  reference   : "800-171|3.1.1,800-171|3.1.5,800-53|AC-3,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.2(c),CN-L3|8.1.10.6(a),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(d),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSCv6|9.2,CSF|PR.AC-4,CSF|PR.DS-5,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,ITSG-33|AC-6,LEVEL|2S,NESA|T4.2.1,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|AM3,NIAv2|SS13c,NIAv2|SS15c,NIAv2|SS29,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select value from v$parameter where name like 'remote_login_passwordfile';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : regex: "[Nn][Oo][Nn][Ee]"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "4.31 init.ora - 'sec_return_server_release_banner = FALSE'"
+  info        : "Ensure the Oracle database is not returning complete database information to clients. Knowing the exact patch set can aid an attacker."
+  reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select value from v$parameter where name like 'sec_return_server_release_banner';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : regex: "[Ff][Aa][Ll][Ss][Ee]"
+</custom_item>
+
+#
+## 5. Encryption Specific Settings
+#
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "5.21 Encryption - Revoke the PUBLIC execute privileges from the DBMS_OBFUSCATION_TOOLKIT"
+  info        : "The DBMS_OBFUSCATION_TOOLKIT has been replaced with the DBMS_CRYPTO package, but the DBMS_OBFUSCATION_TOOLKIT is still needed for some tasks"
+  info        : "that are not available in the DBMS_CRYPTO package. As an example; the generation of a pseudorandom string requires the"
+  info        : "DBMS_OBFUSCATION_TOOLKIT. By removing public access to the DBMS_OBFUSCATION_TOOLKIT the means to decrypt the data is not available for"
+  info        : "malicious use."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select GRANTEE,PRIVILEGE from DBA_TAB_PRIVS where TABLE_NAME='DBMS_OBFUSCATION_TOOLKIT' AND PRIVILEGE='EXECUTE' AND GRANTEE='PUBLIC';"
+  sql_types   : POLICY_VARCHAR,POLICY_VARCHAR
+  sql_expect  : NULL,NULL
+</custom_item>
+
+#
+## 6. Startup and Shutdown
+#
+#
+## 7. Backup and Disaster Recovery
+#
+#
+## 8. Oracle Profile (User) Setup Settings
+#
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.07 Database Profiles - Review accounts where password = 'EXTERNAL'"
+  info        : "Check and review any user who has password = 'EXTERNAL'. Do not allow remote OS authentication to the database."
+  reference   : "800-171|3.1.1,800-53|AC-2,CN-L3|7.1.3.2(d),CSF|DE.CM-1,CSF|DE.CM-3,CSF|PR.AC-1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.1,ITSG-33|AC-2,LEVEL|2NS,NESA|T5.2.1,NESA|T5.2.4,NIAv2|AM27,NIAv2|AM28,NIAv2|NS5j,NIAv2|SS14e"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select USERNAME from DBA_USERS where PASSWORD='EXTERNAL';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.08 Database Profiles - Set password_verify_function to verification function"
+  info        : "Allow password_verification_function to be called when passwords are changed. This always works for password changes via the 'password'"
+  info        : "command at an SQL prompt."
+  reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select PROFILE from DBA_PROFILES where RESOURCE_NAME='PASSWORD_VERIFY_FUNCTION' and LIMIT='NULL';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.09 Database Profiles - Set cpu_per_session as appropriate"
+  info        : "Allowing a single application or user to consume excessive CPU resources will result in a denial of service to the Oracle database. Ensure"
+  info        : "that users profile settings have appropriate values set for the particular database and application."
+  reference   : "800-53|SC-6,CN-L3|7.1.3.7(c),CN-L3|7.1.3.7(d),ITSG-33|SC-6,LEVEL|2S"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select PROFILE from DBA_PROFILES where PROFILE in (select distinct PROFILE from DBA_USERS) and RESOURCE_NAME='CPU_PER_SESSION' and LIMIT='UNLIMITED';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.10 Database Profiles - Set private_sga as appropriate"
+  info        : "Allowing a single application or user to consume the excessive amounts of the System Global Area will result in a denial of service to the"
+  info        : "Oracle database. Ensure that users profile settings have appropriate values set for the particular database and application."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select PROFILE from DBA_PROFILES where PROFILE in (select distinct PROFILE from DBA_USERS) and RESOURCE_NAME='PRIVATE_SGA' and LIMIT='UNLIMITED';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.11 Database Profiles - Set logical_reads_per_session as appropriate"
+  info        : "Allowing a single application or user to perform excessive amounts of reads to disk will result in a denial of service to the Oracle"
+  info        : "database. Ensure that users profile settings have appropriate values set for the particular database and application."
+  reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),LEVEL|2S,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select PROFILE from DBA_PROFILES where PROFILE in (select distinct PROFILE from DBA_USERS) and RESOURCE_NAME='LOGICAL_READS_PER_SESSION' and LIMIT='UNLIMITED';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.12 Database Profiles - Set sessions_per_user as appropriate"
+  info        : "Allowing an unlimited amount of sessions per user can consume Oracle resources and cause a denial of service. Limit the number of session for"
+  info        : "each individual user. Ensure that users profile settings have appropriate values set for the particular database and application."
+  reference   : "800-53|AC-10,ITSG-33|AC-10,LEVEL|2S,NESA|T5.5.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select PROFILE from DBA_PROFILES where PROFILE in (select distinct PROFILE from DBA_USERS) and RESOURCE_NAME='SESSIONS_PER_USER' and LIMIT='UNLIMITED';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.13 Database Profiles - Set connect_time as appropriate"
+  info        : "Sessions held open for excessive periods of time can consume system resources and cause a denial of service for other users of the Oracle"
+  info        : "database. The CONNECT_TIME parameter limits the upper bound on how long a session can be held open. This parameter is specified in minutes."
+  info        : "Sessions that have exceeded their connect time are aborted and rolled back. Note: Oracle does not do strict monitoring of connect times and"
+  info        : "sessions can exceed this time limit by up to a few minutes. Ensure that users profile settings have appropriate values set for the particular"
+  info        : "database and application."
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,LEVEL|2NS,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select PROFILE from DBA_PROFILES where PROFILE in (select distinct PROFILE from DBA_USERS) and RESOURCE_NAME='CONNECT_TIME' and LIMIT='UNLIMITED';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "8.14 Database Profiles - Set idle_time as appropriate"
+  info        : "Idle sessions held open for excessive periods of time can consume system resources and cause a denial of service for other users of the"
+  info        : "Oracle database. Limit the maximum number of minutes a session can idle.  Ensure that users profile settings have appropriate values set for"
+  info        : "the particular database and application."
+  reference   : "800-171|3.1.11,800-53|AC-12,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.4,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,LEVEL|2NS,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select PROFILE from DBA_PROFILES where PROFILE in (select distinct PROFILE from DBA_USERS) and RESOURCE_NAME='IDLE_TIME' and LIMIT='UNLIMITED';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+#
+## 9. Oracle Profile (User) Access Settings
+#
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.01 Tablespaces - Do not have default_tablespace set to SYSTEM for user accounts"
+  info        : "Only SYS should have a default tablespace of SYSTEM. This prevents administrative users from altering system objects. Note it may be"
+  info        : "difficult or impossible to move some objects."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select USERNAME from DBA_USERS where USERNAME not in ('SYS','SYSTEM','OUTLN','MGMT_VIEW') and DEFAULT_TABLESPACE='SYSTEM';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.04 Tables - Prevent access to SYS.AUD$"
+  info        : "Check for any user accounts that have access and revoke where possible.  This is only applicable if the audit trail parameter is set to db or"
+  info        : "db_extended. Allowing users to alter the AUD$ table can compromise the audit trail or integrity of the Oracle database."
+  reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),LEVEL|2S,NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select GRANTEE from DBA_TAB_PRIVS where TABLE_NAME='AUD$' and GRANTEE not in ('SYS','DBA');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.28 Privileges - Prevent granting of all privileges 'GRANT ANY PRIVILEGE'"
+  info        : "The GRANT ALL PRIVILEGES must not be used; it gives full access to all tables, views and objects to the user or role it is granted to."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2NS,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select GRANTEE from DBA_SYS_PRIVS where PRIVILEGE='GRANT ANY PRIVILEGE';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.28 Privileges - Prevent granting of all privileges 'GRANT ANY OBJECT PRIVILEGE'"
+  info        : "The GRANT ALL PRIVILEGES must not be used; it gives full access to all tables, views and objects to the user or role it is granted to."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2NS,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select GRANTEE from DBA_SYS_PRIVS where PRIVILEGE='GRANT ANY OBJECT PRIVILEGE';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.52 Views - Revoke public access to all public views that start with 'ALL_'"
+  info        : "Revoke access to these views when possible to prevent unauthorized access to data that could be sensitive. Note: This may interfere with some"
+  info        : "applications."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select TABLE_NAME from DBA_TAB_PRIVS where table_name like 'ALL_%' and GRANTEE='PUBLIC';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "9.53 Roles and Privileges - When dropping a user, ensure roles and privileges created by that user, if not required, are deleted."
+  info        : "Dropping a user does not delete roles and privileges created by the user."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification by each organization of dropped users."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.54 Packages - Limit or deny access to 'DBMS_BACKUP_RESTORE'"
+  info        : "Provides file system functions such as copying files, altering control files, accessing devices, and deleting files."
+  info        : "Reportable"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select GRANTEE from DBA_TAB_PRIVS where TABLE_NAME='DBMS_BACKUP_RESTORE' and GRANTEE='PUBLIC';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+  reference   : "800-171|3.1.5,800-53|AC-6(1),CSF|PR.AC-4,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(1),NESA|T5.1.1,NESA|T5.4.4,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM31,NIAv2|GS3,NIAv2|GS4,NIAv2|GS8c,NIAv2|VL3b,SWIFT-CSCv1|5.1"
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.55 Packages - Audit usage of 'DBMS_RANDOM'"
+  info        : "Audit the DBMS_RANDOM function in applications for improper usage. DBMS_RANDOM should not be used for critical functions related to"
+  info        : "Acryptography, session id generation or other areas where a high degree of entropy is required. Replace calls to these functions with"
+  info        : "ARANDOMBYTES, Revoking the public privilege may cause some applications to fail it is suggested that if the public execute permission cannot"
+  info        : "Abe revoked the applications that utilize DBMS_RANDOM are carefully audited."
+  reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select GRANTEE from DBA_TAB_PRIVS where TABLE_NAME='DBMS_RANDOM' and GRANTEE='PUBLIC';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "9.56 Roles - Password protect roles"
+  info        : "Role passwords are useful when an application controls whether or not a role is turned on.  This prevents a user directly accessing the"
+  info        : "database via SQL (rather than through the application) from being able to enable the privileges associated with the role."
+  reference   : "800-171|3.5.2,800-53|IA-5,CSF|PR.AC-1,ITSG-33|IA-5,LEVEL|2S,NESA|T5.2.1,NESA|T5.2.3"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select ROLE from DBA_ROLES where password_required!='YES' and role not in ('AQ_ADMINISTRATOR_ROLE','AQ_USER_ROLE','AUTHENTICATEDUSER','CONNECT','CTXAPP','CWM_USER','DATAPUMP_EXP_FULL_DATABASE','DATAPUMP_IMP_FULL_DATABASE','DBA','DELETE_CATALOG_ROLE','EJBCLIENT','EXECUTE_CATALOG_ROLE','EXP_FULL_DATABASE','GATHER_SYSTEM_STATISTICS','GLOBAL_AQ_USER_ROLE','HS_ADMIN_ROLE','IMP_FULL_DATABASE','JAVADEBUGPRIV','JAVAIDPRIV','JAVASYSPRIV','JAVAUSERPRIV','JAVA_ADMIN','JAVA_DEPLOY','JMXSERVER','LOGSTDBY_ADMINISTRATOR','MGMT_USER','ORDADMIN','OEM_ADVISOR','OEM_MONITOR','OLAP_DBA','OLAPI_TRACE_USER','OLAP_XS_ADMIN','OWB_USER','OLAP_USER','RECOVERY_CATALOG_OWNER','RESOURCE','SCHEDULER_ADMIN','SELECT_CATALOG_ROLE','WKUSER','WM_ADMIN_ROLE','XDBADMIN','XDB_SET_INVOKER','XDB_WEBSERVICES','XDB_WEBSERVICES_WITH_PUBLIC','XDB_WEBSERVICES_OVER_HTTP');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+#
+## 10. Enterprise Manager / Grid Control / Agents
+#
+#
+## 11. Specific Systems
+#
+
+<report type:"WARNING">
+  description : "11.04 Fine grained access - Use fine grain access control within objects"
+  info        : "Fine grained access control can provide both column and row level security. This can provide an additional layer of access control to objects"
+  info        : "by limiting the access (select, update, insert, delete) within the object and should be used wherever possible.  For fine grained access to"
+  info        : "function properly, use the cost-based optimizer."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires an evaluation of sensitive areas that are present."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## 12. General Policy and Procedures
+#
+
+<report type:"WARNING">
+  description : "12.40 Application PL/SQL code - Encrypt"
+  info        : "The wrap program provided by Oracle encodes the PL/SQL source code but does not encrypt it."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the PL/SQL code is encrypted."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.41 Hard coded data in PL/SQL and application source code - Avoid or encrypt"
+  info        : "Do not use unencrypted hard coded usernames, passwords, or other critical data in the PL/SQL code. PL/SQL code is often viewable by many"
+  info        : "users of the Oracle system and stored in code repositories."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the PL/SQL and application code is avoided or encrypted."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.42 Decommissioned applications - Remove all components"
+  info        : "Failure to remove all privileges once an application has been removed from an Oracle database widens the attack surface and can provide"
+  info        : "unmonitored access for an attacker."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that decommissioned applications are removed."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.43 DDL statements in application - Disallow"
+  info        : "Applications must not alter the database schema."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the database schema is only updated via a DBA or approved"
+  info        : "changes."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.44 Host and Application Monitoring Software - Review"
+  info        : "Any remote access to the database host must be controlled by an application level firewall."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that unnecessary ports are blocked and monitoring is enabled on"
+  info        : "the host."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.45 Enabling of batch process account - Time enabled"
+  info        : "Allowing the batch account to remain active widens the system attack surface and may lead to unauthorized access of the Oracle database."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that the batch account is only enabled during the times required"
+  info        : "to run."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.46 Passwords for batch processes - Secure"
+  info        : "Passwords for batch processes must not be a command line parameter or an environment variable."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that passwords are removed from batch files or scripts."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.47 External account access for batch processes - Disallow"
+  info        : "External accounts used for batch processes allow a simple way to access the database."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that batch processes are forbidden access to the Oracle database."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.48 User permissions - Review"
+  info        : "Review and test development databases for users with excess permissions not granted in production."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that test development databases are restricted."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.53 Policy Caching - Policy caches must be purged"
+  info        : "Policy caches can potentially store information that could be used to compromise the database and may accessible outside of Oracle and beyond"
+  info        : "the control of the security parameters. Hence this can defeat row level security."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that policy caches are purged."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.54 Policy Functions - Users should not have execute, alter or drop privileges on policy functions"
+  info        : "The ability to manipulate policy functions could be used to defeat row level security."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that users do not have execute, alter or drop privileges on policy."
+  info        : "functions."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "12.55 Passwords - Remove password parameters from configuration files utilized for Silent Installations"
+  info        : "Whenever utilizing silent installs, i.e., Oracle Installer, ensure configuration files do not contain password values after the installation"
+  info        : "completes."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance.as it requires manual verification that all passwords have been removed from installation"
+  info        : "configuration files."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+#
+## 13. Auditing Policy and Procedures
+#
+
+<report type:"WARNING">
+  description : "13.01 Auditing - Unused schemas should be dropped"
+  info        : "Leaving additional schemas in the database can provide an attacker with additional details about the currently used Oracle system or contain"
+  info        : "sensitive information."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "13.02 Auditing - Trap autonomous transactions"
+  info        : "This will ensure that audit captures actions performed by users even if they are later rolled back."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.03 Auditing - Audit all logons and logffs"
+  info        : "Auditing logon and logoff events may provide additional information for isolating the cause of security incidents."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='CREATE SESSION' AND (SUCCESS!='BY ACCESS' AND FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ALTER SYSTEM')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ALTER SYSTEM' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'SYSTEM AUDIT')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='SYSTEM AUDIT' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE SESSION')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE SESSION' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'TABLE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='TABLE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CLUSTER')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CLUSTER' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'TABLESPACE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='TABLESPACE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'USER')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='USER' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ROLLBACK SEGMENT')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ROLLBACK SEGMENT' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'TYPE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='TYPE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'INDEX')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='INDEX' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE USER')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE USER' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ALTER USER')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ALTER USER' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'DROP USER')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='DROP USER' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'SYNONYM')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='SYNONYM' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'PUBLIC SYNONYM')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='PUBLIC SYNONYM' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'VIEW')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='VIEW' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'SEQUENCE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='SEQUENCE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'DATABASE LINK')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='DATABASE LINK' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'PUBLIC DATABASE LINK')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='PUBLIC DATABASE LINK' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ROLE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ROLE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'DIMENSION')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='DIMENSION' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'PROCEDURE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='PROCEDURE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'TRIGGER')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='TRIGGER' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'PROFILE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='PROFILE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'DIRECTORY')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='DIRECTORY' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'MATERIALIZED VIEW')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='MATERIALIZED VIEW' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE ANY TABLE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE ANY TABLE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ALTER ANY TABLE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ALTER ANY TABLE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'DROP ANY TABLE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='DROP ANY TABLE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'MINING MODEL')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='MINING MODEL' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'NOT EXISTS')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='NOT EXISTS' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE PUBLIC DATABASE LINK')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE PUBLIC DATABASE LINK' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'GRANT ANY ROLE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='GRANT ANY ROLE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'SYSTEM GRANT')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='SYSTEM GRANT' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ALTER DATABASE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ALTER DATABASE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE ANY PROCEDURE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE ANY PROCEDURE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ALTER ANY PROCEDURE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ALTER ANY PROCEDURE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'DROP ANY PROCEDURE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='DROP ANY PROCEDURE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'ALTER PROFILE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='ALTER PROFILE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'DROP PROFILE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='DROP PROFILE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'GRANT ANY PRIVILEGE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='GRANT ANY PRIVILEGE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE ANY LIBRARY')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE ANY LIBRARY' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CONTEXT')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CONTEXT' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'EXEMPT ACCESS POLICY')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='EXEMPT ACCESS POLICY' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'GRANT ANY OBJECT PRIVILEGE')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='GRANT ANY OBJECT PRIVILEGE' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE ANY JOB')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE ANY JOB' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.04 Auditing - Audit for unsuccessful attempts. Audit by 'ACCESS WHENEVER NOT SUCCESSFUL' (check 'CREATE EXTERNAL JOB')"
+  info        : "Auditing by SESSION will only show a single audit event for an attempt. By logging unsuccessful attempts any SQL statement attempting to"
+  info        : "access the table will be recorded. This could provide a record of unauthorized attempts to access sensitive data."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS WHERE AUDIT_OPTION='CREATE EXTERNAL JOB' AND FAILURE!='BY ACCESS';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.05 Auditing - Where appropriate or required by security or legal requirements, engage and use Fine-Grained Auditing (FGA) feature"
+  info        : "The flexibility, column specific sensitivity, SQL capturing, and event handler capabilities of FGA provide auditors and security personnel"
+  info        : "with valuable information."
+  info        : "Note: The FGA record entry can be pre-qualified. Therefore, it should not add a significant burden to the size of audit records."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select ROWNUM from (select null from DBA_AUDIT_POLICIES union select null from DBA_AUDIT_POLICY_COLUMNS);"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.06 Auditing - Where appropriate or required by security or legal requirements, use enhanced capabilities of Fine-Grained Auditing."
+  info        : "FGA has the ability to execute event driven procedures that may allow security and operations teams to receive real time indications of"
+  info        : "threats.  For instance, a procedure could perform an action such as sending an e-mail alert to an auditor when a user selects a certain"
+  info        : "row from a table, or it could write to a different audit trail."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select ROWNUM from (select null from DBA_AUDIT_POLICIES union select null from DBA_AUDIT_POLICY_COLUMNS);"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.07 Auditing - Audit 'ALTER ANY TABLE'"
+  info        : "Unauthorized table alters can results in application failures or be the precursor to an attack."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='ALTER ANY TABLE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.08 Auditing - Audit 'ALTER USER'"
+  info        : "Unauthorized user alters can results in application failures, hijacked credentials, or be the precursor to an attack."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='ALTER USER' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.09 Auditing - Audit any 'CREATE' statement"
+  info        : "Auditing the creation of objects, such as tables or databases, will provide a record of events that may be useful when investigating"
+  info        : "security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION like 'CREATE%' and (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.10 Auditing - Audit 'CREATE ROLE'"
+  info        : "Auditing the creation of roles will provide a record to ensure the appropriate use of account administration privileges. This information is"
+  info        : "also useful when investigating certain security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='CREATE ROLE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.11 Auditing - Audit 'CREATE USER'"
+  info        : "Auditing the creation of users will provide a record to ensure the appropriate use of account administration privileges. This information is"
+  info        : "also useful when investigating certain security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='CREATE USER' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.12 Auditing - Audit 'CREATE SESSION'"
+  info        : "Audit the use of CREATE SESSION for successful or unsuccessful operations. This information is also useful for debugging application and user"
+  info        : "session failures."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='CREATE SESSION' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.13 Auditing - Audit any DROP statement"
+  info        : "Auditing the removal of database objects, such as tables or databases, will provide a record of events that may be useful when investigating"
+  info        : "security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION like 'DROP%' and (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.14 Auditing - Audit 'DROP ANY PROCEDURE'"
+  info        : "Audit the use of DROP ANY PROCEDURE. Auditing the removal of database procedures, will provide a record of actions that may be useful when"
+  info        : "investigating security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='DROP ANY PROCEDURE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.15 Auditing - Audit 'DROP ANY TABLE'"
+  info        : "Audit the use of DROP ANY TABLE. Auditing the removal of database tables, will provide a record of actions that may be useful when"
+  info        : "investigating security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='DROP ANY TABLE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.16 Auditing - Audit 'GRANT ANY PRIVILEGE'"
+  info        : "Auditing the grants will provide a record to ensure the appropriate use of account administration privileges. This information is also useful"
+  info        : "when investigating certain security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='GRANT ANY PRIVILEGE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.17 Auditing - Audit 'GRANT ANY ROLE'"
+  info        : "Auditing the grants will provide a record to ensure the appropriate use of account administration privileges. This information is also"
+  info        : "usefulwhen investigating certain security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='GRANT ANY ROLE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.18 Auditing - Audit 'INSERT' failures"
+  info        : "Auditing failed inserts may provide be useful when investigating certain security events, such as SQL injections attempts."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select object_name from DBA_OBJ_AUDIT_OPTS where INS!='WHENEVER NOT SUCCESSFUL';"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.19 Auditing - Audit 'EXECUTE PROCEDURE'"
+  info        : "Audit EXECUTE PROCEDURE failures attempted into critical data objects. Auditing the EXECUTE PROCEDURE will provide a record of the procedures"
+  info        : "that were executed and by whom. This information is also useful when investigating a security event"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='EXECUTE PROCEDURE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.20 Auditing - Audit 'SELECT ANY DICTIONARY'"
+  info        : "Audit the use of the SELECT ANY DICTIONARY. Auditing SELECT ANY DICTIONARY will provide a record of access to DICTIONARY views. This"
+  info        : "information is also useful when investigating a security event."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='SELECT ANY DICTIONARY' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.21 Auditing - Audit 'GRANT ANY OBJECT'"
+  info        : "Audit the use of the GRANT ANY OBJECT. Auditing the grants will provide a record of the scope of the user object rights to ensure the"
+  info        : "appropriate use of account administration privileges. This information is also useful when investigating certain security events."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='GRANT ANY OBJECT PRIVILEGE' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.22 Auditing - Audit 'CREATE {ANY} LIBRARY'"
+  info        : "Audit the use of the CREATE LIBRARY privilege"
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select AUDIT_OPTION from DBA_STMT_AUDIT_OPTS where AUDIT_OPTION='CREATE LIBRARY' AND (SUCCESS!='BY ACCESS' OR FAILURE!='BY ACCESS');"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "13.23 Auditing - Logon, logoff, database start or stop and other information"
+  info        : "Specific database application components may contain sensitive information and require more scrutiny or certain events to alarm when"
+  info        : "triggered. Evaluate applications on a case by case basis and create where appropriate."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "13.24 Auditing - Use triggers to implement row level auditing"
+  info        : "If specific rows of data need to be audited create triggers to alarm on auditable events. This will reduce the overall system resources for"
+  info        : "auditing specific tables and help reduce false alarms."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "13.25 Auditing - Review procedures and reports to review audit logs"
+  info        : "Regular, timely reviews of the collected audit information must be done to ensure system security and integrity."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<custom_item>
+  type        : SQL_POLICY
+  description : "13.26 Auditing - Set 'AUDIT ALL' on SYS.AUD$ 'BY ACCESS';"
+  info        : "By setting AUDIT ALL ON SYS.AUD$ BY ACCESS, attempts to alter the audit trail will be audited.  Only applicable if the audit trail parameter"
+  info        : "is set to DB or TRUE."
+  reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+  sql_request : "select * from DBA_OBJ_AUDIT_OPTS where OBJECT_NAME='AUD$' and ALT!='A/A' and AUD!='A/A' and COM!='A/A' and DEL!='A/A' and GRA!='A/A' and IND!='A/A' and INS!='A/A' and LOC!='A/A' and REN!='A/A' and SEL!='A/A' and UPD!='A/A' and FBK!='A/A'"
+  sql_types   : POLICY_VARCHAR
+  sql_expect  : NULL
+</custom_item>
+
+<report type:"WARNING">
+  description : "13.27 Auditing - Regularly purge the audit trail"
+  info        : "Archive and delete the audit trail as necessary or in line with local data administration policies. The audit trail can consume substantial"
+  info        : "system resources leading to a denial of services."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+<report type:"WARNING">
+  description : "13.28 Auditing - Audit Exposed Web Services"
+  info        : "Legacy procedures that are designed for internal usage only are often exposed as web services. Both the legacy status and expansion of the"
+  info        : "attack surface can lead to their exploitation."
+  info        : "NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  reference   : "LEVEL|2NS"
+  see_also    : "https://workbench.cisecurity.org/files/580"
+</report>
+
+</group_policy>
+</check_type>

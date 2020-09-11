@@ -1,0 +1,1035 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/08/24 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA McAfee VSEL 1.9/2.0 Local Client v1r6 STIG.
+#
+#<ui_metadata>
+#<display_name>McAfee Virus Scan Enterprise for Linux 1.9x/2.0x Local Client v1r6</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>McAfee Virus Scan Enterprise for Linux 1.9x/2.0x Local Client</name>
+#  <version>1.6.0</version>
+#  <link>https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip</link>
+#</spec>
+#<labels>unix,disa,mcafee,virusscan,antivirus,agent</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>INSTALL_DIRECTORY</name>
+#    <default>/var/opt/NAI/LinuxShield</default>
+#    <description>VSEL Install Directory</description>
+#    <info>The location of the VSEL application is installed</info>
+#  </variable>
+#  <variable>
+#    <name>RUNTIME_DIRECTORY</name>
+#    <default>/opt/NAI/LinuxShield</default>
+#    <description>VSEL Runtime Directory</description>
+#    <info>The location of VSEL runtime files (like virus definitions)</info>
+#  </variable>
+#  <variable>
+#    <name>SMTP_HOST</name>
+#    <default>email.branch.mil</default>
+#    <description>SMTP Server</description>
+#    <info>The email server used for sending updates to the VSEL or ePO administrator</info>
+#  </variable>
+#  <variable>
+#    <name>SMTP_PORT</name>
+#    <default>25</default>
+#    <description>SMTP Port</description>
+#    <info>The port used for SMTP traffic by the email server</info>
+#  </variable>
+#  <variable>
+#    <name>ADMIN_EMAIL</name>
+#    <default>isso@email.branch.mil</default>
+#    <description>Administrator notification email</description>
+#    <info>The email address to send VSEL notifications to</info>
+#  </variable>
+#  <variable>
+#    <name>NAILS_USER</name>
+#    <default>nails</default>
+#    <description>VSEL User Account</description>
+#    <info>The Linux user designated for VSEL</info>
+#  </variable>
+#  <variable>
+#    <name>NAILS_GROUP</name>
+#    <default>nailsgroup</default>
+#    <description>VSEL User Group</description>
+#    <info>The Linux group designated for VSEL</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Unix">
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-000 - The McAfee VirusScan Enterprise for Linux  Web interface must be disabled unless the system is on a segregated network."
+  info        : "The McAfee VirusScan Enterprise for Linux WEB GUI is the method for configuring the McAfee VSEL on a non-managed Linux system. The WEB GUI on the system could be used maliciously to gain unauthorized access to the system. By restricting access to interface by implementing firewall rules, the risk of unauthorized access will be mitigated."
+  solution    : "To validate without the Web interface, access the Linux system being reviewed, either at the console or by a SSH connection.
+
+At the command line, navigate to /var/opt/NAI/LinuxShield/etc.
+
+Modify the nailsd.cfg file.
+Find the line 'nailsd.disableCltWebUI: false'
+Change the 'false' to 'true'.
+
+Reload the nails processes by running the following command:
+/etc/init.d/nails reload"
+  reference   : "800-53|CM-5,CAT|II,CCI|CCI-001813,CSF|PR.IP-1,ITSG-33|CM-5,NESA|T5.1.1,NESA|T5.6.1,NESA|T7.5.3,Rule-ID|SV-77281r1_rule,STIG-ID|DTAVSEL-000,Vuln-ID|V-62791"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.disableCltWebUI:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-001 - The anti-virus signature file age must not exceed 7 days - avvclean.dat"
+  info        : "Anti-virus signature files are updated almost daily by anti-virus software vendors. These files are made available to anti-virus clients as they are published. Keeping virus signature files as current as possible is vital to the security of any system. By configuring a system to attempt an anti-virus update on a daily basis, the system is ensured of maintaining an anti-virus signature age of 7 days or less. If the update attempt were to be configured for only once a week, and that attempt failed, the system would be immediately out of date."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Schedule', select 'Product Update'.
+Under 'When to update', select the 'Immediately' radio button, and click on 'Next'.
+Under 'Choose what to update', select 'Virus definition files (also known as DAT files)', click on 'Next'.
+Under 'Enter a task name', type a unique name for this task, and click on 'Finish'.
+
+Re-validate anti-virus signature file age.
+To run the Update task manually without the Web interface, access the Linux system being review, either at the console or by a SSH connection.
+Add a task to /etc/crontab to run the nails updater.
+At the command line, enter the command '/opt/NAI/LinuxShield/bin/nails task -l'.
+After the task runs, a (Completed) response will be returned."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|I,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77561r1_rule,STIG-ID|DTAVSEL-001,Vuln-ID|V-63071"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @RUNTIME_DIRECTORY@ replaced with "/opt/NAI/LinuxShield" in field "cmd".
+  cmd         : "sevendays=$(date -d 'now - 7 days' +%s); filetime=$(date -r /opt/NAI/LinuxShield/engine/dat/avvclean.dat +%s); if (( filetime < sevendays )); then echo 'Definitions out of date'; else echo 'Definitions are current'; fi"
+  expect      : "Definitions are current"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-001 - The anti-virus signature file age must not exceed 7 days - avvnames.dat"
+  info        : "Anti-virus signature files are updated almost daily by anti-virus software vendors. These files are made available to anti-virus clients as they are published. Keeping virus signature files as current as possible is vital to the security of any system. By configuring a system to attempt an anti-virus update on a daily basis, the system is ensured of maintaining an anti-virus signature age of 7 days or less. If the update attempt were to be configured for only once a week, and that attempt failed, the system would be immediately out of date."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Schedule', select 'Product Update'.
+Under 'When to update', select the 'Immediately' radio button, and click on 'Next'.
+Under 'Choose what to update', select 'Virus definition files (also known as DAT files)', click on 'Next'.
+Under 'Enter a task name', type a unique name for this task, and click on 'Finish'.
+
+Re-validate anti-virus signature file age.
+To run the Update task manually without the Web interface, access the Linux system being review, either at the console or by a SSH connection.
+Add a task to /etc/crontab to run the nails updater.
+At the command line, enter the command '/opt/NAI/LinuxShield/bin/nails task -l'.
+After the task runs, a (Completed) response will be returned."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|I,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77561r1_rule,STIG-ID|DTAVSEL-001,Vuln-ID|V-63071"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @RUNTIME_DIRECTORY@ replaced with "/opt/NAI/LinuxShield" in field "cmd".
+  cmd         : "sevendays=$(date -d 'now - 7 days' +%s); filetime=$(date -r /opt/NAI/LinuxShield/engine/dat/avvnames.dat +%s); if (( filetime < sevendays )); then echo 'Definitions out of date'; else echo 'Definitions are current'; fi"
+  expect      : "Definitions are current"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-001 - The anti-virus signature file age must not exceed 7 days - avvscan.dat"
+  info        : "Anti-virus signature files are updated almost daily by anti-virus software vendors. These files are made available to anti-virus clients as they are published. Keeping virus signature files as current as possible is vital to the security of any system. By configuring a system to attempt an anti-virus update on a daily basis, the system is ensured of maintaining an anti-virus signature age of 7 days or less. If the update attempt were to be configured for only once a week, and that attempt failed, the system would be immediately out of date."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Schedule', select 'Product Update'.
+Under 'When to update', select the 'Immediately' radio button, and click on 'Next'.
+Under 'Choose what to update', select 'Virus definition files (also known as DAT files)', click on 'Next'.
+Under 'Enter a task name', type a unique name for this task, and click on 'Finish'.
+
+Re-validate anti-virus signature file age.
+To run the Update task manually without the Web interface, access the Linux system being review, either at the console or by a SSH connection.
+Add a task to /etc/crontab to run the nails updater.
+At the command line, enter the command '/opt/NAI/LinuxShield/bin/nails task -l'.
+After the task runs, a (Completed) response will be returned."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|I,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77561r1_rule,STIG-ID|DTAVSEL-001,Vuln-ID|V-63071"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @RUNTIME_DIRECTORY@ replaced with "/opt/NAI/LinuxShield" in field "cmd".
+  cmd         : "sevendays=$(date -d 'now - 7 days' +%s); filetime=$(date -r /opt/NAI/LinuxShield/engine/dat/avvscan.dat +%s); if (( filetime < sevendays )); then echo 'Definitions out of date'; else echo 'Definitions are current'; fi"
+  expect      : "Definitions are current"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-002 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x must be configured to receive automatic updates."
+  info        : "Anti-virus signature files are updated almost daily by anti-virus software vendors. These files are made available to anti-virus clients as they are published. Keeping virus signature files as current as possible is vital to the security of any system. The anti-virus software product must be configured to receive those updates automatically in order to afford the expected protection."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Schedule', select 'Product Update'.
+Under '1. When to update', select 'Daily' and choose every '1' day(s), click on 'Next'.
+Under '2. Choose what to update', select 'Virus definition files (also known as DAT files), and click on 'Next'.
+Under '3. Enter a task name', give the task a unique task name for the daily update, and click on 'Finish'.
+
+Configure an /etc/crontab entry for the LinuxShield Update.
+To run the Update task manually without the Web interface, access the Linux system being review, either at the console or by a SSH connection.
+At the command line, enter the command '/opt/NAI/LinuxShield/bin/nails task -l'.
+After the task runs, a (Completed) response will be returned."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77563r1_rule,STIG-ID|DTAVSEL-002,Vuln-ID|V-63073"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @RUNTIME_DIRECTORY@ replaced with "/opt/NAI/LinuxShield" in field "cmd".
+  cmd         : "/opt/NAI/LinuxShield/bin/nails task --list"
+  regex       : "\s*[0-9]\s*\"LinuxShield\s+Update\"\s*\(.*\)$"
+  expect      : "(Idle|Running|Starting)"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-003 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x must be configured to enable On-Access scanning."
+  info        : "For anti-virus software to be effective, it must be running at all times, beginning from the point of the system's initial startup. Otherwise, the risk is greater for viruses, Trojans, and other malware infecting the system during that startup phase."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the 'Enable On-Access scanning' check box.
+In the 'Quarantine directory' field, populate with '/quarantine' (or another valid location as determined by the organization).
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|I,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77565r1_rule,STIG-ID|DTAVSEL-003,Vuln-ID|V-63075"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.oasEnabled:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-004 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to decompress archives when scanning."
+  info        : "Malware can be hidden within archived files and passed from system to system undetected unless the archive is decompressed and each file scanned.  By disabling the archive scanning capability, archives such as .tar and .tgz files will not be decompressed and any infected files in the archives would go undetected. Decompression can slow performance, however; any virus-infected file inside an archive cannot become active until it has been extracted. Recognizing the slow performance potential"
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the 'Decompress archives' check box.
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77567r1_rule,STIG-ID|DTAVSEL-004,Vuln-ID|V-63077"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.decompArchive:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-005 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to find unknown program viruses."
+  info        : "Due to the ability of malware to mutate after infection, standard anti-virus signatures may not be able to catch new strains or variants of the malware. Typically, these strains and variants will share unique characteristics with others in their virus family. By using a generic signature to detect the shared characteristics, using wildcards where differences lie, the generic signature can detect viruses even if they are padded with extra, meaningless code. This method of detection is Heuristic detection."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the 'Find unknown program viruses' check box.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77569r1_rule,STIG-ID|DTAVSEL-005,Vuln-ID|V-63079"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.heuristicAnalysis:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-006 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to find unknown macro viruses."
+  info        : "Interpreted viruses are executed by an application. Within this subcategory, macro viruses take advantage of the capabilities of applications' macro programming language to infect application documents and document templates, while scripting viruses infect scripts that are understood by scripting languages processed by services on the OS. Many attackers use toolkits containing several different types of utilities and scripts that can be used to probe and attack hosts. Scanning for unknown macro viruses will mitigate zero-day attacks."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the 'Find unknown macro viruses' check box.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77571r1_rule,STIG-ID|DTAVSEL-006,Vuln-ID|V-63081"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.macroAnalysis:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-007 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to find potentially unwanted programs."
+  info        : "Potentially Unwanted Programs (PUPs) include Spyware, Adware, Remote Administration Tools, Dialers, Password Crackers, Jokes, and Key Loggers. While PUPs do not typically have any infection capability on their own, they rely on malware or other attach mechanisms to be installed onto target hosts, after which they will collect and transfer data from the host to an external host and/or will be used as attach mechanisms. Configuring the anti-virus software to attempt to clean the file first will allow for the possibility of a false positive. In most cases, however, the secondary action of delete will be used, mitigating the risk of the PUPs being installed and used maliciously."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the 'Find potentially unwanted programs' check box.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77573r1_rule,STIG-ID|DTAVSEL-007,Vuln-ID|V-63083"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.program:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-008 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to scan files when being written to disk."
+  info        : "Anti-virus software is the most commonly used technical control for malware threat mitigation. Real-time scanning of files as they are written to disk is a crucial first line of defense from malware attacks."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the 'Scan files when writing to disk' check box.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77575r1_rule,STIG-ID|DTAVSEL-008,Vuln-ID|V-63085"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.scanOnWrite:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-009 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to scan files when being read from disk."
+  info        : "Anti-virus software is the most commonly used technical control for malware threat mitigation. Real-time scanning of files as they are read from disk is a crucial first line of defense from malware attacks."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the 'Scan files when reading from disk' check box.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77577r1_rule,STIG-ID|DTAVSEL-009,Vuln-ID|V-63087"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.scanOnRead:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-010 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to scan all file types."
+  info        : "When scanning for malware, excluding specific file types will increase the risk of a malware-infected file going undetected. By configuring anti-virus software to scan all file types, the scanner has a higher success rate at detecting and eradicating malware."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Select the 'Edit' button.
+Under 'Extension Base Scanning', select the 'Scan all files' radio button.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77579r1_rule,STIG-ID|DTAVSEL-010,Vuln-ID|V-63089"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.allFiles:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-011 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner maximum scan time must not be less than 45 seconds - default.scanMaxTmo"
+  info        : "When anti-virus software is not configured to limit the amount of time spent trying to scan a file, the total effectiveness of the anti-virus software, and performance on the system being scanned, will be degraded. By limiting the amount of time the anti-virus software uses when scanning a file, the scan will be able to complete in a timely manner.
+
+Although the description of this requirement indicates a 'maximum scan time', the intent of this requirement is to explicitly set a maximum scan time without impacting the effectiveness of the scan. Left unconfigured, the scan could run indefinitely on one file. If configured with a value of less than 45 seconds, the scanning of some files will be skipped. If configured with 45 or more seconds, the success rate of files being completely scanned is higher."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', configure the 'Maximum scan time (seconds)' with at least '45' or more seconds.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77581r1_rule,STIG-ID|DTAVSEL-011,Vuln-ID|V-63091"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS_default.scanMaxTmo:.*$"
+  expect      : "45|4[6-9]|[5-9][0-9]|[1-9][0-9]{2}"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-011 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner maximum scan time must not be less than 45 seconds - scanMaxTmo"
+  info        : "When anti-virus software is not configured to limit the amount of time spent trying to scan a file, the total effectiveness of the anti-virus software, and performance on the system being scanned, will be degraded. By limiting the amount of time the anti-virus software uses when scanning a file, the scan will be able to complete in a timely manner.
+
+Although the description of this requirement indicates a 'maximum scan time', the intent of this requirement is to explicitly set a maximum scan time without impacting the effectiveness of the scan. Left unconfigured, the scan could run indefinitely on one file. If configured with a value of less than 45 seconds, the scanning of some files will be skipped. If configured with 45 or more seconds, the success rate of files being completely scanned is higher."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', configure the 'Maximum scan time (seconds)' with at least '45' or more seconds.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77581r1_rule,STIG-ID|DTAVSEL-011,Vuln-ID|V-63091"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.scanMaxTmo:.*$"
+  expect      : "45|4[6-9]|[5-9][0-9]|[1-9][0-9]{2}"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-012 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must only be configured with exclusions that are documented and approved by the ISSO/ISSM/AO."
+  info        : "When scanning for malware, excluding specific files will increase the risk of a malware-infected file going undetected. By configuring anti-virus software without any exclusions, the scanner has a higher success rate at detecting and eradicating malware.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Click 'Edit'.
+Under 'Paths Excluded From Scanning', remove all entries other than the default '/var/log'.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77583r1_rule,STIG-ID|DTAVSEL-012,Vuln-ID|V-63093"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "cmd".
+  cmd         : "grep 'exclude-path' /var/opt/NAI/LinuxShield/etc/nailsd.cfg -A 5"
+  expect      : "Manual review required."
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-013 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to Clean as first action when a virus or Trojan is detected."
+  info        : "Malware may have infected a file that is necessary to the user. By configuring the anti-virus software to first attempt cleaning the infected file, availability to the file is not sacrificed. If a cleaning attempt is not successful, however, deleting the file is the only safe option to ensure the malware is not introduced onto the system or network."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Actions', select 'Clean' from the first drop-down list for 'Actions for viruses and Trojans'.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77585r2_rule,STIG-ID|DTAVSEL-013,Vuln-ID|V-63095"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.action.App.primary:.*$"
+  expect      : "Clean"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-014 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to Quarantine if first action fails when a virus or Trojan is detected."
+  info        : "Malware may have infected a file that is necessary to the user. By configuring the anti-virus software to first attempt cleaning the infected file, availability to the file is not sacrificed. If a cleaning attempt is not successful, however, deleting the file is the only safe option to ensure the malware is not introduced onto the system or network."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Actions', select 'Quarantine' from the second drop-down list for 'Actions for viruses and Trojans' if first action fails.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77587r2_rule,STIG-ID|DTAVSEL-014,Vuln-ID|V-63097"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.action.App.secondary:.*$"
+  expect      : "Quarantine"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-015 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to Clean as first action when programs and jokes are found."
+  info        : "Potentially Unwanted Programs (PUPs) include Spyware, Adware, Remote Administration Tools, Dialers, Password Crackers, Jokes, and Key Loggers. While PUPs do not typically have any infection capability on their own, they rely on malware or other attach mechanisms to be installed onto target hosts, after which they will collect and transfer data from the host to an external host and/or will be used as attach mechanisms. Configuring the anti-virus software to attempt to clean the file first will allow for the possibility of a false positive. In most cases, however, the secondary action of delete will be used, mitigating the risk of the PUPs being installed and used maliciously."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Actions', select 'Clean' from the first drop-down list for 'Actions for Programs and Jokes'.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77589r2_rule,STIG-ID|DTAVSEL-015,Vuln-ID|V-63099"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.action.Default.primary:.*$"
+  expect      : "Clean"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-016 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to Quarantine if first action fails when programs and jokes are found."
+  info        : "Potentially Unwanted Programs (PUPs) include Spyware, Adware, Remote Administration Tools, Dialers, Password Crackers, Jokes, and Key Loggers. While PUPs do not typically have any infection capability on their own, they rely on malware or other attach mechanisms to be installed onto target hosts, after which they will collect and transfer data from the host to an external host and/or will be used as attach mechanisms. Configuring the anti-virus software to attempt to clean the file first will allow for the possibility of a false positive. In most cases, however, the secondary action of delete will be used, mitigating the risk of the PUPs being installed and used maliciously."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Actions', select 'Quarantine' from the second drop-down list for 'Actions for Programs and Jokes' if first action fails.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77591r2_rule,STIG-ID|DTAVSEL-016,Vuln-ID|V-63101"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.action.Default.secondary:.*$"
+  expect      : "Quarantine"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-017 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to deny access to the file if an error occurs during scanning."
+  info        : "Anti-virus software is the most commonly used technical control for malware threat mitigation. Real-time scanning of files as they are read from disk is a crucial first line of defense from malware attacks."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Actions', select the 'Block' radio button for 'Action if an error occurs during scanning'.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77593r2_rule,STIG-ID|DTAVSEL-017,Vuln-ID|V-63103"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.action.error:.*$"
+  expect      : "Block"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-018 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be configured to allow access to files if scanning times out."
+  info        : "Anti-virus software is the most commonly used technical control for malware threat mitigation. Real-time scanning of files as they are read from disk is a crucial first line of defense from malware attacks."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Actions', select the 'Allow access' radio button for 'Action on timeout'.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001243,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77595r2_rule,STIG-ID|DTAVSEL-018,Vuln-ID|V-63105"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.action.timeout:.*$"
+  expect      : "Pass"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-019 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Access scanner must be enabled to scan mounted volumes when mounted volumes point to a network server without an anti-virus solution installed."
+  info        : "Mounting network volumes to other network systems introduces a path for malware to be introduced. It is imperative to protect Linux systems from malware introduced from those other network systems by either ensuring the remote systems are protected or by scanning files from those systems when they are accessed."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'On-Access Settings'.
+Under 'Anti-virus Scanning Options', select the check box for 'Scan files on network mounted volumes'.
+
+Click 'Apply'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001242,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77597r1_rule,STIG-ID|DTAVSEL-019,Vuln-ID|V-63107"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)nailsd.profile.OAS.scanNWFiles:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-100 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x must be configured to run a scheduled On-Demand scan at least once a week."
+  info        : "Anti-virus software is the most commonly used technical control for malware threat mitigation. Real-time scanning of files as they are read from disk is a crucial first line of defense from malware attacks but to ensure all files are frequently scanned, a regularly scheduled full scan will ensure malware missed by the real-time scanning will be detected and mitigated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Schedule', select 'On-Demand Scan'.
+Under '1. When to Scan 'select Weekly, Daily or Hourly and indicate day and/or time to regularly execute, and click 'Next'.
+Under '2. What to Scan', enter '/', click 'Add'.
+Click 'Next'.
+Under '3. Choose Scan Settings', select required settings as specified in remaining On-Demand scan requirements, and click 'Next'.
+Under '4. Enter a task name', type a unique name for the task to reflect its frequency, and click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77599r1_rule,STIG-ID|DTAVSEL-100,Vuln-ID|V-63109"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @RUNTIME_DIRECTORY@ replaced with "/opt/NAI/LinuxShield" in field "cmd".
+  cmd         : "/opt/NAI/LinuxShield/bin/nails task --list"
+  regex       : "\s*[0-9]\s*\"LinuxShield\s+On\-Demand\s+Scan\"\s*\(.*\)$"
+  expect      : "(Idle|Running|Starting)"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-101 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to decompress archives when scanning."
+  info        : "Malware is often packaged within an archive. In addition, archives might have other archives within. Not scanning archive files introduces the risk of infected files being introduced into the environment."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', 'Anti-virus Scanning Options', select the 'Decompress archives' check box, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77601r1_rule,STIG-ID|DTAVSEL-101,Vuln-ID|V-63111"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.decompArchive:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-102 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to find unknown program viruses."
+  info        : "Due to the ability of malware to mutate after infection, standard anti-virus signatures may not be able to catch new strains or variants of the malware. Typically, these strains and variants will share unique characteristics with others in their virus family. By using a generic signature to detect the shared characteristics, using wildcards where differences lie, the generic signature can detect viruses even if they are padded with extra, meaningless code. This method of detection is Heuristic detection."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', 'Anti-virus Scanning Options', select the 'Perform heuristic virus analysis' check box, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77603r1_rule,STIG-ID|DTAVSEL-102,Vuln-ID|V-63113"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.heuristicAnalysis.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-103 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to find unknown macro viruses."
+  info        : "Interpreted viruses are executed by an application. Within this subcategory, macro viruses take advantage of the capabilities of applications' macro programming language to infect application documents and document templates, while scripting viruses infect scripts that are understood by scripting languages processed by services on the OS. Many attackers use toolkits containing several different types of utilities and scripts that can be used to probe and attack hosts. Scanning for unknown macro viruses will mitigate zero-day attacks."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', 'Anti-virus Scanning Options', select the 'Perform macro analysis' check box, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77605r1_rule,STIG-ID|DTAVSEL-103,Vuln-ID|V-63115"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.macroAnalysis:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-104 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to find potentially unwanted programs."
+  info        : "Potentially Unwanted Programs (PUPs) include Spyware, Adware, Remote Administration Tools, Dialers, Password Crackers, Jokes, and Key Loggers. While PUPs do not typically have any infection capability on their own, they rely on malware or other attach mechanisms to be installed onto target hosts, after which they will collect and transfer data from the host to an external host and/or will be used as attach mechanisms. Configuring the anti-virus software to attempt to clean the file first will allow for the possibility of a false positive. In most cases, however, the secondary action of delete will be used, mitigating the risk of the PUPs being installed and used maliciously."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', 'Anti-virus Scanning Options', select the 'Find potentially unwanted programs' check box, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77607r1_rule,STIG-ID|DTAVSEL-104,Vuln-ID|V-63117"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.program:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-105 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to scan all file types."
+  info        : "When scanning for malware, excluding specific file types will increase the risk of a malware-infected file going undetected. By configuring anti-virus software to scan all file types, the scanner has a higher success rate at detecting and eradicating malware."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', 'Extension Based Scanning', select the 'Scan all files' check box, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77609r1_rule,STIG-ID|DTAVSEL-105,Vuln-ID|V-63119"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.allFiles:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-106 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to Clean infected files automatically as first action when a virus or Trojan is detected."
+  info        : "Malware may have infected a file that is necessary to the user. By configuring the anti-virus software to first attempt cleaning the infected file, availability to the file is not sacrificed. If a cleaning attempt is not successful, however, deleting the file is the only safe option to ensure the malware is not introduced onto the system or network."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', Anti-virus Actions', select 'Clean' from the first dropdown list for 'Actions for Viruses and Trojans', click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77611r1_rule,STIG-ID|DTAVSEL-106,Vuln-ID|V-63121"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.App.primary:.*$"
+  expect      : "Clean"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-107 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to Move infected files to the quarantine directory if first action fails when a virus or Trojan is detected."
+  info        : "Malware may have infected a file that is necessary to the user. By configuring the anti-virus software to first attempt cleaning the infected file, availability to the file is not sacrificed. If a cleaning attempt is not successful, however, deleting the file is the only safe option to ensure the malware is not introduced onto the system or network."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', Anti-virus Actions', select 'Quarantine' from the second dropdown list 'Actions for Viruses and Trojans' if first action fails, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77613r1_rule,STIG-ID|DTAVSEL-107,Vuln-ID|V-63123"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.App.secondary:.*$"
+  expect      : "Quarantine"
+</custom_item>
+
+<report type:"WARNING">
+  description : "DTAVSEL-108 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must only be configured with exclusions that are documented and approved by the ISSO/ISSM/AO."
+  info        : "When scanning for malware, excluding specific files will increase the risk of a malware-infected file going undetected. By configuring anti-virus software without any exclusions, the scanner has a higher success rate at detecting and eradicating malware.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', 'Paths Excluded From Scanning', removed all unauthorized excluded paths, click 'Next, and then click 'Finish'."
+  reference   : "CAT|II,CCI|CCI-001241,Rule-ID|SV-77615r1_rule,STIG-ID|DTAVSEL-108,Vuln-ID|V-63125"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+</report>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-110 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to Clean infected files automatically as first action when programs and jokes are found."
+  info        : "Potentially Unwanted Programs (PUPs) include Spyware, Adware, Remote Administration Tools, Dialers, Password Crackers, Jokes, and Key Loggers. While PUPs do not typically have any infection capability on their own, they rely on malware or other attach mechanisms to be installed onto target hosts, after which they will collect and transfer data from the host to an external host and/or will be used as attach mechanisms. Configuring the anti-virus software to attempt to clean the file first will allow for the possibility of a false positive. In most cases, however, the secondary action of delete will be used, mitigating the risk of the PUPs being installed and used maliciously."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', Anti-virus Actions', select 'Clean' from the first dropdown list for 'Actions for Programs and Jokes', click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77617r1_rule,STIG-ID|DTAVSEL-110,Vuln-ID|V-63127"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.action.Default.primary:.*$"
+  expect      : "Clean"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-111 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to Move infected files to the quarantine directory if first action fails when programs and jokes are found."
+  info        : "Potentially Unwanted Programs (PUPs) include Spyware, Adware, Remote Administration Tools, Dialers, Password Crackers, Jokes, and Key Loggers. While PUPs do not typically have any infection capability on their own, they rely on malware or other attach mechanisms to be installed onto target hosts, after which they will collect and transfer data from the host to an external host and/or will be used as attach mechanisms. Configuring the anti-virus software to attempt to clean the file first will allow for the possibility of a false positive. In most cases, however, the secondary action of delete will be used, mitigating the risk of the PUPs being installed and used maliciously."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', Anti-virus Actions', select 'Quarantine' from the second dropdown list 'Actions for Programs and Jokes' if first action fails, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77619r1_rule,STIG-ID|DTAVSEL-111,Vuln-ID|V-63129"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.ODS.action.Default.secondary:.*$"
+  expect      : "Quarantine"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-112 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to decode MIME encoded files."
+  info        : "Malware is often packaged within an archive. In addition, archives might have other archives within. Not scanning archive files introduces the risk of infected files being introduced into the environment."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '2. What to Scan', click 'Next'.
+Under '3. Choose Scan Settings', 'Anti-virus Scanning Options', select the 'Decode MIME encoded files' check box, click 'Next', and then click 'Finish'."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77621r1_rule,STIG-ID|DTAVSEL-112,Vuln-ID|V-63131"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.mime:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-113 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x On-Demand scanner must be configured to include all local drives and their sub-directories."
+  info        : "When scanning for malware, excluding specific file types will increase the risk of a malware-infected file going undetected. By configuring anti-virus software to scan all file types, the scanner has a higher success rate at detecting and eradicating malware."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, review tasks under 'View', 'Scheduled Tasks'.
+With the System Administrator's assistance, determine which task is intended as the regularly scheduled scan task.
+Click on the task, and then click 'Modify'.
+Under '3. Choose Scan Settings', select the 'Scan all files' check box."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001241,CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,NIAv2|NS24,Rule-ID|SV-77623r2_rule,STIG-ID|DTAVSEL-113,Vuln-ID|V-63133"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/ods.cfg"
+  regex       : "(?!\#)nailsd.profile.*extension(s)?.mode:.*$"
+  expect      : ":[\\s]*all$"
+</custom_item>
+
+<report type:"WARNING">
+  description : "DTAVSEL-200 - The McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x must scan all media used for system maintenance prior to use."
+  info        : "Removable media such as CD/DVDs allow a path for malware to be introduced to a Linux System. It is imperative to protect Linux systems from malware introduced from removable media by ensuring they are scanned before use.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Create procedures, or add to existing system administration procedures, which require the scanning of all media used for system maintenance before media is used."
+  reference   : "CAT|II,CCI|CCI-000870,Rule-ID|SV-77627r1_rule,STIG-ID|DTAVSEL-200,Vuln-ID|V-63137"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+</report>
+
+<report type:"WARNING">
+  description : "DTAVSEL-201 - The McAfee VirusScan Enterprise must be configured to receive all patches, service packs and updates from a DoD-managed source."
+  info        : "Anti-virus signature files are updated almost daily by anti-virus software vendors. These files are made available to anti-virus clients as they are published. Keeping virus signature files as current as possible is vital to the security of any system. The anti-virus software product must be configured to receive those updates automatically in order to afford the expected protection.
+
+While obtaining updates, patches, service packs and updates from the vendor are timelier, the possibility of corruption or malware being introduced to the system is higher. By obtaining these from an official DoD source and/or downloading them to a separate system first and validating them before making them available to systems, the possibility of malware being introduced is mitigated.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', select 'Repositories'.
+
+Under 'Repository List', configure all repositories to point to a local or DoD-managed repository, and click 'Apply'."
+  reference   : "CAT|II,CCI|CCI-001749,Rule-ID|SV-77629r1_rule,STIG-ID|DTAVSEL-201,Vuln-ID|V-63139"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+</report>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-202 - The nails user and nailsgroup group must be restricted to the least privilege access required for the intended role - user"
+  info        : "The McAfee VirusScan Enterprise for Linux software runs its processes under the nails user, which is part of the nailsgroup group. The WEB GUI is also accessed using the nails user. Ensuring this account only has access to the required functions necessary for its intended role will mitigate the possibility of the nails user/nailsgroup group from being used to perform malicious destruction to the system in the event of a compromise.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Access the Linux system console command line as root.
+Navigate to each path to which the nails user or nailsgroup group has unnecessary permissions/ownership.
+
+Using the chmod command, reduce, or remove permissions for the nails user.
+
+Using the chown command remove ownership by the nails user or nailsgroup group."
+  reference   : "800-171|3.1.7,800-53|AC-6,CAT|II,CCI|CCI-002235,CSF|PR.AC-4,Rule-ID|SV-77631r1_rule,STIG-ID|DTAVSEL-202,Vuln-ID|V-63141"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @NAILS_USER@ replaced with "nails" in field "cmd".
+  cmd         : "find / -user nails"
+  expect      : "Manual review required."
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : CMD_EXEC
+  description : "DTAVSEL-202 - The nails user and nailsgroup group must be restricted to the least privilege access required for the intended role - group"
+  info        : "The McAfee VirusScan Enterprise for Linux software runs its processes under the nails user, which is part of the nailsgroup group. The WEB GUI is also accessed using the nails user. Ensuring this account only has access to the required functions necessary for its intended role will mitigate the possibility of the nails user/nailsgroup group from being used to perform malicious destruction to the system in the event of a compromise.
+
+NOTE: Nessus has provided the target output to assist in reviewing the benchmark to ensure target compliance."
+  solution    : "Access the Linux system console command line as root.
+Navigate to each path to which the nails user or nailsgroup group has unnecessary permissions/ownership.
+
+Using the chmod command, reduce, or remove permissions for the nails user.
+
+Using the chown command remove ownership by the nails user or nailsgroup group."
+  reference   : "800-171|3.1.7,800-53|AC-6,CAT|II,CCI|CCI-002235,CSF|PR.AC-4,Rule-ID|SV-77631r1_rule,STIG-ID|DTAVSEL-202,Vuln-ID|V-63141"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @NAILS_GROUP@ replaced with "nailsgroup" in field "cmd".
+  cmd         : "find / -group nailsgroup"
+  expect      : "Manual review required."
+  severity    : MEDIUM
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - VirusDetected"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.virusDetected.active:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - jokesAlert"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.virusDetected.jokesAlert:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - programsAlert"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.virusDetected.programsAlert:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - trojansAlert"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.virusDetected.trojansAlert:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - includeOdsTasks"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.virusDetected.includeOdsTasks:.*$"
+  expect      : "true"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - SMTP host"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.smtp.host:.*$"
+# Note: Variable @SMTP_HOST@ replaced with "email.branch.mil" in field "expect".
+  expect      : "email.branch.mil"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - SMTP port"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.smtp.port:.*$"
+# Note: Variable @SMTP_PORT@ replaced with "25" in field "expect".
+  expect      : "25"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - SMTP sender"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.smtp.sender:.*$"
+# Note: Variable @ADMIN_EMAIL@ replaced with "isso@email.branch.mil" in field "expect".
+  expect      : "isso@email.branch.mil"
+</custom_item>
+
+<custom_item>
+  type        : FILE_CONTENT_CHECK
+  description : "DTAVSEL-205 - A notification mechanism or process must be in place to notify Administrators of out of date DAT, detected malware and error codes - SMTP recipients"
+  info        : "Failure of anti-virus signature updates will eventually render the software to be useless in protecting the Linux system from malware. Administration notification for failed updates, via SMTP, will ensure timely remediation of errors causing DATs to not be updated."
+  solution    : "From a desktop browser window, connect to the McAfee VirusScan Enterprise for Linux (VSEL) Monitor (WEB interface) of the Linux system being reviewed and logon with the nails user account.
+
+In the VSEL WEB Monitor, under 'Configure', 'Notifications', select the check box for 'Item Detected'.
+Select check boxes for 'Viruses', 'Trojans', 'Programs', 'Jokes' and 'Include alerts for on-demand tasks'.
+Select the check box for 'Out of date' and configure 'Alert for DAT files which are # days old' to '7' or less.
+Select the check box for 'Configuration changes'.
+Select the check box for 'System events'. Select check box for 'Type' and select 'Error' from drop-down list.
+Select check box for 'Code' and configured with '3000-3999' in Code field.
+Configure the SMTP Settings with valid email address(es) for System Administrators."
+  reference   : "800-171|3.14.2,800-171|3.14.4,800-171|3.14.5,800-53|SI-3,CAT|II,CCI|CCI-001240,CN-L3|7.1.3.6(a),CN-L3|7.1.3.6(b),CN-L3|8.1.10.5(b),CN-L3|8.1.10.7(a),CN-L3|8.1.10.7(b),CN-L3|8.1.4.5,CN-L3|8.1.9.6(a),CN-L3|8.1.9.6(b),CSF|DE.CM-4,CSF|DE.DP-3,ISO/IEC-27001|A.12.2.1,ITSG-33|SI-3,NESA|T3.4.1,NIAv2|GS8a,Rule-ID|SV-77633r2_rule,STIG-ID|DTAVSEL-205,Vuln-ID|V-63143"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+# Note: Variable @INSTALL_DIRECTORY@ replaced with "/var/opt/NAI/LinuxShield" in field "file".
+  file        : "/var/opt/NAI/LinuxShield/etc/nailsd.cfg"
+  regex       : "(?!\#)notifications.smtp.recipients:.*$"
+# Note: Variable @ADMIN_EMAIL@ replaced with "isso@email.branch.mil" in field "expect".
+  expect      : "isso@email.branch.mil"
+</custom_item>
+
+<report type:"WARNING">
+  description : "DTAVSEL-301 - Access to the McAfee VirusScan Enterprise for Linux 1.9.x/2.0.x Web UI must be enforced by firewall rules."
+  info        : "The McAfee VirusScan Enterprise for Linux WEB GUI is the method for configuring the McAfee VSEL on a non-managed Linux system. The WEB GUI on the system could be used maliciously to gain unauthorized access to the system. By restricting access to interface by implementing firewall rules, the risk of unauthorized access will be mitigated.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+  solution    : "Configure a host-based firewall or network-based firewall with rules to restrict access to the McAfee VSEL Web UI, limiting access to specific IP addresses of System Administrators only."
+  reference   : "CAT|II,CCI|CCI-001813,Rule-ID|SV-77635r1_rule,STIG-ID|DTAVSEL-301,Vuln-ID|V-63145"
+  see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_McAfee_VSEL_1-9_2-0_Y20M04_STIG.zip"
+</report>
+
+</check_type>

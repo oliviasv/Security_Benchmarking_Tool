@@ -1,0 +1,1729 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.0 $
+# $Date: 2020/06/22 $
+#
+# Description : This document implements the security configuration as recommended by the
+#               DISA Microsoft SQL Server Instance 2012 v1r20 STIG.
+#
+#<ui_metadata>
+#<display_name>DISA STIG SQL Server 2012 Database OS Audit v1r20</display_name>
+#<spec>
+#  <type>DISA STIG</type>
+#  <name>DISA STIG SQL Server 2012 Instance OS</name>
+#  <version>1.20.0</version>
+#  <link>https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip</link>
+#</spec>
+#<labels>windows,disa,mssql,mssql_2012,instance</labels>
+#<benchmark_refs>CAT,CCI,Rule-ID,STIG-ID,Vuln-ID,Group-ID</benchmark_refs>
+#<variables>
+#  <variable>
+#    <name>MSSQL_PROGRAM_DIR</name>
+#    <default>C:\Program Files\Microsoft SQL Server\MSSQL11.MSSQLSERVER</default>
+#    <description>SQL Prog Dir</description>
+#    <info>This is the SQL program directory path. It is the value contained in the registry value SqlProgramDir/MSSQL11.[Instance Name]</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_SVC_ACCT</name>
+#    <default>SQLSVCACCT</default>
+#    <description>MS SQL Svc Account</description>
+#    <info>This is the Service Account under which SQL should be running.</info>
+#  </variable>
+#  <variable>
+#    <name>MSSQL_LOG_DIR</name>
+#    <default>C:\Program Files\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQL\Log</default>
+#    <description>Audit Log Path</description>
+#    <info>This is the path to the log file where traces will be writing their logs.</info>
+#  </variable>
+#  <variable>
+#    <name>MSSQL_DATA_DIR</name>
+#    <default>C:\Program Files\Microsoft SQL Server\MSAS11.MSSQLSERVER\OLAP\Data</default>
+#    <description>MSSQL Data Dir Path</description>
+#    <info>This is the path to the MSSQL Data Dir.</info>
+#  </variable>
+#  <variable>
+#    <name>MSSQL_DB_DIR</name>
+#    <default>C:\Program Files\Microsoft SQL Server\MSAS11.MSSQLSERVER\OLAP\Data</default>
+#    <description>MSSQL DB Root Dir Path</description>
+#    <info>This is the path to the MSSQL DB Root Dir.</info>
+#  </variable>
+#  <variable>
+#    <name>MSSQL_DB_BU_DIR</name>
+#    <default>C:\Program Files\Microsoft SQL Server\MSAS11.MSSQLSERVER\OLAP\Backup</default>
+#    <description>MSSQL DB Backup Path</description>
+#    <info>This is the path to the MSSQL DB Backup Dir.</info>
+#  </variable>
+#  <variable>
+#    <name>PUB_ACCT</name>
+#    <default>Public User</default>
+#    <description>Acct for Pub Access</description>
+#    <info>This is the user account associated with public access.</info>
+#  </variable>
+#  <variable>
+#    <name>FULLTEXT_SVC_ACCT</name>
+#    <default>Full-text_Svc_Acct</default>
+#    <description>FT Filt Daemon</description>
+#    <info>This is the user account associated with the SQL Full-text Filter Daemon Launcher service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_AGENT_ACCT</name>
+#    <default>Sql_Agent_Acct</default>
+#    <description>SQL Server</description>
+#    <info>This is the user account associated with the SQL Server service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_ANALYSIS_ACCT</name>
+#    <default>Sql_Analysis_Acct</default>
+#    <description>SQL Analysis Svc</description>
+#    <info>This is the user account associated with the SQL Server Analysis service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_BROWSER_ACCT</name>
+#    <default>Sql_Browser_Acct</default>
+#    <description>SQL Browser Svc</description>
+#    <info>This is the user account associated with the SQL Browser service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_DRC_ACCT</name>
+#    <default>Sql_Drc_Acct</default>
+#    <description>Dist Replay Clnt</description>
+#    <info>This is the user account associated with the SQL Server Distributed Replay Client service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_DRCONT_ACCT</name>
+#    <default>Sql_Drcont_Acct</default>
+#    <description>Dist Replay Cont</description>
+#    <info>This is the user account associated with the SQL Server Distributed Replay Controller service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_INT_ACCT</name>
+#    <default>Sql_Int_Acct</default>
+#    <description>Int Svc Acct</description>
+#    <info>This is the user account associated with the SQL Server Integration Services 11.0 service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_RPT_ACCT</name>
+#    <default>Sql_Rpt_Acct</default>
+#    <description>Report Svc Acct</description>
+#    <info>This is the user account associated with the SQL Server Reporting Services service.</info>
+#  </variable>
+#  <variable>
+#    <name>SQL_VSS_ACCT</name>
+#    <default>Sql_Vss_Acct</default>
+#    <description>VSS Writer Acct</description>
+#    <info>This is the user account associated with the SQL Server VSS Writer service.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDIT_ADMIN_ACCT</name>
+#    <default>Audit_Admin_Acct</default>
+#    <description>Log File Audit Access</description>
+#    <info>This is the user account associated with the Audit administration.</info>
+#  </variable>
+#  <variable>
+#    <name>AUDITOR_GROUP</name>
+#    <default>Auditors_Group</default>
+#    <description>Auditor's Group Name</description>
+#    <info>This is the Auditor's Group.</info>
+#  </variable>
+#</variables>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"DISA STIG SQL Server 2012 Instance OS audit">
+
+<file_acl:"MSSQLLog">
+  <user:"Administrator">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions"
+  </user>
+
+# Note: Variable @SQL_SVC_ACCT@ replaced with "SQLSVCACCT" in field "<user".
+  <user:"SQLSVCACCT">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+# Note: Variable @AUDIT_ADMIN_ACCT@ replaced with "Audit_Admin_Acct" in field "<user".
+  <user:"Audit_Admin_Acct">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+# Note: Variable @AUDITOR_GROUP@ replaced with "Auditors_Group" in field "<user".
+  <user:"Auditors_Group">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions"
+  </user>
+</file_acl>
+
+<file_acl:"MSSQLSoftware">
+  <user:"CREATOR OWNER">
+    acl_inheritance : "not inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+# Note: Variable @SQL_SVC_ACCT@ replaced with "SQLSVCACCT" in field "<user".
+  <user:"SQLSVCACCT">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+
+  <user:"Administrators">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+  <user:"MsDtsServer110">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+
+  <user:"NETWORK SERVICE">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "traverse folder / execute file"
+  </user>
+</file_acl>
+
+<file_acl:"MSSQLDataDir">
+  <user:"CREATOR OWNER">
+    acl_inheritance : "not inherited"
+    acl_apply       : "subfolders and files only"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+  <user:"SYSTEM">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+# Note: Variable @SQL_SVC_ACCT@ replaced with "SQLSVCACCT" in field "<user".
+  <user:"SQLSVCACCT">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+
+  <user:"Administrators">
+    acl_inheritance : "not inherited"
+    acl_apply       : "this folder, subfolders and files"
+    acl_allow       : "change permissions" | "create files / write data" | "create folders / append data" | "delete" | "delete subfolder and files" | "full control" | "list folder / read data" | "read attributes" | "read extended attributes" | "read permissions" | "take ownership" | "traverse folder / execute file" | "write attributes" | "write extended attributes"
+  </user>
+</file_acl>
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "SQLServer 2012 is installed"
+      value_type  : POLICY_TEXT
+      value_data  : "^11\..*"
+      reg_key     : "HKLM\SOFTWARE\Microsoft\Microsoft SQL Server\110\SQLServer2012\CurrentVersion"
+      reg_item    : "Version"
+      reg_option  : MUST_EXIST
+      check_type  : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"WARNING">
+      description : "DISA_STIG_MSSQL_2012_Instance-OS_v1r20.audit from DISA Microsoft SQL Server Instance 2012 v1r20 STIG"
+      info        : "This STIG has been sunset by DISA and vendor support has ended."
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Full-text Filter Daemon Launcher'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Full-text Filter Daemon Launcher (%)'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Full-text Filter Daemon Launcher'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Full-text Filter Daemon Launcher'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @FULLTEXT_SVC_ACCT@ replaced with "Full-text_Svc_Acct" in field "value_data".
+          value_data    : "Full-text_Svc_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Full-text Filter Daemon Launcher (%)'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server (%)'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_SVC_ACCT@ replaced with "SQLSVCACCT" in field "value_data".
+          value_data    : "SQLSVCACCT"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server (%)'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server Agent'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Agent (%)'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Agent'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Agent'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_AGENT_ACCT@ replaced with "Sql_Agent_Acct" in field "value_data".
+          value_data    : "Sql_Agent_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Agent (%)'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server Analysis Services'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Analysis Services (%)'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Analysis Services'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Analysis Services'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_ANALYSIS_ACCT@ replaced with "Sql_Analysis_Acct" in field "value_data".
+          value_data    : "Sql_Analysis_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Analysis Services (%)'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server Browser'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Browser'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Browser'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Browser'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_BROWSER_ACCT@ replaced with "Sql_Browser_Acct" in field "value_data".
+          value_data    : "Sql_Browser_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Browser'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server Distributed Replay Client'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Distributed Replay Client'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Distributed Replay Client'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Distributed Replay Client'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_DRC_ACCT@ replaced with "Sql_Drc_Acct" in field "value_data".
+          value_data    : "Sql_Drc_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Distributed Replay Client'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server Distributed Replay Controller'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Distributed Replay Controller'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Distributed Replay Controller'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Distributed Replay Controller'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_DRCONT_ACCT@ replaced with "Sql_Drcont_Acct" in field "value_data".
+          value_data    : "Sql_Drcont_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Distributed Replay Controller'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server Integration Services 11.0'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Integration Services 11.0'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Integration Services 11.0'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Integration Services 11.0'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_INT_ACCT@ replaced with "Sql_Int_Acct" in field "value_data".
+          value_data    : "Sql_Int_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Integration Services 11.0'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server Reporting Services'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Reporting Services (%)'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Reporting Services'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server Reporting Services'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_RPT_ACCT@ replaced with "Sql_Rpt_Acct" in field "value_data".
+          value_data    : "Sql_Rpt_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server Reporting Services (%)'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server procs or svcs must run under dedicated OS accounts - 'SQL Server VSS Writer'"
+          value_type    : POLICY_TEXT
+          value_data    : ""
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server VSS Writer'"
+          wmi_attribute : "DisplayName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server VSS Writer'"
+          info        : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution    : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference   : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,Vuln-ID|V-41047"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <custom_item>
+          type          : WMI_POLICY
+          description   : "SQL2-00-008900 - SQL Server processes or services must run under custom, dedicated OS or domain accounts - 'SQL Server VSS Writer'"
+          info          : "Separation of duties is a prevalent Information Technology control that is implemented at different layers of the information system, including the operating system and in applications. It serves to eliminate or reduce the possibility that a single user may carry out a prohibited action. Separation of duties requires that the person accountable for approving an action is not the same person who is tasked with implementing or carrying out that action.
+
+The concept of separation of duties extends to processes.  The DBMS must run under a custom, dedicated OS or domain account.  When the DBMS is running under a shared account, users with access to that account could inadvertently or maliciously make changes to the DBMS's settings, files, or permissions.  Similarly, related services must run under dedicated accounts where this is possible.  The SQL Server Browser and Writer services are exceptions: see http://msdn.microsoft.com/en-us/library/hh510203(v=sql.110).aspx  and  http://msdn.microsoft.com/en-us/library/ms175536(v=sql.110).aspx."
+          solution      : "Configure the SQL Server services to use a custom, dedicated OS or domain account."
+          reference     : "800-171|3.1.5,800-53|AC-6,CAT|II,CCI|CCI-000366,CCI|CCI-002220,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,Rule-ID|SV-53422r4_rule,STIG-ID|SQL2-00-008900,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3,Vuln-ID|V-41047"
+          see_also      : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+          value_type    : POLICY_TEXT
+# Note: Variable @SQL_VSS_ACCT@ replaced with "Sql_Vss_Acct" in field "value_data".
+          value_data    : "Sql_Vss_Acct"
+          wmi_namespace : "root/cimv2"
+          wmi_request   : "SELECT DisplayName,StartName FROM Win32_Service WHERE DisplayName like 'SQL Server VSS Writer'"
+          wmi_attribute : "StartName"
+          wmi_key       : "DisplayName"
+        </custom_item>
+      </else>
+    </if>
+
+    <report type:"WARNING">
+      description : "SQL2-00-009100 - A single SQL Server database connection configuration file (or a single set of credentials) must not be used to configure all database clients - or a single set of credentials must not be used to configure all clients."
+      info        : "Applications employ the concept of least privilege for specific duties and information systems (including specific functions, ports, protocols, and services). The concept of least privilege is also applied to information system processes, ensuring that the processes operate at privilege levels no higher than necessary to accomplish required organizational missions and/or functions. Organizations consider the creation of additional processes, roles, and information system accounts as necessary to achieve least privilege. Organizations also apply least privilege concepts to the design, development, implementation, and operations of information systems.
+
+Many sites distribute a single SQL Server connection configuration file to all site database users that contains network access information for all databases on the site. Such a file provides information to access SQL Server databases not required by all users that may assist in unauthorized access attempts.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Implement procedures to supply SQL Server database connection information to only those databases authorized for the user."
+      reference   : "CAT|II,CCI|CCI-000366,CCI|CCI-002220,Rule-ID|SV-53420r2_rule,STIG-ID|SQL2-00-009100,Vuln-ID|V-41045"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <report type:"WARNING">
+      description : "SQL2-00-009900 - OS and domain accounts utilized to run external procedures called by SQL Server must have limited privileges."
+      info        : "This requirement is intended to limit exposure due to operating from within a privileged account or role. The inclusion of role is intended to address those situations where an access control policy, such as Role-Based Access Control (RBAC), is being implemented and where a change of role provides the same degree of assurance in the change of access authorizations for both the user and all processes acting on behalf of the user as would be provided by a change between a privileged and non-privileged account.
+
+To limit exposure when operating from within a privileged account or role, the application must support organizational requirements that users of information system accounts, or roles, with access to an organization-defined list of security functions or security-relevant information, use non-privileged accounts, or roles, when accessing other (non-security) system functions.
+
+Use of privileged accounts for non-administrative purposes puts data at risk of unintended or unauthorized loss, modification, or exposure. In particular, DBA accounts, if used for non-administration application development or application maintenance, can lead to misassignment of privileges where privileges are inherited by object owners. It may also lead to loss or compromise of application data where the elevated privileges bypass controls designed in, and provided by, applications.
+
+External applications called by SQL Server may be executed under OS or domain accounts with unnecessary privileges. This can lead to unauthorized access to OS resources and compromise of the OS, SQL Server, or any other services provided by the host platform.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Limit privileges to SQL Server-related OS and domain accounts to those required privileges needed to perform their SQL Server-specific functionality."
+      reference   : "CAT|II,CCI|CCI-000366,Rule-ID|SV-53415r3_rule,STIG-ID|SQL2-00-009900,Vuln-ID|V-41040"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <report type:"WARNING">
+      description : "SQL2-00-010000 - DBA OS or domain accounts must be granted only those host system privileges necessary for the administration of SQL Server."
+      info        : "SQL Server DBAs, if assigned excessive OS privileges, could perform actions that could endanger the information system or hide evidence of malicious activity.
+
+This requirement is intended to limit exposure due to operating from within a privileged account or role. The check and fix are based on the assumption that Role-Based Access Control (RBAC) is in effect, as mandated by other STIG requirements.  They further assume that, as mandated elsewhere, the privileged accounts discussed here are distinct from the accounts used by the same people when not performing privileged functions.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Remove any unnecessary privileges and any unauthorized members from the Group(s) representing DBAs.
+
+Remove any unnecessary Group memberships from the user accounts representing DBAs."
+      reference   : "CAT|II,CCI|CCI-000366,Rule-ID|SV-53414r4_rule,STIG-ID|SQL2-00-010000,Vuln-ID|V-41039"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <report type:"WARNING">
+      description : "SQL2-00-010100 - Use of the SQL Server software installation account must be restricted to SQL Server software installation."
+      info        : "This requirement is intended to limit exposure due to operating from within a privileged account. SQL Server does support the organizational requirement that users of information system accounts with access to an organization-defined list of security functions or security-relevant information use non-privileged accounts and roles, when accessing other (non-security) system functions.
+
+Use of privileged accounts for non-administrative purposes puts data at risk of unintended or unauthorized loss, modification, or exposure. In particular, DBA accounts if used for non-administration application development or application maintenance can lead to miss-assignment of privileges where privileges are inherited by object owners. It may also lead to loss or compromise of application data where the elevated privileges bypass controls designed in, and provided by, applications.
+
+The SQL Server installation account requires privileges not required for SQL Server administration or other functions. Use of accounts configured with excess privileges may result in the loss or compromise of data or system settings due to elevated privileges that bypass controls designed to protect them.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Restrict usage of the SQL Server installation account to SQL Server installation, upgrade, and maintenance actions only.
+
+Disable installation accounts when authorized actions are not being performed."
+      reference   : "CAT|II,CCI|CCI-000366,Rule-ID|SV-53413r2_rule,STIG-ID|SQL2-00-010100,Vuln-ID|V-41038"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <report type:"WARNING">
+      description : "SQL2-00-010600 - SQL Server must have allocated audit record storage capacity to meet the organization-defined requirements for saving audit record information."
+      info        : "SQL Server does not have the ability to be cognizant of potential audit log storage capacity issues. During the installation and/or configuration process, SQL Server should detect and determine if adequate storage capacity has been allocated for audit logs.
+
+During the installation process, a notification may be provided to the installer indicating, based on the auditing configuration chosen and the amount of storage space allocated for audit logs, the amount of storage capacity available is not sufficient to meet storage requirements. SQL Server is not able to send out notice based on adequate storage capacity allocated for the audit logs.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Use File Server Resource Manager (FSRM.msc) to enable File and Folder Quota Management and create quotas for identified Audit storage locations."
+      reference   : "CAT|II,CCI|CCI-001849,Rule-ID|SV-53401r2_rule,STIG-ID|SQL2-00-010600,Vuln-ID|V-41026"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-013600 - SQL Server must protect audit information from any type of unauthorized access."
+      info        : "If audit data were to become compromised, competent forensic analysis and discovery of the true source of potentially malicious system activity would be difficult, if not impossible, to achieve. In addition, access to audit records provides information an attacker could potentially use to his or her advantage.
+
+To ensure the veracity of audit data, the information system and/or the application must protect audit information from any and all unauthorized access. This includes read, write, copy, etc.
+
+SQL Server and third-party tools are examples of applications that are easily able to view and manipulate audit file data. Additionally, applications with user interfaces to audit records should not allow unfettered manipulation of, or access to, those records via any application. If an application provides access to the audit data, the application becomes accountable for ensuring that audit information is protected from unauthorized access.
+
+This requirement can be achieved through multiple methods, which will depend upon system architecture and design. Some commonly employed methods include ensuring log files enjoy the proper file system permissions utilizing file system protections, and limiting log data location.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity."
+      solution    : "Edit the system security plan to include justification and authorization for any less restrictive permissions that are present and needed.  (An example might be where Auditors need 'Read & Execute' rather than 'Read' alone.)
+
+Modify audit file permissions to meet the requirement to protect against unauthorized access.
+
+Navigate to audit folder location(s) using a command prompt or Windows Explorer.  Right-click on the file, click Properties.
+On the Security tab, modify the security permissions to:
+Administrator(read)
+Users (none)
+Audit Administrator(Full Control)
+Auditors group (Read)
+SQL Server Service SID OR Service Account (Full Control)  [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write) [Notes 1, 2]
+
+
+-----
+
+Note 1:  It is highly advisable to use a separate account for each service.  When installing SQL Server in single-server mode, you can opt to have these provisioned for you.  These automatically-generated accounts are referred to as virtual accounts.  Each virtual account has an equivalent Service SID, with the same name.  The installer also creates an equivalent SQL Server login, also with the same name.  Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control, because these permissions are available only to the specific service when it is running, and not in any other context.  (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.)  For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+
+Note 2:  Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'.  (What you have just typed in is the first 16 characters of the name.  At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches.  If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click OK
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click OK
+8) Click OK
+9) Permission like a normal user from here"
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-000162,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53390r5_rule,STIG-ID|SQL2-00-013600,SWIFT-CSCv1|2.3,Vuln-ID|V-41016"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLLog"
+# Note: Variable @MSSQL_LOG_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-014400 - SQL Server must protect the audit records generated as a result of remote access to privileged accounts and by the execution of privileged functions."
+      info        : "Protection of audit records and audit data is of critical importance. Care must be taken to ensure privileged users cannot circumvent audit protections put in place.
+
+Auditing might not be reliable when performed by an information system that the user being audited has privileged access to.
+
+The privileged user could inhibit auditing or directly modify audit records. To prevent this from occurring, privileged access shall be further defined between audit-related privileges and other privileges, thus limiting the users with audit-related privileges.
+
+Reducing the risk of audit compromises by privileged users can also be achieved, for example, by performing audit activity on a separate information system where the user in question has limited access, or by using storage media that cannot be modified (e.g., write-once recording devices).
+
+If an attacker were to gain access to audit tools, they could analyze audit logs for system weaknesses or weaknesses in the auditing itself. An attacker could also manipulate logs to hide evidence of malicious activity."
+      solution    : "Modify audit file permissions to meet the requirement to protect against unauthorized access.
+
+Navigate to the audit folder location(s) using a command prompt or Windows Explorer.  Right-click on the file, click Properties.
+On the Security tab, modify the security permissions to:
+Administrator(read)
+Users (none)
+Audit Administrator(Full Control)
+Auditors group (Read)
+SQL Server Service SID OR Service Account (Full Control)  [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write) [Notes 1, 2]
+
+-----
+
+Note 1:  It is highly advisable to use a separate account for each service.  When installing SQL Server in single-server mode, you can opt to have these provisioned for you.  These automatically-generated accounts are referred to as virtual accounts.  Each virtual account has an equivalent Service SID, with the same name.  The installer also creates an equivalent SQL Server login, also with the same name.  Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control, because these permissions are available only to the specific service when it is running, and not in any other context.  (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.)  For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+
+Note 2:  Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'.  (What you have just typed in is the first 16 characters of the name.  At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches.  If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click OK
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click OK
+8) Click OK
+9) Permission like a normal user from here"
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-000366,CCI|CCI-001351,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53391r4_rule,STIG-ID|SQL2-00-014400,SWIFT-CSCv1|2.3,Vuln-ID|V-41017"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLLog"
+# Note: Variable @MSSQL_LOG_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-013700 - SQL Server must protect audit information from unauthorized modification."
+      info        : "If audit data were to become compromised, competent forensic analysis and discovery of the true source of potentially malicious system activity would be impossible to achieve.
+
+To ensure the veracity of audit data, the information system and/or the application must protect audit information from unauthorized modification.
+
+This requirement can be achieved through multiple methods, which will depend upon system architecture and design. Some commonly employed methods include ensuring log files enjoy the proper file system permissions, and limiting log data locations.
+
+Applications providing a user interface to audit data will leverage user permissions and roles identifying the user accessing the data and the corresponding rights that the user enjoys in order to make decisions regarding the modification of audit data.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity.
+
+Modification of database audit data could mask the theft or unauthorized modification of sensitive data stored in the database."
+      solution    : "Edit the system security plan to include justification and authorization for any less restrictive permissions that are present and needed.  (An example might be where Auditors need 'Read & Execute' rather than 'Read' alone.)
+
+Modify audit file permissions to meet the requirement to protect against unauthorized modification.
+
+Navigate to audit folder location(s) using a command prompt or Windows Explorer.  Right-click on the file, click Properties. On the Security tab, modify the security permissions to:
+Administrator(read)
+Users (none)
+Audit Administrator(Full Control)
+Auditors group (Read)
+SQL Server Service SID OR Service Account (Full Control)  [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write)  [Notes 1, 2]
+
+-----
+
+Note 1:  It is highly advisable to use a separate account for each service.  When installing SQL Server in single-server mode, you can opt to have these provisioned for you.  These automatically-generated accounts are referred to as virtual accounts.  Each virtual account has an equivalent Service SID, with the same name.  The installer also creates an equivalent SQL Server login, also with the same name.  Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control, because these permissions are available only to the specific service when it is running, and not in any other context.  (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.)  For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+
+Note 2:  Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'.  (What you have just typed in is the first 16 characters of the name.  At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches.  If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click OK
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click OK
+8) Click OK
+9) Permission like a normal user from here"
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|III,CCI|CCI-000163,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53307r5_rule,STIG-ID|SQL2-00-013700,SWIFT-CSCv1|2.3,Vuln-ID|V-40953"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLLog"
+# Note: Variable @MSSQL_LOG_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-013800 - SQL Server must protect audit information from unauthorized deletion."
+      info        : "If audit data were to become compromised, competent forensic analysis and discovery of the true source of potentially malicious system activity would be impossible to achieve.
+
+To ensure the veracity of audit data, the information system and/or the application must protect audit information from unauthorized deletion. This requirement can be achieved through multiple methods, which will depend upon system architecture and design.
+
+Some commonly employed methods include ensuring log files enjoy the proper file system permissions utilizing file system protections, restricting access, and backing up log data to ensure log data is retained.
+
+Applications providing a user interface to audit data will leverage user permissions and roles identifying the user accessing the data and the corresponding rights the user enjoys in order to make decisions regarding the deletion of audit data.
+
+Audit information includes all information (e.g., audit records, audit settings, and audit reports) needed to successfully audit information system activity.
+
+Deletion of database audit data could mask the theft or unauthorized modification of sensitive data stored in the database."
+      solution    : "Modify audit file permissions to meet the requirement to protect against unauthorized deletion.
+
+Navigate to audit folder location(s) using a command prompt or Windows Explorer.  Right-click on the file, click Properties.
+On the Security tab, modify the security permissions to:
+Administrator(read)
+Users (none)
+Audit Administrator(Full Control)
+Auditors group (Read)
+SQL Server Service SID OR Service Account (Full Control)  [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write)  [Notes 1, 2]
+
+-----
+
+Note 1:  It is highly advisable to use a separate account for each service.  When installing SQL Server in single-server mode, you can opt to have these provisioned for you.  These automatically-generated accounts are referred to as virtual accounts.  Each virtual account has an equivalent Service SID, with the same name.  The installer also creates an equivalent SQL Server login, also with the same name.  Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control, because these permissions are available only to the specific service when it is running, and not in any other context.  (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.)  For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+
+Note 2:  Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'.  (What you have just typed in is the first 16 characters of the name.  At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches.  If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click OK
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click OK
+8) Click OK
+9) Permission like a normal user from here"
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|III,CCI|CCI-000164,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53306r4_rule,STIG-ID|SQL2-00-013800,SWIFT-CSCv1|2.3,Vuln-ID|V-40952"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLLog"
+# Note: Variable @MSSQL_LOG_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "SQL2-00-014600 - SQL Server must support the organizational requirement to employ automated mechanisms for enforcing access restrictions."
+      info        : "When dealing with access restrictions pertaining to change control, it should be noted, any changes to the hardware, software, and/or firmware components of the information system and/or application can potentially have significant effects on the overall security of the system.
+
+Only qualified and authorized individuals are allowed to obtain access to information system components for the purposes of initiating changes, upgrades, and modifications.
+
+Access restrictions for change also include application software libraries.
+
+Examples of access restrictions include: physical and logical access controls, workflow automation, media libraries, abstract layers (i.e., changes are implemented into a third-party interface rather than directly into the information system component), and change windows (i.e., changes occur only during specified times, making unauthorized changes outside the window easy to discover).
+
+Multiple applications can provide a cumulative negative effect. A vulnerability and subsequent exploit of one application can lead to an exploit of other applications sharing the same security context. For example, an exploit of a web server process that leads to unauthorized administrative access to host system directories can most likely lead to a compromise of all applications hosted by the same system. Database software not installed using dedicated directories both threatens, and is threatened by, other hosted applications. Access controls defined for one application may, by default, provide access to other applications' database objects or directories. Any method that provides any level of separation of security context assists in the protection between applications.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Install SQL Server software using directories separate from the OS and other application software library directories.
+
+Relocate any directories or reinstall other application software that currently shares the DBMS software library directory to separate directories.
+
+Recommend dedicating a separate partition for the SQL software libraries."
+      reference   : "CAT|II,CCI|CCI-001813,Rule-ID|SV-53305r2_rule,STIG-ID|SQL2-00-014600,Vuln-ID|V-40951"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-014700 - SQL Server must support the employment of automated mechanisms supporting the auditing of the enforcement actions."
+      info        : "Any changes to the hardware, software, and/or firmware components of the information system and/or application can potentially have significant effects on the overall security of the system.
+
+Accordingly, only qualified and authorized individuals are allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+Access restrictions for change also include software libraries.
+
+Examples of access restrictions include: physical access controls (such as locks and access cards), logical access controls (such as ACLs), automated auditing (logging) of logical access, workflow automation, media libraries, abstract layers (e.g., changes are implemented into a third-party interface rather than directly into the information system component), and change windows (e.g., changes occur only during specified times, making unauthorized changes outside the window easy to discover).
+
+This requirement focuses on the auditing aspect of the protections."
+      solution    : "Navigate to Advanced Security Settings by selecting Properties > Security > Advanced > Auditing > Continue.
+
+Where 'Everyone' is missing from the 'Name' column, click the Add button; type 'Everyone' in the object names box; click the OK button.  The Auditing Entry dialog opens.
+
+Where 'Everyone' is in the 'Name' column, select that row and click on the Edit button.  The Auditing Entry dialog opens.
+
+In the Auditing Entry dialog, set 'Apply onto' to 'This folder, subfolders and files'.
+
+In the Auditing Entry dialog, select both the Successful and the Failed checkbox for each of the following access types, where not already selected:
+    Traverse folder/execute file
+    List folder/read data
+    Read attributes
+    Read extended attributes
+    Create files/write data
+    Create folders/append data
+    Write attributes
+    Write extended attributes
+    Delete
+    Read permissions
+
+Click OK, OK, OK, OK to save the new settings and exit the dialog boxes."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-001814,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53304r3_rule,STIG-ID|SQL2-00-014700,SWIFT-CSCv1|2.3,Vuln-ID|V-40950"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLLog"
+# Note: Variable @MSSQL_LOG_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\\MSSQL\\Log"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "SQL2-00-015350 - Software, applications, and configuration files that are part of, or related to, the SQL Server 2012 installation must be monitored to discover unauthorized changes."
+      info        : "When dealing with change control issues, it should be noted, any changes to the hardware, software, and/or firmware components of applications and tools related to SQL Server can potentially have significant effects on the overall security of the system. Only qualified and authorized individuals shall be allowed to obtain access to components related to SQL Server for purposes of initiating changes, including upgrades and modifications.
+
+Unmanaged changes that occur to the software libraries or configuration can lead to unauthorized or compromised installations.
+
+Of particular note in this context is that any software installed for auditing and/or audit file management must be protected and monitored.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Include locations of all files, libraries, scripts, and executables that are part of, or related to, the SQL Server 2012 installation in the documentation.
+
+Deploy a security and data integrity tool for monitoring and alerting files and folders based on cryptographic hashes, to verify files/folder locations as listed in the documentation."
+      reference   : "CAT|I,CCI|CCI-001493,CCI|CCI-001494,CCI|CCI-001495,CCI|CCI-002716,CCI|CCI-002718,Rule-ID|SV-53302r5_rule,STIG-ID|SQL2-00-015350,Vuln-ID|V-40948"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <report type:"WARNING">
+      description : "SQL2-00-015355 - Software, applications, and configuration files that are part of, or related to, the SQL Server 2012 installation must be audited."
+      info        : "When dealing with change control issues, it should be noted, any changes to the hardware, software, and/or firmware components of applications and tools related to SQL Server can potentially have significant effects on the overall security of the system. Only qualified and authorized individuals shall be allowed to obtain access to components related to SQL Server for purposes of initiating changes, including upgrades and modifications.
+
+Unmanaged changes that occur to the software libraries or configuration can lead to unauthorized or compromised installations.
+
+Of particular note in this context is that any software installed for auditing and/or audit file management must be protected and audited.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Include locations of all files, libraries, scripts, and executables that are part of, or related to, the SQL Server 2012 installation in the documentation.
+
+Ensure that files and folders that are part of, or related to, the SQL Server 2012 installation have auditing enabled. Right-click on the file/folder, click Properties. On the Security tab, click Advanced. On the Auditing tab, use the Add or Edit buttons and the dialogs that follow from them, to set up the following on at least one audit:
+Type: All
+Principal: Everyone
+Access: Modify
+Applies to: This Folder, subfolder, and files [where applicable]"
+      reference   : "CAT|II,CCI|CCI-002717,CCI|CCI-002718,Rule-ID|SV-83773r1_rule,STIG-ID|SQL2-00-015355,Vuln-ID|V-69169"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <report type:"WARNING">
+      description : "SQL2-00-015400 - SQL Server software installation account(s) must be restricted to authorized users."
+      info        : "When dealing with change control issues, it should be noted, any changes to the hardware, software, and/or firmware components of the information system and/or application can potentially have significant effects on the overall security of the system.
+
+If the application were to allow any user to make changes to software libraries, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.
+
+This requirement is contingent upon the language in which the application is programmed, as many application architectures in use today incorporate their software libraries into, and make them inseparable from, their compiled distributions, rendering them static and version dependant. However, this requirement does apply to applications with software libraries accessible and configurable, as in the case of interpreted languages.
+
+Accordingly, only qualified and authorized individuals shall be allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+DBA and other privileged administrative or application owner accounts are granted privileges that allow actions that can have a greater impact on SQL Server security and operation. It is especially important to grant access to privileged accounts to only those persons who are qualified and authorized to use them.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "From a Command Prompt, open lusrmgr.msc.  Navigate to Users >> right click individual user >> Properties >> Member Of.
+
+
+Configure SQL Server & OS settings and access controls, to restrict user access to objects and data that the user is authorized to view or interact with.
+
+Develop, document, and implement procedures to restrict use of the DBMS software installation account."
+      reference   : "CAT|II,CCI|CCI-001499,Rule-ID|SV-53301r2_rule,STIG-ID|SQL2-00-015400,Vuln-ID|V-40947"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <report type:"WARNING">
+      description : "SQL2-00-015500 - Database software directories, including SQL Server configuration files, must be stored in dedicated directories, separate from the host OS and other applications."
+      info        : "When dealing with change control issues, it should be noted any changes to the hardware, software, and/or firmware components of the information system and/or application can potentially have significant effects on the overall security of the system.
+
+Multiple applications can provide a cumulative negative effect. A vulnerability and subsequent exploit of one application can lead to an exploit of other applications sharing the same security context. For example, an exploit of a web server process that leads to unauthorized administrative access to host system directories can most likely lead to a compromise of all applications hosted by the same system. Database software not installed using dedicated directories both threatens and is threatened by other hosted applications. Access controls defined for one application may by default provide access to other applications' database objects or directories. Any method that provides any level of separation of security context assists in the protection between applications.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "Separate database files (software, data) into dedicated directories."
+      reference   : "CAT|III,CCI|CCI-001499,Rule-ID|SV-53300r4_rule,STIG-ID|SQL2-00-015500,Vuln-ID|V-40946"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-015800 - The OS must limit privileges to change SQL Server software resident within software libraries (including privileged programs) - 'binn'"
+      info        : "When dealing with change control issues, it should be noted, any changes to the hardware, software, and/or firmware components of the information system can potentially have significant effects on the overall security of the system.
+
+If any user were allowed to make changes to software libraries, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.  The DBMS software libraries contain the executables used by the DBMS to operate. Unauthorized access to the libraries can result in compromised installations. This may in turn jeopardize data stored in the DBMS and/or operation of the host system.
+
+Accordingly, only qualified and authorized individuals shall be allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+Of particular note in this context is that any software installed for auditing and/or audit file management must be protected and monitored."
+      solution    : "Navigate to the SQL Server software directory (\binn) location. Right-click the folder, click Properties. On the Security tab, modify the security permissions, so that files and folders that are part of the SQL Server 2012 installation have at most the following privileges. Right-click each folder under the installation folder, click Properties. On the Security tab, modify the security permissions, so that at most the following permissions are present:
+Trusted Installer (Full Control)
+CREATOR OWNER (Full Control)
+SYSTEM (Full Control)
+Administrators (Full Control) [See Note 3]
+Users (Read, List Folder Contents, Read & Execute)
+Creator Owner (Special Permissions - Full control - Subfolders and files only)
+All Application Packages (Read & Execute) [Only as needed - see Note 4]
+SQL Server Service SID OR Service Account (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Full Control) [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use. (Read & Execute) [Notes 1, 2]
+System Administrators (Full Control) [Note 3]
+Repeat the above for the \Install folder.
+
+Navigate to the ...\Microsoft SQL Server\110\Shared folder. On the Security tab, modify the security permissions, so that at most the following permissions are present:
+Trusted Installer (Full Control)
+CREATOR OWNER (Full Control)
+System (Full Control)
+SQL Server Service SID OR Service Account (Read & Execute) [Notes 1, 2]
+System Administrators (Full Control) [Note 3]
+Local Administrators (Read)
+SQL Server Analysis Services (SSAS) Service SID or Service Account, if SSAS is in use (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write) [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use. (Read, Write) [Notes 1, 2]
+Users (Read, List Folder Contents, Read & Execute)
+[MsDtsServer110 (Read & Execute) is also permitted, if SSIS/DTS is in use.]
+[NT AUTHORITY\NETWORK SERVICE (Read & Execute) may also be required for SQL Server Configuration Manager to operate.]
+
+-----
+
+Note 1: It is highly advisable to use a separate account for each service. When installing SQL Server in single-server mode, you can opt to have these provisioned for you. These automatically generated accounts are referred to as virtual accounts. Each virtual account has an equivalent Service SID, with the same name. The installer also creates an equivalent SQL Server login, also with the same name. Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control because these permissions are available only to the specific service when it is running and not in any other context. (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.) For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+Note 2: Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'. (What you have just typed in is the first 16 characters of the name. At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches. If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click 'OK'
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click 'OK'
+8) Click 'OK'
+9) Permission like a normal user from here
+
+Note 3: In the interest of separation of responsibilities with least privilege, consider granting Full Control only to SQL Database Administrators (create a custom group for these) and providing the local Administrators group with Read access only.
+
+Note 4: Some files also require 'ALL APPLICATION PACKAGES (READ, EXECUTE)' permissions for certain functionality to work appropriately, and this is considered acceptable where those permissions are required. (All SQL Server files that require this access reside by default in the ..\Microsoft SQL Server\110\ directory.)"
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-001493,CCI|CCI-001494,CCI|CCI-001495,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53298r8_rule,STIG-ID|SQL2-00-015800,SWIFT-CSCv1|2.3,Vuln-ID|V-40944"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLSoftware"
+# Note: Variable @MSSQL_PROGRAM_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\MSSQL\binn"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-015800 - The OS must limit privileges to change SQL Server software resident within software libraries (including privileged programs) - 'Install'"
+      info        : "When dealing with change control issues, it should be noted, any changes to the hardware, software, and/or firmware components of the information system can potentially have significant effects on the overall security of the system.
+
+If any user were allowed to make changes to software libraries, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.  The DBMS software libraries contain the executables used by the DBMS to operate. Unauthorized access to the libraries can result in compromised installations. This may in turn jeopardize data stored in the DBMS and/or operation of the host system.
+
+Accordingly, only qualified and authorized individuals shall be allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+Of particular note in this context is that any software installed for auditing and/or audit file management must be protected and monitored."
+      solution    : "Navigate to the SQL Server software directory (\binn) location. Right-click the folder, click Properties. On the Security tab, modify the security permissions, so that files and folders that are part of the SQL Server 2012 installation have at most the following privileges. Right-click each folder under the installation folder, click Properties. On the Security tab, modify the security permissions, so that at most the following permissions are present:
+Trusted Installer (Full Control)
+CREATOR OWNER (Full Control)
+SYSTEM (Full Control)
+Administrators (Full Control) [See Note 3]
+Users (Read, List Folder Contents, Read & Execute)
+Creator Owner (Special Permissions - Full control - Subfolders and files only)
+All Application Packages (Read & Execute) [Only as needed - see Note 4]
+SQL Server Service SID OR Service Account (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Full Control) [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use. (Read & Execute) [Notes 1, 2]
+System Administrators (Full Control) [Note 3]
+Repeat the above for the \Install folder.
+
+Navigate to the ...\Microsoft SQL Server\110\Shared folder. On the Security tab, modify the security permissions, so that at most the following permissions are present:
+Trusted Installer (Full Control)
+CREATOR OWNER (Full Control)
+System (Full Control)
+SQL Server Service SID OR Service Account (Read & Execute) [Notes 1, 2]
+System Administrators (Full Control) [Note 3]
+Local Administrators (Read)
+SQL Server Analysis Services (SSAS) Service SID or Service Account, if SSAS is in use (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write) [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use. (Read, Write) [Notes 1, 2]
+Users (Read, List Folder Contents, Read & Execute)
+[MsDtsServer110 (Read & Execute) is also permitted, if SSIS/DTS is in use.]
+[NT AUTHORITY\NETWORK SERVICE (Read & Execute) may also be required for SQL Server Configuration Manager to operate.]
+
+-----
+
+Note 1: It is highly advisable to use a separate account for each service. When installing SQL Server in single-server mode, you can opt to have these provisioned for you. These automatically generated accounts are referred to as virtual accounts. Each virtual account has an equivalent Service SID, with the same name. The installer also creates an equivalent SQL Server login, also with the same name. Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control because these permissions are available only to the specific service when it is running and not in any other context. (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.) For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+Note 2: Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'. (What you have just typed in is the first 16 characters of the name. At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches. If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click 'OK'
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click 'OK'
+8) Click 'OK'
+9) Permission like a normal user from here
+
+Note 3: In the interest of separation of responsibilities with least privilege, consider granting Full Control only to SQL Database Administrators (create a custom group for these) and providing the local Administrators group with Read access only.
+
+Note 4: Some files also require 'ALL APPLICATION PACKAGES (READ, EXECUTE)' permissions for certain functionality to work appropriately, and this is considered acceptable where those permissions are required. (All SQL Server files that require this access reside by default in the ..\Microsoft SQL Server\110\ directory.)"
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-001493,CCI|CCI-001494,CCI|CCI-001495,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53298r8_rule,STIG-ID|SQL2-00-015800,SWIFT-CSCv1|2.3,Vuln-ID|V-40944"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLSoftware"
+# Note: Variable @MSSQL_PROGRAM_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSSQL11.MSSQLSERVER\MSSQL\Install"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-015800 - The OS must limit privileges to change SQL Server software resident within software libraries (including privileged programs) - '\110\Shared'"
+      info        : "When dealing with change control issues, it should be noted, any changes to the hardware, software, and/or firmware components of the information system can potentially have significant effects on the overall security of the system.
+
+If any user were allowed to make changes to software libraries, then those changes might be implemented without undergoing the appropriate testing and approvals that are part of a robust change management process.  The DBMS software libraries contain the executables used by the DBMS to operate. Unauthorized access to the libraries can result in compromised installations. This may in turn jeopardize data stored in the DBMS and/or operation of the host system.
+
+Accordingly, only qualified and authorized individuals shall be allowed to obtain access to information system components for purposes of initiating changes, including upgrades and modifications.
+
+Of particular note in this context is that any software installed for auditing and/or audit file management must be protected and monitored."
+      solution    : "Navigate to the SQL Server software directory (\binn) location. Right-click the folder, click Properties. On the Security tab, modify the security permissions, so that files and folders that are part of the SQL Server 2012 installation have at most the following privileges. Right-click each folder under the installation folder, click Properties. On the Security tab, modify the security permissions, so that at most the following permissions are present:
+Trusted Installer (Full Control)
+CREATOR OWNER (Full Control)
+SYSTEM (Full Control)
+Administrators (Full Control) [See Note 3]
+Users (Read, List Folder Contents, Read & Execute)
+Creator Owner (Special Permissions - Full control - Subfolders and files only)
+All Application Packages (Read & Execute) [Only as needed - see Note 4]
+SQL Server Service SID OR Service Account (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Full Control) [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use. (Read & Execute) [Notes 1, 2]
+System Administrators (Full Control) [Note 3]
+Repeat the above for the \Install folder.
+
+Navigate to the ...\Microsoft SQL Server\110\Shared folder. On the Security tab, modify the security permissions, so that at most the following permissions are present:
+Trusted Installer (Full Control)
+CREATOR OWNER (Full Control)
+System (Full Control)
+SQL Server Service SID OR Service Account (Read & Execute) [Notes 1, 2]
+System Administrators (Full Control) [Note 3]
+Local Administrators (Read)
+SQL Server Analysis Services (SSAS) Service SID or Service Account, if SSAS is in use (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write) [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use. (Read, Write) [Notes 1, 2]
+Users (Read, List Folder Contents, Read & Execute)
+[MsDtsServer110 (Read & Execute) is also permitted, if SSIS/DTS is in use.]
+[NT AUTHORITY\NETWORK SERVICE (Read & Execute) may also be required for SQL Server Configuration Manager to operate.]
+
+-----
+
+Note 1: It is highly advisable to use a separate account for each service. When installing SQL Server in single-server mode, you can opt to have these provisioned for you. These automatically generated accounts are referred to as virtual accounts. Each virtual account has an equivalent Service SID, with the same name. The installer also creates an equivalent SQL Server login, also with the same name. Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control because these permissions are available only to the specific service when it is running and not in any other context. (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.) For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+Note 2: Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'. (What you have just typed in is the first 16 characters of the name. At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches. If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click 'OK'
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click 'OK'
+8) Click 'OK'
+9) Permission like a normal user from here
+
+Note 3: In the interest of separation of responsibilities with least privilege, consider granting Full Control only to SQL Database Administrators (create a custom group for these) and providing the local Administrators group with Read access only.
+
+Note 4: Some files also require 'ALL APPLICATION PACKAGES (READ, EXECUTE)' permissions for certain functionality to work appropriately, and this is considered acceptable where those permissions are required. (All SQL Server files that require this access reside by default in the ..\Microsoft SQL Server\110\ directory.)"
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-001493,CCI|CCI-001494,CCI|CCI-001495,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53298r8_rule,STIG-ID|SQL2-00-015800,SWIFT-CSCv1|2.3,Vuln-ID|V-40944"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLSoftware"
+      file        : "C:\Program Files\Microsoft SQL Server\110\Shared"
+    </custom_item>
+
+    <custom_item>
+      type        : REG_CHECK
+      description : "SQL2-00-016500 - SQL Server must have the SQL Server Data Tools (SSDT) software component removed from SQL Server if SSDT is unused."
+      info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for applications to provide, or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software, demonstrations, or browser plug-ins not related to requirements or providing a wide array of functionality not required for every mission, yet cannot be disabled.
+
+Applications must adhere to the principles of least functionality by providing only essential capabilities.
+
+Unused and unnecessary DBMS components increase the attack vector for the DBMS by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+
+SQL Server must have the SQL Server Data Tools (SSDT) software component removed from SQL Server if SSDT is unused."
+      solution    : "Document the requirement for SQL Server Data Tools to reside on this server.
+
+If it is not required, using an account with System Administrator privileges, from Command Prompt, open control.exe.
+
+Navigate to Programs and Features. Remove the following entries in the 'Uninstall or change a program' window.
+
+Microsoft SQL Server Data Tools - Database Projects - Web installer entry point
+Prerequisites for SSDT"
+      reference   : "800-171|3.4.8,800-53|CM-7(4),CAT|I,CCI|CCI-000381,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,NIAv2|SS13a,Rule-ID|SV-53295r2_rule,STIG-ID|SQL2-00-016500,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3,Vuln-ID|V-40941"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : POLICY_TEXT
+      value_data  : "HKCR\Installer\Products\F65CBB3F2822464459F28A792781F103"
+      reg_option  : MUST_NOT_EXIST
+    </custom_item>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : REG_CHECK
+          description : "SQL2-00-016600 - SQL Server must have the SQL Server Report Service removed if SSRS is unused"
+          value_type  : POLICY_TEXT
+          value_data  : "HKLM\SYSTEM\CurrentControlSet\services\ReportServer"
+          reg_option  : MUST_NOT_EXIST
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-016600 - SQL Server must have the SQL Server Reporting Service (SSRS) software component removed from SQL Server if SSRS is unused."
+          info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for applications to provide or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software demonstrations or browser plug-ins not related to requirements or providing a wide array of functionality not required for every mission, yet cannot be disabled.
+
+Applications must adhere to the principles of least functionality by providing only essential capabilities.
+
+Unused and unnecessary SQL Server components increase the number of available attack vectors to SQL Server by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+SQL Server must have the SQL Server Reporting Service (SSRS) software component removed from SQL Server if SSRS is unused."
+          solution    : "Remove the SSRS from SQL Server."
+          reference   : "800-171|3.4.8,800-53|CM-7,CAT|II,CCI|CCI-000381,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,Rule-ID|SV-53294r2_rule,STIG-ID|SQL2-00-016600,Vuln-ID|V-40940"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "SQL2-00-016600 - SQL Server must have the SQL Server Reporting Service (SSRS) software component removed from SQL Server if SSRS is unused."
+          info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for applications to provide or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software demonstrations or browser plug-ins not related to requirements or providing a wide array of functionality not required for every mission, yet cannot be disabled.
+
+Applications must adhere to the principles of least functionality by providing only essential capabilities.
+
+Unused and unnecessary SQL Server components increase the number of available attack vectors to SQL Server by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+SQL Server must have the SQL Server Reporting Service (SSRS) software component removed from SQL Server if SSRS is unused."
+          solution    : "Remove the SSRS from SQL Server."
+          reference   : "CAT|II,CCI|CCI-000381,Rule-ID|SV-53294r2_rule,STIG-ID|SQL2-00-016600,Vuln-ID|V-40940"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : REG_CHECK
+          description : "SQL2-00-016700 - SQL Server must have the Integrated Services software removed if SSIS is unused"
+          value_type  : POLICY_TEXT
+          value_data  : "HKLM\SYSTEM\CurrentControlSet\services\MsDtsServer110"
+          reg_option  : MUST_NOT_EXIST
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-016700 - SQL Server must have the SQL Server Integrated Services (SSIS) software component removed from SQL Server if SSIS is unused."
+          info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for applications to provide or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software demonstrations or browser plug-ins not related to requirements or providing a wide array of functionality not required for every mission, yet cannot be disabled.
+
+Applications must adhere to the principles of least functionality by providing only essential capabilities.
+
+Unused and unnecessary SQL Server components increase the number of available attack vectors to SQL Server by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+SQL Server must have the SQL Server Integrated Services (SSIS) software component removed from SQL Server if SSIS is unused."
+          solution    : "Remove the SQL Server Integrated Services (SSIS) software component."
+          reference   : "800-171|3.4.8,800-53|CM-7,CAT|II,CCI|CCI-000381,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,Rule-ID|SV-53293r2_rule,STIG-ID|SQL2-00-016700,Vuln-ID|V-40939"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "SQL2-00-016700 - SQL Server must have the SQL Server Integrated Services (SSIS) software component removed from SQL Server if SSIS is unused."
+          info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for applications to provide or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software demonstrations or browser plug-ins not related to requirements or providing a wide array of functionality not required for every mission, yet cannot be disabled.
+
+Applications must adhere to the principles of least functionality by providing only essential capabilities.
+
+Unused and unnecessary SQL Server components increase the number of available attack vectors to SQL Server by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+SQL Server must have the SQL Server Integrated Services (SSIS) software component removed from SQL Server if SSIS is unused."
+          solution    : "Remove the SQL Server Integrated Services (SSIS) software component."
+          reference   : "CAT|II,CCI|CCI-000381,Rule-ID|SV-53293r2_rule,STIG-ID|SQL2-00-016700,Vuln-ID|V-40939"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </else>
+    </if>
+
+    <if>
+      <condition type:"AND">
+        <custom_item>
+          type        : REG_CHECK
+          description : "SQL2-00-016800 - SQL Server must have the SQL Server Analysis Service (SSAS) software component removed from SQL Server if SSAS is unused."
+          value_type  : POLICY_TEXT
+          value_data  : "HKLM\SYSTEM\CurrentControlSet\services\MSSQLServerOLAPService"
+          reg_option  : MUST_NOT_EXIST
+        </custom_item>
+      </condition>
+
+      <then>
+        <report type:"PASSED">
+          description : "SQL2-00-016800 - SQL Server must have the SQL Server Analysis Service (SSAS) software component removed from SQL Server if SSAS is unused."
+          info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for applications to provide or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software demonstrations or browser plug-ins not related to requirements or providing a wide array of functionality not required for every mission, yet cannot be disabled.
+
+Applications must adhere to the principles of least functionality by providing only essential capabilities.
+
+Unused and unnecessary SQL Server components increase the number of available attack vectors to SQL Server by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+SQL Server must have the SQL Server Analysis Service (SSAS) software component removed from SQL Server if SSAS is unused."
+          solution    : "Remove the SQL Server Analysis Service (SSAS) software component."
+          reference   : "800-171|3.4.8,800-53|CM-7,CAT|II,CCI|CCI-000381,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.6.2,Rule-ID|SV-53292r2_rule,STIG-ID|SQL2-00-016800,Vuln-ID|V-40938"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </then>
+
+      <else>
+        <report type:"FAILED">
+          description : "SQL2-00-016800 - SQL Server must have the SQL Server Analysis Service (SSAS) software component removed from SQL Server if SSAS is unused."
+          info        : "Information systems are capable of providing a wide variety of functions and services. Some of the functions and services, provided by default, may not be necessary to support essential organizational operations (e.g., key missions, functions).
+
+It is detrimental for applications to provide or install by default, functionality exceeding requirements or mission objectives. Examples include, but are not limited to, installing advertising software demonstrations or browser plug-ins not related to requirements or providing a wide array of functionality not required for every mission, yet cannot be disabled.
+
+Applications must adhere to the principles of least functionality by providing only essential capabilities.
+
+Unused and unnecessary SQL Server components increase the number of available attack vectors to SQL Server by introducing additional targets for attack. By minimizing the services and applications installed on the system, the number of potential vulnerabilities is reduced.
+
+SQL Server must have the SQL Server Analysis Service (SSAS) software component removed from SQL Server if SSAS is unused."
+          solution    : "Remove the SQL Server Analysis Service (SSAS) software component."
+          reference   : "CAT|II,CCI|CCI-000381,Rule-ID|SV-53292r2_rule,STIG-ID|SQL2-00-016800,Vuln-ID|V-40938"
+          see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+        </report>
+      </else>
+    </if>
+
+    <custom_item>
+      type        : GROUP_MEMBERS_POLICY
+      description : "SQL2-00-020100 - SQL Server must protect the integrity of publicly available information and applications."
+      info        : "The purpose of this control is to ensure organizations explicitly address the protection needs for public information and applications, with such protection likely being implemented as part of other security controls. If SQL Server contains publicly available information, though not concerned with confidentiality, SQL Server OS must maintain the integrity of the data. If data available to the public is not protected from unauthorized modification or deletion, then the data cannot be trusted by those accessing it.
+
+The user account associated with public access must not have access to the OS configuration information. Determine what publicly available user account is being used to access SQL Server and validate that the publicly available user account only has read access to the public data and nothing else.
+
+The OS level 'Guests' role grants connection access to the server without granting any other privileges. SQL Server configuration settings are used to grant access to the publicly available information, but this control ensures that the OS only is granted connection access to the server.
+
+This requirement is not intended to prevent the establishment of public-facing systems for the purpose of collecting data from the public."
+      solution    : "Using an account with System Administrator privileges, from a command prompt, type lusrmgr.msc, and press [ENTER].
+Navigate to Groups.
+
+Locate the additional group(s) from which the publicly available user account must be removed.
+
+Right click <'the group to modify' >> Properties >> 'Members:'
+
+Remove the publicly available user account from the group by clicking/highlighting the account and then clicking the 'Remove' button.
+
+Revoke any update permissions for a guest being used in the context of a guest account."
+      reference   : "800-171|3.4.2,800-53|CM-6,CAT|II,CCI|CCI-000366,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-53269r3_rule,STIG-ID|SQL2-00-020100,SWIFT-CSCv1|2.3,Vuln-ID|V-40915"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : POLICY_TEXT
+# Note: Variable @PUB_ACCT@ replaced with "Public User" in field "value_data".
+      value_data  : "Public User"
+      group_name  : "Guests"
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-025100 - The OS must limit privileges to the SQL Server Data Root directory and its subordinate directories and files."
+      info        : "Default database file locations should be protected from unauthorized access.  The system databases, essential to SQL Server operation, are typically located here."
+      solution    : "Navigate to the identified folder location(s). Right-click the folder, click Properties. On the Security tab, modify the security permissions so that files and folders have at most the permissions listed below. Right-click each folder under the identified folder(s), click Properties. On the Security tab, modify the security permissions so that at most the following permissions are present.
+CREATOR OWNER (Full Control)
+System (Full control)
+SQL Server Service SID OR Service Account (Full Control) [Notes 1, 2]
+System Administrators (Full Control) [Note 3]
+SQL Server Analysis Services (SSAS) Service SID or Service Account, if SSAS is in use (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write) [Notes 1, 2, 4]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use. (Read, Execute, Write) [Notes 1, 2]
+
+-----
+
+Note 1: It is highly advisable to use a separate account for each service. When installing SQL Server in single-server mode, you can opt to have these provisioned for you. These automatically-generated accounts are referred to as virtual accounts. Each virtual account has an equivalent Service SID, with the same name. The installer also creates an equivalent SQL Server login, also with the same name. Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control because these permissions are available only to the specific service when it is running and not in any other context. (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.) For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+Note 2: Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'. (What you have just typed in is the first 16 characters of the name. At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches. If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click OK
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click OK
+8) Click OK
+9) Permission like a normal user from here
+
+Note 3: In the interest of separation of responsibilities with least privilege, consider granting Full Control only to SQL Database Administrators (create a custom group for these) and providing the local Administrators group with Read access only.
+
+Note 4: It may also be necessary to grant the SQL Server Agent permission to Delete the \Log directory and its contents."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-69105r5_rule,STIG-ID|SQL2-00-025100,SWIFT-CSCv1|2.3,Vuln-ID|V-54859"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLDataDir"
+# Note: Variable @MSSQL_DATA_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSAS11.MSSQLSERVER\\OLAP\\Data" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSAS11.MSSQLSERVER\\OLAP\\Data"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-025200 - The OS must limit privileges to the SQL Server data directories and their subordinate directories and files."
+      info        : "Database files must be protected from unauthorized access.  Although default data locations are created at installation time, sites can, and will, use other directories for site-created database files to comply with best practices."
+      solution    : "Navigate to the identified folder location(s).  Right-click the folder, click Properties.  On the Security tab, modify the security permissions so that files and folders have at most the permissions listed below. Right-click each folder under the identified folder(s), click Properties. On the Security tab, modify the security permissions so that at most the following permissions are present.
+CREATOR OWNER (Full Control)
+System (Full control)
+SQL Server Service SID OR Service Account (Full Control)  [Notes 1, 2]
+SQL Server Analysis Services (SSAS) Service SID or Service Account, if SSAS is in use (Read & Execute) [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write)  [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use.  (Read, Write)  [Notes 1, 2]
+System Administrators (Full Control)  [Note 3]
+
+
+-----
+
+Note 1:  It is highly advisable to use a separate account for each service.  When installing SQL Server in single-server mode, you can opt to have these provisioned for you.  These automatically-generated accounts are referred to as virtual accounts.  Each virtual account has an equivalent Service SID, with the same name.  The installer also creates an equivalent SQL Server login, also with the same name.  Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control because these permissions are available only to the specific service when it is running and not in any other context.  (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.)  For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+
+Note 2:  Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'.  (What you have just typed in is the first 16 characters of the name.  At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches.  If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click OK
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click OK
+8) Click OK
+9) Permission like a normal user from here
+
+
+Note 3:  In the interest of separation of responsibilities with least privilege, consider granting Full Control only to SQL Database Administrators (create a custom group for these) and providing the local Administrators group with Read access only."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-69125r3_rule,STIG-ID|SQL2-00-025200,SWIFT-CSCv1|2.3,Vuln-ID|V-54879"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLDataDir"
+# Note: Variable @MSSQL_DB_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSAS11.MSSQLSERVER\\OLAP\\Data" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSAS11.MSSQLSERVER\\OLAP\\Data"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : FILE_PERMISSIONS
+      description : "SQL2-00-025300 - The OS must limit privileges to the SQL Server backup directories and files."
+      info        : "Backups must be protected from unauthorized deletion and modification.  They must also be protected from unauthorized use in database restoration."
+      solution    : "Navigate to the SQL Server backup directory location.  Right-click the folder, click Properties.  On the Security tab, modify the security permissions, so that files and folders have at most the permissions listed below. Right-click each folder under the SQL Server backup folder, click Properties. On the Security tab, modify the security permissions, so that at most the following permissions are present.
+CREATOR OWNER (Full Control)
+System (Full control)
+SQL Server Service SID OR Service Account (Full Control)  [Notes 1, 2]
+SQL Server SQL Agent Service SID OR Service Account, if SQL Server Agent is in use. (Read, Execute, Write)  [Notes 1, 2]
+SQL Server FD Launcher Service SID OR Service Account, if full-text indexing is in use.  (Read, Write)  [Notes 1, 2]
+System Administrators (Full Control)  [Note 3]
+SQL Server Analysis Services (SSAS) Service SID or Service Account, if SSAS is in use (Read & Execute) [Notes 1, 2]
+
+
+-----
+
+Note 1: It is highly advisable to use a separate account for each service. When installing SQL Server in single-server mode, you can opt to have these provisioned for you. These automatically generated accounts are referred to as virtual accounts. Each virtual account has an equivalent Service SID, with the same name. The installer also creates an equivalent SQL Server login, also with the same name. Applying folder and file permissions to Service SIDs, rather than to domain accounts or local computer accounts, provides tighter control because these permissions are available only to the specific service when it is running and not in any other context. (However, when using failover clustering, a domain account must be specified at installation, rather than a virtual account.) For more on this topic, see http://msdn.microsoft.com/en-us/library/ms143504(v=sql.110).aspx.
+
+Note 2: Tips for adding a service SID/virtual account to a folder's permission list.
+1) In Windows Explorer, right-click on the folder and select 'Properties.'
+2) Select the 'Security' tab
+3) Click 'Edit'
+4) Click 'Add'
+5) Click 'Locations'
+6) Select the computer name
+7) Search for the name
+7.a) SQL Server Service
+7.a.i) Type 'NT SERVICE\MSSQL' and click 'Check Names'. (What you have just typed in is the first 16 characters of the name. At least one character must follow 'NT SERVICE\'; you will be presented with a list of all matches. If you have typed in the full, correct name, step 7.a.ii is bypassed.)
+7.a.ii) Select the 'MSSQL$<instance name>' user and click 'OK'
+7.b) SQL Agent Service
+7.b.i) Type 'NT SERVICE\SQL' and click 'Check Names'
+7.b.ii) Select the 'SQLAgent$<instance name>' user and click 'OK'
+8) Click 'OK'
+9) Permission like a normal user from here
+
+Note 3: In the interest of separation of responsibilities with least privilege, consider granting Full Control only to SQL Database Administrators (create a custom group for these) and providing the local Administrators group with Read access only."
+      reference   : "800-171|3.4.2,800-53|AC-6(7),800-53|CM-6,CAT|II,CCI|CCI-001499,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.AC-4,CSF|PR.IP-1,ISO/IEC-27001|A.9.2.5,ITSG-33|CM-6,NESA|M1.1.3,NESA|T3.2.1,NESA|T5.1.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,Rule-ID|SV-69127r4_rule,STIG-ID|SQL2-00-025300,SWIFT-CSCv1|2.3,Vuln-ID|V-54881"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+      value_type  : FILE_ACL
+      value_data  : "MSSQLDataDir"
+# Note: Variable @MSSQL_DB_BU_DIR@ replaced with "C:\\Program Files\\Microsoft SQL Server\\MSAS11.MSSQLSERVER\\OLAP\\Backup" in field "file".
+      file        : "C:\\Program Files\\Microsoft SQL Server\\MSAS11.MSSQLSERVER\\OLAP\\Backup"
+      acl_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <report type:"WARNING">
+      description : "SQL2-00-039100 - The SQL Server Browser service must be disabled if its use is not necessary."
+      info        : "The SQL Server Browser simplifies the administration of SQL Server, particularly when multiple instances of SQL Server coexist on the same computer.  It avoids the need to hard-assign port numbers to the instances and to set and maintain those port numbers in client systems.  It enables administrators and authorized users to discover database management system instances, and the databases they support, over the network.
+
+This convenience also presents the possibility of unauthorized individuals gaining knowledge of the available SQL Server resources.  Therefore, it is necessary to consider whether the SQL Server Browser is needed.  Typically, if only a single instance is installed, using the default name (MSSQLSERVER) and port assignment (1433), the Browser is not adding any value.   The more complex the installation, the more likely SQL Server Browser is to be helpful.
+
+This requirement is not intended to prohibit use of the Browser service in any circumstances; rather, it calls for administrators and management to consider whether the benefits of its use outweigh the potential negative consequences.
+
+NOTE: Nessus has not performed this check. Please review the benchmark to ensure target compliance."
+      solution    : "If SQL Server Browser is needed, document the justification and obtain the appropriate approvals.
+
+Where SQL Server Browser is judged unnecessary, in the Services tool, double-click on 'SQL Server Browser' to open its 'Properties' dialog.  Set Startup Type to 'Disabled'.  If Service Status is 'Running', click on 'Stop'.  Click on 'OK'."
+      reference   : "CAT|III,CCI|CCI-000366,Rule-ID|SV-85247r1_rule,STIG-ID|SQL2-00-039100,Vuln-ID|V-70625"
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "DISA_STIG_MSSQL_2012_Instance-OS_v1r20.audit from DISA Microsoft SQL Server Instance 2012 v1r20 STIG"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_MS_SQL_Server_2012_V1R20_STIG.zip"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

@@ -1,0 +1,2595 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+#
+# $Revision: 1.0 $
+# $Date: 2020/08/19 $
+#
+# Description : # This document consists of a list of Microsoft Windows Server 2008 R2 security settings (Level 2) as suggested by
+# the CIS Microsoft Windows Server 2008 R2 Benchmark v3.2.0.
+#
+# Tenable has made a best effort to map the settings specified in the standard to a proprietary
+# .audit format that will be used by the Windows compliance module to perform the audit.
+#
+# See Also:
+# https://workbench.cisecurity.org/files/2696
+#
+#<ui_metadata>
+#<display_name>CIS Microsoft Windows Server 2008 R2 Domain Controller Level 2 v3.2.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>CIS Microsoft Windows Server 2008 R2 Domain Controller Level 2</name>
+#  <version>3.2.0</version>
+#  <link>https://workbench.cisecurity.org/files/2696</link>
+#</spec>
+#<labels>windows,cis,microsoft,server,server_2008_r2</labels>
+#<benchmark_refs>LEVEL,CSCv6</benchmark_refs>
+#</ui_metadata>
+
+<check_type:"Windows" version:"2">
+<group_policy:"MS Windows Server 2008 R2">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "Windows Server 2008 R2 is installed"
+      value_type  : POLICY_TEXT
+      value_data  : "^[a-zA-Z0-9\(\)\s]*2008\s[rR]2[-a-zA-Z0-9\(\)\s]*$"
+      reg_key     : "HKLM\Software\Microsoft\Windows Nt\Currentversion"
+      reg_item    : "ProductName"
+      check_type  : CHECK_REGEX
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "CIS_MS_Windows_Server_2008_R2_DC_Level_2_v3.2.0.audit from CIS MS Windows Server 2008 R2 Benchmark v3.2.0"
+      info        : "NOTE: Nessus has identified that Windows Server 2008 R2 is installed."
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+    </report>
+
+## 1 Account Policies
+## 1.1 Password Policy
+## 1.2 Account Lockout Policy
+## 2 Local Policies
+## 2.1 Audit Policy
+## 2.2 User Rights Assignment
+
+    <custom_item>
+      type        : USER_RIGHTS_POLICY
+      description : "2.2.36 Ensure 'Log on as a batch job' is set to 'Administrators' (DC Only)"
+      info        : "This policy setting allows accounts to log on using the task scheduler service. Because the task scheduler is often used for administrative purposes, it may be needed in enterprise environments. However, its use should be restricted in high security environments to prevent misuse of system resources or to prevent attackers from using the right to launch malicious code after gaining user level access to a computer.
+
+The recommended state for this setting is: Administrators.
+
+Rationale:
+
+The Log on as a batch job user right presents a low-risk vulnerability. For most organizations, the default settings are sufficient."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Administrators:
+
+Computer Configuration\Windows Settings\Security Settings\Local Policies\User Rights Assignment\Log on as a batch job
+
+
+
+
+Impact:
+
+If you configure the Log on as a batch job setting through domain-based Group Policies, the computer will not be able to assign the user right to accounts that are used for scheduled jobs in the Task Scheduler. If you install optional components such as ASP.NET or IIS, you might need to assign this user right to additional accounts that are required by those components. For example, IIS requires assignment of this user right to the IIS_WPG group and the IUSR_(ComputerName), ASPNET, and IWAM_(ComputerName) accounts. If this user right is not assigned to this group and these accounts, IIS will be unable to run some COM objects that are necessary for proper functionality.
+
+Default Value:
+
+Administrators, Backup Operators.
+
+References:
+
+CCE-38080-8"
+      reference   : "800-53|AC-6(7),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.5,LEVEL|2S,NESA|M1.1.3,NESA|T5.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : USER_RIGHT
+      value_data  : "Administrators"
+      right_type  : SeBatchLogonRight
+    </custom_item>
+
+## 2.3 Security Options
+## 2.3.1 Accounts
+## 2.3.2 Audit
+## 2.3.3 DCOM
+## 2.3.4 Devices
+## 2.3.5 Domain controller
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 2.3.6 Domain member
+## 2.3.7 Interactive logon
+## 2.3.8 Microsoft network client
+## 2.3.9 Microsoft network server
+## 2.3.10 Network access
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "2.3.10.4 Ensure 'Network access: Do not allow storage of passwords and credentials for network authentication' is set to 'Enabled' - Enabled"
+      info        : "This policy setting determines whether Credential Manager (formerly called Stored User Names and Passwords) saves passwords or credentials for later use when it gains domain authentication.
+
+The recommended state for this setting is: Enabled.
+
+Note: Changes to this setting will not take effect until Windows is restarted.
+
+Rationale:
+
+Passwords that are cached can be accessed by the user when logged on to the computer. Although this information may sound obvious, a problem can arise if the user unknowingly executes hostile code that reads the passwords and forwards them to another, unauthorized user."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Windows Settings\Security Settings\Local Policies\Security Options\Network access: Do not allow storage of passwords and credentials for network authentication
+
+
+
+
+Impact:
+
+Credential Manager will not store passwords and credentials on the computer. Users will be forced to enter passwords whenever they log on to their Passport account or other network resources that aren't accessible to their domain account. Testing has shown that clients running Windows Vista or Windows Server 2008 will be unable to connect to Distributed File System (DFS) shares in untrusted domains. Enabling this setting also makes it impossible to specify alternate credentials for scheduled tasks, this can cause a variety of problems. For example, some third party backup products will no longer work. This policy setting should have no impact on users who access network resources that are configured to allow access with their Active Directory-based domain account.
+
+Default Value:
+
+Disabled. (Credential Manager will store passwords and credentials on the computer for later use for domain authentication.)
+
+References:
+
+CCE-38119-4"
+      reference   : "800-171|3.5.10,800-53|IA-5(1),CSCv6|16.14,CSF|PR.AC-1,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|CY6,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\System\Currentcontrolset\Control\Lsa"
+      reg_item    : "DisableDomainCreds"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 2.3.11 Network security
+## 2.3.12 Recovery console
+## 2.3.13 Shutdown
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 2.3.14 System cryptography
+## 2.3.15 System objects
+## 2.3.16 System settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 2.3.17 User Account Control
+## 3 Event Log
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 4 Restricted Groups
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 5 System Services
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 6 Registry
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 7 File System
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 8 Wired Network (IEEE 802.3) Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 9 Windows Firewall With Advanced Security
+## 9.1 Domain Profile
+## 9.2 Private Profile
+## 9.3 Public Profile
+## 10 Network List Manager Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 11 Wireless Network (IEEE 802.11) Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 12 Public Key Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 13 Software Restriction Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 14 Network Access Protection NAP Client Configuration
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 15 Application Control Policies AppLocker
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 16 IP Security Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 17 Advanced Audit Policy Configuration
+## 17.1 Account Logon
+## 17.2 Account Management
+## 17.3 Detailed Tracking
+## 17.4 DS Access
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 17.5 Logon/Logoff
+## 17.6 Object Access
+## 17.7 Policy Change
+## 17.8 Privilege Use
+## 17.9 System
+## 18 Administrative Templates (Computer)
+## 18.1 Control Panel
+## 18.2 LAPS
+## 18.3 MS Security Guide
+## 18.4 MSS (Legacy)
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.4.5 Ensure 'MSS: (KeepAliveTime) How often keep-alive packets are sent in milliseconds' is set to 'Enabled: 300,000 or 5 minutes (recommended)'"
+      info        : "This value controls how often TCP attempts to verify that an idle connection is still intact by sending a keep-alive packet. If the remote computer is still reachable, it acknowledges the keep-alive packet.
+
+The recommended state for this setting is: Enabled: 300,000 or 5 minutes (recommended).
+
+Rationale:
+
+An attacker who is able to connect to network applications could establish numerous connections to cause a DoS condition."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled: 300,000 or 5 minutes (recommended):
+
+Computer Configuration\Policies\Administrative Templates\MSS (Legacy)\MSS: (KeepAliveTime) How often keep-alive packets are sent in milliseconds
+
+Note: This Group Policy path does not exist by default. An additional Group Policy template (MSS-legacy.admx/adml) is required - it is available from this TechNet blog post: The MSS settings - Microsoft Security Guidance blog
+
+
+Impact:
+
+Keep-alive packets are not sent by default by Windows. However, some applications may configure the TCP stack flag that requests keep-alive packets. For such configurations, you can lower this value from the default setting of two hours to five minutes to disconnect inactive sessions more quickly.
+
+Default Value:
+
+7,200,000 milliseconds or 120 minutes.
+
+References:
+
+CCE-36868-8"
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 300000
+      reg_key     : "HKLM\System\Currentcontrolset\Services\Tcpip\Parameters"
+      reg_item    : "KeepAliveTime"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.4.7 Ensure 'MSS: (PerformRouterDiscovery) Allow IRDP to detect and configure Default Gateway addresses (could lead to DoS)' is set to 'Disabled'"
+      info        : "This setting is used to enable or disable the Internet Router Discovery Protocol (IRDP), which allows the system to detect and configure default gateway addresses automatically as described in RFC 1256 on a per-interface basis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+An attacker who has gained control of a computer on the same network segment could configure a computer on the network to impersonate a router. Other computers with IRDP enabled would then attempt to route their traffic through the already compromised computer."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\MSS (Legacy)\MSS: (PerformRouterDiscovery) Allow IRDP to detect and configure Default Gateway addresses (could lead to DoS)
+
+Note: This Group Policy path does not exist by default. An additional Group Policy template (MSS-legacy.admx/adml) is required - it is available from this TechNet blog post: The MSS settings - Microsoft Security Guidance blog
+
+
+Impact:
+
+Windows will not automatically detect and configure default gateway addresses on the computer.
+
+Default Value:
+
+Enable only if DHCP sends the Perform Router Discovery option.
+
+References:
+
+CCE-38065-9"
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\System\Currentcontrolset\Services\Tcpip\Parameters"
+      reg_item    : "PerformRouterDiscovery"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.4.10 Ensure 'MSS: (TcpMaxDataRetransmissions IPv6) How many times unacknowledged data is retransmitted' is set to 'Enabled: 3'"
+      info        : "This setting controls the number of times that TCP retransmits an individual data segment (non-connect segment) before the connection is aborted. The retransmission time-out is doubled with each successive retransmission on a connection. It is reset when responses resume. The base time-out value is dynamically determined by the measured round-trip time on the connection.
+
+The recommended state for this setting is: Enabled: 3.
+
+Rationale:
+
+A malicious user could exhaust a target computer's resources if it never sent any acknowledgment messages for data that was transmitted by the target computer."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled: 3:
+
+Computer Configuration\Policies\Administrative Templates\MSS (Legacy)\MSS:(TcpMaxDataRetransmissions IPv6) How many times unacknowledged data is retransmitted
+
+Note: This Group Policy path does not exist by default. An additional Group Policy template (MSS-legacy.admx/adml) is required - it is available from this TechNet blog post: The MSS settings - Microsoft Security Guidance blog
+
+Impact:
+
+TCP starts a retransmission timer when each outbound segment is passed to the IP. If no acknowledgment is received for the data in a given segment before the timer expires, then the segment is retransmitted up to three times.
+
+Default Value:
+
+5 times.
+
+References:
+
+CCE-37846-3"
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CCE|CCE-37846-3,CSCv6|9,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 3
+      reg_key     : "HKLM\System\Currentcontrolset\Services\Tcpip6\Parameters"
+      reg_item    : "tcpmaxdataretransmissions"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.4.11 Ensure 'MSS: (TcpMaxDataRetransmissions) How many times unacknowledged data is retransmitted' is set to 'Enabled: 3'"
+      info        : "This setting controls the number of times that TCP retransmits an individual data segment (non-connect segment) before the connection is aborted. The retransmission time-out is doubled with each successive retransmission on a connection. It is reset when responses resume. The base time-out value is dynamically determined by the measured round-trip time on the connection.
+
+The recommended state for this setting is: Enabled: 3.
+
+Rationale:
+
+A malicious user could exhaust a target computer's resources if it never sent any acknowledgment messages for data that was transmitted by the target computer."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled: 3:
+
+Computer Configuration\Policies\Administrative Templates\MSS (Legacy)\MSS:(TcpMaxDataRetransmissions) How many times unacknowledged data is retransmitted
+
+Note: This Group Policy path does not exist by default. An additional Group Policy template (MSS-legacy.admx/adml) is required - it is available from this TechNet blog post: The MSS settings - Microsoft Security Guidance blog
+
+Impact:
+
+TCP starts a retransmission timer when each outbound segment is passed to the IP. If no acknowledgment is received for the data in a given segment before the timer expires, then the segment is retransmitted up to three times.
+
+Default Value:
+
+5 times.
+
+References:
+
+CCE-36051-1"
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CCE|CCE-36051-1,CSCv6|9,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 3
+      reg_key     : "HKLM\System\Currentcontrolset\Services\Tcpip\Parameters"
+      reg_item    : "tcpmaxdataretransmissions"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.5 Network
+## 18.5.1 Background Intelligent Transfer Service (BITS)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.2 BranchCache
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.3 DirectAccess Client Experience Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.4 DNS Client
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.5 Fonts
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.6 Hotspot Authentication
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.7 Lanman Server
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.8 Lanman Workstation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.9 Link-Layer Topology Discovery
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.1 Ensure 'Turn on Mapper I/O (LLTDIO) driver' is set to 'Disabled' - Disabled (AllowLLTDIOOnDomain)"
+      info        : "This policy setting changes the operational behavior of the Mapper I/O network protocol driver.
+
+LLTDIO allows a computer to discover the topology of a network it's connected to. It also allows a computer to initiate Quality-of-Service requests such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Mapper I/O (LLTDIO) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Mapper I/O (LLTDIO) network protocol driver is turned off.)
+
+References:
+
+CCE-38170-7"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-38170-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "AllowLLTDIOOnDomain"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.1 Ensure 'Turn on Mapper I/O (LLTDIO) driver' is set to 'Disabled' - Disabled (AllowLLTDIOOnPublicNet)"
+      info        : "This policy setting changes the operational behavior of the Mapper I/O network protocol driver.
+
+LLTDIO allows a computer to discover the topology of a network it's connected to. It also allows a computer to initiate Quality-of-Service requests such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Mapper I/O (LLTDIO) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Mapper I/O (LLTDIO) network protocol driver is turned off.)
+
+References:
+
+CCE-38170-7"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-38170-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "AllowLLTDIOOnPublicNet"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.1 Ensure 'Turn on Mapper I/O (LLTDIO) driver' is set to 'Disabled' - Disabled (EnableLLTDIO)"
+      info        : "This policy setting changes the operational behavior of the Mapper I/O network protocol driver.
+
+LLTDIO allows a computer to discover the topology of a network it's connected to. It also allows a computer to initiate Quality-of-Service requests such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Mapper I/O (LLTDIO) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Mapper I/O (LLTDIO) network protocol driver is turned off.)
+
+References:
+
+CCE-38170-7"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-38170-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "EnableLLTDIO"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.1 Ensure 'Turn on Mapper I/O (LLTDIO) driver' is set to 'Disabled' - Disabled (ProhibitLLTDIOOnPrivateNet)"
+      info        : "This policy setting changes the operational behavior of the Mapper I/O network protocol driver.
+
+LLTDIO allows a computer to discover the topology of a network it's connected to. It also allows a computer to initiate Quality-of-Service requests such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Mapper I/O (LLTDIO) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Mapper I/O (LLTDIO) network protocol driver is turned off.)
+
+References:
+
+CCE-38170-7"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-38170-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "ProhibitLLTDIOOnPrivateNet"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.2 Ensure 'Turn on Responder (RSPNDR) driver' is set to 'Disabled' - Disabled (AllowRspndrOnDomain)"
+      info        : "This policy setting changes the operational behavior of the Responder network protocol driver.
+
+The Responder allows a computer to participate in Link Layer Topology Discovery requests so that it can be discovered and located on the network. It also allows a computer to participate in Quality-of-Service activities such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Responder (RSPNDR) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Responder (RSPNDR) network protocol driver is turned off.)
+
+References:
+
+CCE-37959-4"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37959-4,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "AllowRspndrOnDomain"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.2 Ensure 'Turn on Responder (RSPNDR) driver' is set to 'Disabled' - Disabled (AllowRspndrOnPublicNet)"
+      info        : "This policy setting changes the operational behavior of the Responder network protocol driver.
+
+The Responder allows a computer to participate in Link Layer Topology Discovery requests so that it can be discovered and located on the network. It also allows a computer to participate in Quality-of-Service activities such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Responder (RSPNDR) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Responder (RSPNDR) network protocol driver is turned off.)
+
+References:
+
+CCE-37959-4"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37959-4,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "AllowRspndrOnPublicNet"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.2 Ensure 'Turn on Responder (RSPNDR) driver' is set to 'Disabled' - Disabled (EnableRspndr)"
+      info        : "This policy setting changes the operational behavior of the Responder network protocol driver.
+
+The Responder allows a computer to participate in Link Layer Topology Discovery requests so that it can be discovered and located on the network. It also allows a computer to participate in Quality-of-Service activities such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Responder (RSPNDR) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Responder (RSPNDR) network protocol driver is turned off.)
+
+References:
+
+CCE-37959-4"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37959-4,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "EnableRspndr"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.9.2 Ensure 'Turn on Responder (RSPNDR) driver' is set to 'Disabled' - Disabled (ProhibitRspndrOnPrivateNet)"
+      info        : "This policy setting changes the operational behavior of the Responder network protocol driver.
+
+The Responder allows a computer to participate in Link Layer Topology Discovery requests so that it can be discovered and located on the network. It also allows a computer to participate in Quality-of-Service activities such as bandwidth estimation and network health analysis.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+To help protect from potentially discovering and connecting to unauthorized devices, this setting should be disabled to prevent responding to network traffic for network topology discovery."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Link-Layer Topology Discovery\Turn on Responder (RSPNDR) driver
+
+Note: This Group Policy path is provided by the Group Policy template LinkLayerTopologyDiscovery.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The Responder (RSPNDR) network protocol driver is turned off.)
+
+References:
+
+CCE-37959-4"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37959-4,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Lltd"
+      reg_item    : "ProhibitRspndrOnPrivateNet"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.5.10 Microsoft Peer-to-Peer Networking Services
+## 18.5.10.1 Peer Name Resolution Protocol
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.10.2 Ensure 'Turn off Microsoft Peer-to-Peer Networking Services' is set to 'Enabled'"
+      info        : "The Peer Name Resolution Protocol (PNRP) allows for distributed resolution of a name to an IPv6 address and port number. The protocol operates in the context of clouds. A cloud is a set of peer computers that can communicate with each other by using the same IPv6 scope.
+
+Peer-to-Peer protocols allow for applications in the areas of RTC, collaboration, content distribution and distributed processing.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+This setting enhances the security of the environment and reduces the overall risk exposure related to peer-to-peer networking."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Microsoft Peer-to-Peer Networking Services\Turn off Microsoft Peer-to-Peer Networking Services
+
+Note: This Group Policy path is provided by the Group Policy template P2P-pnrp.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+Microsoft Peer-to-Peer Networking Services are turned off in their entirety, and all applications dependent on them will stop working.
+
+Default Value:
+
+Disabled. (Peer-to-peer protocols are turned on.)
+
+References:
+
+CCE-37699-6"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37699-6,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Peernet"
+      reg_item    : "Disabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.5.11 Network Connections
+## 18.5.11.1 Windows Firewall (formerly Windows Firewall)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.12 Network Connectivity Status Indicator
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.13 Network Isolation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.14 Network Provider
+## 18.5.15 Offline Files
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.16 QoS Packet Scheduler
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.17 SNMP
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.18 SSL Configuration Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.19 TCPIP Settings
+## This section contains TCP/IP configuration settings.
+## 18.5.19.1 IPv6 Transition Technologies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.5.19.2 Parameters
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.19.2.1 Disable IPv6 (Ensure TCPIP6 Parameter 'DisabledComponents' is set to '0xff (255)')"
+      info        : "Internet Protocol version 6 (IPv6) is a set of protocols that computers use to exchange information over the Internet and over home and business networks. IPv6 allows for many more IP addresses to be assigned than IPv4 did. Older networking, hosts and operating systems may not support IPv6 natively.
+
+The recommended state for this setting is: DisabledComponents - 0xff (255)
+
+Rationale:
+
+Since the vast majority of private enterprise managed networks have no need to utilize IPv6 (because they have access to private IPv4 addressing), disabling IPv6 components removes a possible attack surface that is also harder to monitor the traffic on. As a result, we recommend configuring IPv6 to a Disabled state when it is not needed."
+      solution    : "To establish the recommended configuration, set the following Registry value to 0xff (255) (DWORD):
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TCPIP6\Parameters:DisabledComponents
+
+Note: This change does not take effect until the computer has been restarted.
+Note #2: Although Microsoft does not provide an ADMX template to configure this registry value, a custom .ADM template (Disable-IPv6-Components-KB929852.adm) is provided in the CIS Benchmark Remediation Kit to facilitate its configuration. Be aware though that simply turning off the group policy setting in the .ADM template will not 'undo' the change once applied. Instead, the opposite setting must be applied to change the registry value to the opposite state.
+
+Impact:
+
+Connectivity to other systems using IPv6 will no longer operate, and software that depends on IPv6 will cease to function. Examples of Microsoft applications that may use IPv6 include: Remote Assistance, HomeGroup, DirectAccess, Windows Mail.
+
+This registry change is documented in Microsoft Knowledge Base article 929852: How to disable IPv6 or its components in Windows.
+
+Note: This registry change does not take effect until the next reboot.
+
+Default Value:
+
+All IPv6 components are enabled and Windows prefers IPv6 over IPv4."
+      reference   : "800-171|3.13.1,800-53|SC-7(12),CSCv6|9,ITSG-33|SC-7(12),LEVEL|2S,NIAv2|AM38,NIAv2|SS13d,NIAv2|SS26"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 255
+      reg_key     : "HKLM\System\Currentcontrolset\Services\Tcpip6\Parameters"
+      reg_item    : "DisabledComponents"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.5.20 Windows Connect Now
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.20.1 Ensure 'Configuration of wireless settings using Windows Connect Now' is set to 'Disabled' - Disabled (EnableRegistrars)"
+      info        : "This policy setting allows the configuration of wireless settings using Windows Connect Now (WCN). The WCN Registrar enables the discovery and configuration of devices over Ethernet (UPnP) over in-band 802.11 Wi-Fi through the Windows Portable Device API (WPD) and via USB Flash drives. Additional options are available to allow discovery and configuration over a specific medium.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+This setting enhances the security of the environment and reduces the overall risk exposure related to user configuration of wireless settings."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Windows Connect Now\Configuration of wireless settings using Windows Connect Now
+
+Note: This Group Policy path is provided by the Group Policy template WindowsConnectNow.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+WCN operations are disabled over all media.
+
+Default Value:
+
+WCN operations are enabled and allowed over all media.
+
+References:
+
+CCE-37481-9"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37481-9,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|15.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Wcn\Registrars"
+      reg_item    : "EnableRegistrars"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.20.1 Ensure 'Configuration of wireless settings using Windows Connect Now' is set to 'Disabled' - Disabled (DisableUPnPRegistrar)"
+      info        : "This policy setting allows the configuration of wireless settings using Windows Connect Now (WCN). The WCN Registrar enables the discovery and configuration of devices over Ethernet (UPnP) over in-band 802.11 Wi-Fi through the Windows Portable Device API (WPD) and via USB Flash drives. Additional options are available to allow discovery and configuration over a specific medium.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+This setting enhances the security of the environment and reduces the overall risk exposure related to user configuration of wireless settings."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Windows Connect Now\Configuration of wireless settings using Windows Connect Now
+
+Note: This Group Policy path is provided by the Group Policy template WindowsConnectNow.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+WCN operations are disabled over all media.
+
+Default Value:
+
+WCN operations are enabled and allowed over all media.
+
+References:
+
+CCE-37481-9"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37481-9,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|15.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Wcn\Registrars"
+      reg_item    : "DisableUPnPRegistrar"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.20.1 Ensure 'Configuration of wireless settings using Windows Connect Now' is set to 'Disabled' - Disabled (DisableInBand802DOT11Registrar)"
+      info        : "This policy setting allows the configuration of wireless settings using Windows Connect Now (WCN). The WCN Registrar enables the discovery and configuration of devices over Ethernet (UPnP) over in-band 802.11 Wi-Fi through the Windows Portable Device API (WPD) and via USB Flash drives. Additional options are available to allow discovery and configuration over a specific medium.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+This setting enhances the security of the environment and reduces the overall risk exposure related to user configuration of wireless settings."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Windows Connect Now\Configuration of wireless settings using Windows Connect Now
+
+Note: This Group Policy path is provided by the Group Policy template WindowsConnectNow.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+WCN operations are disabled over all media.
+
+Default Value:
+
+WCN operations are enabled and allowed over all media.
+
+References:
+
+CCE-37481-9"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37481-9,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|15.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Wcn\Registrars"
+      reg_item    : "DisableInBand802DOT11Registrar"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.20.1 Ensure 'Configuration of wireless settings using Windows Connect Now' is set to 'Disabled' - Disabled (DisableFlashConfigRegistrar)"
+      info        : "This policy setting allows the configuration of wireless settings using Windows Connect Now (WCN). The WCN Registrar enables the discovery and configuration of devices over Ethernet (UPnP) over in-band 802.11 Wi-Fi through the Windows Portable Device API (WPD) and via USB Flash drives. Additional options are available to allow discovery and configuration over a specific medium.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+This setting enhances the security of the environment and reduces the overall risk exposure related to user configuration of wireless settings."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Windows Connect Now\Configuration of wireless settings using Windows Connect Now
+
+Note: This Group Policy path is provided by the Group Policy template WindowsConnectNow.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+WCN operations are disabled over all media.
+
+Default Value:
+
+WCN operations are enabled and allowed over all media.
+
+References:
+
+CCE-37481-9"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37481-9,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|15.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Wcn\Registrars"
+      reg_item    : "DisableFlashConfigRegistrar"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.20.1 Ensure 'Configuration of wireless settings using Windows Connect Now' is set to 'Disabled' - Disabled (DisableWPDRegistrar)"
+      info        : "This policy setting allows the configuration of wireless settings using Windows Connect Now (WCN). The WCN Registrar enables the discovery and configuration of devices over Ethernet (UPnP) over in-band 802.11 Wi-Fi through the Windows Portable Device API (WPD) and via USB Flash drives. Additional options are available to allow discovery and configuration over a specific medium.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+This setting enhances the security of the environment and reduces the overall risk exposure related to user configuration of wireless settings."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Windows Connect Now\Configuration of wireless settings using Windows Connect Now
+
+Note: This Group Policy path is provided by the Group Policy template WindowsConnectNow.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+WCN operations are disabled over all media.
+
+Default Value:
+
+WCN operations are enabled and allowed over all media.
+
+References:
+
+CCE-37481-9"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37481-9,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|15.4,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Wcn\Registrars"
+      reg_item    : "DisableWPDRegistrar"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.5.20.2 Ensure 'Prohibit access of the Windows Connect Now wizards' is set to 'Enabled'"
+      info        : "This policy setting prohibits access to Windows Connect Now (WCN) wizards.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+Allowing standard users to access the Windows Connect Now wizard increases the risk and attack surface."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\Network\Windows Connect Now\Prohibit access of the Windows Connect Now wizards
+
+Note: This Group Policy path may not exist by default. It is provided by the Group Policy template WindowsConnectNow.admx/adml that is included with the Microsoft Windows 8.0 & Server 2012 (non-R2) Administrative Templates (or newer).
+
+Impact:
+
+The WCN wizards are turned off and users have no access to any of the wizard tasks. All the configuration related tasks including 'Set up a wireless router or access point' and 'Add a wireless device' are disabled.
+
+
+
+
+Default Value:
+
+Disabled. (Users can access all WCN wizard tasks.)
+
+References:
+
+CCE-36109-7"
+      reference   : "800-171|3.4.2,800-53|CM-6,CCE|CCE-36109-7,CN-L3|8.1.10.6(d),CSCv6|15.4,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Wcn\Ui"
+      reg_item    : "DisableWcnUi"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.5.21 Windows Connection Manager
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.6 Printers
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.7 Start Menu and Taskbar
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8 System
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.1 Access-Denied Assistance
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.2 App-V
+## 18.8.3 Audit Process Creation
+## 18.8.4 Credentials Delegation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.5 Device Guard
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.6 Device Health Attestation Service
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.7 Device Installation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.7.1 Device Installation Restrictions
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.8 Device Redirection
+## 18.8.9 Disk NV Cache
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.10 Disk Quotas
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.11 Display
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.12 Distributed COM
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.13 Driver Installation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.14 Early Launch Antimalware
+## 18.8.15 Enhanced Storage Access
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.16 File Classification Infrastructure
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.17 File Share Shadow Copy Agent
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.18 File Share Shadow Copy Provider
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.19 Filesystem (formerly NTFS Filesystem)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.20 Folder Redirection
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.21 Group Policy
+## 18.8.21.1 Logging and tracing
+## 18.8.22 Internet Communication Management
+## 18.8.22.1 Internet Communication settings
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.2 Ensure 'Turn off handwriting personalization data sharing' is set to 'Enabled'"
+      info        : "This setting turns off data sharing from the handwriting recognition personalization tool.
+
+The handwriting recognition personalization tool enables Tablet PC users to adapt handwriting recognition to their own writing style by providing writing samples. The tool can optionally share user writing samples with Microsoft to improve handwriting recognition in future versions of Windows. The tool generates reports and transmits them to Microsoft over a secure connection.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+A person's handwriting is Personally Identifiable Information (PII), especially when it comes to your signature. As such, it is unacceptable in many environments to automatically upload PII to a website without explicit approval by the user."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off handwriting personalization data sharing
+
+Note: This Group Policy path may not exist by default. It is provided by the Group Policy template ShapeCollector.admx/adml that is included with the Microsoft Windows 7 & Server 2008 R2 Administrative Templates (or newer).
+
+Impact:
+
+Tablet PC users cannot choose to share writing samples from the handwriting recognition personalization tool with Microsoft.
+
+Default Value:
+
+Tablet PC users can choose whether or not they want to share their writing samples from the handwriting recognition personalization tool with Microsoft.
+
+References:
+
+CCE-37911-5"
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CCE|CCE-37911-5,CSCv6|13,CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Tabletpc"
+      reg_item    : "PreventHandwritingDataSharing"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.3 Ensure 'Turn off handwriting recognition error reporting' is set to 'Enabled'"
+      info        : "Turns off the handwriting recognition error reporting tool.
+
+The handwriting recognition error reporting tool enables users to report errors encountered in Tablet PC Input Panel. The tool generates error reports and transmits them to Microsoft over a secure connection. Microsoft uses these error reports to improve handwriting recognition in future versions of Windows.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+A person's handwriting is Personally Identifiable Information (PII), especially when it comes to your signature. As such, it is unacceptable in many environments to automatically upload PII to a website without explicit approval by the user."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off handwriting recognition error reporting
+
+Note: This Group Policy path is provided by the Group Policy template InkWatson.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+Impact:
+
+Users cannot start the handwriting recognition error reporting tool or send error reports to Microsoft.
+
+Default Value:
+
+Disabled. (Tablet PC users can report handwriting recognition errors to Microsoft.)
+
+References:
+
+CCE-36203-8"
+      reference   : "800-53|SI-11,CCE|CCE-36203-8,CSCv6|13,ITSG-33|SI-11,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Handwritingerrorreports"
+      reg_item    : "PreventHandwritingErrorReports"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.4 Ensure 'Turn off Internet Connection Wizard if URL connection is referring to Microsoft.com' is set to 'Enabled'"
+      info        : "This policy setting specifies whether the Internet Connection Wizard can connect to Microsoft to download a list of Internet Service Providers (ISPs).
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+In an enterprise managed environment we want to lower the risk of a user unknowingly exposing sensitive data."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off Internet Connection Wizard if URL connection is referring to Microsoft.com
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+The 'Choose a list of Internet Service Providers' path in the Internet Connection Wizard causes the wizard to exit. This prevents users from retrieving the list of ISPs, which resides on Microsoft servers.
+
+
+Default Value:
+
+Disabled. (Users can connect to Microsoft to download a list of ISPs for their area.)
+
+References:
+
+CCE-37163-3"
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CCE|CCE-37163-3,CSCv6|13,CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Internet Connection Wizard"
+      reg_item    : "ExitOnMSICW"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.6 Ensure 'Turn off Internet File Association service' is set to 'Enabled'"
+      info        : "This policy setting specifies whether to use the Microsoft Web service for finding an application to open a file with an unhandled file association. When a user opens a file that has an extension that is not associated with any applications on the computer, the user is given the choice to select a local application or use the Web service to find an application.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+This service's purpose is to help find an appropriate application for a file whose type is unrecognized by the computer. That could pose a security risk if the unrecognized file is malicious code, even if the application to be discovered is itself innocent. Enterprise environments tend to be very managed, where the IT staff decides which applications should and should not be installed."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off Internet File Association service
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+Impact:
+
+The link and the dialog for using the Web service to open an unhandled file association are removed.
+
+Default Value:
+
+Disabled. (The user is allowed to use the Web service.)
+
+References:
+
+CCE-36215-2"
+      reference   : "800-171|3.4.2,800-53|CM-6,CCE|CCE-36215-2,CN-L3|8.1.10.6(d),CSCv6|7,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Microsoft\Windows\Currentversion\Policies\Explorer"
+      reg_item    : "NoInternetOpenWith"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.7 Ensure 'Turn off printing over HTTP' is set to 'Enabled'"
+      info        : "This policy setting allows you to disable the client computer's ability to print over HTTP, which allows the computer to print to printers on the intranet as well as the Internet.
+
+The recommended state for this setting is: Enabled.
+
+Note: This control affects printing over both HTTP and HTTPS.
+
+Rationale:
+
+Information that is transmitted over HTTP through this capability is not protected and can be intercepted by malicious users. For this reason, it is not often used in enterprise managed environments."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off printing over HTTP
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+
+
+Impact:
+
+The client computer will not be able to print to Internet printers over HTTP or HTTPS.
+
+Note: This policy setting affects the client side of Internet printing only. Regardless of how it is configured, a computer could act as an Internet Printing server and make its shared printers available through HTTP.
+
+Default Value:
+
+Disabled. (Users can choose to print to Internet printers over HTTP.)
+
+References:
+
+CCE-36920-7"
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CCE|CCE-36920-7,CSCv6|13.1,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Nt\Printers"
+      reg_item    : "DisableHTTPPrinting"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.8 Ensure 'Turn off Registration if URL connection is referring to Microsoft.com' is set to 'Enabled'"
+      info        : "This policy setting specifies whether the Windows Registration Wizard connects to Microsoft.com for online registration.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+Users in an enterprise managed environment should not be registering their own copies of Windows, providing their own PII in the process."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off Registration if URL connection is referring to Microsoft.com
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+Users are blocked from connecting to Microsoft.com for online registration and they cannot register their copy of Windows online.
+
+
+
+
+Default Value:
+
+Disabled. (Users can connect to Microsoft.com to complete the online Windows Registration.)
+
+References:
+
+CCE-36352-3"
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CCE|CCE-36352-3,CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Registration Wizard Control"
+      reg_item    : "NoRegistration"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.9 Ensure 'Turn off Search Companion content file updates' is set to 'Enabled'"
+      info        : "This policy setting specifies whether Search Companion should automatically download content updates during local and Internet searches.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+There is a small risk that users will unknowingly reveal sensitive information because of the topics they are searching for. This risk is very low because even if this setting is enabled users still must submit search queries to the desired search engine in order to perform searches."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off Search Companion content file updates
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+
+
+Impact:
+
+Search Companion does not download content updates during searches.
+
+Note: Internet searches will still send the search text and information about the search to Microsoft and the chosen search provider. If you select Classic Search, the Search Companion feature will be unavailable. You can select Classic Search by clicking Start, Search, Change Preferences, and then Change Internet Search Behavior.
+
+Default Value:
+
+Disabled. (Search Companion downloads content updates unless the user is using Classic Search.)
+
+References:
+
+CCE-36884-5"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-36884-5,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|13,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Searchcompanion"
+      reg_item    : "DisableContentFileUpdates"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.10 Ensure 'Turn off the 'Order Prints' picture task' is set to 'Enabled' - Enabled"
+      info        : "This policy setting specifies whether the 'Order Prints Online' task is available from Picture Tasks in Windows folders.
+
+The Order Prints Online Wizard is used to download a list of providers and allow users to order prints online.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+In an enterprise managed environment we want to lower the risk of a user unknowingly exposing sensitive data."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off the 'Order Prints' picture task
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+The task 'Order Prints Online' is removed from Picture Tasks in File Explorer folders.
+
+
+Default Value:
+
+Disabled. (The 'Order Prints Online' task is displayed in Picture Tasks in File Explorer folders.)
+
+References:
+
+CCE-38275-4"
+      reference   : "800-171|3.4.2,800-53|CM-6,CCE|CCE-38275-4,CN-L3|8.1.10.6(d),CSCv6|13,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Microsoft\Windows\Currentversion\Policies\Explorer"
+      reg_item    : "NoOnlinePrintsWizard"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.11 Ensure 'Turn off the 'Publish to Web' task for files and folders' is set to 'Enabled' - Enabled"
+      info        : "This policy setting specifies whether the tasks Publish this file to the Web, Publish this folder to the Web, and Publish the selected items to the Web are available from File and Folder Tasks in Windows folders.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+Users may publish confidential or sensitive information to a public service outside of the control of the organization."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off the 'Publish to Web' task for files and folders
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+The 'Publish to Web' task is removed from File and Folder tasks in Windows folders.
+
+
+
+
+Default Value:
+
+Disabled. (The 'Publish to Web' task is shown in File and Folder tasks in Windows folders.)
+
+References:
+
+CCE-37090-8"
+      reference   : "800-171|3.4.2,800-53|CM-6,CCE|CCE-37090-8,CN-L3|8.1.10.6(d),CSCv6|13,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Microsoft\Windows\Currentversion\Policies\Explorer"
+      reg_item    : "NoPublishingWizard"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.12 Ensure 'Turn off the Windows Messenger Customer Experience Improvement Program' is set to 'Enabled'"
+      info        : "This policy setting specifies whether Windows Messenger can collect anonymous information about how the Windows Messenger software and service is used. Microsoft uses information collected through the Customer Experience Improvement Program to detect software flaws so that they can be corrected more quickly, enabling this setting will reduce the amount of data Microsoft is able to gather for this purpose.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+Large enterprise managed environments may not want to have information collected by Microsoft from managed client computers."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off the Windows Messenger Customer Experience Improvement Program
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+
+
+Impact:
+
+Windows Messenger will not collect usage information, and the user settings to enable the collection of usage information will not be shown.
+
+Default Value:
+
+Users have the choice to opt-in and allow information to be collected.
+
+References:
+
+CCE-36628-6"
+      reference   : "800-171|3.4.8,800-53|CM-7(5),CCE|CCE-36628-6,CSCv6|13,CSF|PR.IP-1,CSF|PR.PT-3,ISO/IEC-27001|A.12.5.1,ISO/IEC-27001|A.12.6.2,LEVEL|2S,PCI-DSSv3.1|12.3.7,PCI-DSSv3.2|12.3.7,SWIFT-CSCv1|2.3,TBA-FIISB|44.2.2,TBA-FIISB|49.2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 2
+      reg_key     : "HKLM\Software\Policies\Microsoft\Messenger\Client"
+      reg_item    : "CEIP"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.13 Ensure 'Turn off Windows Customer Experience Improvement Program' is set to 'Enabled'"
+      info        : "This policy setting specifies whether the Windows Customer Experience Improvement Program can collect anonymous information about how Windows is used.
+
+Microsoft uses information collected through the Windows Customer Experience Improvement Program to improve features that are most used and to detect flaws so that they can be corrected more quickly. Enabling this setting will reduce the amount of data Microsoft is able to gather for this purpose. The recommended state for this setting is: Enabled.
+
+Rationale:
+
+Large enterprise managed environments may not want to have information collected by Microsoft from managed client computers."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off Windows Customer Experience Improvement Program
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+All users are opted out of the Windows Customer Experience Improvement Program.
+
+
+Default Value:
+
+The Administrator can use the Problem Reports and Solutions component in Control Panel to enable Windows Customer Experience Improvement Program for all users.
+
+References:
+
+CCE-36174-1"
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CCE|CCE-36174-1,CSCv6|13,CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Sqmclient\Windows"
+      reg_item    : "CEIPEnable"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.22.1.14 Ensure 'Turn off Windows Error Reporting' is set to 'Enabled'"
+      info        : "This policy setting controls whether or not errors are reported to Microsoft.
+
+Error Reporting is used to report information about a system or application that has failed or has stopped responding and is used to improve the quality of the product.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+If a Windows Error occurs in a secure, enterprise managed environment, the error should be reported directly to IT staff for troubleshooting and remediation. There is no benefit to the corporation to report these errors directly to Microsoft, and there is some risk of unknowingly exposing sensitive data as part of the error."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication settings\Turn off Windows Error Reporting
+
+Note: This Group Policy path is provided by the Group Policy template ICM.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+Impact:
+
+Users are not given the option to report errors to Microsoft.
+
+Default Value:
+
+Disabled. (Errors may be reported to Microsoft via the Internet or to a corporate file share.)
+
+References:
+
+CCE-35964-6"
+      reference   : "800-53|SI-11,CCE|CCE-35964-6,CSCv6|13,ITSG-33|SI-11,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Windows Error Reporting"
+      reg_item    : "Disabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.8.23 iSCSI
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.24 KDC
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.25 Kerberos
+## 18.8.26 Kernel DMA Protection
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.27 Locale Services
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.28 Logon
+## 18.8.29 Mitigation Options
+## 18.8.30 Net Logon
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.31 OS Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.32 Performance Control Panel
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.33 PIN Complexity
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.34 Power Management
+## This section contains recommendations for Power Management settings.
+## 18.8.34.1 Button Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.34.2 Energy Saver Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.34.3 Hard Disk Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.34.4 Notification Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.34.5 Power Throttling Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.34.6 Sleep Settings
+## 18.8.35 Recovery
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.36 Remote Assistance
+## 18.8.37 Remote Procedure Call
+## 18.8.38 Removable Storage Access
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.39 Scripts
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.40 Server Manager
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.41 Service Control Manager Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.42 Shutdown
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.43 Shutdown Options
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.44 Storage Health
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.45 Storage Sense
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.46 System Restore
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47 Troubleshooting and Diagnostics
+## 18.8.47.1 Application Compatibility Diagnostics
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.2 Corrupted File Recovery
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.3 Disk Diagnostic
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.4 Fault Tolerant Heap
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.5 Microsoft Support Diagnostic Tool
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.47.5.1 Ensure 'Microsoft Support Diagnostic Tool: Turn on MSDT interactive communication with support provider' is set to 'Disabled'"
+      info        : "This policy setting configures Microsoft Support Diagnostic Tool (MSDT) interactive communication with the support provider. MSDT gathers diagnostic data for analysis by support professionals.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+Due to privacy concerns, data should never be sent to any 3rd party since this data could contain sensitive information."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Troubleshooting and Diagnostics\Microsoft Support Diagnostic Tool\Microsoft Support Diagnostic Tool: Turn on MSDT interactive communication with support provider
+
+Note: This Group Policy path may not exist by default. It is provided by the Group Policy template MSDT.admx/adml that is included with the Microsoft Windows 8.0 & Server 2012 (non-R2) Administrative Templates (or newer).
+
+Impact:
+
+MSDT cannot run in support mode, and no data can be collected or sent to the support provider.
+
+Default Value:
+
+Enabled. (Users can use MSDT to collect and send diagnostic data to a support professional to resolve a problem. By default, the support provider is set to Microsoft Corporation.)
+
+References:
+
+CCE-38161-6"
+      reference   : "800-53|SI-11,CCE|CCE-38161-6,CSCv6|13,ITSG-33|SI-11,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Scripteddiagnosticsprovider\Policy"
+      reg_item    : "DisableQueryRemoteServer"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.8.47.6 MSI Corrupted File Recovery
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.7 Scheduled Maintenance
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.8 Scripted Diagnostics
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.9 Windows Boot Performance Diagnostics
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.10 Windows Memory Leak Diagnosis
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.47.11 Windows Performance PerfTrack
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.47.11.1 Ensure 'Enable/Disable PerfTrack' is set to 'Disabled'"
+      info        : "This policy setting specifies whether to enable or disable tracking of responsiveness events.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+When enabled the aggregated data of a given event will be transmitted to Microsoft. The option exists to restrict this feature for a specific user, set the consent level, and designate specific programs for which error reports could be sent. However, centrally restricting the ability to execute PerfTrack to limit the potential for unauthorized or undesired usage, data leakage, or unintentional communications is highly recommended."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Troubleshooting and Diagnostics\Windows Performance PerfTrack\Enable/Disable PerfTrack
+
+Note: This Group Policy path may not exist by default. It is provided by the Group Policy template PerformancePerftrack.admx/adml that is included with the Microsoft Windows 7 & Server 2008 R2 Administrative Templates (or newer).
+
+Impact:
+
+Responsiveness events are not processed.
+
+Default Value:
+
+Enabled. (Responsiveness events are processed and aggregated. The aggregated data will be transmitted to Microsoft through SQM.)
+
+References:
+
+CCE-36648-4"
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CCE|CCE-36648-4,CSCv6|13,CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Wdi\{9C5A40Da-B965-4Fc3-8781-88Dd50A6299D}"
+      reg_item    : "ScenarioExecutionEnabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.8.48 Trusted Platform Module Services
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.49 User Profiles
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.50 Windows File Protection
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.51 Windows HotStart
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.8.52 Windows Time Service
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.8.52.1.1 Ensure 'Enable Windows NTP Client' is set to 'Enabled'"
+      info        : "This policy setting specifies whether the Windows NTP Client is enabled. Enabling the Windows NTP Client allows your computer to synchronize its computer clock with other NTP servers. You might want to disable this service if you decide to use a third-party time provider.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+A reliable and accurate account of time is important for a number of services and security requirements, including but not limited to distributed applications, authentication services, multi-user databases and logging services. The use of an NTP client (with secure operation) establishes functional accuracy and is a focal point when reviewing security relevant events"
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\System\Windows Time Service\Time Providers\Enable Windows NTP Client
+
+Note: This Group Policy path is provided by the Group Policy template W32Time.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+You can set the local computer clock to synchronize time with NTP servers.
+
+Default Value:
+
+Disabled. (The local computer clock does not synchronize time with NTP servers.)
+
+References:
+
+CCE-37843-0"
+      reference   : "800-171|3.4.2,800-53|CM-6,CCE|CCE-37843-0,CN-L3|8.1.10.6(d),CSCv6|6.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\W32Time\Timeproviders\Ntpclient"
+      reg_item    : "Enabled"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9 Windows Components
+## 18.9.1 Active Directory Federation Services
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.2 ActiveX Installer Service
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.3 Add features to Windows 8 / 8.1 / 10 (formerly Windows Anytime Upgrade)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.4 App Package Deployment
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.5 App Privacy
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.6 App runtime
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.7 Application Compatibility
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.8 AutoPlay Policies
+## 18.9.9 Backup
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.10 Biometrics
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.11 BitLocker Drive Encryption
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.12 Camera
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.13 Cloud Content
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.14 Connect
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.15 Credential User Interface
+## 18.9.16 Data Collection and Preview Builds
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.17 Delivery Optimization
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.18 Desktop Gadgets
+## 18.9.19 Desktop Window Manager
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.20 Device and Driver Compatibility
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.21 Device Registration (formerly Workplace Join)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.22 Digital Locker
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.23 Edge UI
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.24 EMET
+## 18.9.25 Event Forwarding
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.26 Event Log Service
+## 18.9.26.1 Application
+## 18.9.26.2 Security
+## 18.9.26.3 Setup
+## 18.9.26.4 System
+## 18.9.27 Event Logging
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.28 Event Viewer
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.29 Family Safety (formerly Parental Controls)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.30 File Explorer (formerly Windows Explorer)
+## 18.9.30.1 Previous versions
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.31 File History
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.32 Find My Device
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.33 Game Explorer
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.34 Handwriting
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.35 HomeGroup
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.36 Import Video
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.37 Internet Explorer
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.38 Internet Information Services
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.39 Location and Sensors
+## 18.9.39.1 Windows Location Provider
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.39.2 Ensure 'Turn off location' is set to 'Enabled'"
+      info        : "This policy setting turns off the location feature for the computer.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+This setting affects the location feature (e.g. GPS or other location tracking). From a security perspective, it's not a good idea to reveal your location to software in most cases, but there are legitimate uses, such as mapping software. However, they should not be used in high security environments."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Location and Sensors\Turn off location
+
+Note: This Group Policy path may not exist by default. It is provided by the Group Policy template Sensors.admx/adml that is included with the Microsoft Windows 7 & Server 2008 R2 Administrative Templates (or newer).
+
+Impact:
+
+The location feature is turned off, and all programs on the computer are prevented from using location information from the location feature.
+
+Default Value:
+
+Disabled. (Programs on the computer are permitted to use location information from the location feature.)
+
+References:
+
+CCE-36886-0"
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Locationandsensors"
+      reg_item    : "DisableLocation"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9.40 Maintenance Scheduler
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.41 Maps
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.42 MDM
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.43 Messaging
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.44 Microsoft account
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.45 Microsoft Edge
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.46 Microsoft FIDO Authentication
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.47 Microsoft Secondary Authentication Factor
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.48 Microsoft User Experience Virtualization
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.49 NetMeeting
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.50 Network Access Protection
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.51 Network Projector
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.52 OneDrive (formerly SkyDrive)
+## 18.9.53 Online Assistance
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.54 OOBE
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.55 Password Synchronization
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.56 Portable Operating System
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.57 Presentation Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.58 Push To Install
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.59 Remote Desktop Services (formerly Terminal Services)
+## 18.9.59.1 RD Licensing (formerly TS Licensing)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.59.2 Remote Desktop Connection Client
+## 18.9.59.2.1 RemoteFX USB Device Redirection
+## 18.9.59.3 Remote Desktop Session Host (formerly Terminal Server)
+## 18.9.59.3.1 Application Compatibility
+## 18.9.59.3.2 Connections
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.59.3.2.1 Ensure 'Restrict Remote Desktop Services users to a single Remote Desktop Services session' is set to 'Enabled'"
+      info        : "This policy setting allows you to restrict users to a single Remote Desktop Services session.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+This setting ensures that users & administrators who Remote Desktop to a server will continue to use the same session - if they disconnect and reconnect, they will go back to the same session they were using before, preventing the creation of a second simultaneous session. This both prevents unnecessary resource usage by having the server host unnecessary additional sessions (which would put extra load on the server) and also ensures a consistency of experience for the user."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Connections\Restrict Remote Desktop Services users to a single Remote Desktop Services session
+
+Note: This Group Policy path is provided by the Group Policy template TerminalServer.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+Note #2: In older Microsoft Windows Administrative Templates, this setting was named Restrict Terminal Services users to a single remote session, but it was renamed starting with the Windows 7 & Server 2008 R2 Administrative Templates.
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Enabled. (Users who log on remotely by using Remote Desktop Services will be restricted to a single session (either active or disconnected) on that server. If the user leaves the session in a disconnected state, the user automatically reconnects to that session at the next logon.)
+
+References:
+
+CCE-37708-5"
+      reference   : "800-53|AC-10,CCE|CCE-37708-5,ITSG-33|AC-10,LEVEL|2S,NESA|T5.5.1"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Nt\Terminal Services"
+      reg_item    : "fSingleSessionPerUser"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9.59.3.3 Device and Resource Redirection
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.59.3.3.1 Ensure 'Do not allow COM port redirection' is set to 'Enabled'"
+      info        : "This policy setting specifies whether to prevent the redirection of data to client COM ports from the remote computer in a Remote Desktop Services session.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+In a more security-sensitive environment, it is desirable to reduce the possible attack surface. The need for COM port redirection within a Remote Desktop session is very rare, so makes sense to reduce the number of unexpected avenues for data exfiltration and/or malicious code transfer."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Device and Resource Redirection\Do not allow COM port redirection
+
+Note: This Group Policy path is provided by the Group Policy template TerminalServer.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+Users in a Remote Desktop Services session will not be able to redirect server data to local (client) COM ports.
+
+Default Value:
+
+Disabled. (Remote Desktop Services allows COM port redirection.)
+
+References:
+
+CCE-37696-2"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37696-2,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Nt\Terminal Services"
+      reg_item    : "fDisableCcm"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.59.3.3.3 Ensure 'Do not allow LPT port redirection' is set to 'Enabled'"
+      info        : "This policy setting specifies whether to prevent the redirection of data to client LPT ports during a Remote Desktop Services session.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+In a more security-sensitive environment, it is desirable to reduce the possible attack surface. The need for LPT port redirection within a Remote Desktop session is very rare, so makes sense to reduce the number of unexpected avenues for data exfiltration and/or malicious code transfer."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Device and Resource Redirection\Do not allow LPT port redirection
+
+Note: This Group Policy path is provided by the Group Policy template TerminalServer.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+
+
+Impact:
+
+Users in a Remote Desktop Services session will not be able to redirect server data to local (client) LPT ports.
+
+Default Value:
+
+Disabled. (Remote Desktop Services allows LPT port redirection.)
+
+References:
+
+CCE-37778-8"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37778-8,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Nt\Terminal Services"
+      reg_item    : "fDisableLPT"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.59.3.3.4 Ensure 'Do not allow supported Plug and Play device redirection' is set to 'Enabled'"
+      info        : "This policy setting allows you to control the redirection of supported Plug and Play devices, such as Windows Portable Devices, to the remote computer in a Remote Desktop Services session.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+In a more security-sensitive environment, it is desirable to reduce the possible attack surface. The need for Plug and Play device redirection within a Remote Desktop session is very rare, so makes sense to reduce the number of unexpected avenues for data exfiltration and/or malicious code transfer."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Device and Resource Redirection\Do not allow supported Plug and Play device redirection
+
+Note: This Group Policy path is provided by the Group Policy template TerminalServer.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+
+
+
+Impact:
+
+Users in a Remote Desktop Services session will not be able to redirect their supported (local client) Plug and Play devices to the remote computer.
+
+Default Value:
+
+Disabled. (Remote Desktop Services allows redirection of supported Plug and Play devices.)
+
+References:
+
+CCE-37477-7"
+      reference   : "800-171|3.4.6,800-171|3.4.7,800-53|CM-7,CCE|CCE-37477-7,CIP|007-6-R1,CN-L3|7.1.3.5(c),CN-L3|7.1.3.7(d),CN-L3|8.1.4.4(b),CSCv6|9.1,CSF|PR.IP-1,CSF|PR.PT-3,ITSG-33|CM-7,LEVEL|2S,NIAv2|SS13b,NIAv2|SS14a,NIAv2|SS14c,NIAv2|SS15a,PCI-DSSv3.1|2.2.2,PCI-DSSv3.1|2.2.3,PCI-DSSv3.2|2.2.2,PCI-DSSv3.2|2.2.3,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 1
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Nt\Terminal Services"
+      reg_item    : "fDisablePNPRedir"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9.59.3.4 Licensing
+## 18.9.59.3.5 Printer Redirection
+## 18.9.59.3.6 Profiles
+## 18.9.59.3.7 RD Connection Broker (formerly TS Connection Broker)
+## 18.9.59.3.8 Remote Session Environment
+## 18.9.59.3.9 Security
+## 18.9.59.3.10 Session Time Limits
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.59.3.10.1 Ensure 'Set time limit for active but idle Remote Desktop Services sessions' is set to 'Enabled: 15 minutes or less'"
+      info        : "This policy setting allows you to specify the maximum amount of time that an active Remote Desktop Services session can be idle (without user input) before it is automatically disconnected.
+
+The recommended state for this setting is: Enabled: 15 minutes or less.
+
+Rationale:
+
+This setting helps to prevent active Remote Desktop sessions from tying up the computer for long periods of time while not in use, preventing computing resources from being consumed by large numbers of inactive sessions. In addition, old, forgotten Remote Desktop sessions that are still active can cause password lockouts if the user's password has changed but the old session is still running. For systems that limit the number of connected users (e.g. servers in the default Administrative mode - 2 sessions only), other users' old but still active sessions can prevent another user from connecting, resulting in an effective denial of service."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled: 15 minutes or less:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Session Time Limits\Set time limit for active but idle Remote Desktop Services sessions
+
+Note: This Group Policy path is provided by the Group Policy template TerminalServer.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+Note #2: In older Microsoft Windows Administrative Templates, this setting was named Set time limit for active but idle Terminal Services sessions, but it was renamed starting with the Windows 7 & Server 2008 R2 Administrative Templates.
+
+Impact:
+
+Remote Desktop Services will automatically disconnect active but idle sessions after 15 minutes (or the specified amount of time). The user receives a warning two minutes before the session disconnects, which allows the user to press a key or move the mouse to keep the session active. Note that idle session time limits do not apply to console sessions.
+
+Default Value:
+
+Disabled. (Remote Desktop Services allows sessions to remain active but idle for an unlimited amount of time.)
+
+References:
+
+CCE-37562-6"
+      reference   : "800-171|3.1.11,800-53|AC-12,CCE|CCE-37562-6,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.5,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,LEVEL|2S,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : [MIN..900000]
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Nt\Terminal Services"
+      reg_item    : "MaxIdleTime"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.59.3.10.2 Ensure 'Set time limit for disconnected sessions' is set to 'Enabled: 1 minute'"
+      info        : "This policy setting allows you to configure a time limit for disconnected Remote Desktop Services sessions.
+
+The recommended state for this setting is: Enabled: 1 minute.
+
+Rationale:
+
+This setting helps to prevent active Remote Desktop sessions from tying up the computer for long periods of time while not in use, preventing computing resources from being consumed by large numbers of disconnected but still active sessions. In addition, old, forgotten Remote Desktop sessions that are still active can cause password lockouts if the user's password has changed but the old session is still running. For systems that limit the number of connected users (e.g. servers in the default Administrative mode - 2 sessions only), other users' old but still active sessions can prevent another user from connecting, resulting in an effective denial of service. This setting is important to ensure a disconnected session is properly terminated."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Enabled: 1 minute:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Session Time Limits\Set time limit for disconnected sessions
+
+Note: This Group Policy path is provided by the Group Policy template TerminalServer.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+Disconnected Remote Desktop sessions are deleted from the server after 1 minute. Note that disconnected session time limits do not apply to console sessions.
+
+Default Value:
+
+Disabled. (Disconnected Remote Desktop sessions are maintained for an unlimited time on the server.)
+
+References:
+
+CCE-37949-5"
+      reference   : "800-171|3.1.11,800-53|AC-12,CCE|CCE-37949-5,CN-L3|7.1.2.2(d),CN-L3|7.1.3.7(b),CN-L3|8.1.4.1(b),CSCv6|16.5,HIPAA|164.312(a)(2)(iii),ITSG-33|AC-12,LEVEL|2S,NIAv2|NS49,PCI-DSSv3.1|12.3.8,PCI-DSSv3.1|8.1.8,PCI-DSSv3.2|12.3.8,PCI-DSSv3.2|8.1.8"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : [MIN..60000]
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Nt\Terminal Services"
+      reg_item    : "MaxDisconnectionTime"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9.59.3.11 Temporary folders
+## 18.9.60 RSS Feeds
+## 18.9.61 Search
+## 18.9.61.1 OCR
+## 18.9.62 Security Center
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.63 Server for NIS
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.64 Shutdown Options
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.65 Smart Card
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.66 Software Protection Platform
+## 18.9.67 Sound Recorder
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.68 Speech
+## 18.9.69 Store
+## 18.9.70 Sync your settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.71 Tablet PC
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.72 Task Scheduler
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.73 Text Input
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.74 Windows Calendar
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.75 Windows Color System
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.76 Windows Customer Experience Improvement Program
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77 Windows Defender Antivirus (formerly Windows Defender)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.1 Client Interface
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.2 Exclusions
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.3 MAPS
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.77.3.1 Ensure 'Join Microsoft MAPS' is set to 'Disabled'"
+      info        : "This policy setting allows you to join Microsoft Active Protection Service (MAPS), which Microsoft has now renamed to 'Windows Defender Antivirus Cloud Protection Service'. Microsoft MAPS / Windows Defender Antivirus Cloud Protection Service is the online community that helps you choose how to respond to potential threats. The community also helps stop the spread of new malicious software infections. You can choose to send basic or additional information about detected software. Additional information helps Microsoft create new definitions and help it to protect your computer.
+
+Possible options are:
+
+(0x0) Disabled (default)
+
+(0x1) Basic membership
+
+(0x2) Advanced membership
+
+Basic membership will send basic information to Microsoft about software that has been detected including where the software came from the actions that you apply or that are applied automatically and whether the actions were successful.
+
+
+
+
+Advanced membership in addition to basic information will send more information to Microsoft about malicious software spyware and potentially unwanted software including the location of the software file names how the software operates and how it has impacted your computer.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+The information that would be sent can include things like location of detected items on your computer if harmful software was removed. The information would be automatically collected and sent. In some instances personal information might unintentionally be sent to Microsoft. However, Microsoft states that it will not use this information to identify you or contact you.
+
+For privacy reasons in high security environments, it is best to prevent these data submissions altogether."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Windows Defender Antivirus\MAPS\Join Microsoft MAPS
+
+Note: This Group Policy path may not exist by default. It is provided by the Group Policy template WindowsDefender.admx/adml that is included with the Microsoft Windows 8.1 & Server 2012 R2 Administrative Templates (or newer).
+
+Impact:
+
+None - this is the default behavior.
+
+
+
+
+Default Value:
+
+Disabled. (Microsoft MAPS / Windows Defender Antivirus Cloud Protection Service will not be joined.)"
+      reference   : "800-171|3.1.7,800-53|AC-6(10),CSF|PR.AC-4,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows Defender\Spynet"
+      reg_item    : "SpynetReporting"
+      reg_option  : CAN_BE_NULL
+    </custom_item>
+
+## 18.9.77.4 MpEngine
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.5 Network Inspection System
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.6 Quarantine
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.7 Real-time Protection
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.8 Remediation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.9 Reporting
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.10 Scan
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.11 Security Intelligence Updates (formerly Signature Updates)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.12 Threats
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.77.13 Windows Defender Exploit Guard
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.78 Windows Defender Application Guard
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.79 Windows Defender Exploit Guard
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.80 Windows Defender SmartScreen
+## 18.9.81 Windows Error Reporting
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.81.1 Advanced Error Reporting Settings
+## 18.9.81.2 Consent
+## 18.9.82 Windows Game Recording and Broadcasting
+## 18.9.83 Windows Hello for Business (formerly Microsoft Passport for Work)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.84 Windows Ink Workspace
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.85 Windows Installer
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.85.3 Ensure 'Prevent Internet Explorer security prompt for Windows Installer scripts' is set to 'Disabled'"
+      info        : "This policy setting controls whether Web-based programs are allowed to install software on the computer without notifying the user.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+Suppressing the system warning can pose a security risk and increase the attack surface on the system."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Policies\Administrative Templates\Windows Components\Windows Installer\Prevent Internet Explorer security prompt for Windows Installer scripts
+
+Note: This Group Policy path is provided by the Group Policy template MSI.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+Note #2: In older Microsoft Windows Administrative Templates, this setting was initially named Disable IE security prompt for Windows Installer scripts, but it was renamed starting with the Windows 8.0 & Server 2012 (non-R2) Administrative Templates.
+
+
+
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (When a script hosted by an Internet browser tries to install a program on the system, the system warns users and allows them to select or refuse the installation.)
+
+References:
+
+CCE-37524-6"
+      reference   : "800-53|CM-11(1),CCE|CCE-37524-6,CSCv6|7,CSF|DE.CM-3,LEVEL|2S"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Installer"
+      reg_item    : "SafeForScripting"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9.86 Windows Logon Options
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.87 Windows Mail
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.88 Windows Media Center
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.89 Windows Media Digital Rights Management
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.90 Windows Media Player
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.91 Windows Meeting Space
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.92 Windows Messenger
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.93 Windows Mobility Center
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.94 Windows Movie Maker
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.95 Windows PowerShell
+## 18.9.96 Windows Reliability Analysis
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.97 Windows Remote Management (WinRM)
+## 18.9.97.1 WinRM Client
+## 18.9.97.2 WinRM Service
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.97.2.2 Ensure 'Allow remote server management through WinRM' is set to 'Disabled'"
+      info        : "This policy setting allows you to manage whether the Windows Remote Management (WinRM) service automatically listens on the network for requests on the HTTP transport over the default HTTP port.
+
+The recommended state for this setting is: Disabled.
+
+Rationale:
+
+Any feature is a potential avenue of attack, those that enable inbound network connections are particularly risky. Only enable the use of the Windows Remote Management (WinRM) service on trusted networks and when feasible employ additional controls such as IPsec."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Administrative Templates\Windows Components\Windows Remote Management (WinRM)\WinRM Service\Allow remote server management through WinRM
+
+Note: This Group Policy path is provided by the Group Policy template WindowsRemoteManagement.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+Note #2: In older Microsoft Windows Administrative Templates, this setting was initially named Allow automatic configuration of listeners, but it was renamed starting with the Windows 8.0 & Server 2012 (non-R2) Administrative Templates.
+
+
+Impact:
+
+None - this is the default behavior.
+
+Default Value:
+
+Disabled. (The WinRM service will not respond to requests from a remote computer, regardless of whether or not any WinRM listeners are configured.)
+
+References:
+
+CCE-37927-1"
+      reference   : "800-171|3.1.15,800-171|3.1.2,800-53|AC-17(4),CSCv6|3.4,CSF|PR.AC-3,CSF|PR.PT-4,ITSG-33|AC-17(4),LEVEL|2S,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Winrm\Service"
+      reg_item    : "AllowAutoConfig"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9.98 Windows Remote Shell
+
+    <custom_item>
+      type        : REGISTRY_SETTING
+      description : "18.9.98.1 Ensure 'Allow Remote Shell Access' is set to 'Disabled'"
+      info        : "This policy setting allows you to manage configuration of remote access to all supported shells to execute scripts and commands.
+
+The recommended state for this setting is: Disabled.
+
+Note: The GPME help text for this setting is incorrectly worded, implying that configuring it to Enabled will reject new Remote Shell connections, and setting it to Disabled will allow Remote Shell connections. The opposite is true (and is consistent with the title of the setting). This is a wording mistake by Microsoft in the Administrative Template.
+
+Rationale:
+
+Any feature is a potential avenue of attack, those that enable inbound network connections are particularly risky. Only enable the use of the Windows Remote Shell on trusted networks and when feasible employ additional controls such as IPsec."
+      solution    : "To establish the recommended configuration via GP, set the following UI path to Disabled:
+
+Computer Configuration\Administrative Templates\Windows Components\Windows Remote Shell\Allow Remote Shell Access
+
+Note: This Group Policy path is provided by the Group Policy template WindowsRemoteShell.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+New Remote Shell connections are not allowed and are rejected by the server.
+
+Note: On Server 2012 (non-R2) and newer, due to design changes in the OS after Server 2008 R2, configuring this setting as prescribed will prevent the ability to add or remove Roles and Features (even locally) via the GUI. We therefore recommend that the necessary Roles and Features be installed prior to configuring this setting on a Level 2 server. Alternatively, Roles and Features can still be added or removed using the PowerShell commands Add-WindowsFeature or Remove-WindowsFeature in the Server Manager module, even with this setting configured.
+
+Default Value:
+
+Enabled. (New Remote Shell connections are allowed.)
+
+References:
+
+CCE-36499-2"
+      reference   : "800-53|AC-6(3),CCE|CCE-36499-2,CSCv6|3.4,CSF|PR.AC-4,ISO/IEC-27001|A.9.1.2,ISO/IEC-27001|A.9.4.4,ITSG-33|AC-6(3),LEVEL|2S,NESA|T5.1.1,NESA|T5.5.4,SWIFT-CSCv1|5.1"
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+      value_type  : POLICY_DWORD
+      value_data  : 0
+      reg_key     : "HKLM\Software\Policies\Microsoft\Windows\Winrm\Service\Winrs"
+      reg_item    : "AllowRemoteShellAccess"
+      reg_option  : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 18.9.99 Windows Security (formerly Windows Defender Security Center)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.100 Windows SideShow
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.101 Windows System Resource Manager
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 18.9.102 Windows Update
+## 18.9.102.1 Windows Update for Business (formerly Defer Windows Updates)
+## 19 Administrative Templates (User)
+## 19.1 Control Panel
+## 19.1.1 Add or Remove Programs
+## 19.1.2 Display
+## 19.1.3 Personalization (formerly Desktop Themes)
+## 19.2 Desktop
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.3 Network
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.4 Shared Folders
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.5 Start Menu and Taskbar
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.6 System
+## 19.6.1 Ctrl+Alt+Del Options
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.6.2 Display
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.6.3 Driver Installation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.6.4 Folder Redirection
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.6.5 Group Policy
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.6.6 Internet Communication Management
+## 19.6.6.1 Internet Communication settings
+
+    <custom_item>
+      type                 : REGISTRY_SETTING
+      description          : "19.6.6.1.1 Ensure 'Turn off Help Experience Improvement Program' is set to 'Enabled'"
+      info                 : "This policy setting specifies whether users can participate in the Help Experience Improvement program. The Help Experience Improvement program collects information about how customers use Windows Help so that Microsoft can improve it.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+Large enterprise managed environments may not want to have information collected by Microsoft from managed client computers."
+      solution             : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+User Configuration\Policies\Administrative Templates\System\Internet Communication Management\Internet Communication Settings\Turn off Help Experience Improvement Program
+
+Note: This Group Policy path is provided by the Group Policy template HelpAndSupport.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+Users cannot participate in the Help Experience Improvement program.
+
+Default Value:
+
+Disabled. (Users can turn on the Help Experience Improvement program feature from the Help and Support settings page.)
+
+References:
+
+CCE-37542-8"
+      reference            : "800-171|3.1.7,800-53|AC-6(10),CCE|CCE-37542-8,CSCv6|13,CSF|PR.AC-4,LEVEL|2S"
+      see_also             : "https://workbench.cisecurity.org/files/2696"
+      value_type           : POLICY_DWORD
+      value_data           : 1
+      reg_key              : "HKU\Software\Policies\Microsoft\Assistance\Client\1.0"
+      reg_item             : "NoImplicitFeedback"
+      reg_ignore_hku_users : "S-1-5-18,S-1-5-19,S-1-5-20,S-1-5-80-*"
+      reg_option           : CAN_NOT_BE_NULL
+    </custom_item>
+
+## 19.7 Windows Components
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.1 Add features to Windows 8 / 8.1 / 10 (formerly Windows Anytime Upgrade)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.2 App runtime
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.3 Application Compatibility
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.4 Attachment Manager
+## 19.7.5 AutoPlay Policies
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.6 Backup
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.7 Cloud Content
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.8 Credential User Interface
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.9 Data Collection and Preview Builds
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.10 Desktop Gadgets
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.11 Desktop Window Manager
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.12 Digital Locker
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.13 Edge UI
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.14 File Explorer (formerly Windows Explorer)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.15 File Revocation
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.16 IME
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.17 Import Video
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.18 Instant Search
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.19 Internet Explorer
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.20 Location and Sensors
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.21 Microsoft Edge
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.22 Microsoft Management Console
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.23 Microsoft User Experience Virtualization
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.24 NetMeeting
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.25 Network Projector
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.26 Network Sharing
+## 19.7.27 OOBE
+## 19.7.28 Presentation Settings
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.29 Remote Desktop Services (formerly Terminal Services)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.30 RSS Feeds
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.31 Search
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.32 Sound Recorder
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.33 Store
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.34 Tablet PC
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.35 Task Scheduler
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.36 Windows Calendar
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.37 Windows Color System
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.38 Windows Defender SmartScreen
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.39 Windows Error Reporting
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.40 Windows Hello for Business (formerly Microsoft Passport for Work)
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.41 Windows Installer
+## 19.7.42 Windows Logon Options
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.43 Windows Mail
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.44 Windows Media Center
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.45 Windows Media Player
+## 19.7.45.1 Networking
+## This section is intentionally blank and exists to ensure the structure of Windows benchmarks is consistent.
+## 19.7.45.2 Playback
+
+    <custom_item>
+      type                 : REGISTRY_SETTING
+      description          : "19.7.45.2.1 Ensure 'Prevent Codec Download' is set to 'Enabled'"
+      info                 : "This setting controls whether Windows Media Player is allowed to download additional codecs for decoding media files it does not already understand.
+
+The recommended state for this setting is: Enabled.
+
+Rationale:
+
+This has some potential for risk if a malicious data file is opened in Media Player that requires an additional codec to be installed. If a special codec is required for a necessary job function, then that codec should first be tested to ensure it is legitimate, and it should be supplied by the IT department in the organization."
+      solution             : "To establish the recommended configuration via GP, set the following UI path to Enabled:
+
+User Configuration\Policies\Administrative Templates\Windows Components\Windows Media Player\Playback\Prevent Codec Download
+
+Note: This Group Policy path is provided by the Group Policy template WindowsMediaPlayer.admx/adml that is included with all versions of the Microsoft Windows Administrative Templates.
+
+Impact:
+
+Windows Media Player is prevented from automatically downloading codecs to your computer. In addition, the Download codecs automatically check box on the Player tab in the Player is not available.
+
+Default Value:
+
+Users can change the setting for the Download codecs automatically check box.
+
+References:
+
+CCE-37445-4"
+      reference            : "800-171|3.13.13,800-53|SC-18(3),CCE|CCE-37445-4,CSCv6|2,CSF|DE.CM-5,ITSG-33|SC-18(3),LEVEL|2S,NIAv2|NS26f"
+      see_also             : "https://workbench.cisecurity.org/files/2696"
+      value_type           : POLICY_DWORD
+      value_data           : 1
+      reg_key              : "HKU\Software\Policies\Microsoft\Windowsmediaplayer"
+      reg_item             : "PreventCodecDownload"
+      reg_ignore_hku_users : "S-1-5-18,S-1-5-19,S-1-5-20,S-1-5-80-*"
+      reg_option           : CAN_NOT_BE_NULL
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "CIS_MS_Windows_Server_2008_R2_DC_Level_2_v3.2.0.audit from CIS MS Windows Server 2008 R2 Benchmark v3.2.0"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/2696"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>

@@ -1,0 +1,216 @@
+#
+# This script is Copyright (C) 2004-2020 and is owned by Tenable, Inc. or an Affiliate thereof.
+#
+# This script is released under the Tenable Subscription License and
+# may not be used from within scripts released under another license
+# without authorization from Tenable, Inc.
+#
+# See the following licenses for details:
+#
+# http://static.tenable.com/prod_docs/Nessus_6_SLA_and_Subscription_Agreement.pdf
+#
+# @PROFESSIONALFEED@
+# $Revision: 1.9 $
+# $Date: 2020/04/22 $
+#
+# Description : This audit is based on the Security Configuration Benchmark For MySQL 5.7 Enterprise Editions
+#             Version 1.0.0 March 28, 2016
+#             https://workbench.cisecurity.org/files/1619
+#
+#<ui_metadata>
+#<display_name>CIS MySQL 5.7 Enterprise Database L2 v1.0.0</display_name>
+#<spec>
+#  <type>CIS</type>
+#  <name>MySQL 5.7 Enterprise Database L2</name>
+#  <version>1.0.0</version>
+#  <link>https://workbench.cisecurity.org/files/1619</link>
+#</spec>
+#<labels>database,cis,mysql,mysql_5,mysql_5.7,mysql_5.7_enterprise</labels>
+#<benchmark_refs>LEVEL</benchmark_refs>
+#</ui_metadata>
+
+<check_type:"Database" db_type:"MySQL" version:"1">
+<group_policy:"MySQL CIS 1.0.0">
+
+<if>
+  <condition type:"AND">
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "MySQL 5.7 is installed"
+      sql_request  : "show variables like 'version' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "version", regex:"5\.7"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+
+    <custom_item>
+      type         : SQL_POLICY
+      description  : "MySQL 5.7 Enterprise Edition is installed"
+      sql_request  : "show variables like 'license' ;"
+      sql_types    : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect   : "license", "Commercial"
+      check_option : CAN_NOT_BE_NULL
+    </custom_item>
+  </condition>
+
+  <then>
+    <report type:"PASSED">
+      description : "MySQL 5.7 Enterprise Edition is installed"
+    </report>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "5.3 Ensure 'process_priv' Is Not Set to 'Y' for Non-Administrative Users"
+      info        : "The PROCESS privilege allows principals to view currently executing MySQL statements beyond their own, including statements used to manage passwords. This may be leveraged by an attacker to compromise MySQL or to gain access to potentially sensitive data."
+      solution    : "Perform the following steps to remediate this setting: Enumerate the non-administrative users found in the result set of the audit procedure For each user, issue the following SQL statement (replace '<user>' with the non-administrative user: REVOKE PROCESS ON *.* FROM '<user>'; Impact: Users denied the PROCESS privilege may also be denied use of SHOW ENGINE ."
+      reference   : "800-171|3.1.5,800-53|AC-6(5),CN-L3|8.1.10.6(a),CSCv6|5.1,CSF|PR.AC-4,ISO/IEC-27001|A.9.2.3,ITSG-33|AC-6(5),LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.6.1,NIAv2|AM32,NIAv2|AM33,NIAv2|VL3a,SWIFT-CSCv1|1.2"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "select user, host from mysql.user where Process_priv = 'Y' ;"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "root", regex:".+"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "6.3 Ensure 'log_warnings' Is Set to '2'"
+      info        : "This might help to detect malicious behavior by logging communication errors and aborted connections."
+      solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Ensure the following line is found in the mysqld section log-warnings = 2"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SHOW GLOBAL VARIABLES LIKE 'log_warnings';"
+      sql_types   : POLICY_VARCHAR, POLICY_INTEGER
+      sql_expect  : "log_warnings", "2"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "6.9 Ensure audit_log_policy is set to log logins and connections"
+      info        : "If this setting is set to QUERIES, CONNECTIONS or NONE then either connections or queries are not written to the audit log file."
+      solution    : "Set audit_log_policy='ALL' in the MySQL configuration file and activate the setting by restarting the server or executing SET GLOBAL audit_log_policy='ALL';"
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SHOW variables LIKE 'audit_log_policy';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "audit_log_policy", "ALL"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "6.10 Ensure audit_log_statement_policy is set to ALL"
+      info        : "This setting must be set to ALL to ensure all statement information is written to the audit log."
+      solution    : "Add this to the mysqld section of the mysql configuration file and restart the server: audit_log_statement_policy='ALL' Impact: If this is not set to ALL then audit events related to statements won't be written to the audit log file."
+      reference   : "800-171|3.3.1,800-171|3.3.2,800-53|AU-12,CN-L3|7.1.3.3(a),CN-L3|7.1.3.3(b),CN-L3|7.1.3.3(c),CN-L3|8.1.3.5(a),CN-L3|8.1.3.5(b),CN-L3|8.1.4.3(a),CSF|DE.CM-1,CSF|DE.CM-3,CSF|DE.CM-7,CSF|PR.PT-1,ISO/IEC-27001|A.12.4.1,ITSG-33|AU-12,LEVEL|2S,NESA|T3.6.2,NESA|T3.6.5,NESA|T3.6.6,NIAv2|SM8,SWIFT-CSCv1|6.4,TBA-FIISB|45.1.1"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SHOW variables LIKE 'audit_log_statement_policy';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "audit_log_statement_policy", "ALL"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "6.11 Set audit_log_strategy to SYNCHRONOUS or SEMISYNCRONOUS"
+      info        : "This setting controls how information is written to the audit log. It can be set to SYNCHRONOUS to make it fully durable or other settings which are less durable but have less performance overhead."
+      solution    : "To remediate this configuration: Open the MySQL configuration file (my.cnf) Navigate to the mysqld section of the configuration file Set audit_log_strategy='SEMISYNCHRONOUS' (or SYNCHRONOUS) Impact: If this setting is set to PERFORMANCE or ASYNCHRONOUS audit events might be lost in case of a crash or when the server somehow can't write to the audit log file."
+      reference   : "800-171|3.3.8,800-53|AU-9,CN-L3|7.1.2.3(d),CN-L3|7.1.3.3(f),CN-L3|8.1.3.5(c),CN-L3|8.1.4.3(c),CSF|PR.PT-1,ISO/IEC-27001|A.12.4.2,ITSG-33|AU-9,LEVEL|2S,NESA|M5.2.3,NESA|M5.5.2,NESA|T3.6.4,NESA|T8.2.9,NIAv2|SM5,NIAv2|SM6"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SHOW variables LIKE 'audit_log_strategy';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "audit_log_strategy", regex:"^(SYNCHRONOUS|SEMISYNCHRONOUS)"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "7.2 Ensure 'secure_auth' is set to 'ON'"
+      info        : "Enabling this option will prevent all use of passwords employing the old format (and hence insecure communication over the network)."
+      solution    : "Add the following line to [mysqld] portions of the MySQL option file to establish the recommended state: secure_auth=ON Impact: Accounts having credentials stored using the old password format will be unable to login. Execute the following command to identify accounts that will be impacted by implementing this setting: SELECT User,Host FROM mysql.user WHERE plugin='mysql_old_password';"
+      reference   : "800-171|3.13.11,800-171|3.5.10,800-53|IA-5(1),800-53|SC-13,CSCv6|16.13,CSCv6|16.14,CSF|PR.AC-1,CSF|PR.DS-5,ISO/IEC-27001|A.10.1.1,ITSG-33|IA-5(1),ITSG-33|SC-13,LEVEL|2S,NESA|M5.2.6,NESA|T5.2.3,NESA|T7.4.1,NIAv2|CY3,NIAv2|CY4,NIAv2|CY5b,NIAv2|CY5c,NIAv2|CY5d,NIAv2|CY6,NIAv2|CY7,NIAv2|NS5e,PCI-DSSv3.1|8.2.1,PCI-DSSv3.2|8.2.1,SWIFT-CSCv1|4.1,TBA-FIISB|26.1"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SHOW VARIABLES WHERE Variable_name = 'secure_auth';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "secure_auth","ON"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "7.4 Ensure 'sql_mode' Contains 'NO_AUTO_CREATE_USER' - '@@global.sql_mode'"
+      info        : "Blank passwords negate the benefits provided by authentication mechanisms. Without this setting an administrative user might accidentally create a user without a password."
+      solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the sql_mode setting in the [mysqld] area Add the NO_AUTO_CREATE_USER to the sql_mode setting"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "select @@global.sql_mode ;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : regex:"NO_AUTO_CREATE_USER"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "7.4 Ensure 'sql_mode' Contains 'NO_AUTO_CREATE_USER' - '@@session.sql_mode'"
+      info        : "Blank passwords negate the benefits provided by authentication mechanisms. Without this setting an administrative user might accidentally create a user without a password."
+      solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Find the sql_mode setting in the [mysqld] area Add the NO_AUTO_CREATE_USER to the sql_mode setting"
+      reference   : "800-171|3.1.5,800-53|AC-6,CN-L3|7.1.3.2(b),CN-L3|7.1.3.2(g),CN-L3|8.1.10.6(a),CN-L3|8.1.4.2(d),CSF|PR.AC-4,CSF|PR.DS-5,ITSG-33|AC-6,LEVEL|2S,NESA|T5.1.1,NESA|T5.2.2,NESA|T5.4.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.3,NIAv2|AM1,NIAv2|AM23f,NIAv2|SS13c,NIAv2|SS15c,PCI-DSSv3.1|7.1.2,PCI-DSSv3.2|7.1.2,SWIFT-CSCv1|5.1,TBA-FIISB|31.4.2,TBA-FIISB|31.4.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "select @@session.sql_mode ;"
+      sql_types   : POLICY_VARCHAR
+      sql_expect  : regex:"NO_AUTO_CREATE_USER"
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "7.5 Ensure Passwords Are Set for All MySQL Accounts"
+      info        : "Without a password only knowing the username and the list of allowed hosts will allow someone to connect to the server and assume the identity of the user. This, in effect, bypasses authentication mechanisms."
+      solution    : "For each row returned from the audit procedure, set a password for the given user using the following statement (as an example): SET PASSWORD FOR <user>@'<host>' = PASSWORD('<clear password>') NOTE: Replace <user>, <host>, and <clear password> with appropriate values."
+      reference   : "800-171|3.5.7,800-53|IA-5(1),CIP|007-6-R5,CN-L3|7.1.2.7(e),CN-L3|7.1.3.1(b),CSF|PR.AC-1,HIPAA|164.308(a)(5)(ii)(D),ISO/IEC-27001|A.9.4.3,ITSG-33|IA-5(1),LEVEL|2S,NESA|T5.2.3,NIAv2|AM19a,NIAv2|AM19b,NIAv2|AM19c,NIAv2|AM19d,NIAv2|AM22a,PCI-DSSv3.1|8.2.3,PCI-DSSv3.2|8.2.3,SWIFT-CSCv1|4.1,TBA-FIISB|26.2.1,TBA-FIISB|26.2.4"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SELECT User,host FROM mysql.user WHERE authentication_string='';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : NULL, NULL
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "7.7 Ensure No Users Have Wildcard Hostnames"
+      info        : "Avoiding the use of wildcards within hostnames helps control the specific locations from which a given user may connect to and interact with the database."
+      solution    : "Perform the following actions to remediate this setting: Enumerate all users returned after running the audit procedure Either ALTER the user's host to be specific or DROP the user"
+      reference   : "800-171|3.1.1,800-53|AC-3,CN-L3|8.1.10.2(c),CN-L3|8.1.4.11(b),CN-L3|8.1.4.2(f),CN-L3|8.5.3.1,CN-L3|8.5.4.1(a),CSF|PR.AC-4,CSF|PR.PT-3,ISO/IEC-27001|A.9.4.1,ISO/IEC-27001|A.9.4.5,ITSG-33|AC-3,LEVEL|2S,NESA|T4.2.1,NESA|T5.4.4,NESA|T5.4.5,NESA|T5.5.4,NESA|T5.6.1,NESA|T7.5.2,NESA|T7.5.3,NIAv2|AM3,NIAv2|SS29,TBA-FIISB|31.1"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "select user,host from mysql.user where host = '%' ;"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : NULL, NULL
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "7.8 Ensure No Anonymous Accounts Exist"
+      info        : "Removing anonymous accounts will help ensure that only identified and trusted principals are capable of interacting with MySQL."
+      solution    : "Perform the following actions to remediate this setting: Enumerate the anonymous users returned from executing the audit procedure For each anonymous user, DROP or assign them a name NOTE: As an alternative, you may execute the mysql_secure_installation utility. Impact: Any applications relying on anonymous database access will be adversely affected by this change."
+      reference   : "800-53|AC-14,ITSG-33|AC-14,LEVEL|2S,NESA|T5.6.1"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SELECT user,host FROM mysql.user WHERE user = '';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : NULL,NULL
+    </custom_item>
+
+    <custom_item>
+      type        : SQL_POLICY
+      description : "9.3 Ensure 'master_info_repository' Is Set to 'TABLE'"
+      info        : "The password which the client uses is stored in the master info repository, which by default is a plaintext file. The TABLE master info repository is a bit safer, but with filesystem access it's still possible to gain access to the password the slave is using."
+      solution    : "Perform the following actions to remediate this setting: Open the MySQL configuration file (my.cnf) Locate master_info_repository Set the master_info_repository value to TABLE NOTE: If master_info_repository does not exist, add it to the configuration file."
+      reference   : "800-171|3.4.2,800-53|CM-6,CN-L3|8.1.10.6(d),CSCv6|3.1,CSF|PR.IP-1,ITSG-33|CM-6,LEVEL|2S,NESA|T3.2.1,PCI-DSSv3.1|2.2.4,PCI-DSSv3.2|2.2.4,SWIFT-CSCv1|2.3"
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+      sql_request : "SHOW GLOBAL VARIABLES LIKE 'master_info_repository';"
+      sql_types   : POLICY_VARCHAR, POLICY_VARCHAR
+      sql_expect  : "master_info_repository", "TABLE"
+    </custom_item>
+  </then>
+
+  <else>
+    <report type:"WARNING">
+      description : "MySQL 5.7 Enterprise Edition is installed"
+      info        : "NOTE: Nessus has not identified that the chosen audit applies to the target device."
+      see_also    : "https://workbench.cisecurity.org/files/1619"
+    </report>
+  </else>
+</if>
+
+</group_policy>
+</check_type>
