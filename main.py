@@ -1,13 +1,15 @@
 from tkinter import *
 from tkinter.ttk import *
 from tkinter import filedialog
+from tkinter import Tk, IntVar, Checkbutton, Button, W
 import tkinter as tk
 import requests
 import tarfile
 import json
 import os
+import glob
 
-global fname
+global filename1
 global file_title
 global file_content
 global logo_image
@@ -45,6 +47,7 @@ global logo_image
 root = tk.Tk()
 root.title("Security Benchmarking Tool")
 root.geometry("700x500")
+root.resizable(False, False)
 
 
 def file_parser(filename):
@@ -74,12 +77,6 @@ def file_parser(filename):
     file_2.close()
     re.purge()
 
-    file_2 = open('AU_file.json', "w")
-    file_2.write(json.dumps(audit_dict))
-    file.close()
-    file_2.close()
-    re.purge()
-
 
 def title_box(filename):
     adder = f'{filename}'
@@ -87,8 +84,8 @@ def title_box(filename):
 
 
 def content_box():
-    ma_file = open('AU_file.json', "r").read()
-    data = json.loads(ma_file)
+    AU_file = open('AU_file.json', "r").read()
+    data = json.loads(AU_file)
     adder = f''
     for key in data:
         adder += data[key]['description']
@@ -99,9 +96,9 @@ def content_box():
 def open_file():
     title = "Select Audit File"
     filetypes = (('Audit files', '.audit'), ('all files', '.*'))
-    fname = filedialog.askopenfilename(initialdir='C:\\Users\Asus\Desktop\portal_audits\Windows', title=title, filetypes=filetypes)
-    filename = fname.split('/')[-1]
-    file_parser(fname)
+    this_file = filedialog.askopenfilename(initialdir='C:\\Users\Asus\Desktop\portal_audits\Windows', title=title, filetypes=filetypes)
+    filename = this_file.split('/')[-1]
+    file_parser(this_file)
     title_box(filename)
     content_box()
 
@@ -110,7 +107,7 @@ def save_file():
     filename = filedialog.asksaveasfilename(initialdir=".", title='Save Audit File', defaultextension='.audit')
     if filename is None:
         return
-    os.system(fname, filename)
+    os.system(filename1, filename)
 
 
 def open_help():
@@ -119,8 +116,7 @@ def open_help():
     help_root.geometry("520x430")
     logo = Label(help_root, text="", image=logo_image)
     logo.place(x=1, y=1)
-    greetings = Label(help_root,
-                      text="As we are still developing this app, there is no need (yet) for this section to be completed.")
+    greetings = Label(help_root, text="As we are still developing this app, there is no need (yet) for this section to be completed.")
     greetings.place(x=20, y=215)
     help_root.config()
 
@@ -145,8 +141,9 @@ def find_text():
             lastidx = '%s+%dc' % (idx, len(s))
             file_content.tag_add('found', idx, lastidx)
             idx = lastidx
-    file_content.tag_config('found', foreground='red')
+    file_content.tag_config('found', foreground='#e68a00')
     text_search.focus_set()
+
 
 menu_bar = Menu(root, background='#d8dada', foreground='black', activebackground='#e68a00', activeforeground='black')
 root.config(menu=menu_bar)
@@ -172,10 +169,10 @@ help_menu.add_command(label="About", command=open_about)
 display = Label(root, text='File:', background='#575b59', foreground='white', font=("Helvetica", 15))
 display.place(x=5, y=8)
 
-file_title = Text(bg='white', foreground='#575b59')
-file_title.place(x=50, y=10, height=30, width=640)
+file_title = Text(bg='white', foreground='#575b59', cursor='arrow')
+file_title.place(x=50, y=10, height=27, width=640)
 
-button_search = Button(root, text='Find')
+button_search = Button(root, text='Find', background='#e68a00', activebackground='#e68a00', foreground='black')
 button_search.place(x=640, y=45, height=25, width=50)
 button_search.config(command=find_text)
 
@@ -183,8 +180,11 @@ text_search = Entry(root, foreground='#575b59', font=("Helvetica", 10))
 text_search.place(x=50, y=45, height=25, width=585)
 text_search.focus_set()
 
-file_content = Text(root, background='white', foreground='#575b59')
+file_content = Text(root, background='white', foreground='#575b59',  cursor='arrow')
 file_content.place(x=50, y=90, height=400, width=640)
+scroll_bar = Scrollbar(root, command=file_content.yview)
+file_content.configure(yscrollcommand=scroll_bar.set)
+scroll_bar.pack(side="right")
 
 photo = PhotoImage(file=r"logo.png")
 logo_image = photo.subsample(1, 1)
