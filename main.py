@@ -14,34 +14,34 @@ global file_title
 global file_content
 global logo_image
 
-# downloadUrl = 'https://www.tenable.com/downloads/api/v1/public/pages/download-all-compliance-audit-files/downloads/7472/download?i_agree_to_tenable_license_agreement=true'
-#
-# req = requests.get(downloadUrl)
-# filename = req.url[downloadUrl.rfind('/') + 1:]
-#
-#
-# def download_file(url, file_name=''):
-#     try:
-#         if file_name:
-#             pass
-#         else:
-#             file_name = req.url[downloadUrl.rfind('/') + 1:]
-#
-#         with requests.get(url) as req:
-#             with open(file_name, 'wb') as f:
-#                 for chunk in req.iter_content(chunk_size=8192):
-#                     if chunk:
-#                         f.write(chunk)
-#             return file_name
-#     except Exception as e:
-#         print(e)
-#         return None
-#
-#
-# def exctract_file():
-#     download_file(downloadUrl, 'audits.tar.gz')
-#     tar = tarfile.open('audits.tar.gz')
-#     tar.extractall()
+downloadUrl = 'https://www.tenable.com/downloads/api/v1/public/pages/download-all-compliance-audit-files/downloads/7472/download?i_agree_to_tenable_license_agreement=true'
+
+req = requests.get(downloadUrl)
+filename = req.url[downloadUrl.rfind('/') + 1:]
+
+
+def download_file(url, file_name=''):
+    try:
+        if file_name:
+            pass
+        else:
+            file_name = req.url[downloadUrl.rfind('/') + 1:]
+
+        with requests.get(url) as req:
+            with open(file_name, 'wb') as f:
+                for chunk in req.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            return file_name
+    except Exception as e:
+        print(e)
+        return None
+
+
+def exctract_file():
+    download_file(downloadUrl, 'audits.tar.gz')
+    tar = tarfile.open('audits.tar.gz')
+    tar.extractall()
 
 
 root = tk.Tk()
@@ -154,8 +154,7 @@ menu_bar.add_cascade(label="SBT", menu=menu_logo)
 file_menu = Menu(menu_bar, tearoff=0, background='#d8dada', foreground='black', activebackground='#e68a00', activeforeground='black')
 
 menu_bar.add_cascade(label="File", menu=file_menu)
-file_menu.add_command(label="Download")
-                      # command=lambda: [download_file(downloadUrl), exctract_file()])
+file_menu.add_command(label="Download", command=lambda: [download_file(downloadUrl), exctract_file()])
 file_menu.add_command(label="Import", command=lambda: open_file())
 file_menu.add_command(label="Save as", command=lambda: save_file())
 file_menu.add_separator()
